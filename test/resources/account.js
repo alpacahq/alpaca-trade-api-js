@@ -14,6 +14,6 @@ describe('account resource', function() {
         secretKey: process.env.APCA_API_SECRET_KEY,
       });
       expect(alpaca.getAccount()).to.eventually.include('id').notify(done);
-    })
+    });
   });
 });

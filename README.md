@@ -39,11 +39,13 @@ npm install --save alpaca-trade-api
 ## Methods
 
 ### Account API
-* `getAccount()`: Calls `GET /account` and returns an account.
+* `getAccount()`: Calls `GET /account` and returns the current account.
 
 ### Orders API
 
 ### Positions API
+* `getPositions()`: Calls `GET /positions` and returns all positions.
+* `getPosition(symbol)`: Calls `GET /positions/{symbol}` and returns a position.
 
 ### Assets API
 
