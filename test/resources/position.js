@@ -18,7 +18,7 @@ describe('position resource', function() {
   });
 
   describe('getOne', function() {
-    it('returns 422 error if unknown symbol is used', async function() {
+    it('returns 422 error if unknown symbol is used', function(done) {
       const fakeSymbol = 'I don\'t exist!';
       const alpaca = require('../..')
       alpaca.configure({
@@ -27,11 +27,7 @@ describe('position resource', function() {
         secretKey: process.env.APCA_API_SECRET_KEY,
       });
 
-      try {
-        await alpaca.getPosition(fakeSymbol)
-      } catch (error) {
-        expect(error.statusCode).to.equal(422);
-      }
+      expect(alpaca.getPosition(fakeSymbol)).to.be.rejectedWith('422').and.notify(done);
     });
 
     it('returns valid results if valid symbol is used; otherwise, 422', async function() {
