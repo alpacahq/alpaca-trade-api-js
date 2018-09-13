@@ -1,0 +1,35 @@
+{
+  "name": "alpaca-trade-api",
+  "version": "0.0.1",
+  "description": "Node.js library for Alpaca Trade API",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --recursive --timeout 4s"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alpacahq/alpaca-trade-api-js.git"
+  },
+  "keywords": [
+    "Alpaca",
+    "Trading"
+  ],
+  "author": "Jenya Tkachenko <jekatka@outlook.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/alpacahq/alpaca-trade-api-js/issues"
+  },
+  "homepage": "https://alpaca.markets/",
+  "dependencies": {
+    "dotenv": "^6.0.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2",
+    "urljoin": "^0.1.5"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^5.2.0",
+    "sinon": "^6.2.0"
+  }
+}
