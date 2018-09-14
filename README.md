@@ -50,3 +50,4 @@ npm install --save alpaca-trade-api
 ### Assets API
 
 ### Calendar API
+* `getCalendar(start, end)`: Calls `GET /calendar` and returns the market calendar.
