@@ -19,7 +19,7 @@ npm install --save alpaca-trade-api
   ```js
   var alpaca = require('alpaca-trade-api');
   ```
-* Set API config options (base_url, key_id, secret_key).
+* Set API config options (baseUrl, keyId, secretKey).
 
   ```js
   alpaca.configure({

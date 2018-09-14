@@ -3,10 +3,9 @@
 require('./testUtils');
 
 const expect = require('chai').expect;
-const configuration = require('../lib/configuration');
-const api = require('../lib/api');
+const alpaca = require('../lib/alpaca-trade-api');
 
-describe('api', function() {
+describe('alpaca-trade-api', function() {
   describe('configure', function() {
     it('sets the configuration variables correctly', function() {
       const testConfig = {
@@ -14,8 +13,8 @@ describe('api', function() {
         keyId: 'test_id',
         secretKey: 'test_secret',
       };
-      api.configure(testConfig);
-      expect(configuration).to.deep.equal(testConfig);
+      alpaca.configure(testConfig);
+      expect(alpaca.configuration).to.deep.equal(testConfig);
     });
   });
 });
