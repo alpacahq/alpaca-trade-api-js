@@ -4,7 +4,7 @@ require('../testUtils');
 
 const expect = require('chai').expect;
 
-const alpaca = require('../..')
+const alpaca = require('../../lib/alpaca-trade-api')
 
 alpaca.configure({
   baseUrl: process.env.APCA_API_BASE_URL,
