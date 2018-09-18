@@ -42,6 +42,11 @@ npm install --save alpaca-trade-api
 * `getAccount()`: Calls `GET /account` and returns the current account.
 
 ### Orders API
+* `getOrders(status, until, limit)`: Calls `GET /orders` and returns a list of orders.
+* `getOrder(id)`: Calls `GET /orders/{id}` and returns an order.
+* `getOrderByClientOrderId(clientOrderId)`: Calls `GET /orders:by_client_order_id` and returns an order by client_order_id.
+* `createOrder(order)`: Calls `POST /orders` and creates a new order.
+* `cancelOrder(id)`: Calls `DELETE /orders/{id}` and deletes an order.
 
 ### Positions API
 * `getPositions()`: Calls `GET /positions` and returns all positions.
