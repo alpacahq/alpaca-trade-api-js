@@ -35,6 +35,43 @@ npm install --save alpaca-trade-api
     console.log('Current Account:', account);
   })
   ```
+* Websocket example
+
+  ```js
+  const client = new alpaca.websockets.client();
+  client.onConnect(function() {
+    console.log("Connected");
+    client.subscribe(['trade_updates', 'account_updates', 'T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL']);
+    setTimeout(() => {
+      client.disconnect();
+    }, 30 * 1000);
+  });
+  client.onDisconnect(() => {
+    console.log("Disconnected");
+  });
+  client.onStateChange(newState => {
+    console.log(`State changed to ${newState}`);
+  });
+  client.onOrderUpdate(data => {
+    console.log(`Order updates: ${JSON.stringify(data)}`);
+  });
+  client.onAccountUpdate(data => {
+    console.log(`Account updates: ${JSON.stringify(data)}`);
+  });
+  client.onStockTrades(function(subject, data) {
+    console.log(`Stock trades: ${subject}, ${data}`);
+  });
+  client.onStockQuotes(function(subject, data) {
+    console.log(`Stock quotes: ${subject}, ${data}`);
+  });
+  client.onStockAggSec(function(subject, data) {
+    console.log(`Stock agg sec: ${subject}, ${data}`);
+  });
+  client.onStockAggMin(function(subject, data) {
+    console.log(`Stock agg min: ${subject}, ${data}`);
+  });
+  client.connect();
+  ```
 
 ## Methods
 
@@ -58,3 +95,17 @@ npm install --save alpaca-trade-api
 
 ### Calendar API
 * `getCalendar(start, end)`: Calls `GET /calendar` and returns the market calendar.
+
+### Websockets
+* `let websocket = new alpaca.websockets.client();`: Create a websocket client instance.
+* `websocket.connect()`: Connect to the alpaca server using websocket.
+* `websocket.subscribe(channels)`: Subscribe to the alpaca server and possibly Polygon server
+    Possible channels: 'trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', AM.*'
+        The first two are for the alpaca server, the rest are for the Polygon server.
+        For more information, please contact the relevant pages.
+* `websocket.onOrderUpdate(function(data))`: Register callback function for the channel 'trade_updates'.
+* `websocket.onAccountUpdate(function(data))`: Register callback function for the channel 'account_updates'.
+* `websocket.onStockTrades(function(data))`: Register callback function for the channel 'T.*'.
+* `websocket.onStockQuotes(function(data))`: Register callback function for the channel 'Q.*'.
+* `websocket.onStockAggSec(function(data))`: Register callback function for the channel 'A.*'.
+* `websocket.onStockAggMin(function(data))`: Register callback function for the channel 'AM.*'.

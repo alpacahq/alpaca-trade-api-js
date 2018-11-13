@@ -28,7 +28,7 @@ describe('account resource', function() {
         const account = await alpaca.getAccount();
         expect(account).to.include('id');
       } catch (error) {
-        expect(error.statusCode).to.equal(422);
+        expect(error.statusCode).to.equal(401);
       }
     });
   });
