@@ -25,13 +25,13 @@ describe('position resource', function() {
       expect(alpaca.getPosition(fakeSymbol)).to.be.rejectedWith('422').and.notify(done);
     });
 
-    it('returns valid results if valid symbol is used; otherwise, 422', async function() {
+    it('returns valid results if valid symbol is used; otherwise, 404', async function() {
       const symbol = '411101bc-4d72-4c07-acec-e9a2a8cbb9f5';
       try {
         const position = await alpaca.getPosition(symbol);
         expect(position).to.include('asset_id');
       } catch (error) {
-        expect(error.statusCode).to.equal(422);
+        expect(error.statusCode).to.equal(404);
       }
     });
   });

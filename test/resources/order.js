@@ -20,15 +20,15 @@ describe('order resource', function() {
   });
 
   describe('getOne', function() {
-    it('returns 404 error if unknown symbol is used', function(done) {
-      const fakeSymbol = '904837e3-3b76-47ec-b432-046db621571b';
-      expect(alpaca.getOrder(fakeSymbol)).to.be.rejectedWith('404').and.notify(done);
+    it('returns 404 error if unknown order id is used', function(done) {
+      const fakeOrderId = 'unknown id';
+      expect(alpaca.getOrder(fakeOrderId)).to.be.rejectedWith('404').and.notify(done);
     });
 
-    it('returns valid results if valid symbol is used; otherwise, 404', async function() {
-      const symbol = '904837e3-3b76-47ec-b432-046db621571b';
+    it('returns valid results if valid order id is used; otherwise, 404', async function() {
+      const orderId = '904837e3-3b76-47ec-b432-046db621571b';
       try {
-        const asset = await alpaca.getOrder(symbol);
+        const asset = await alpaca.getOrder(orderId);
         expect(asset).to.include('client_order_id');
       } catch (error) {
         expect(error.statusCode).to.equal(404);
@@ -37,9 +37,13 @@ describe('order resource', function() {
   });
 
   describe('getByClientOrderId', function() {
-    it('returns valid results', function(done) {
-      const clientOrderId = '904837e3-3b76-47ec-b432-046db621571b';
-      expect(alpaca.getOrders(clientOrderId)).to.eventually.include('[').notify(done);
+    it('returns valid results if valid client order id is used; otherwise, 404', function(done) {
+      try {
+        const clientOrderId = 'myOrder1';
+        expect(alpaca.getOrders(clientOrderId)).to.eventually.include('[').notify(done);
+      } catch (error) {
+        expect(error.statusCode).to.equal(404);
+      }
     });
   });
 
@@ -57,6 +61,17 @@ describe('order resource', function() {
       };
       expect(alpaca.createOrder(testOrder)).to.be.rejectedWith('422').notify(done);
     });
+
+    it('returns 404 error(insufficient qty) if buying power or shares is not sufficient', function(done) {
+      const testOrder = {
+        symbol: 'AAPL',
+        qty: 150000,
+        side: 'sell',
+        type: 'market',
+        time_in_force: 'day',
+      };
+      expect(alpaca.createOrder(testOrder)).to.be.rejectedWith('404').notify(done);
+    });
     
     it('creates a new valid order', async function() {
       const testOrder = {
@@ -72,9 +87,9 @@ describe('order resource', function() {
   });
 
   describe('remove', function() {
-    it('returns 404 error if unknown symbol is used', function(done) {
-      const fakeSymbol = '904837e3-3b76-47ec-b432-046db621571b';
-      expect(alpaca.cancelOrder(fakeSymbol)).to.be.rejectedWith('404').and.notify(done);
+    it('returns 404 error if unknown order id is used', function(done) {
+      const fakeOrderId = '904837e3-3b76-47ec-b432-046db621571b';
+      expect(alpaca.cancelOrder(fakeOrderId)).to.be.rejectedWith('404').and.notify(done);
     });
 
     it('removes order correctly', async function() {
