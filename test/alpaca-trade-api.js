@@ -5,11 +5,12 @@ require('./testUtils');
 const expect = require('chai').expect;
 const alpaca = require('../lib/alpaca-trade-api');
 
-describe('alpaca-trade-api', function() {
-  describe('configure', function() {
-    it('sets the configuration variables correctly', function() {
+describe('alpaca-trade-api', function () {
+  describe('configure', function () {
+    it('sets the configuration variables correctly', function () {
       const testConfig = {
-        baseUrl: 'https://test.domain.com',
+        baseUrl: 'https://base.example.com',
+        polygonBaseUrl: 'https://polygon.example.com',
         keyId: 'test_id',
         secretKey: 'test_secret',
       };
