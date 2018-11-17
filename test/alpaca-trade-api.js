@@ -3,7 +3,8 @@
 require('./testUtils');
 
 const expect = require('chai').expect;
-const alpaca = require('../lib/alpaca-trade-api');
+const Alpaca = require('../lib/alpaca-trade-api');
+
 
 describe('alpaca-trade-api', function () {
   describe('configure', function () {
@@ -13,8 +14,8 @@ describe('alpaca-trade-api', function () {
         polygonBaseUrl: 'https://polygon.example.com',
         keyId: 'test_id',
         secretKey: 'test_secret',
-      };
-      alpaca.configure(testConfig);
+      }
+      const alpaca = new Alpaca(testConfig)
       expect(alpaca.configuration).to.deep.equal(testConfig);
     });
   });

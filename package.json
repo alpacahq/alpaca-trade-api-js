@@ -30,8 +30,11 @@
     "ws": "^6.1.0"
   },
   "devDependencies": {
+    "body-parser": "^1.18.3",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
+    "express": "^4.16.4",
+    "joi": "^14.0.6",
     "mocha": "^5.2.0",
     "sinon": "^6.2.0"
   }

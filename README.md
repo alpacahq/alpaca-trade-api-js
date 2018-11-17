@@ -22,7 +22,7 @@ npm install --save alpaca-trade-api
 * Set API config options (baseUrl, keyId, secretKey).
 
   ```js
-  alpaca.configure({
+  const alpaca = new Alpaca({
     baseUrl: 'https://api.alpaca.markets', /* Optional: defaults to https://api.alpaca.markets */
     keyId: 'AKFZXJH121U18SHHDRFO',
     secretKey: 'pnq4YHlpMF3LhfLyOvmdfLmlz6BnASrTPQIASeiU'

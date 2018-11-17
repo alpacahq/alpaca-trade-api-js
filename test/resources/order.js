@@ -3,52 +3,44 @@
 require('../testUtils');
 
 const expect = require('chai').expect;
+const mockAlpaca = require('../mock-alpaca')
+const Alpaca = require('../../lib/alpaca-trade-api')
 
-const alpaca = require('../../lib/alpaca-trade-api');
-
-alpaca.configure({
-  baseUrl: process.env.APCA_API_BASE_URL,
-  keyId: process.env.APCA_API_KEY_ID,
-  secretKey: process.env.APCA_API_SECRET_KEY
-});
 
 describe('order resource', function () {
+
+  const alpaca = new Alpaca(
+    mockAlpaca.createTestContext(before, after)
+  );
+
   describe('getAll', function () {
-    it('returns valid results without a parameter', function (done) {
-      expect(alpaca.getOrders()).to.eventually.include('[').notify(done);
+    it('returns valid results without a parameter', function () {
+      return expect(alpaca.getOrders()).to.eventually.include('[');
     });
   });
 
   describe('getOne', function () {
-    it('returns 404 error if unknown order id is used', function (done) {
-      const fakeOrderId = '904837e3-3b76-47ec-b432-046db621571b';
-      expect(alpaca.getOrder(fakeOrderId)).to.be.rejectedWith('404').and.notify(done);
+    it('returns 404 error if unknown order id is used', function () {
+      const fakeOrderId = 'nonexistent_order_id';
+      return expect(alpaca.getOrder(fakeOrderId)).to.be.rejectedWith('404');
     });
 
-    it('returns valid results if valid order id is used; otherwise, 404', async function () {
+    it('returns valid results if valid order id', async function () {
       const orderId = '904837e3-3b76-47ec-b432-046db621571b';
-      try {
-        const asset = await alpaca.getOrder(orderId);
-        expect(asset).to.include('client_order_id');
-      } catch (error) {
-        expect(error.statusCode).to.equal(404);
-      }
+      const asset = await alpaca.getOrder(orderId);
+      expect(asset).to.include('client_order_id');
     });
   });
 
   describe('getByClientOrderId', function () {
-    it('returns valid results if valid client order id is used; otherwise, 404', function (done) {
-      try {
-        const clientOrderId = 'myOrder1';
-        expect(alpaca.getOrders(clientOrderId)).to.eventually.include('[').notify(done);
-      } catch (error) {
-        expect(error.statusCode).to.equal(404);
-      }
+    it('returns valid results if valid client order id is used', function () {
+      const clientOrderId = 'myOrder1';
+      return expect(alpaca.getOrders(clientOrderId)).to.eventually.include('[');
     });
   });
 
   describe('post', function () {
-    it('returns 422 error if market order contains stop_price or limit price', function (done) {
+    it('returns 422 error if market order contains stop_price or limit price', function () {
       const testOrder = {
         symbol: 'AAPL',
         qty: 15,
@@ -59,18 +51,18 @@ describe('order resource', function () {
         stop_price: '106.00',
         client_order_id: 'string'
       };
-      expect(alpaca.createOrder(testOrder)).to.be.rejectedWith('422').notify(done);
+      return expect(alpaca.createOrder(testOrder)).to.be.rejectedWith('422');
     });
 
-    it('returns 403 error(insufficient qty) if buying power or shares is not sufficient', function (done) {
+    it('returns 403 error(insufficient qty) if buying power or shares is not sufficient', function () {
       const testOrder = {
-        symbol: 'AAPL',
+        symbol: 'INSUFFICIENT',
         qty: 150000,
         side: 'sell',
         type: 'market',
         time_in_force: 'day',
       };
-      expect(alpaca.createOrder(testOrder)).to.be.rejectedWith('403').notify(done);
+      return expect(alpaca.createOrder(testOrder)).to.be.rejectedWith('403');
     });
 
     it('creates a new valid order', async function () {
@@ -87,9 +79,9 @@ describe('order resource', function () {
   });
 
   describe('remove', function () {
-    it('returns 404 error if unknown order id is used', function (done) {
-      const fakeOrderId = '904837e3-3b76-47ec-b432-046db621571b';
-      expect(alpaca.cancelOrder(fakeOrderId)).to.be.rejectedWith('404').and.notify(done);
+    it('returns 404 error if unknown order id is used', function () {
+      const fakeOrderId = 'nonexistent_order_id';
+      return expect(alpaca.cancelOrder(fakeOrderId)).to.be.rejectedWith('404');
     });
 
     it('removes order correctly', async function () {
@@ -101,7 +93,7 @@ describe('order resource', function () {
         time_in_force: 'day'
       };
       const newOrder = JSON.parse(await alpaca.createOrder(testOrder));
-      expect(alpaca.cancelOrder(newOrder.id)).to.be.fulfilled;
+      return expect(alpaca.cancelOrder(newOrder.id)).to.be.fulfilled;
     });
   });
 });
