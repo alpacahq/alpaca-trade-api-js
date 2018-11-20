@@ -1,7 +1,5 @@
 'use strict';
 
-require('../testUtils');
-
 const expect = require('chai').expect;
 const mockAlpaca = require('../mock-alpaca')
 const Alpaca = require('../../lib/alpaca-trade-api')
@@ -9,7 +7,7 @@ const Alpaca = require('../../lib/alpaca-trade-api')
 
 describe('order resource', function () {
 
-  const alpaca = new Alpaca(mockAlpaca.createTestContext());
+  const alpaca = new Alpaca(mockAlpaca.getConfig());
 
   describe('getAll', function () {
     it('returns valid results without a parameter', function () {

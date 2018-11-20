@@ -1,7 +1,5 @@
 'use strict';
 
-require('../testUtils');
-
 const expect = require('chai').expect;
 
 const { buildQueryString } = require('../../lib/utils/url');

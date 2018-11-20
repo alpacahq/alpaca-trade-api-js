@@ -89,13 +89,13 @@ function createAlpacaMock({ port = PORT } = {}) {
     return [assetEntity]
   }))
 
-  v1.get('/assets/:symbol', (req, res) => {
+  v1.get('/assets/:symbol', method((req, res) => {
     assertSchema(req.params, { symbol: joi.string().required() })
     if (req.params.symbol === 'FAKE') {
       res.sendStatus(404)
     }
     return assetEntity
-  })
+  }))
 
   v1.get('/calendar', method(() => calendarEntity))
 
@@ -123,13 +123,14 @@ const apiError = (statusCode = 500, message = 'Mock API Error') => {
 }
 
 const method = (fn) => async (req, res, next) => {
+  if (
+    !req.get('APCA-API-KEY-ID')
+    || !req.get('APCA-API-SECRET-KEY')
+    || req.get('APCA-API-SECRET-KEY') === 'invalid_secret'
+  ) {
+    return next(apiError(401))
+  }
   try {
-    if (!req.get('APCA-API-KEY-ID') || !req.get('APCA-API-SECRET-KEY')) {
-      throw apiError(401)
-    }
-    if (req.get('APCA-API-SECRET-KEY') === 'invalid_secret') {
-      throw apiError(401)
-    }
     const result = await fn(req, res, next)
     if (!res.headersSent) res.status(200).json(result)
   } catch (err) {
@@ -227,28 +228,30 @@ const clockEntity = {
 }
 
 // promise of a mock alpaca server
-let singleton = null
+let serverPromise = null
 
-const mockAlpaca = ({ port } = {}) => {
-  if (!singleton) singleton = createAlpacaMock({ port })
-  return singleton
+const start = () => {
+  if (!serverPromise) serverPromise = createAlpacaMock()
+  return serverPromise
 }
 
-const createTestContext = ({ port = PORT } = {}) => {
-  let server = null
-  before(async () => {
-    server = await mockAlpaca({ port: port })
+const stop = () => {
+  if (!serverPromise) return Promise.resolve();
+  return serverPromise.then((server) =>
+    new Promise(resolve => server.close(resolve))
+  )
+  .then(() => {
+    serverPromise = null
   })
-
-  after(() => new Promise(resolve => server.close(resolve)))
-
-  return {
-    baseUrl: `http://localhost:${port}`,
-    keyId: 'test_id',
-    secretKey: 'test_secret',
-  }
 }
 
-module.exports = mockAlpaca
-module.exports.createTestContext = createTestContext
-module.exports.createAlpacaMock = createAlpacaMock
+const getConfig = () => ({
+  baseUrl: `http://localhost:${PORT}`,
+  keyId: 'test_id',
+  secretKey: 'test_secret',
+})
+
+
+module.exports = {
+  start, stop, getConfig
+}

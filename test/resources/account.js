@@ -1,10 +1,8 @@
 'use strict';
 
-require('../testUtils');
-
 const expect = require('chai').expect;
 const Alpaca = require('../../lib/alpaca-trade-api')
-
+const mock = require('../mock-alpaca')
 
 describe('account resource', function () {
   it('returns 401 error if invalid API credentials are used', function () {
