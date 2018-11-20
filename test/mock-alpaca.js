@@ -236,7 +236,7 @@ const start = () => {
 }
 
 const stop = () => {
-  if (!serverPromise) return Promise.resolve();
+  if (!serverPromise) return Promise.resolve()
   return serverPromise.then((server) =>
     new Promise(resolve => server.close(resolve))
   )

@@ -1,7 +1,7 @@
-'use strict';
+'use strict'
 
-const expect = require('chai').expect;
-const Alpaca = require('../lib/alpaca-trade-api');
+const expect = require('chai').expect
+const Alpaca = require('../lib/alpaca-trade-api')
 
 
 describe('alpaca-trade-api', function () {
@@ -14,7 +14,7 @@ describe('alpaca-trade-api', function () {
         secretKey: 'test_secret',
       }
       const alpaca = new Alpaca(testConfig)
-      expect(alpaca.configuration).to.deep.equal(testConfig);
-    });
-  });
-});
+      expect(alpaca.configuration).to.deep.equal(testConfig)
+    })
+  })
+})
