@@ -1,13 +1,9 @@
 'use strict'
 
 const expect = require('chai').expect
-
+const mock = require('../mock-alpaca')
 const Alpaca = require('../../lib/alpaca-trade-api')
-const alpaca = new Alpaca({
-  baseUrl: process.env.APCA_API_BASE_URL,
-  keyId: process.env.APCA_API_KEY_ID,
-  secretKey: process.env.APCA_API_SECRET_KEY,
-})
+const alpaca = new Alpaca(mock.getConfig())
 
 describe('asset resource', function () {
   describe('getAll', function () {
@@ -29,9 +25,8 @@ describe('asset resource', function () {
   })
 
   describe('getOne', function () {
-    it('returns 404 error if unknown symbol is used', function (done) {
-      const fakeSymbol = 'I don\'t exist!'
-      expect(alpaca.getAsset(fakeSymbol)).to.be.rejectedWith('404').and.notify(done)
+    it('returns 404 error if unknown symbol is used', function () {
+      return expect(alpaca.getAsset('FAKE')).to.be.rejectedWith('404')
     })
 
     it('returns valid results if valid symbol is used otherwise, 404', async function () {

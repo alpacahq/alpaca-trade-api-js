@@ -16,7 +16,7 @@ function createAlpacaMock({ port = PORT } = {}) {
 
   v1.get('/account', method(() => accountEntity))
 
-  v1.get('/orders', method((req, res) => {
+  v1.get('/orders', method((req) => {
     assertSchema(req.query, {
       status: joi.string().optional().valid('open', 'closed', 'all'),
       limit: joi.number().optional().integer().positive().max(500),
@@ -27,19 +27,19 @@ function createAlpacaMock({ port = PORT } = {}) {
     return [orderEntity]
   }))
 
-  v1.get('/orders/:id', method((req, res) => {
+  v1.get('/orders/:id', method((req) => {
     if (req.params.id === 'nonexistent_order_id') throw apiError(404)
     return orderEntity
   }))
 
-  v1.get('/orders:by_client_order_id', method((req, res) => {
+  v1.get('/orders:by_client_order_id', method((req) => {
     assertSchema(req.query, {
       client_order_id: joi.string().required()
     })
     return orderEntity
   }))
 
-  v1.post('/orders', method((req, res) => {
+  v1.post('/orders', method((req) => {
     assertSchema(req.body, {
       symbol: joi.string().required(),
       qty: joi.number().required().integer().positive(),
@@ -71,28 +71,30 @@ function createAlpacaMock({ port = PORT } = {}) {
 
   v1.get('/positions', method(() => [positionEntity]))
 
-  v1.get('/positions/:symbol', method((req, res) => {
+  v1.get('/positions/:symbol', method((req) => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
     })
-    if (req.params.symbol === 'FAKE') {
-      res.sendStatus(404)
+    if (req.params.symbol === 'NONE') {
+      throw apiError(404)
+    } else if (req.params.symbol === 'FAKE') {
+      throw apiError(422)
     }
     return positionEntity
   }))
 
-  v1.get('/assets', method((req, res) => {
+  v1.get('/assets', method((req) => {
     assertSchema(req.query, {
-      status: joi.valid('active', 'disabled').optional(),
+      status: joi.valid('active', 'inactive').optional(),
       asset_class: joi.string().optional(),
     })
     return [assetEntity]
   }))
 
-  v1.get('/assets/:symbol', method((req, res) => {
+  v1.get('/assets/:symbol', method((req) => {
     assertSchema(req.params, { symbol: joi.string().required() })
     if (req.params.symbol === 'FAKE') {
-      res.sendStatus(404)
+      throw apiError(404)
     }
     return assetEntity
   }))
@@ -101,9 +103,9 @@ function createAlpacaMock({ port = PORT } = {}) {
 
   v1.get('/clock', method(() => clockEntity))
 
-  app.use((req, res) => {
-    res.sendStatus(404)
-  })
+  app.use(method(() => {
+    throw apiError(404, 'route not found')
+  }))
 
   app.use((err, req, res, next) => {
     res.status(err.statusCode || 500).json({
