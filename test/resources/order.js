@@ -9,9 +9,7 @@ const Alpaca = require('../../lib/alpaca-trade-api')
 
 describe('order resource', function () {
 
-  const alpaca = new Alpaca(
-    mockAlpaca.createTestContext(before, after)
-  );
+  const alpaca = new Alpaca(mockAlpaca.createTestContext());
 
   describe('getAll', function () {
     it('returns valid results without a parameter', function () {
@@ -24,18 +22,13 @@ describe('order resource', function () {
       const fakeOrderId = 'nonexistent_order_id';
       return expect(alpaca.getOrder(fakeOrderId)).to.be.rejectedWith('404');
     });
-
-    it('returns valid results if valid order id', async function () {
-      const orderId = '904837e3-3b76-47ec-b432-046db621571b';
-      const asset = await alpaca.getOrder(orderId);
-      expect(asset).to.include('client_order_id');
-    });
   });
 
   describe('getByClientOrderId', function () {
-    it('returns valid results if valid client order id is used', function () {
-      const clientOrderId = 'myOrder1';
-      return expect(alpaca.getOrders(clientOrderId)).to.eventually.include('[');
+    it('returns valid results if valid client order id', async function () {
+      const orderId = '904837e3-3b76-47ec-b432-046db621571b';
+      const asset = await alpaca.getOrderByClientId(orderId);
+      expect(asset).to.include('client_order_id');
     });
   });
 

@@ -14,51 +14,54 @@ function createAlpacaMock({ port = PORT } = {}) {
   const v1 = express.Router()
   app.use('/v1', v1)
 
-  v1.get('/account', method((req, res) => {
-    res.status(200).json(accountEntity)
-  }))
+  v1.get('/account', method(() => accountEntity))
 
-  v1.get('/orders', validateRequest(
-    'query',
-    {
-      status: joi.string().optional().allow('open', 'closed', 'all'),
+  v1.get('/orders', method((req, res) => {
+    assertSchema(req.query, {
+      status: joi.string().optional().valid('open', 'closed', 'all'),
       limit: joi.number().optional().integer().positive().max(500),
       after: joi.string().isoDate().optional(),
       until: joi.string().isoDate().optional(),
-      direction: joi.string().optional().allow('asc', 'desc'),
-    },
-    [orderEntity],
-  ))
+      direction: joi.string().optional().valid('asc', 'desc'),
+    })
+    return [orderEntity]
+  }))
 
   v1.get('/orders/:id', method((req, res) => {
     if (req.params.id === 'nonexistent_order_id') throw apiError(404)
-    res.json(orderEntity)
+    return orderEntity
   }))
 
-  v1.get('/orders:by_client_order_id', validateRequest(
-    'query',
-    { client_order_id: joi.string().required() },
-    orderEntity
-  ))
+  v1.get('/orders:by_client_order_id', method((req, res) => {
+    assertSchema(req.query, {
+      client_order_id: joi.string().required()
+    })
+    return orderEntity
+  }))
 
   v1.post('/orders', method((req, res) => {
     assertSchema(req.body, {
       symbol: joi.string().required(),
       qty: joi.number().required().integer().positive(),
-      side: joi.string().required().allow('buy', 'sell'),
-      type: joi.string().required().allow('market', 'limit', 'stop', 'stop_limit'),
-      time_in_force: joi.string().required().allow('day', 'gtc', 'opg', 'ioc', 'fok'),
-      limit_price: joi.number().positive(),
-      stop_price: joi.number().positive(),
-      client_order_id: joi.string().optional().max(48)
+      side: joi.string().required().valid('buy', 'sell'),
+      type: joi.string().required().valid('market', 'limit', 'stop', 'stop_limit'),
+      time_in_force: joi.string().required().valid('day', 'gtc', 'opg', 'ioc', 'fok'),
+      limit_price: joi.number().positive().optional(),
+      stop_price: joi.number().positive().optional(),
+      client_order_id: joi.string().max(48).optional()
     })
-    if (req.body.type === 'market' && (req.body.limit_price || req.body.stop_price)) {
+    const { symbol, type, limit_price, stop_price } = req.body
+    if (
+      (type === 'market' && (limit_price || stop_price))
+      || ((type === 'limit' || type === 'stop_limit') && !limit_price)
+      || ((type === 'stop' || type === 'stop_limit') && !stop_price)
+    ) {
       throw apiError(422)
     }
-    if (req.body.symbol === 'INSUFFICIENT') {
+    if (symbol === 'INSUFFICIENT') {
       throw apiError(403)
     }
-    res.json(orderEntity)
+    return orderEntity
   }))
 
   v1.delete('/orders/:id', method((req) => {
@@ -66,7 +69,37 @@ function createAlpacaMock({ port = PORT } = {}) {
     if (req.params.id === 'uncancelable_order_id') throw apiError(422)
   }))
 
+  v1.get('/positions', method(() => [positionEntity]))
 
+  v1.get('/positions/:symbol', method((req, res) => {
+    assertSchema(req.params, {
+      symbol: joi.string().required(),
+    })
+    if (req.params.symbol === 'FAKE') {
+      res.sendStatus(404)
+    }
+    return positionEntity
+  }))
+
+  v1.get('/assets', method((req, res) => {
+    assertSchema(req.query, {
+      status: joi.valid('active', 'disabled').optional(),
+      asset_class: joi.string().optional(),
+    })
+    return [assetEntity]
+  }))
+
+  v1.get('/assets/:symbol', (req, res) => {
+    assertSchema(req.params, { symbol: joi.string().required() })
+    if (req.params.symbol === 'FAKE') {
+      res.sendStatus(404)
+    }
+    return assetEntity
+  })
+
+  v1.get('/calendar', method(() => calendarEntity))
+
+  v1.get('/clock', method(() => clockEntity))
 
   app.use((req, res) => {
     res.sendStatus(404)
@@ -97,8 +130,8 @@ const method = (fn) => async (req, res, next) => {
     if (req.get('APCA-API-SECRET-KEY') === 'invalid_secret') {
       throw apiError(401)
     }
-    await fn(req, res, next)
-    if (!res.headersSent) res.sendStatus(200)
+    const result = await fn(req, res, next)
+    if (!res.headersSent) res.status(200).json(result)
   } catch (err) {
     next(err)
   }
@@ -111,11 +144,6 @@ const assertSchema = (value, schema) => {
   }
   return result.value
 }
-
-const validateRequest = (property, schema, response) => method((req, res) => {
-  assertSchema(req[property], schema)
-  if (response) res.json(response)
-})
 
 const accountEntity = {
   "id": "904837e3-3b76-47ec-b432-046db621571b",
@@ -157,26 +185,65 @@ const orderEntity = {
   "status": "accepted"
 }
 
+const positionEntity = {
+  "asset_id": "904837e3-3b76-47ec-b432-046db621571b",
+  "symbol": "AAPL",
+  "exchange": "NASDAQ",
+  "asset_class": "us_equity",
+  "avg_entry_price": "100.0",
+  "qty": "5",
+  "side": "long",
+  "market_value": "600.0",
+  "cost_basis": "500.0",
+  "unrealized_pl": "100.0",
+  "unrealized_plpc": "0.20",
+  "unrealized_intraday_pl": "10.0",
+  "unrealized_intraday_plpc": "0.0084",
+  "current_price": "120.0",
+  "lastday_price": "119.0",
+  "change_today": "0.0084"
+}
+
+const assetEntity = {
+  "id": "904837e3-3b76-47ec-b432-046db621571b",
+  "asset_class": "us_equity",
+  "exchange": "NASDAQ",
+  "symbol": "AAPL",
+  "status": "active",
+  "tradable": true
+}
+
+const calendarEntity = {
+  "date": "2018-01-03",
+  "open": "09:30",
+  "close": "16:00"
+}
+
+const clockEntity = {
+  "timestamp": "2018-04-01T12:00:00.000Z",
+  "is_open": true,
+  "next_open": "2018-04-01T12:00:00.000Z",
+  "next_close": "2018-04-01T12:00:00.000Z"
+}
+
 // promise of a mock alpaca server
 let singleton = null
 
-const mockAlpaca = () => {
-  if (!singleton) singleton = createAlpacaMock()
+const mockAlpaca = ({ port } = {}) => {
+  if (!singleton) singleton = createAlpacaMock({ port })
   return singleton
 }
 
-const createTestContext = (before, after) => {
+const createTestContext = ({ port = PORT } = {}) => {
   let server = null
   before(async () => {
-    server = await mockAlpaca()
+    server = await mockAlpaca({ port: port })
   })
 
-  after(() => {
-    return new Promise(resolve => server.close(resolve))
-  })
+  after(() => new Promise(resolve => server.close(resolve)))
 
   return {
-    baseUrl: `http://localhost:${PORT}`,
+    baseUrl: `http://localhost:${port}`,
     keyId: 'test_id',
     secretKey: 'test_secret',
   }
