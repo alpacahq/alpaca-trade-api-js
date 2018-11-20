@@ -4,7 +4,7 @@
   "description": "Node.js library for Alpaca Trade API",
   "main": "lib/alpaca-trade-api.js",
   "scripts": {
-    "test": "mocha --timeout 4s --exit test/init.js test/**/*"
+    "test": "mocha --timeout 4s test/init.js test/*.test.js test/**/*.test.js"
   },
   "repository": {
     "type": "git",
