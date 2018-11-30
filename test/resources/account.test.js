@@ -17,7 +17,7 @@ describe('account resource', function () {
     it('returns valid results', async function () {
       const alpaca = new Alpaca(mock.getConfig())
       const account = await alpaca.getAccount()
-      expect(account).to.include('id')
+      expect(account).to.have.property('id')
     })
   })
 })

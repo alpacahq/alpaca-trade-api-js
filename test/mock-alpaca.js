@@ -143,7 +143,7 @@ const method = (fn) => async (req, res, next) => {
 const assertSchema = (value, schema) => {
   const result = joi.validate(value, schema)
   if (result.error) {
-    throw apiError(400, result.error)
+    throw apiError(422, result.error)
   }
   return result.value
 }
