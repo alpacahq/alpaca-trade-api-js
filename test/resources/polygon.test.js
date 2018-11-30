@@ -49,13 +49,13 @@ describe('polygon methods', () => {
 
   it('can get historic trades', () => {
     return expect(
-      alpaca.getHistoricTrades('APPL', '2018-3-2', 2, 12)
+      alpaca.getHistoricTrades('APPL', '2018-3-2', { offset: 2, limit: 12 })
     ).to.eventually.have.property('ticks')
   })
 
   it('can get historic quotes', () => {
     return expect(
-      alpaca.getHistoricQuotes('APPL', '2018-3-2', 3, 16)
+      alpaca.getHistoricQuotes('APPL', '2018-3-2', { offset: 3, limit: 16 })
     ).to.eventually.have.property('ticks')
   })
 
