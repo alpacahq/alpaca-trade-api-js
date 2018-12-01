@@ -1,24 +1,32 @@
+'use strict'
+
 const express = require('express')
 const bodyParser = require('body-parser')
 const joi = require('joi')
+const { apiMethod, assertSchema, apiError } = require('./assertions')
 
 /**
  * This server mocks http methods from the polygon api and returns 200 if the requests are formed correctly.
  * Some endpoints might allow you to pass "cheat code" values to trigger specific responses.
+ *
+ * This only exports a router, the actual server is created by mock-server.js
  */
 
-const PORT = process.env.TEST_POLYGON_PORT || 3334
+module.exports = function createPolygonMock() {
+  const v1 = express.Router().use(bodyParser.json())
 
-function createPolygonMock({ port = PORT } = {}) {
-  const app = express().use(bodyParser.json())
-  const v1 = express.Router()
-  app.use('/v1', v1)
+  v1.use((req, res, next) => {
+    if (!req.query.apiKey) {
+      next(apiError(401))
+    }
+    next()
+  })
 
   const validSymbolSortParams = Object.keys(symbolEntity)
     .map(key => `-${key}`)
     .concat(Object.keys(symbolEntity))
 
-  v1.get('/meta/symbols', method(req => {
+  v1.get('/meta/symbols', apiMethod(req => {
     assertSchema(req.query, {
       sort: joi.only(validSymbolSortParams).required(),
       type: joi.only('etp', 'cs').required(),
@@ -31,7 +39,7 @@ function createPolygonMock({ port = PORT } = {}) {
 
   function makeSymbolEndpoint (name, entity) {
     const path = '/meta/symbols/:symbol' + (name ? `/${name}` : '')
-    v1.get(path, method(req => {
+    v1.get(path, apiMethod(req => {
       assertSchema(req.params, {
         symbol: joi.string().required()
       })
@@ -49,12 +57,12 @@ function createPolygonMock({ port = PORT } = {}) {
   makeSymbolEndpoint('financials', [symbolFinanceEntity])
   makeSymbolEndpoint('news', [symbolNewsEntity])
 
-  v1.get('/marketstatus/now', method(() => marketStatusEntity))
-  v1.get('/marketstatus/upcoming', method(() => [holidayEntity]))
-  v1.get('/meta/exchanges', method(() => [exchangeEntity]))
-  v1.get('/meta/symbol-types', method(() => symbolTypeMapEntity))
+  v1.get('/marketstatus/now', apiMethod(() => marketStatusEntity))
+  v1.get('/marketstatus/upcoming', apiMethod(() => [holidayEntity]))
+  v1.get('/meta/exchanges', apiMethod(() => [exchangeEntity]))
+  v1.get('/meta/symbol-types', apiMethod(() => symbolTypeMapEntity))
 
-  v1.get('/historic/trades/:symbol/:date', method(req => {
+  v1.get('/historic/trades/:symbol/:date', apiMethod(req => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
       date: joi.date().required(),
@@ -66,7 +74,7 @@ function createPolygonMock({ port = PORT } = {}) {
     return historicTradesEntity
   }))
 
-  v1.get('/historic/quotes/:symbol/:date', method(req => {
+  v1.get('/historic/quotes/:symbol/:date', apiMethod(req => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
       date: joi.date().required(),
@@ -78,7 +86,7 @@ function createPolygonMock({ port = PORT } = {}) {
     return historicQuotesEntity
   }))
 
-  v1.get('/historic/agg/:size/:symbol', method(req => {
+  v1.get('/historic/agg/:size/:symbol', apiMethod(req => {
     assertSchema(req.params, {
       size: joi.only('day', 'minute'),
       symbol: joi.string().required(),
@@ -92,21 +100,21 @@ function createPolygonMock({ port = PORT } = {}) {
     return historicAggregatesEntity
   }))
 
-  v1.get('/last/stocks/:symbol', method(req => {
+  v1.get('/last/stocks/:symbol', apiMethod(req => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
     })
     return lastTradeEntity
   }))
 
-  v1.get('/last_quote/stocks/:symbol', method(req => {
+  v1.get('/last_quote/stocks/:symbol', apiMethod(req => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
     })
     return lastQuoteEntity
   }))
 
-  v1.get('/open-close/:symbol/:date', method(req => {
+  v1.get('/open-close/:symbol/:date', apiMethod(req => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
       date: joi.date().required(),
@@ -114,52 +122,18 @@ function createPolygonMock({ port = PORT } = {}) {
     return openCloseEntity
   }))
 
-  v1.get('/meta/conditions/:ticktype', method(req => {
+  v1.get('/meta/conditions/:ticktype', apiMethod(req => {
     assertSchema(req.params, {
       ticktype: joi.only('trades', 'quotes')
     })
     return conditionMapEntity
   }))
 
-  app.use(method(() => {
+  v1.use(apiMethod(() => {
     throw apiError(404, 'route not found')
   }))
 
-  app.use((err, req, res, next) => {
-    res.status(err.statusCode || 500).json({
-      message: err.message
-    })
-  })
-
-  return new Promise(resolve => {
-    const server = app.listen(port, () => resolve(server))
-  })
-}
-
-const apiError = (statusCode = 500, message = 'Mock API Error') => {
-  const err = new Error(message)
-  err.statusCode = statusCode
-  return err
-}
-
-const method = (fn) => async (req, res, next) => {
-  if (!req.query.apiKey) {
-    return next(apiError(401))
-  }
-  try {
-    const result = await fn(req, res, next)
-    if (!res.headersSent) res.status(200).json(result)
-  } catch (err) {
-    next(err)
-  }
-}
-
-const assertSchema = (value, schema, options) => {
-  const result = joi.validate(value, schema, options)
-  if (result.error) {
-    throw apiError(422, result.error)
-  }
-  return result.value
+  return express.Router().use('/v1', v1)
 }
 
 const symbolEntity = {
@@ -559,32 +533,4 @@ const conditionMapEntity = {
   "2": "Acquisition",
   "3": "AveragePrice",
   "4": "AutomaticExecution"
-}
-
-// promise of a mock polygon server
-let serverPromise = null
-
-const start = () => {
-  if (!serverPromise) serverPromise = createPolygonMock()
-  return serverPromise
-}
-
-const stop = () => {
-  if (!serverPromise) return Promise.resolve()
-  return serverPromise.then((server) =>
-    new Promise(resolve => server.close(resolve))
-  )
-  .then(() => {
-    serverPromise = null
-  })
-}
-
-const getConfig = () => ({
-  polygonBaseUrl: `http://localhost:${PORT}`,
-  keyId: 'test_id',
-  secretKey: 'test_secret',
-})
-
-module.exports = {
-  start, stop, getConfig
 }

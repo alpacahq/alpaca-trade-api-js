@@ -1,13 +1,13 @@
 'use strict'
 
 const expect = require('chai').expect
-const mockAlpaca = require('../mock-alpaca')
+const mock = require('../support/mock-server')
 const Alpaca = require('../../lib/alpaca-trade-api')
 
 
 describe('order resource', function () {
 
-  const alpaca = new Alpaca(mockAlpaca.getConfig())
+  const alpaca = new Alpaca(mock.getConfig())
 
   describe('getAll', function () {
     it('returns valid results without a parameter', function () {

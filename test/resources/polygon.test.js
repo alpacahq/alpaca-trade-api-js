@@ -1,7 +1,7 @@
 'use strict'
 
 const expect = require('chai').expect
-const mockPolygon = require('../mock-polygon')
+const mockPolygon = require('../support/mock-server')
 const Alpaca = require('../../lib/alpaca-trade-api')
 
 describe('polygon methods', () => {

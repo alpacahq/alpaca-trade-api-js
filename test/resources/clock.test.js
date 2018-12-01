@@ -1,7 +1,7 @@
 'use strict'
 
 const expect = require('chai').expect
-const mock = require('../mock-alpaca')
+const mock = require('../support/mock-server')
 const Alpaca = require('../../lib/alpaca-trade-api')
 const alpaca = new Alpaca(mock.getConfig())
 
