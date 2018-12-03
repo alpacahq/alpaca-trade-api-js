@@ -17,7 +17,7 @@ function createAlpacaMock({ port = PORT } = {}) {
   const app = express()
     .use('/polygon', mockPolygon())
     .use('/alpaca', mockAlpaca())
-    // .use('/data', mockData())
+    .use('/data', mockData())
 
   app.use(apiMethod(() => {
     throw apiError(404, 'route not found')
@@ -53,9 +53,9 @@ const stop = () => {
 }
 
 const getConfig = () => ({
-  baseUrl: `http://localhost:${PORT}/alpaca`,
-  dataBaseUrl: `http://localhost:${PORT}/data`,
-  polygonBaseUrl: `http://localhost:${PORT}/polygon`,
+  baseUrl: `http://localhost:${PORT}/alpaca/v1`,
+  dataBaseUrl: `http://localhost:${PORT}/data/v1`,
+  polygonBaseUrl: `http://localhost:${PORT}/polygon/v1`,
   keyId: 'test_id',
   secretKey: 'test_secret',
 })

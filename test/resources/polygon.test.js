@@ -9,19 +9,19 @@ describe('polygon methods', () => {
   const alpaca = new Alpaca(mockPolygon.getConfig())
 
   it('can get endpoints for a symbol', () => {
-    return expect(alpaca.getSymbol('APPL')).to.eventually.have.property('endpoints')
+    return expect(alpaca.getSymbol('AAPL')).to.eventually.have.property('endpoints')
   })
 
   it('can get a company', () => {
-    return expect(alpaca.getCompany('APPL')).to.eventually.have.property('name')
+    return expect(alpaca.getCompany('AAPL')).to.eventually.have.property('name')
   })
 
   it('can get dividends', () => {
-    return expect(alpaca.getDividends('APPL')).to.eventually.be.an('array')
+    return expect(alpaca.getDividends('AAPL')).to.eventually.be.an('array')
   })
 
   it('can get splits', () => {
-    return expect(alpaca.getSplits('APPL')).to.eventually.be.an('array')
+    return expect(alpaca.getSplits('AAPL')).to.eventually.be.an('array')
   })
 
   it('can get a condition map', () => {
@@ -38,7 +38,7 @@ describe('polygon methods', () => {
 
   it('can get historic aggregates', () => {
     return expect(
-      alpaca.getHistoricAggregates('day', 'APPL', {
+      alpaca.getHistoricAggregates('day', 'AAPL', {
         from: new Date(),
         to: new Date(),
         limit: 12,
@@ -49,19 +49,19 @@ describe('polygon methods', () => {
 
   it('can get historic trades', () => {
     return expect(
-      alpaca.getHistoricTrades('APPL', '2018-3-2', { offset: 2, limit: 12 })
+      alpaca.getHistoricTrades('AAPL', '2018-3-2', { offset: 2, limit: 12 })
     ).to.eventually.have.property('ticks')
   })
 
   it('can get historic quotes', () => {
     return expect(
-      alpaca.getHistoricQuotes('APPL', '2018-3-2', { offset: 3, limit: 16 })
+      alpaca.getHistoricQuotes('AAPL', '2018-3-2', { offset: 3, limit: 16 })
     ).to.eventually.have.property('ticks')
   })
 
   it('can get open/close prices', () => {
     return expect(
-      alpaca.getOpenClosePrices('APPL', '2018-3-2')
+      alpaca.getOpenClosePrices('AAPL', '2018-3-2')
     ).to.eventually.have.property('open')
   })
 
