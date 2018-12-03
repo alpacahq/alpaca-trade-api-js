@@ -1,22 +1,34 @@
+'use strict'
+
 const express = require('express')
 const bodyParser = require('body-parser')
 const joi = require('joi')
+const { apiMethod, assertSchema, apiError } = require('./assertions')
 
 /**
  * This server mocks http methods from the alpaca api and returns 200 if the requests are formed correctly.
  * Some endpoints might allow you to pass "cheat code" values to trigger specific responses.
+ *
+ * This only exports a router, the actual server is created by mock-server.js
  */
 
-const PORT = process.env.TEST_PORT || 3333
+module.exports = function createAlpacaMock() {
+  const v1 = express.Router().use(bodyParser.json())
 
-function createAlpacaMock({ port = PORT } = {}) {
-  const app = express().use(bodyParser.json())
-  const v1 = express.Router()
-  app.use('/v1', v1)
+  v1.use((req, res, next) => {
+    if (
+      !req.get('APCA-API-KEY-ID')
+      || !req.get('APCA-API-SECRET-KEY')
+      || req.get('APCA-API-SECRET-KEY') === 'invalid_secret'
+    ) {
+      next(apiError(401))
+    }
+    next()
+  })
 
-  v1.get('/account', method(() => accountEntity))
+  v1.get('/account', apiMethod(() => accountEntity))
 
-  v1.get('/orders', method((req) => {
+  v1.get('/orders', apiMethod((req) => {
     assertSchema(req.query, {
       status: joi.string().optional().valid('open', 'closed', 'all'),
       limit: joi.number().optional().integer().positive().max(500),
@@ -27,19 +39,19 @@ function createAlpacaMock({ port = PORT } = {}) {
     return [orderEntity]
   }))
 
-  v1.get('/orders/:id', method((req) => {
+  v1.get('/orders/:id', apiMethod((req) => {
     if (req.params.id === 'nonexistent_order_id') throw apiError(404)
     return orderEntity
   }))
 
-  v1.get('/orders:by_client_order_id', method((req) => {
+  v1.get('/orders:by_client_order_id', apiMethod((req) => {
     assertSchema(req.query, {
       client_order_id: joi.string().required()
     })
     return orderEntity
   }))
 
-  v1.post('/orders', method((req) => {
+  v1.post('/orders', apiMethod((req) => {
     assertSchema(req.body, {
       symbol: joi.string().required(),
       qty: joi.number().required().integer().positive(),
@@ -64,14 +76,14 @@ function createAlpacaMock({ port = PORT } = {}) {
     return orderEntity
   }))
 
-  v1.delete('/orders/:id', method((req) => {
+  v1.delete('/orders/:id', apiMethod((req) => {
     if (req.params.id === 'nonexistent_order_id') throw apiError(404)
     if (req.params.id === 'uncancelable_order_id') throw apiError(422)
   }))
 
-  v1.get('/positions', method(() => [positionEntity]))
+  v1.get('/positions', apiMethod(() => [positionEntity]))
 
-  v1.get('/positions/:symbol', method((req) => {
+  v1.get('/positions/:symbol', apiMethod((req) => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
     })
@@ -83,7 +95,7 @@ function createAlpacaMock({ port = PORT } = {}) {
     return positionEntity
   }))
 
-  v1.get('/assets', method((req) => {
+  v1.get('/assets', apiMethod((req) => {
     assertSchema(req.query, {
       status: joi.valid('active', 'inactive').optional(),
       asset_class: joi.string().optional(),
@@ -91,7 +103,7 @@ function createAlpacaMock({ port = PORT } = {}) {
     return [assetEntity]
   }))
 
-  v1.get('/assets/:symbol', method((req) => {
+  v1.get('/assets/:symbol', apiMethod((req) => {
     assertSchema(req.params, { symbol: joi.string().required() })
     if (req.params.symbol === 'FAKE') {
       throw apiError(404)
@@ -99,53 +111,15 @@ function createAlpacaMock({ port = PORT } = {}) {
     return assetEntity
   }))
 
-  v1.get('/calendar', method(() => calendarEntity))
+  v1.get('/calendar', apiMethod(() => calendarEntity))
 
-  v1.get('/clock', method(() => clockEntity))
+  v1.get('/clock', apiMethod(() => clockEntity))
 
-  app.use(method(() => {
+  v1.use(apiMethod(() => {
     throw apiError(404, 'route not found')
   }))
 
-  app.use((err, req, res, next) => {
-    res.status(err.statusCode || 500).json({
-      message: err.message
-    })
-  })
-
-  return new Promise(resolve => {
-    const server = app.listen(port, () => resolve(server))
-  })
-}
-
-const apiError = (statusCode = 500, message = 'Mock API Error') => {
-  const err = new Error(message)
-  err.statusCode = statusCode
-  return err
-}
-
-const method = (fn) => async (req, res, next) => {
-  if (
-    !req.get('APCA-API-KEY-ID')
-    || !req.get('APCA-API-SECRET-KEY')
-    || req.get('APCA-API-SECRET-KEY') === 'invalid_secret'
-  ) {
-    return next(apiError(401))
-  }
-  try {
-    const result = await fn(req, res, next)
-    if (!res.headersSent) res.status(200).json(result)
-  } catch (err) {
-    next(err)
-  }
-}
-
-const assertSchema = (value, schema) => {
-  const result = joi.validate(value, schema)
-  if (result.error) {
-    throw apiError(400, result.error)
-  }
-  return result.value
+  return express.Router().use('/v1', v1)
 }
 
 const accountEntity = {
@@ -227,33 +201,4 @@ const clockEntity = {
   "is_open": true,
   "next_open": "2018-04-01T12:00:00.000Z",
   "next_close": "2018-04-01T12:00:00.000Z"
-}
-
-// promise of a mock alpaca server
-let serverPromise = null
-
-const start = () => {
-  if (!serverPromise) serverPromise = createAlpacaMock()
-  return serverPromise
-}
-
-const stop = () => {
-  if (!serverPromise) return Promise.resolve()
-  return serverPromise.then((server) =>
-    new Promise(resolve => server.close(resolve))
-  )
-  .then(() => {
-    serverPromise = null
-  })
-}
-
-const getConfig = () => ({
-  baseUrl: `http://localhost:${PORT}`,
-  keyId: 'test_id',
-  secretKey: 'test_secret',
-})
-
-
-module.exports = {
-  start, stop, getConfig
 }

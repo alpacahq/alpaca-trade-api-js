@@ -1,17 +1,17 @@
 'use strict'
 
 const expect = require('chai').expect
-const mockAlpaca = require('../mock-alpaca')
+const mock = require('../support/mock-server')
 const Alpaca = require('../../lib/alpaca-trade-api')
 
 
 describe('order resource', function () {
 
-  const alpaca = new Alpaca(mockAlpaca.getConfig())
+  const alpaca = new Alpaca(mock.getConfig())
 
   describe('getAll', function () {
     it('returns valid results without a parameter', function () {
-      return expect(alpaca.getOrders()).to.eventually.include('[')
+      return expect(alpaca.getOrders()).to.eventually.be.an('array')
     })
   })
 
@@ -26,7 +26,7 @@ describe('order resource', function () {
     it('returns valid results if valid client order id', async function () {
       const orderId = '904837e3-3b76-47ec-b432-046db621571b'
       const asset = await alpaca.getOrderByClientId(orderId)
-      expect(asset).to.include('client_order_id')
+      expect(asset).to.have.property('client_order_id')
     })
   })
 
@@ -65,7 +65,7 @@ describe('order resource', function () {
         time_in_force: 'day'
       }
       const newOrder = await alpaca.createOrder(testOrder)
-      expect(newOrder).to.include('client_order_id')
+      expect(newOrder).to.have.property('client_order_id')
     })
   })
 
@@ -83,7 +83,7 @@ describe('order resource', function () {
         type: 'market',
         time_in_force: 'day'
       }
-      const newOrder = JSON.parse(await alpaca.createOrder(testOrder))
+      const newOrder = await alpaca.createOrder(testOrder)
       return expect(alpaca.cancelOrder(newOrder.id)).to.be.fulfilled
     })
   })

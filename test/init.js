@@ -1,9 +1,11 @@
+'use strict'
+
 require('dotenv').config()
 
 require('mocha')
 require('chai').use(require('chai-as-promised'))
 
-const mockAlpaca = require('./mock-alpaca')
+const mockServer = require('./support/mock-server')
 
-before(mockAlpaca.start)
-after(mockAlpaca.stop)
+before(mockServer.start)
+after(mockServer.stop)
