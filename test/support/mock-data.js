@@ -13,7 +13,7 @@ const { apiMethod, assertSchema, apiError } = require('./assertions')
  * This only exports a router, the actual server is created by mock-server.js
  */
 
-module.exports = function createAlpacaMock() {
+module.exports = function createDataMock() {
   const v1 = express.Router().use(bodyParser.json())
 
   v1.use((req, res, next) => {
