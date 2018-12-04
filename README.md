@@ -149,15 +149,7 @@ cancelOrder(uuid) => Promise
 
 ### Positions API
 
-#### Get Positions
-
-Calls `GET /positions` and returns all positions.
-
-```ts
-getPositions() => Promise<Position[]>
-```
-
-#### Get Position for Symbol
+#### Get Position
 
 Calls `GET /positions/{symbol}` and returns a position.
 
@@ -165,11 +157,19 @@ Calls `GET /positions/{symbol}` and returns a position.
 getPosition(symbol) => Promise<Position>
 ```
 
+#### Get All Positions
+
+Calls `GET /positions` and returns all positions.
+
+```ts
+getPositions() => Promise<Position[]>
+```
+
 ### Assets API
 
 #### Get All Assets
 
-Calls `GET /assets` and returns your assets matching your parameters.
+Calls `GET /assets` and returns assets matching your parameters.
 
 ```ts
 getAssets({
@@ -178,9 +178,9 @@ getAssets({
 }) => Promise<Asset[]>
 ```
 
-#### Get an Asset for a Symbol
+#### Get information about an asset
 
-Calls `GET /assets/{symbol}` and returns an asset.
+Calls `GET /assets/{symbol}` and returns an asset entity.
 
 ```ts
 getAsset(symbol) => Promise<Asset>
