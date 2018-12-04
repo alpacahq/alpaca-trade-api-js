@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/alpacahq/alpaca-trade-api-js.svg?style=svg)](https://circleci.com/gh/alpacahq/alpaca-trade-api-js)
+[![CircleCI](https://circleci.com/gh/alpacahq/alpaca-trade-api-js.svg?style=shield)](https://circleci.com/gh/alpacahq/alpaca-trade-api-js)
 
 # Alpaca Trade API JS
 
