@@ -16,10 +16,10 @@ npm install --save @alpacahq/alpaca-trade-api
 
 ## Usage
 
-Require 'alpaca-trade-api' in your file.
+Import the module first.
 
 ```js
-const alpaca = require('alpaca-trade-api')
+const Alpaca = require('@alpacahq/alpaca-trade-api')
 ```
 
 Instantiate the API with config options (keyId, secretKey).
