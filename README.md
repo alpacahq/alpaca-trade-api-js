@@ -190,7 +190,7 @@ getAsset(symbol) => Promise<Asset>
 
 Calls `GET /calendar` and returns the market calendar.
 
-```
+```ts
 getCalendar({ start: Date, end: Date }) => Promise<Calendar[]>
 ```
 
