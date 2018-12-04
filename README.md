@@ -40,7 +40,7 @@ npm install --save alpaca-trade-api
 * Websocket example
 
   ```js
-  const client = new alpaca.websockets.client();
+  const client = alpaca.websocket
   client.onConnect(function() {
     console.log("Connected");
     client.subscribe(['trade_updates', 'account_updates', 'T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL']);
@@ -81,7 +81,7 @@ npm install --save alpaca-trade-api
 * `getAccount()`: Calls `GET /account` and returns the current account.
 
 ### Orders API
-* `getOrders(status, until, limit)`: Calls `GET /orders` and returns a list of orders.
+* `getOrders({ status, until, limit })`: Calls `GET /orders` and returns a list of orders.
 * `getOrder(id)`: Calls `GET /orders/{id}` and returns an order.
 * `getOrderByClientOrderId(clientOrderId)`: Calls `GET /orders:by_client_order_id` and returns an order by client_order_id.
 * `createOrder(order)`: Calls `POST /orders` and creates a new order.
@@ -96,10 +96,10 @@ npm install --save alpaca-trade-api
 * `getAsset(symbol)`: Calls `GET /assets/{symbol}` and returns an asset.
 
 ### Calendar API
-* `getCalendar(start, end)`: Calls `GET /calendar` and returns the market calendar.
+* `getCalendar({ start, end })`: Calls `GET /calendar` and returns the market calendar.
 
 ### Websockets
-* `let websocket = new alpaca.websockets.client();`: Create a websocket client instance.
+* `let websocket = alpaca.websocket;`: Create a websocket client instance.
 * `websocket.connect()`: Connect to the alpaca server using websocket.
 * `websocket.subscribe(channels)`: Subscribe to the alpaca server and possibly Polygon server
     Possible channels: 'trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', AM.*'
