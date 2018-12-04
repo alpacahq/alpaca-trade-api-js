@@ -133,7 +133,8 @@ getOrder(uuid) => Promise<Order>
 
 #### Get Order by Client ID
 
-Calls `GET /orders:by_client_order_id` and returns an order by `client_order_id`. You can set `client_order_id` upon order creation to more easily keep track of your orders.
+Calls `GET /orders:by_client_order_id` and returns an order by `client_order_id`.
+You can set `client_order_id` upon order creation to more easily keep track of your orders.
 
 ```ts
 getOrderByClientOrderId(string) => Promise<Order>
@@ -217,8 +218,9 @@ getBars(
 * `websocket.connect()`: Connect to the alpaca server using websocket.
 * `websocket.subscribe(channels)`: Subscribe to the alpaca server and possibly Polygon server
     Possible channels: 'trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', AM.*'
-        The first two are for the alpaca server, the rest are for the Polygon server.
-        For more information, please contact the relevant pages.
+    This will unsubscribe from any previously subscribed channels.
+    `trade_updates` and `account_updates` are for the alpaca server, the rest are for the Polygon server.
+    For more information, please contact the relevant pages.
 * `websocket.onOrderUpdate(function(data))`: Register callback function for the channel 'trade_updates'.
 * `websocket.onAccountUpdate(function(data))`: Register callback function for the channel 'account_updates'.
 * `websocket.onStockTrades(function(data))`: Register callback function for the channel 'T.*'.

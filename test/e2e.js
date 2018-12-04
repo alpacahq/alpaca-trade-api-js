@@ -21,16 +21,11 @@ const socket = paca.websocket;
 
   socket.onConnect((...args) => {
     console.log('CONNECTED', ...args)
-
-    socket.subscribe(['T.*', 'Q.*'])
+    socket.subscribe(['T.AAPL', 'T.TWTR', 'Q.*'])
   })
 
-  socket.onStockTrades((...args) => {
-    console.log('STOCK TRADES', ...args)
-  })
-
-  socket.onStockQuotes((...args) => {
-    console.log('STOCK QUOTES', ...args)
+  socket.onStockTrades((subject, data) => {
+    console.log('STOCK TRADES', data.sym)
   })
 
   socket.onOrderUpdate((...args) => {
