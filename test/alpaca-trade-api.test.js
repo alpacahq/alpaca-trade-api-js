@@ -17,5 +17,17 @@ describe('alpaca-trade-api', function () {
       const alpaca = new Alpaca(testConfig)
       expect(alpaca.configuration).to.deep.equal(testConfig)
     })
+
+    it('allows passing paper: true', () => {
+      const paperConfig = {
+        keyId: 'paper_id',
+        secretKey: 'paper_secret',
+        paper: true
+      }
+      const alpaca = new Alpaca(paperConfig)
+      expect(alpaca.configuration).to.include({
+
+      })
+    })
   })
 })

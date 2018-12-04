@@ -16,6 +16,10 @@ describe('polygon methods', () => {
     return expect(alpaca.getCompany('AAPL')).to.eventually.have.property('name')
   })
 
+  it('can get analysts', () => {
+    return expect(alpaca.getAnalysts('AAPL')).to.eventually.have.property('strongBuy')
+  })
+
   it('can get dividends', () => {
     return expect(alpaca.getDividends('AAPL')).to.eventually.be.an('array')
   })
@@ -57,12 +61,6 @@ describe('polygon methods', () => {
     return expect(
       alpaca.getHistoricQuotes('AAPL', '2018-3-2', { offset: 3, limit: 16 })
     ).to.eventually.have.property('ticks')
-  })
-
-  it('can get open/close prices', () => {
-    return expect(
-      alpaca.getOpenClosePrices('AAPL', '2018-3-2')
-    ).to.eventually.have.property('open')
   })
 
   it('can get the symbol type map', () => {

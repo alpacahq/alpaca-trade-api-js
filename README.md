@@ -90,7 +90,7 @@ npm install --save alpaca-trade-api
 * `getPosition(symbol)`: Calls `GET /positions/{symbol}` and returns a position.
 
 ### Assets API
-* `getAssets(status, assetClass)`: Calls `GET /assets` and returns all assets.
+* `getAssets({ status, asset_class })`: Calls `GET /assets` and returns all assets.
 * `getAsset(symbol)`: Calls `GET /assets/{symbol}` and returns an asset.
 
 ### Calendar API

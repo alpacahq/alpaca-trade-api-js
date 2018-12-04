@@ -53,9 +53,9 @@ const stop = () => {
 }
 
 const getConfig = () => ({
-  baseUrl: `http://localhost:${PORT}/alpaca/v1`,
-  dataBaseUrl: `http://localhost:${PORT}/data/v1`,
-  polygonBaseUrl: `http://localhost:${PORT}/polygon/v1`,
+  baseUrl: `http://localhost:${PORT}/alpaca`,
+  dataBaseUrl: `http://localhost:${PORT}/data`,
+  polygonBaseUrl: `http://localhost:${PORT}/polygon`,
   keyId: 'test_id',
   secretKey: 'test_secret',
 })

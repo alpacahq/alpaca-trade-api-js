@@ -12,15 +12,18 @@ describe('asset resource', function () {
     })
 
     it('returns valid results with a status parameter', function (done) {
-      expect(alpaca.getAssets('active')).to.eventually.be.an('array').notify(done)
+      expect(alpaca.getAssets({ status: 'active' }))
+        .to.eventually.be.an('array').notify(done)
     })
 
     it('returns valid results with an asset_class parameter', function (done) {
-      expect(alpaca.getAssets(null, 'us_equity')).to.eventually.be.an('array').notify(done)
+      expect(alpaca.getAssets({ asset_class: 'us_equity' }))
+        .to.eventually.be.an('array').notify(done)
     })
 
     it('returns valid results with both parameters', function (done) {
-      expect(alpaca.getAssets('inactive', 'us_equity')).to.eventually.be.an('array').notify(done)
+      expect(alpaca.getAssets({ status: 'inactive', asset_class: 'us_equity' }))
+        .to.eventually.be.an('array').notify(done)
     })
   })
 

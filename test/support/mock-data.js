@@ -32,12 +32,12 @@ module.exports = function createAlpacaMock() {
       timeframe: joi.only('minute', '1Min', '5Min', '15Min', 'day', '1D')
     })
     assertSchema(req.query, {
-      symbols: joi.array().items(joi.string()).required(),
+      symbols: joi.string().regex(/^(\w+,)*(\w+)$/).required(),
       limit: joi.number().integer().min(0).max(1000).optional(),
-      start: joi.date().timestamp().optional(),
-      end: joi.date().timestamp().optional(),
-      after: joi.date().timestamp().optional(),
-      until: joi.date().timestamp().optional(),
+      start: joi.string().isoDate().optional(),
+      end: joi.string().isoDate().optional(),
+      after: joi.string().isoDate().optional(),
+      until: joi.string().isoDate().optional(),
     })
     if (req.query.start && req.query.after
       || req.query.end && req.query.until) {

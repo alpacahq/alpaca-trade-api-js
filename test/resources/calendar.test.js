@@ -12,15 +12,21 @@ describe('calendar resource', function () {
     })
 
     it('returns valid results with `start` parameter', function () {
-      return expect(alpaca.getCalendar('2018-01-01')).to.eventually.have.property('date')
+      return expect(alpaca.getCalendar({ start: '2018-01-01' }))
+        .to.eventually.have.property('date')
     })
 
     it('returns valid results with `end` parameter', function () {
-      return expect(alpaca.getCalendar(undefined, '2018-01-01')).to.eventually.have.property('date')
+      return expect(alpaca.getCalendar({ end: '2018-01-01' }))
+        .to.eventually.have.property('date')
     })
 
     it('returns valid results with both parameters', function () {
-      return expect(alpaca.getCalendar('2017-01-01', '2018-01-01')).to.eventually.have.property('date')
+      return expect(alpaca.getCalendar({
+        start: new Date('July 20, 69 00:20:18'),
+        end: new Date('2018-01-01')
+      }))
+        .to.eventually.have.property('date')
     })
   })
 })

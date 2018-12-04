@@ -12,6 +12,9 @@ const { apiMethod, assertSchema, apiError } = require('./assertions')
  * This only exports a router, the actual server is created by mock-server.js
  */
 
+// certain endpoints don't accept ISO timestamps
+const dateRegex = /^\d\d\d\d-\d\d-\d\d$/
+
 module.exports = function createAlpacaMock() {
   const v1 = express.Router().use(bodyParser.json())
 
@@ -111,7 +114,13 @@ module.exports = function createAlpacaMock() {
     return assetEntity
   }))
 
-  v1.get('/calendar', apiMethod(() => calendarEntity))
+  v1.get('/calendar', apiMethod(req => {
+    assertSchema(req.query, {
+      start: joi.string().regex(dateRegex).optional(),
+      end: joi.string().regex(dateRegex).optional(),
+    })
+    return calendarEntity
+  }))
 
   v1.get('/clock', apiMethod(() => clockEntity))
 

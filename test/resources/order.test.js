@@ -13,6 +13,16 @@ describe('order resource', function () {
     it('returns valid results without a parameter', function () {
       return expect(alpaca.getOrders()).to.eventually.be.an('array')
     })
+
+    it('returns valid results with parameters', function () {
+      return expect(alpaca.getOrders({
+        status: 'open',
+        until: new Date(),
+        after: new Date(),
+        direction: 'asc',
+        limit: 4,
+      })).to.eventually.be.an('array')
+    })
   })
 
   describe('getOne', function () {
