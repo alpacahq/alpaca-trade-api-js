@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/alpacahq/alpaca-trade-api-js.svg?style=svg)](https://circleci.com/gh/alpacahq/alpaca-trade-api-js)
+
 # Alpaca Trade API Node
 
 Node.js library for Alpaca Trade API.
