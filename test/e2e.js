@@ -12,30 +12,36 @@ const paca = new Alpaca({
   paper: true
 });
 
-const pacstream = new paca.websockets.Client();
+const alpacaSocks = paca.websockets;
 
 (async function () {
   console.log(await paca.getAccount())
   console.log(await paca.getClock())
   console.log(await paca.getCalendar({ start: '2018-12-01', end: new Date() }))
 
-  pacstream.onConnect((...args) => {
+  alpacaSocks.onConnect((...args) => {
     console.log('CONNECTED', ...args)
+
+    alpacaSocks.subscribe(['T.*', 'Q.*'])
   })
 
-  pacstream.onStockTrades((...args) => {
+  alpacaSocks.onStockTrades((...args) => {
     console.log('STOCK TRADES', ...args)
   })
 
-  pacstream.onOrderUpdate((...args) => {
+  alpacaSocks.onStockQuotes((...args) => {
+    console.log('STOCK QUOTES', ...args)
+  })
+
+  alpacaSocks.onOrderUpdate((...args) => {
     console.log('ORDER UPDATE', ...args)
   })
 
-  pacstream.onStateChange((...args) => {
+  alpacaSocks.onStateChange((...args) => {
     console.log('STATE CHANGE', ...args)
   })
 
-  pacstream.connect()
+  alpacaSocks.connect()
 
   const order = await paca.createOrder({
     symbol: 'TWTR',
@@ -84,7 +90,7 @@ const pacstream = new paca.websockets.Client();
   console.log(await paca.getEarnings('AAPL'))
   console.log(await paca.getNews('AAPL'))
 
-  await pacstream.disconnect()
+  await alpacaSocks.disconnect()
 
   console.log('\n✓ done')
 })()
