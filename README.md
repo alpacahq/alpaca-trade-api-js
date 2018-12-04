@@ -11,7 +11,7 @@ The REST API documentation can be found in https://docs.alpaca.markets. For deta
 ## Installation
 
 ```sh
-npm install --save alpaca-trade-api
+npm install --save @alpacahq/alpaca-trade-api
 ```
 
 ## Usage
