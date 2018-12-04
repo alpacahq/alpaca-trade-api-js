@@ -8,17 +8,17 @@ const alpaca = new Alpaca(mock.getConfig())
 describe('calendar resource', function () {
   describe('get', function () {
     it('returns valid results without a parameter', function () {
-      return expect(alpaca.getCalendar()).to.eventually.have.property('date')
+      return expect(alpaca.getCalendar()).to.eventually.be.an('array')
     })
 
     it('returns valid results with `start` parameter', function () {
       return expect(alpaca.getCalendar({ start: '2018-01-01' }))
-        .to.eventually.have.property('date')
+        .to.eventually.be.an('array')
     })
 
     it('returns valid results with `end` parameter', function () {
       return expect(alpaca.getCalendar({ end: '2018-01-01' }))
-        .to.eventually.have.property('date')
+        .to.eventually.be.an('array')
     })
 
     it('returns valid results with both parameters', function () {
@@ -26,7 +26,7 @@ describe('calendar resource', function () {
         start: new Date('July 20, 69 00:20:18'),
         end: new Date('2018-01-01')
       }))
-        .to.eventually.have.property('date')
+        .to.eventually.be.an('array')
     })
   })
 })

@@ -119,7 +119,7 @@ module.exports = function createAlpacaMock() {
       start: joi.string().regex(dateRegex).optional(),
       end: joi.string().regex(dateRegex).optional(),
     })
-    return calendarEntity
+    return [calendarEntity]
   }))
 
   v1.get('/clock', apiMethod(() => clockEntity))
