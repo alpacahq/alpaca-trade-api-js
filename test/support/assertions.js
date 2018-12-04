@@ -14,7 +14,7 @@ const apiError = (statusCode = 500, message = 'Mock API Error') => {
 // This is only to be used for express endpoints, not for middlewares.
 const apiMethod = (fn) => async (req, res, next) => {
   try {
-    const result = await fn(req, res, )
+    const result = await fn(req, res, next)
     if (!res.headersSent) res.status(200).json(result)
   } catch (err) {
     next(err)
