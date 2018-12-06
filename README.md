@@ -221,7 +221,8 @@ getBars(
     Possible channels: 'trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', AM.*'
     This will unsubscribe from any previously subscribed channels.
     `trade_updates` and `account_updates` are for the alpaca server, the rest are for the Polygon server.
-    For more information, please contact the relevant pages.
+    In order to make calls to the Polygon api, you must have opened your Alpaca brokerage account.
+    Otherwise Polygon's api will be unavailable.
 * `websocket.onOrderUpdate(function(data))`: Register callback function for the channel 'trade_updates'.
 * `websocket.onAccountUpdate(function(data))`: Register callback function for the channel 'account_updates'.
 * `websocket.onStockTrades(function(data))`: Register callback function for the channel 'T.*'.
