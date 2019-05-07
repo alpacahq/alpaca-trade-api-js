@@ -23,7 +23,7 @@ Import the module first.
 const Alpaca = require('@alpacahq/alpaca-trade-api')
 ```
 
-Instantiate the API with config options (keyId, secretKey).
+Instantiate the API with config options, obtained from the dashboard at app.alpaca.markets.
 
 ```js
 const alpaca = new Alpaca({
@@ -32,6 +32,8 @@ const alpaca = new Alpaca({
   paper: true,
 })
 ```
+
+Note: keyId and secretKey may also be specified by setting the `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` environment variables, respectively. Also, rather than specifying `paper`, you may set `APCA_API_BASE_URL` as an environment variable to direct your API calls to the paper trading API.
 
 Call methods, which will return a promise.
 
