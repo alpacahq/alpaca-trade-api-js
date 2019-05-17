@@ -155,7 +155,11 @@ module.exports = function createPolygonMock() {
     throw apiError(404, 'route not found')
   }))
 
-  return express.Router().use('/v1', v1).use('v2', v2)
+  v2.use(apiMethod(() => {
+    throw apiError(404, 'route not found')
+  }))
+
+  return express.Router().use('/v1', v1).use('/v2', v2)
 }
 
 const symbolEntity = {
