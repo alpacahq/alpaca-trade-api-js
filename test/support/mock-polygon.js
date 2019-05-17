@@ -14,8 +14,16 @@ const { apiMethod, assertSchema, apiError } = require('./assertions')
 
 module.exports = function createPolygonMock() {
   const v1 = express.Router().use(bodyParser.json())
+  const v2 = express.Router().use(bodyParser.json())
 
   v1.use((req, res, next) => {
+    if (!req.query.apiKey) {
+      next(apiError(401))
+    }
+    next()
+  })
+
+  v2.use((req, res, next) => {
     if (!req.query.apiKey) {
       next(apiError(401))
     }
@@ -37,7 +45,7 @@ module.exports = function createPolygonMock() {
     return [symbolEntity]
   }))
 
-  function makeSymbolEndpoint (name, entity) {
+  function makeSymbolEndpoint(name, entity) {
     const path = '/meta/symbols/:symbol' + (name ? `/${name}` : '')
     v1.get(path, apiMethod(req => {
       assertSchema(req.params, {
@@ -100,6 +108,20 @@ module.exports = function createPolygonMock() {
     return historicAggregatesEntity
   }))
 
+  v2.get('/aggs/ticker/:symbol/range/:multiplier/:size/:from/:to', apiMethod(req => {
+    assertSchema(req.params, {
+      symbol: joi.string().required(),
+      multiplier: joi.number().integer().required(),
+      size: joi.only('day', 'minute'),
+      from: joi.date().required(),
+      to: joi.date().required(),
+    })
+    assertSchema(req.query, {
+      unadjusted: joi.boolean().required(),
+    }, { allowUnknown: true })
+    return historicAggregatesV2Entity
+  }))
+
   v1.get('/last/stocks/:symbol', apiMethod(req => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
@@ -133,7 +155,7 @@ module.exports = function createPolygonMock() {
     throw apiError(404, 'route not found')
   }))
 
-  return express.Router().use('/v1', v1)
+  return express.Router().use('/v1', v1).use('v2', v2)
 }
 
 const symbolEntity = {
@@ -460,6 +482,25 @@ const historicAggregatesEntity = {
       "h": 173.21,
       "v": 1800,
       "k": 4,
+      "t": 1517529605000
+    }
+  ]
+}
+
+const historicAggregatesV2Entity = {
+  "status": "success",
+  "adjusted": true,
+  "ticker": "AAPL",
+  "queryCount": 1,
+  "resultsCount": 1,
+  "ticks": [
+    {
+      "o": 173.15,
+      "c": 173.2,
+      "l": 173.15,
+      "h": 173.21,
+      "v": 1800,
+      "n": 4,
       "t": 1517529605000
     }
   ]

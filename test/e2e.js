@@ -77,7 +77,8 @@ const socket = paca.websocket;
   console.log(await paca.getHistoricAggregatesV2(
     'AAPL', 1, 'day', new Date('December 1 2018'), new Date('December 5 2018'), {
       unadjusted: false,
-    }))
+    }
+  ))
   console.log(await paca.getLastTrade('AAPL'))
   console.log(await paca.getLastQuote('AAPL'))
   console.log(await paca.getConditionMap())
