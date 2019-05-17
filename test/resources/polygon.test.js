@@ -51,6 +51,14 @@ describe('polygon methods', () => {
     ).to.eventually.have.property('aggType')
   })
 
+  it('can get historic aggregates v2', () => {
+    return expect(
+      alpaca.getHistoricAggregatesV2('AAPL', 1, 'day', '2018-02-01', '2018-02-10', {
+        unadjusted: false,
+      })
+    ).to.eventually.have.property('queryCount')
+  })
+
   it('can get historic trades', () => {
     return expect(
       alpaca.getHistoricTrades('AAPL', '2018-3-2', { offset: 2, limit: 12 })
