@@ -8,6 +8,7 @@ describe('alpaca-trade-api', function () {
   describe('configure', function () {
     it('sets the configuration variables correctly', function () {
       const testConfig = {
+        apiVersion: 'v2',
         baseUrl: 'https://base.example.com',
         dataBaseUrl: 'https://data.example.com',
         polygonBaseUrl: 'https://polygon.example.com',

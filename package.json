@@ -1,6 +1,6 @@
 {
   "name": "@alpacahq/alpaca-trade-api",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Javascript library for the Alpaca Trade API",
   "main": "lib/alpaca-trade-api.js",
   "scripts": {
@@ -16,7 +16,8 @@
   ],
   "contributors": [
     "Jenya Tkachenko <jekatka@outlook.com>",
-    "Aaron Suddjian <aaron@alpaca.markets>"
+    "Aaron Suddjian <aaron@alpaca.markets>",
+    "Trevor Thackston <trevor@alpaca.markets>"
   ],
   "license": "Apache-2.0",
   "bugs": {

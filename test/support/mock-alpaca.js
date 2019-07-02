@@ -16,9 +16,9 @@ const { apiMethod, assertSchema, apiError } = require('./assertions')
 const dateRegex = /^\d\d\d\d-\d\d-\d\d$/
 
 module.exports = function createAlpacaMock() {
-  const v1 = express.Router().use(bodyParser.json())
+  const v2 = express.Router().use(bodyParser.json())
 
-  v1.use((req, res, next) => {
+  v2.use((req, res, next) => {
     if (
       !req.get('APCA-API-KEY-ID')
       || !req.get('APCA-API-SECRET-KEY')
@@ -29,9 +29,9 @@ module.exports = function createAlpacaMock() {
     next()
   })
 
-  v1.get('/account', apiMethod(() => accountEntity))
+  v2.get('/account', apiMethod(() => accountEntity))
 
-  v1.get('/orders', apiMethod((req) => {
+  v2.get('/orders', apiMethod((req) => {
     assertSchema(req.query, {
       status: joi.string().optional().valid('open', 'closed', 'all'),
       limit: joi.number().optional().integer().positive().max(500),
@@ -42,19 +42,19 @@ module.exports = function createAlpacaMock() {
     return [orderEntity]
   }))
 
-  v1.get('/orders/:id', apiMethod((req) => {
+  v2.get('/orders/:id', apiMethod((req) => {
     if (req.params.id === 'nonexistent_order_id') throw apiError(404)
     return orderEntity
   }))
 
-  v1.get('/orders:by_client_order_id', apiMethod((req) => {
+  v2.get('/orders:by_client_order_id', apiMethod((req) => {
     assertSchema(req.query, {
       client_order_id: joi.string().required()
     })
     return orderEntity
   }))
 
-  v1.post('/orders', apiMethod((req) => {
+  v2.post('/orders', apiMethod((req) => {
     assertSchema(req.body, {
       symbol: joi.string().required(),
       qty: joi.number().required().integer().positive(),
@@ -79,14 +79,14 @@ module.exports = function createAlpacaMock() {
     return orderEntity
   }))
 
-  v1.delete('/orders/:id', apiMethod((req) => {
+  v2.delete('/orders/:id', apiMethod((req) => {
     if (req.params.id === 'nonexistent_order_id') throw apiError(404)
     if (req.params.id === 'uncancelable_order_id') throw apiError(422)
   }))
 
-  v1.get('/positions', apiMethod(() => [positionEntity]))
+  v2.get('/positions', apiMethod(() => [positionEntity]))
 
-  v1.get('/positions/:symbol', apiMethod((req) => {
+  v2.get('/positions/:symbol', apiMethod((req) => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
     })
@@ -98,7 +98,7 @@ module.exports = function createAlpacaMock() {
     return positionEntity
   }))
 
-  v1.get('/assets', apiMethod((req) => {
+  v2.get('/assets', apiMethod((req) => {
     assertSchema(req.query, {
       status: joi.valid('active', 'inactive').optional(),
       asset_class: joi.string().optional(),
@@ -106,7 +106,7 @@ module.exports = function createAlpacaMock() {
     return [assetEntity]
   }))
 
-  v1.get('/assets/:symbol', apiMethod((req) => {
+  v2.get('/assets/:symbol', apiMethod((req) => {
     assertSchema(req.params, { symbol: joi.string().required() })
     if (req.params.symbol === 'FAKE') {
       throw apiError(404)
@@ -114,7 +114,7 @@ module.exports = function createAlpacaMock() {
     return assetEntity
   }))
 
-  v1.get('/calendar', apiMethod(req => {
+  v2.get('/calendar', apiMethod(req => {
     assertSchema(req.query, {
       start: joi.string().regex(dateRegex).optional(),
       end: joi.string().regex(dateRegex).optional(),
@@ -122,13 +122,13 @@ module.exports = function createAlpacaMock() {
     return [calendarEntity]
   }))
 
-  v1.get('/clock', apiMethod(() => clockEntity))
+  v2.get('/clock', apiMethod(() => clockEntity))
 
-  v1.use(apiMethod(() => {
+  v2.use(apiMethod(() => {
     throw apiError(404, 'route not found')
   }))
 
-  return express.Router().use('/v1', v1)
+  return express.Router().use('/v2', v2)
 }
 
 const accountEntity = {
