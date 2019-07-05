@@ -1,5 +1,5 @@
-const API_KEY = 'ENTER_API_KEY_HERE';
-const API_SECRET = 'ENTER_SECRET_KEY_HERE';
+const API_KEY = 'PKF2414BXK8W63GII9YS';
+const API_SECRET = 'c5NLAThTQNG345TNgDQrVsmOQ9tNaRNVeVpJLkvR';
 const PAPER = true;
 
 class MeanReversion {
@@ -47,7 +47,8 @@ class MeanReversion {
 
     // Wait for market to open
     console.log("Waiting for market to open...");
-    await this.awaitMarketOpen();
+    var promMarket = this.awaitMarketOpen();
+    await promMarket;
     console.log("Market Opened.");
 
     // Figure out when the market will close so we can prepare to sell beforehand.
@@ -74,7 +75,7 @@ class MeanReversion {
       });
       this.timeToClose = Math.abs(closingTime - currTime);
 
-      if(this.timeToClose > (60000 * 15)) {
+      if(this.timeToClose < (60000 * 15)) {
         // Close all positions when 15 minutes til market close
         console.log("Market closing soon.  Closing positions.");
         try{
@@ -91,17 +92,25 @@ class MeanReversion {
         } catch(err){}
         clearInterval(spin);
       }
-    },60000);
+    },6000);
   }
 
   // Spin until the market is open
-  async awaitMarketOpen(){
-    var isOpen = false;
-    while(!isOpen){
-      await this.alpaca.getClock().then((resp) => {
-        isOpen = resp.is_open;
-      });
-    }
+  awaitMarketOpen(){
+    var prom = new Promise((resolve,reject) => {
+      var isOpen = false;
+      var marketChecker = setInterval(async ()=>{
+        //console.log('spinning');
+        await this.alpaca.getClock().then((resp) => {
+          isOpen = resp.is_open;
+          if(isOpen) {
+            clearInterval(marketChecker);
+            resolve();
+          }
+        });
+      },60000);
+    });
+    return prom;
   }
 
   // Rebalance our position after an update
@@ -120,14 +129,15 @@ class MeanReversion {
     // Get the new updated price and running average
     var bars;
     await this.alpaca.getBars('minute',this.stock).then((resp) => {
-      bars = resp.AAPL;
+      bars = resp[this.stock];
     })
     var currPrice = bars[bars.length-1].c;
     this.closingPrices.push(currPrice);
     if(this.closingPrices.length > 20) this.closingPrices.splice(0,1);
     this.runningAverage = ((this.runningAverage * (this.closingPrices.length - 1)) + currPrice) / this.closingPrices.length;
   
-    if(currPrice < this.runningAverage){
+    console.log(currPrice,this.runningAverage);
+    if(currPrice > this.runningAverage){
       // Sell our position if the price is above the running average, if any
       if(positionQuantity > 0){
         console.log("Setting position to zero.");
@@ -135,7 +145,7 @@ class MeanReversion {
       }
       else console.log("No position in the stock");
     }
-    else if(currPrice > this.runningAverage){
+    else if(currPrice < this.runningAverage){
       // Determine optimal amount of shares based on portfolio and market data
       var portfolioValue;
       var buyingPower;
@@ -175,9 +185,9 @@ class MeanReversion {
       }).then((resp) => {
           this.lastOrder = resp;
         });
-      console.log("Shares purchased");
+      //console.log("Order Executed");
     }
-    else console.log("Quantity is 0");
+    else //console.log("Quantity is 0");
   }
 }
 
