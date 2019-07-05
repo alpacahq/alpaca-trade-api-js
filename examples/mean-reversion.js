@@ -1,5 +1,5 @@
-const API_KEY = 'PKF2414BXK8W63GII9YS';
-const API_SECRET = 'c5NLAThTQNG345TNgDQrVsmOQ9tNaRNVeVpJLkvR';
+const API_KEY = 'API_KEY';
+const API_SECRET = 'API_SECRET';
 const PAPER = true;
 
 class MeanReversion {
@@ -13,7 +13,6 @@ class MeanReversion {
     this.closingPrices = [];
     this.runningAverage = 0;
     this.lastOrder = null;
-    this.volatile = {spin: true};
     this.timeToClose;
     this.stock = "AAPL";
   }
@@ -28,9 +27,7 @@ class MeanReversion {
       orders = resp;
     });
     orders.forEach(async (order) => {
-      this.alpaca.cancelOrder(order.id).catch((e) => {
-        console.log(e);
-      });
+      this.alpaca.cancelOrder(order.id).catch((e) => {});
     });
 
     // Get the running average of prices of the last 20 minutes
@@ -91,6 +88,10 @@ class MeanReversion {
           });
         } catch(err){}
         clearInterval(spin);
+        setTimeout(() => {
+          // Run script again after market close for next trading day
+          this.run();
+        },60000*15);
       }
     },60000);
   }
@@ -142,7 +143,7 @@ class MeanReversion {
         console.log("Setting position to zero.");
         await this.submitOrder(positionQuantity,this.stock,currPrice,'sell');
       }
-      else console.log("No position in the stock");
+      else console.log("No position in the stock.  No action required.");
     }
     else if(currPrice < this.runningAverage){
       // Determine optimal amount of shares based on portfolio and market data
@@ -186,7 +187,7 @@ class MeanReversion {
         });
       //console.log("Order Executed");
     }
-    else //console.log("Quantity is 0");
+  else {/*console.log("Quantity is 0");*/}
   }
 }
 
