@@ -92,7 +92,7 @@ class MeanReversion {
         } catch(err){}
         clearInterval(spin);
       }
-    },6000);
+    },60000);
   }
 
   // Spin until the market is open
@@ -136,7 +136,6 @@ class MeanReversion {
     if(this.closingPrices.length > 20) this.closingPrices.splice(0,1);
     this.runningAverage = ((this.runningAverage * (this.closingPrices.length - 1)) + currPrice) / this.closingPrices.length;
   
-    console.log(currPrice,this.runningAverage);
     if(currPrice > this.runningAverage){
       // Sell our position if the price is above the running average, if any
       if(positionQuantity > 0){
