@@ -1,0 +1,423 @@
+const API_KEY = 'PK2QQWOEG6ALQ0ADZV3H';
+const API_SECRET = 'f393ILtkPrxxnFgESMzSeDnDkFiDB9zXUZcJLjm0';
+const PAPER = true;
+
+class LongShort {
+  constructor(API_KEY,API_SECRET,PAPER){
+    this.Alpaca = require('@alpacahq/alpaca-trade-api');
+    this.alpaca = new this.Alpaca({
+      keyId: API_KEY,
+      secretKey: API_SECRET,
+      paper: PAPER,
+    });
+
+    this.allStocks = ['DOMO','TLRY','SQ','MRO','AAPL','GM','SNAP','SHOP','SPLK','BA','AMZN','SUI','SUN','TSLA','CGC','SPWR','NIO','CAT','MSFT','PANW','OKTA','TWTR','TM','RTN','ATVI','GS','BAC','MS','TWLO','QCOM'];
+    // Format the allStocks variable for use in the class
+    var temp = [];
+    this.allStocks.forEach((stockName) => {
+      temp.push({name:stockName,pc:0});
+    });
+    this.allStocks = temp.slice();
+
+    this.long = [];
+    this.short = [];
+    this.qShort;
+    this.qLong;
+    this.adjustedQLong;
+    this.adjustedQShort;
+    this.blacklist = new Set();
+    this.longAmount = 0;
+    this.shortAmount = 0;
+    this.timeToClose;
+  }
+
+  async run(){
+    // First, cancel any existing orders so they don't impact our buying power.
+    var orders;
+    await this.alpaca.getOrders({
+      status:'open',
+      direction:'desc',
+    }).then((resp) => {
+      orders = resp;
+    });
+    var promOrders = [];
+    orders.forEach((order) => {
+      promOrders.push(new Promise(async (resolve,reject) => {
+        await this.alpaca.cancelOrder(order.id).catch((e) => {});
+        resolve();
+      }));
+    });
+    await Promise.all(promOrders);
+
+    // Wait for market to open
+    console.log("Waiting for market to open...");
+    var promMarket = this.awaitMarketOpen();
+    await promMarket;
+    console.log("Market Opened.");
+
+    // Rebalance the portfolio every minute, making necessary trades
+    var spin = setInterval(async () => {
+      await this.rebalance();
+
+      // Figure out when the market will close so we can prepare to sell beforehand.
+      await this.alpaca.getClock().then((resp) =>{
+        var closingTime = new Date(resp.next_close.substring(0,resp.next_close.length-6));
+        var currTime = new Date(resp.timestamp.substring(0,resp.timestamp.length-6));
+        this.timeToClose = Math.abs(closingTime - currTime);
+      });
+      this.timeToClose = 0;
+
+      if(this.timeToClose < (60000 * 15)) {
+        // Close all positions when 15 minutes til market close
+        console.log("Market closing soon.  Closing positions.");
+        
+        await this.alpaca.getPositions().then(async (resp) => {
+          var promClose = [];
+          resp.forEach((position) => {
+            promClose.push(new Promise(async (resolve,reject) => {
+              var orderSide;
+              if(position.side == 'long') orderSide = 'sell';
+              else orderSide = 'buy';
+              var quantity = Math.abs(position.qty);
+              console.log(quantity,position.symbol,orderSide);
+              await this.submitOrder(position.qty,position.symbol,orderSide).catch((err) => {console.log(position.symbol,position.qty)});
+              resolve();
+            }))
+          });
+          
+          await Promise.all(promClose);
+        });
+        clearInterval(spin);
+        setTimeout(() => {
+          // Run script again after market close for next trading day
+          this.run();
+        },60000*15);
+      }
+    },10000);
+  }
+
+  // Spin until the market is open
+  awaitMarketOpen(){
+    var prom = new Promise((resolve,reject) => {
+      var isOpen = false;
+      var marketChecker = setInterval(async ()=>{
+        console.log('spinning');
+        await this.alpaca.getClock().then((resp) => {
+          isOpen = resp.is_open;
+          isOpen = true;
+          if(isOpen) {
+            clearInterval(marketChecker);
+            resolve();
+          }
+        });
+      },2000);
+    });
+    return prom;
+  }
+
+  // Rebalance our position after an update
+  async rebalance(){
+    await this.rerank();
+    
+    // First, cancel any existing orders so they don't impact our buying power.
+    var orders;
+    await this.alpaca.getOrders({
+      status:'open',
+      direction:'desc',
+    }).then((resp) => {
+      orders = resp;
+    });
+    var promOrders = [];
+    orders.forEach((order) => {
+      promOrders.push(new Promise(async (resolve,reject) => {
+        await this.alpaca.cancelOrder(order.id).catch((e) => {});
+        resolve();
+      }));
+    });
+    await Promise.all(promOrders);
+
+    var positions;
+    await this.alpaca.getPositions().then((resp) => {
+      positions = resp;
+    });
+    
+    // Remove positions that are no longer in the short or long list, and make a list of positions that do not need to change.  Adjust position quantities if needed.
+    var promPositions = [];
+    var executed = {long:[],short:[]};
+    console.log(positions);
+    positions.forEach((position) => {
+      promPositions.push(new Promise(async (resolve,reject) => {
+        if(this.long.indexOf(position.symbol) < 0){
+          // Position is not in long list
+          if(this.short.indexOf(position.symbol) < 0){
+            // Position not in short list either.  Clear position
+            if(position.side == "long") await this.submitOrder(Math.abs(position.qty),position.symbol,'sell');
+            else await this.submitOrder(Math.abs(position.qty),position.symbol,'buy');
+            this.blacklist.delete(position.symbol);
+          }
+          else{
+            // Position in short list
+            if(position.side == "long") {
+              // Position changed from long to short.  Clear long position to prep for short sell.
+              await this.submitOrder(position.qty+this.qShort,position.symbol,'sell');
+            }
+            else {
+              if(Math.abs(position.qty) == this.qShort){
+                // Position is where we want it.  Pass for now
+              }
+              else{
+                // Need to adjust position amount
+                var diff = Math.abs(position.qty) - this.qShort;
+                if(diff > 0){
+                  // Too many short positions.  Buy some back to rebalance.
+                  await this.submitOrder(diff,position.symbol,'buy');
+
+                }
+                else{
+                  // Too little short positions.  Sell some more.
+                  await this.submitOrder(Math.abs(diff),position.symbol,'sell');
+                }
+              }
+            }
+            // Blacklist position so that duplicate orders/adjustments are not made
+            this.blacklist.add(position.symbol);
+            executed.short.push(position.symbol);
+          }
+        }
+        else{
+          // Position in long list
+          if(position.side == "short"){
+            // Position changed from short to long.  Clear short position to prep for long purchase.
+            await this.submitOrder(position.qty+this.qLong,position.symbol,'buy');
+          }
+          else{
+            if(position.qty == this.qLong){
+              // Position is where we want it.  Pass for now
+            }
+            else{
+              // Need to adjust position amount
+              var diff = position.qty - this.qLong;
+              if(diff > 0){
+                // Too many long positions.  Sell some to rebalance
+                await this.submitOrder(diff,position.symbol,'sell');
+              }
+              else{
+                // Too little long positions.  Buy some more.
+                await this.submitOrder(Math.abs(diff),position.symbol,'buy');
+              }
+            }
+          }
+          // Blacklist position so that duplicate orders/adjustments are not made
+          this.blacklist.add(position.symbol);
+          executed.long.push(position.symbol);
+        }
+        console.log(position.symbol);
+        resolve();
+      }));
+    });
+    await Promise.all(promPositions);
+
+    // Send orders to all remaining stocks in the long and short list
+    var promLong = this.sendBatchOrder(this.qLong,this.long,'buy');
+    var promShort = this.sendBatchOrder(this.qShort,this.short,'sell');
+
+    var promBatches = [];
+    var incomplete = [];
+    this.adjustedQLong = -1;
+    this.adjustedQShort = -1;
+    
+    console.log("First Order");
+    await Promise.all([promLong,promShort]).then(async (resp) => {
+      // Handle rejected/incomplete orders
+      resp.forEach(async (arrays,i,resp) => {
+        promBatches.push(new Promise(async (resolve,reject) => {
+          //arrays = [arrays[1].slice(0,1),arrays[1].slice(1,3)];
+          incomplete.push(arrays[0].slice());
+          if(i == 0) {
+            arrays[1] = arrays[1].concat(executed.long);
+            executed.long = arrays[1].slice();
+          }
+          else {
+            arrays[1] = arrays[1].concat(executed.short);
+            executed.short = arrays[1].slice();
+          }
+
+          // Return orders that didn't complete, and determine new quantities to purchase
+          if(arrays[0].length > 0 && arrays[1].length > 0){
+            var promPrices = this.getTotalPrice(arrays[1]);
+            
+            await Promise.all(promPrices).then((resp) => {
+              var completeTotal = resp.reduce((a,b) => a + b,0);
+              if(completeTotal != 0){
+                if(i == 0){
+                  this.adjustedQLong = Math.floor(this.longAmount / completeTotal);
+                }
+                else{
+                  this.adjustedQShort = Math.floor(this.shortAmount / completeTotal);
+                }
+              }
+            });
+          }
+          resolve();
+        }));
+      });
+      await Promise.all(promBatches);
+    }).then(async () => {
+      // Reorder stocks that didn't throw an error so that the equity quota is reached
+      var promReorder = new Promise(async (resolve,reject) => {
+        var promLong = [];
+        if(this.adjustedQLong >= 0){
+          this.qLong = this.adjustedQLong - this.qLong;
+          executed.long.forEach(async (stock) => {
+            promLong.push(new Promise(async (resolve,reject) => {
+              var promLong = this.submitOrder(this.qLong,stock,'buy');
+              await promLong;
+              resolve();
+            })); 
+          });
+        }
+        
+        var promShort = [];
+        if(this.adjustedQShort >= 0){
+          this.qShort = this.adjustedQShort - this.qShort;
+          executed.short.forEach(async(stock) => {
+            promShort.push(new Promise(async (resolve,reject) => {
+              var promShort = this.submitOrder(this.qShort,stock,'sell');
+              await promShort;
+              resolve();
+            }));
+          });
+        }
+        var allProms = promLong.concat(promShort);
+        if(allProms.length > 0){
+          await Promise.all(allProms);
+        }
+        resolve();
+      });   
+      console.log("Reordering...");
+      await promReorder;
+      console.log("End");
+    });
+  }
+
+  // Re-rank all stocks to adjust longs and shorts
+  async rerank(){
+    var promStocks = this.getPercentChanges(this.allStocks);
+    await Promise.all(promStocks);
+
+    this.allStocks.sort((a,b) => {return a.pc-b.pc});
+    var longShortAmount = Math.floor(this.allStocks.length / 4);
+
+    this.long = [];
+    this.short = [];
+    for(var i = 0; i < this.allStocks.length; i++){
+      if(i < longShortAmount) this.short.push(this.allStocks[i].name);
+      else if(i > (this.allStocks.length - 1 - longShortAmount)) this.long.push(this.allStocks[i].name);
+      else continue;
+    }
+
+    var equity;
+    await this.alpaca.getAccount().then((resp) => {
+      equity = resp.equity;
+    })
+    this.shortAmount = 0.30 * equity;
+    this.longAmount = Number(this.shortAmount) + Number(equity);
+
+    var promLong = await this.getTotalPrice(this.long);
+    var promShort = await this.getTotalPrice(this.short);
+    var longTotal;
+    var shortTotal;
+    await Promise.all(promLong).then((resp) => {
+      longTotal = resp.reduce((a,b) => a + b,0);
+    });
+    await Promise.all(promShort).then((resp) => {
+      shortTotal = resp.reduce((a,b) => a + b,0);
+    });
+    
+    this.qLong = Math.floor(this.longAmount / longTotal);
+    this.qShort = Math.floor(this.shortAmount / shortTotal);
+  }
+
+  // Get the total price of the array of input stocks
+  getTotalPrice(stocks){
+    var proms = [];
+    stocks.forEach(async (stock) => {
+      proms.push(new Promise(async (resolve,reject) => {
+        await this.alpaca.getBars('day',stock,{limit:1}).then((resp) => {
+          resolve(resp[stock][0].c);
+        });
+      }));
+    });
+    return proms;
+  }
+
+  // Submit an order if quantity is above 0
+  async submitOrder(quantity,stock,side){
+    if(quantity > 0){
+      await this.alpaca.createOrder({
+        symbol: stock,
+        qty: quantity,
+        side: side,
+        type: 'market',
+        time_in_force: 'day',
+      }).then(() => {
+        console.log("Market order of " + quantity + " " + stock + ", " + side);
+      });
+    }
+    else {
+      console.log("Quantity is 0");
+    }
+  }
+
+  // Submit a batch order that returns completed and uncompleted orders
+  async sendBatchOrder(quantity,stocks,side){
+    var prom = new Promise(async (resolve,reject) => {
+      var incomplete = [];
+      var executed = [];
+      var promOrders = [];
+      stocks.forEach(async (stock) => {
+        promOrders.push(new Promise(async (resolve,reject) => {
+          if(!this.blacklist.has(stock)){
+            await this.submitOrder(quantity,stock,side).then(() => {
+              executed.push(stock);
+              resolve();
+            }).catch((err) => {
+              if(err.statusCode == 403){
+                // Error: cannot be short sold
+                if(side == 'sell'){
+                  incomplete.push(stock);
+                }
+              }
+              resolve();
+            });
+          }
+          else resolve();
+        }));
+      });
+      await Promise.all(promOrders).then(() => {
+        resolve([incomplete,executed]);
+      });
+    });
+    return prom;
+  }
+
+  // Get percent changes of the stock prices over the past 10 days || Mechanism used to rank the stocks
+  getPercentChanges(allStocks){
+    var days = 10
+    var promStocks = [];
+    allStocks.forEach((stock) => {
+      promStocks.push(new Promise(async (resolve,reject) => {
+        await this.alpaca.getBars('day',stock.name,{limit:days}).then((resp) => {
+          var percentChange = (resp[stock.name][days-1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
+          stock.pc = percentChange;
+        });
+        resolve();
+      }));
+    });
+    return promStocks;
+  }
+}
+
+// Run the LongShort class
+var ls = new LongShort(API_KEY,API_SECRET,PAPER);
+ls.run();
