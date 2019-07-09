@@ -1,5 +1,5 @@
-const API_KEY = 'PK2QQWOEG6ALQ0ADZV3H';
-const API_SECRET = 'f393ILtkPrxxnFgESMzSeDnDkFiDB9zXUZcJLjm0';
+const API_KEY = 'API_KEY';
+const API_SECRET = 'API_SECRET';
 const PAPER = true;
 
 class LongShort {
@@ -65,7 +65,6 @@ class LongShort {
         var currTime = new Date(resp.timestamp.substring(0,resp.timestamp.length-6));
         this.timeToClose = Math.abs(closingTime - currTime);
       });
-      this.timeToClose = 0;
 
       if(this.timeToClose < (60000 * 15)) {
         // Close all positions when 15 minutes til market close
@@ -79,10 +78,9 @@ class LongShort {
               if(position.side == 'long') orderSide = 'sell';
               else orderSide = 'buy';
               var quantity = Math.abs(position.qty);
-              console.log(quantity,position.symbol,orderSide);
-              await this.submitOrder(position.qty,position.symbol,orderSide).catch((err) => {console.log(position.symbol,position.qty)});
+              await this.submitOrder(quantity,position.symbol,orderSide).catch((err) => {console.log("Could not complete order: " + position.symbol + " " + position.quantity + " " + position.side)});
               resolve();
-            }))
+            }));
           });
           
           await Promise.all(promClose);
@@ -93,7 +91,7 @@ class LongShort {
           this.run();
         },60000*15);
       }
-    },10000);
+    },60000);
   }
 
   // Spin until the market is open
@@ -104,13 +102,12 @@ class LongShort {
         console.log('spinning');
         await this.alpaca.getClock().then((resp) => {
           isOpen = resp.is_open;
-          isOpen = true;
           if(isOpen) {
             clearInterval(marketChecker);
             resolve();
           }
         });
-      },2000);
+      },60000);
     });
     return prom;
   }
@@ -144,7 +141,6 @@ class LongShort {
     // Remove positions that are no longer in the short or long list, and make a list of positions that do not need to change.  Adjust position quantities if needed.
     var promPositions = [];
     var executed = {long:[],short:[]};
-    console.log(positions);
     positions.forEach((position) => {
       promPositions.push(new Promise(async (resolve,reject) => {
         if(this.long.indexOf(position.symbol) < 0){
@@ -211,7 +207,6 @@ class LongShort {
           this.blacklist.add(position.symbol);
           executed.long.push(position.symbol);
         }
-        console.log(position.symbol);
         resolve();
       }));
     });
@@ -226,7 +221,6 @@ class LongShort {
     this.adjustedQLong = -1;
     this.adjustedQShort = -1;
     
-    console.log("First Order");
     await Promise.all([promLong,promShort]).then(async (resp) => {
       // Handle rejected/incomplete orders
       resp.forEach(async (arrays,i,resp) => {
@@ -293,10 +287,8 @@ class LongShort {
           await Promise.all(allProms);
         }
         resolve();
-      });   
-      console.log("Reordering...");
+      });
       await promReorder;
-      console.log("End");
     });
   }
 
@@ -365,7 +357,7 @@ class LongShort {
       });
     }
     else {
-      console.log("Quantity is 0");
+      console.log("Quantity is 0, order of " + quantity + " " + stock + " " + side + " not completed");
     }
   }
 
