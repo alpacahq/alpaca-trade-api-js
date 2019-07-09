@@ -116,7 +116,7 @@ class LongShort {
   async rebalance(){
     await this.rerank();
     
-    // First, cancel any existing orders so they don't impact our buying power.
+    // Clear existing orders again
     var orders;
     await this.alpaca.getOrders({
       status:'open',
@@ -133,12 +133,11 @@ class LongShort {
     });
     await Promise.all(promOrders);
 
+    // Remove positions that are no longer in the short or long list, and make a list of positions that do not need to change.  Adjust position quantities if needed.
     var positions;
     await this.alpaca.getPositions().then((resp) => {
       positions = resp;
     });
-    
-    // Remove positions that are no longer in the short or long list, and make a list of positions that do not need to change.  Adjust position quantities if needed.
     var promPositions = [];
     var executed = {long:[],short:[]};
     positions.forEach((position) => {
@@ -155,7 +154,8 @@ class LongShort {
             // Position in short list
             if(position.side == "long") {
               // Position changed from long to short.  Clear long position to prep for short sell.
-              await this.submitOrder(position.qty+this.qShort,position.symbol,'sell');
+              await this.submitOrder(Math.abs(position.qty),position.symbol,'sell');
+              await this.submitOrder(this.qShort,position.symbol,'sell');
             }
             else {
               if(Math.abs(position.qty) == this.qShort){
@@ -163,7 +163,7 @@ class LongShort {
               }
               else{
                 // Need to adjust position amount
-                var diff = Math.abs(position.qty) - this.qShort;
+                var diff = Number(Math.abs(position.qty)) - Number(this.qShort);
                 if(diff > 0){
                   // Too many short positions.  Buy some back to rebalance.
                   await this.submitOrder(diff,position.symbol,'buy');
@@ -183,8 +183,9 @@ class LongShort {
         else{
           // Position in long list
           if(position.side == "short"){
-            // Position changed from short to long.  Clear short position to prep for long purchase.
-            await this.submitOrder(position.qty+this.qLong,position.symbol,'buy');
+            // Position changed from short to long.  Clear short position and long instead.
+            await this.submitOrder(Math.abs(position.qty),position.symbol,'buy');
+            await this.submitOrder(this.qLong,position.symbol,'buy');
           }
           else{
             if(position.qty == this.qLong){
@@ -192,7 +193,7 @@ class LongShort {
             }
             else{
               // Need to adjust position amount
-              var diff = position.qty - this.qLong;
+              var diff = Number(position.qty) - Number(this.qLong);
               if(diff > 0){
                 // Too many long positions.  Sell some to rebalance
                 await this.submitOrder(diff,position.symbol,'sell');
@@ -294,12 +295,10 @@ class LongShort {
 
   // Re-rank all stocks to adjust longs and shorts
   async rerank(){
-    var promStocks = this.getPercentChanges(this.allStocks);
-    await Promise.all(promStocks);
+    await this.rank();
 
-    this.allStocks.sort((a,b) => {return a.pc-b.pc});
+    // Grabs the top and bottom quarter of the sorted stock list to get the long and short lists
     var longShortAmount = Math.floor(this.allStocks.length / 4);
-
     this.long = [];
     this.short = [];
     for(var i = 0; i < this.allStocks.length; i++){
@@ -307,7 +306,7 @@ class LongShort {
       else if(i > (this.allStocks.length - 1 - longShortAmount)) this.long.push(this.allStocks[i].name);
       else continue;
     }
-
+    // Determine amount to long/short based on total stock price of each bucket
     var equity;
     await this.alpaca.getAccount().then((resp) => {
       equity = resp.equity;
@@ -374,12 +373,8 @@ class LongShort {
               executed.push(stock);
               resolve();
             }).catch((err) => {
-              if(err.statusCode == 403){
-                // Error: cannot be short sold
-                if(side == 'sell'){
-                  incomplete.push(stock);
-                }
-              }
+              // Stock order did not go through, add it to incomplete
+              incomplete.push(stock);
               resolve();
             });
           }
@@ -393,7 +388,7 @@ class LongShort {
     return prom;
   }
 
-  // Get percent changes of the stock prices over the past 10 days || Mechanism used to rank the stocks
+  // Get percent changes of the stock prices over the past 10 days
   getPercentChanges(allStocks){
     var days = 10
     var promStocks = [];
@@ -407,6 +402,16 @@ class LongShort {
       }));
     });
     return promStocks;
+  }
+
+  // Mechanism used to rank the stocks, the basis of the Long-Short Equity Strategy
+  async rank(){
+    // Ranks all stocks by percent change over the past 10 days (higher is better)
+    var promStocks = this.getPercentChanges(this.allStocks);
+    await Promise.all(promStocks);
+
+    // Sort the stocks in place by the percent change field (marked by pc)
+    this.allStocks.sort((a,b) => {return a.pc-b.pc});
   }
 }
 
