@@ -133,6 +133,9 @@ class LongShort {
     });
     await Promise.all(promOrders);
 
+
+    console.log("We are longing: " + this.long.toString());
+    console.log("We are shorting: " + this.short.toString());
     // Remove positions that are no longer in the short or long list, and make a list of positions that do not need to change.  Adjust position quantities if needed.
     var positions;
     await this.alpaca.getPositions().then((resp) => {
@@ -140,22 +143,25 @@ class LongShort {
     }).catch((err) => {console.log(err);});
     var promPositions = [];
     var executed = {long:[],short:[],};
+    var side;
+    this.blacklist.clear();
     positions.forEach((position) => {
       promPositions.push(new Promise(async (resolve,reject) => {
         if(this.long.indexOf(position.symbol) < 0){
           // Position is not in long list.
           if(this.short.indexOf(position.symbol) < 0){
             // Position not in short list either.  Clear position.
-            if(position.side == "long") await this.submitOrder(Math.abs(position.qty),position.symbol,'sell');
-            else await this.submitOrder(Math.abs(position.qty),position.symbol,'buy');
-            this.blacklist.delete(position.symbol);
+            if(position.side == "long") side = "sell";
+            else side = "buy";
+            var promCO = this.submitOrder(Math.abs(position.qty),position.symbol,side);
+            await promCO.then(() => {resolve();});
           }
           else{
             // Position in short list.
             if(position.side == "long") {
-              // Position changed from long to short.  Clear long position to prep for short sell.
-              await this.submitOrder(Math.abs(position.qty),position.symbol,'sell');
-              await this.submitOrder(this.qShort,position.symbol,'sell');
+              // Position changed from long to short.  Clear long position and short instead
+              var promCS = this.submitOrder(position.qty,position.symbol,"sell");
+              await promCS.then(() => {resolve();});
             }
             else {
               if(Math.abs(position.qty) == this.qShort){
@@ -166,26 +172,27 @@ class LongShort {
                 var diff = Number(Math.abs(position.qty)) - Number(this.qShort);
                 if(diff > 0){
                   // Too many short positions.  Buy some back to rebalance.
-                  await this.submitOrder(diff,position.symbol,'buy');
-
+                  side = "buy"
                 }
                 else{
                   // Too little short positions.  Sell some more.
-                  await this.submitOrder(Math.abs(diff),position.symbol,'sell');
+                  side = "sell"
                 }
+                var promRebalance = this.submitOrder(Math.abs(diff),position.symbol,side);
+                await promRebalance;
               }
+              executed.short.push(position.symbol);
+              this.blacklist.add(position.symbol);
+              resolve();
             }
-            // Blacklist position so that duplicate orders/adjustments are not made.
-            this.blacklist.add(position.symbol);
-            executed.short.push(position.symbol);
           }
         }
         else{
           // Position in long list.
           if(position.side == "short"){
             // Position changed from short to long.  Clear short position and long instead.
-            await this.submitOrder(Math.abs(position.qty),position.symbol,'buy');
-            await this.submitOrder(this.qLong,position.symbol,'buy');
+            var promCS = this.submitOrder(Math.abs(position.qty),position.symbol,"buy");
+            await promCS.then(() => {resolve();});
           }
           else{
             if(position.qty == this.qLong){
@@ -196,19 +203,20 @@ class LongShort {
               var diff = Number(position.qty) - Number(this.qLong);
               if(diff > 0){
                 // Too many long positions.  Sell some to rebalance.
-                await this.submitOrder(diff,position.symbol,'sell');
+                side = "sell";
               }
               else{
                 // Too little long positions.  Buy some more.
-                await this.submitOrder(Math.abs(diff),position.symbol,'buy');
+                side = "buy";
               }
+              var promRebalance = this.submitOrder(Math.abs(diff),position.symbol,side);
+              await promRebalance;
             }
+            executed.long.push(position.symbol);
+            this.blacklist.add(position.symbol);
+            resolve();
           }
-          // Blacklist position so that duplicate orders/adjustments are not made.
-          this.blacklist.add(position.symbol);
-          executed.long.push(position.symbol);
         }
-        resolve();
       }));
     });
     await Promise.all(promPositions);
@@ -218,7 +226,6 @@ class LongShort {
     var promShort = this.sendBatchOrder(this.qShort,this.short,'sell');
 
     var promBatches = [];
-    var incomplete = [];
     this.adjustedQLong = -1;
     this.adjustedQShort = -1;
     
@@ -226,7 +233,6 @@ class LongShort {
       // Handle rejected/incomplete orders.
       resp.forEach(async (arrays,i,resp) => {
         promBatches.push(new Promise(async (resolve,reject) => {
-          incomplete.push(arrays[0].slice());
           if(i == 0) {
             arrays[1] = arrays[1].concat(executed.long);
             executed.long = arrays[1].slice();
@@ -235,7 +241,6 @@ class LongShort {
             arrays[1] = arrays[1].concat(executed.short);
             executed.short = arrays[1].slice();
           }
-
           // Return orders that didn't complete, and determine new quantities to purchase.
           if(arrays[0].length > 0 && arrays[1].length > 0){
             var promPrices = this.getTotalPrice(arrays[1]);
@@ -343,20 +348,28 @@ class LongShort {
 
   // Submit an order if quantity is above 0.
   async submitOrder(quantity,stock,side){
-    if(quantity > 0){
-      await this.alpaca.createOrder({
-        symbol: stock,
-        qty: quantity,
-        side: side,
-        type: 'market',
-        time_in_force: 'day',
-      }).then(() => {
-        console.log("Market order of " + '|' + quantity + " " + stock + " " + side + '|' + " completed.");
-      }).catch((err) => {console.log("Order of " + '|' + quantity + " " + stock + " " + side + '|' + " did not go through.");});
-    }
-    else {
-      console.log("Quantity is 0, order of " + '|' + quantity + " " + stock + " " + side + '|' + " not completed.");
-    }
+    var prom = new Promise(async (resolve,reject) => {
+      if(quantity > 0){
+        await this.alpaca.createOrder({
+          symbol: stock,
+          qty: quantity,
+          side: side,
+          type: 'market',
+          time_in_force: 'day',
+        }).then(() => {
+          console.log("Market order of " + '|' + quantity + " " + stock + " " + side + '|' + " completed.");
+          resolve(true);
+        }).catch((err) => {
+          console.log("Order of " + '|' + quantity + " " + stock + " " + side + '|' + " did not go through.");
+          resolve(false);
+        });
+      }
+      else {
+        console.log("Quantity is 0, order of " + '|' + quantity + " " + stock + " " + side + '|' + " not completed.");
+        resolve(true);
+      }
+    });
+    return prom;
   }
 
   // Submit a batch order that returns completed and uncompleted orders.
@@ -368,12 +381,10 @@ class LongShort {
       stocks.forEach(async (stock) => {
         promOrders.push(new Promise(async (resolve,reject) => {
           if(!this.blacklist.has(stock)){
-            await this.submitOrder(quantity,stock,side).then(() => {
-              executed.push(stock);
-              resolve();
-            }).catch((err) => {
-              // Stock order did not go through, add it to incomplete.
-              incomplete.push(stock);
+            var promSO = this.submitOrder(quantity,stock,side);
+            await promSO.then((resp) => {
+              if(resp) executed.push(stock);
+              else incomplete.push(stock);
               resolve();
             });
           }
@@ -394,8 +405,7 @@ class LongShort {
     allStocks.forEach((stock) => {
       promStocks.push(new Promise(async (resolve,reject) => {
         await this.alpaca.getBars('minute',stock.name,{limit:length,}).then((resp) => {
-          var percentChange = (resp[stock.name][length-1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
-          stock.pc = percentChange;
+          stock.pc  = (resp[stock.name][length-1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
         }).catch((err) => {console.log(err);});
         resolve();
       }));

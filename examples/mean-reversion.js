@@ -55,7 +55,6 @@ class MeanReversion {
     console.log("Waiting for 20 bars...");
     await promBars;
     console.log("We have 20 bars.");
-
     // Rebalance our portfolio every minute based off running average data.
     var spin = setInterval(async () => {
 
