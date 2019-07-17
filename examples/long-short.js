@@ -344,7 +344,7 @@ class LongShort {
     var proms = [];
     stocks.forEach(async (stock) => {
       proms.push(new Promise(async (resolve, reject) => {
-        await this.alpaca.getBars('day', stock, {limit: 1}).then((resp) => {
+        await this.alpaca.getBars('minute', stock, {limit: 1}).then((resp) => {
           resolve(resp[stock][0].c);
         }).catch((err) => {console.log(err);});
       }));
