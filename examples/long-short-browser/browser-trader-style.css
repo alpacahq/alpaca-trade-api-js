@@ -1,0 +1,56 @@
+#event-log-container {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  height: 50vh;
+  width: 80vw;
+  margin: 0 auto;
+}
+#bottom-container {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  height: 30vh;
+  width: 60vw;
+  margin: 0 auto;
+}
+#title-container {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  height: 20vh;
+  width: 80vw;
+  margin: 0 auto;
+}
+#input-container {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.control-button {
+  width: 150px;
+  margin: auto;
+}
+#event-log {
+  height: 50vh;
+  width: 60vw;
+  border: 1px solid black;
+  overflow-y: scroll;
+}
+#input-title {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+#api-key {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+#api-secret {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
