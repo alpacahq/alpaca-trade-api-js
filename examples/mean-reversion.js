@@ -10,7 +10,6 @@ class MeanReversion {
       secretKey: API_SECRET, 
       paper: PAPER
     });
-    this.closingPrices = [];
     this.runningAverage = 0;
     this.lastOrder = null;
     this.timeToClose = null;
