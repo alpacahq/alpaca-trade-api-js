@@ -57,7 +57,6 @@ class LongShort {
 
     // Rebalance the portfolio every minute, making necessary trades.
     var spin = setInterval(async () => {
-      await this.rebalance();
 
       // Figure out when the market will close so we can prepare to sell beforehand.
       await this.alpaca.getClock().then((resp) =>{
@@ -90,6 +89,10 @@ class LongShort {
           // Run script again after market close for next trading day.
           this.run();
         }, 60000*15);
+      }
+      else {
+        // Rebalance the portfolio.
+        await this.rebalance();
       }
     }, 60000);
   }
@@ -353,25 +356,25 @@ class LongShort {
   }
 
   // Submit an order if quantity is above 0.
-  async submitOrder(quantity, stock, side){
-    var prom = new Promise(async (resolve, reject) => {
+  async submitOrder(quantity,stock,side){
+    var prom = new Promise(async (resolve,reject) => {
       if(quantity > 0){
         await this.alpaca.createOrder({
-          symbol: stock, 
-          qty: quantity, 
-          side: side, 
-          type: 'market', 
-          time_in_force: 'day'
+          symbol: stock,
+          qty: quantity,
+          side: side,
+          type: 'market',
+          time_in_force: 'day',
         }).then(() => {
-          console.log("Market order of " + '|' + quantity + " " + stock + " " + side + '|' + " completed.");
+          console.log("Market order of |" + quantity + " " + stock + " " + side + "| completed.");
           resolve(true);
         }).catch((err) => {
-          console.log("Order of " + '|' + quantity + " " + stock + " " + side + '|' + " did not go through.");
+          console.log("Order of |" + quantity + " " + stock + " " + side + "| did not go through.");
           resolve(false);
         });
       }
       else {
-        console.log("Quantity is <= 0, order of " + '|' + quantity + " " + stock + " " + side + '|' + " not completed.");
+        console.log("Quantity is 0, order of |" + quantity + " " + stock + " " + side + "| not sent.");
         resolve(true);
       }
     });
