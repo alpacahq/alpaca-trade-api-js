@@ -1,5 +1,5 @@
-const API_KEY = 'API_KEY';
-const API_SECRET = 'API_SECRET';
+const API_KEY = 'YOUR_API_KEY_HERE';
+const API_SECRET = 'YOUR_API_SECRET_HERE';
 const PAPER = true;
 
 class LongShort {
@@ -39,11 +39,11 @@ class LongShort {
       direction: 'desc' 
     }).then((resp) => {
       orders = resp;
-    }).catch((err) => {console.log(err);});
+    }).catch((err) => {console.log(err.error);});
     var promOrders = [];
     orders.forEach((order) => {
       promOrders.push(new Promise(async (resolve, reject) => {
-        await this.alpaca.cancelOrder(order.id).catch((err) => {console.log(err);});
+        await this.alpaca.cancelOrder(order.id).catch((err) => {console.log(err.error);});
         resolve();
       }));
     });
@@ -63,7 +63,7 @@ class LongShort {
         var closingTime = new Date(resp.next_close.substring(0, resp.next_close.length - 6));
         var currTime = new Date(resp.timestamp.substring(0, resp.timestamp.length - 6));
         this.timeToClose = Math.abs(closingTime - currTime);
-      }).catch((err) => {console.log(err);});
+      }).catch((err) => {console.log(err.error);});
 
       if(this.timeToClose < (60000 * 15)) {
         // Close all positions when 15 minutes til market close.
@@ -83,7 +83,7 @@ class LongShort {
           });
           
           await Promise.all(promClose);
-        }).catch((err) => {console.log(err);});
+        }).catch((err) => {console.log(err.error);});
         clearInterval(spin);
         setTimeout(() => {
           // Run script again after market close for next trading day.
@@ -97,19 +97,27 @@ class LongShort {
     }, 60000);
   }
 
-  // Spin until the market is open.
+  // Spin until the market is open
   awaitMarketOpen(){
     var prom = new Promise((resolve, reject) => {
       var isOpen = false;
       var marketChecker = setInterval(async ()=>{
-        console.log('spinning');
-        await this.alpaca.getClock().then((resp) => {
+        await this.alpaca.getClock().then(async (resp) => {
           isOpen = resp.is_open;
           if(isOpen) {
             clearInterval(marketChecker);
             resolve();
+          } else {
+            var openTime, currTime;
+            await this.alpaca.getClock().then((resp) =>{
+              openTime = new Date(resp.next_open.substring(0, resp.next_close.length - 6));
+              currTime = new Date(resp.timestamp.substring(0, resp.timestamp.length - 6));
+            }).then(() => {
+              this.timeToClose = Math.floor((openTime - currTime) / 1000 / 60);
+            }).catch((err) => {console.log(err.error);});
+            console.log(this.timeToClose + " minutes til next market open.")
           }
-        }).catch((err) => {console.log(err);});
+        }).catch((err) => {console.log(err.error);});
       }, 60000);
     });
     return prom;
@@ -126,11 +134,11 @@ class LongShort {
       direction: 'desc'
     }).then((resp) => {
       orders = resp;
-    }).catch((err) => {console.log(err);});
+    }).catch((err) => {console.log(err.error);});
     var promOrders = [];
     orders.forEach((order) => {
       promOrders.push(new Promise(async (resolve, reject) => {
-        await this.alpaca.cancelOrder(order.id).catch((err) => {console.log(err);});
+        await this.alpaca.cancelOrder(order.id).catch((err) => {console.log(err.error);});
         resolve();
       }));
     });
@@ -143,7 +151,7 @@ class LongShort {
     var positions;
     await this.alpaca.getPositions().then((resp) => {
       positions = resp;
-    }).catch((err) => {console.log(err);});
+    }).catch((err) => {console.log(err.error);});
     var promPositions = [];
     var executed = {long:[], short:[]};
     var side;
@@ -323,7 +331,7 @@ class LongShort {
     var equity;
     await this.alpaca.getAccount().then((resp) => {
       equity = resp.equity;
-    }).catch((err) => {console.log(err);});
+    }).catch((err) => {console.log(err.error);});
     this.shortAmount = 0.30 * equity;
     this.longAmount = Number(this.shortAmount) + Number(equity);
 
@@ -349,7 +357,7 @@ class LongShort {
       proms.push(new Promise(async (resolve, reject) => {
         await this.alpaca.getBars('minute', stock, {limit: 1}).then((resp) => {
           resolve(resp[stock][0].c);
-        }).catch((err) => {console.log(err);});
+        }).catch((err) => {console.log(err.error);});
       }));
     });
     return proms;
@@ -374,7 +382,7 @@ class LongShort {
         });
       }
       else {
-        console.log("Quantity is 0, order of |" + quantity + " " + stock + " " + side + "| not sent.");
+        console.log("Quantity is <=0, order of |" + quantity + " " + stock + " " + side + "| not sent.");
         resolve(true);
       }
     });
@@ -415,7 +423,7 @@ class LongShort {
       promStocks.push(new Promise(async (resolve, reject) => {
         await this.alpaca.getBars('minute', stock.name, {limit: length}).then((resp) => {
           stock.pc  = (resp[stock.name][length - 1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
-        }).catch((err) => {console.log(err);});
+        }).catch((err) => {console.log(err.error);});
         resolve();
       }));
     });
