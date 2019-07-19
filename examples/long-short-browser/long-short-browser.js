@@ -1,9 +1,10 @@
-var API_KEY;
-var API_SECRET;
-const PAPER = true;
-
 class LongShort {
-  constructor(){
+  constructor(API_KEY,API_SECRET){
+    this.alpaca = new AlpacaCORS({
+      API_KEY: API_KEY,
+      API_SECRET: API_SECRET
+    });
+
     this.allStocks = ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP', 'SPLK', 'BA', 'AMZN', 'SUI', 'SUN', 'TSLA', 'CGC', 'SPWR', 'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'RTN', 'ATVI', 'GS', 'BAC', 'MS', 'TWLO', 'QCOM'];
     // Format the allStocks variable for use in the class.
     var temp = [];
@@ -25,17 +26,20 @@ class LongShort {
     this.marketChecker = null;
     this.spin = null;
   }
-
+  
   async run(){
     // First, cancel any existing orders so they don't impact our buying power.
     var orders;
-    await fetchRequest("GET","orders?status=open&direction=desc").then((resp) => {return resp.json();}).then((resp) => {
+    await this.alpaca.getOrders({
+      status: "open",
+      direction: "desc"
+    }).then((resp) => {
       orders = resp;
     }).catch((err) => {writeToEventLog(err);});
     var promOrders = [];
     orders.forEach((order) => {
       promOrders.push(new Promise(async (resolve,reject) => {
-        await fetchRequest("DELETE",`orders?id=${order.id}`).then((resp) => {return resp.json();}).catch((err) => {writeToEventLog(err);});
+        this.alpaca.cancelOrder(order.id).catch((err) => {writeToEventLog(err);});
         resolve();
       }));
     });
@@ -51,7 +55,7 @@ class LongShort {
     this.spin = setInterval(async () => {
 
       // Figure out when the market will close so we can prepare to sell beforehand.
-      await fetchRequest("GET","clock").then((resp) => {return resp.json();}).then((resp) =>{
+      await this.alpaca.getClock().then((resp) =>{
         var closingTime = new Date(resp.next_close.substring(0,resp.next_close.length - 6));
         var currTime = new Date(resp.timestamp.substring(0,resp.timestamp.length - 6));
         this.timeToClose = Math.abs(closingTime - currTime);
@@ -61,7 +65,7 @@ class LongShort {
         // Close all positions when 15 minutes til market close.
         writeToEventLog("Market closing soon.  Closing positions.");
         
-        await fetchRequest("GET","positions").then((resp) => {return resp.json();}).then(async (resp) => {
+        await this.alpaca.getPositions().then(async (resp) => {
           var promClose = [];
           resp.forEach((position) => {
             promClose.push(new Promise(async (resolve,reject) => {
@@ -77,9 +81,9 @@ class LongShort {
           await Promise.all(promClose);
         }).catch((err) => {writeToEventLog(err);});
         clearInterval(this.spin);
+        writeToEventLog("Sleeping until market close (15 minutes).");
         setTimeout(() => {
           // Run script again after market close for next trading day.
-          writeToEventLog("Sleeping until market close (15 minutes).");
           this.run();
         }, 60000*15);
       }
@@ -87,24 +91,34 @@ class LongShort {
         // Rebalance the portfolio.
         await this.rebalance();
       }
-    }, 6000);
+    }, 60000);
   }
-
   // Spin until the market is open.
   awaitMarketOpen(){
-    var prom = new Promise((resolve, reject) => {
+    var prom = new Promise(async (resolve, reject) => {
       var isOpen = false;
-      this.marketChecker = setInterval(async ()=>{
-        writeToEventLog('spinning');
-        await fetchRequest("GET", "clock").then((resp) => {return resp.json();}).then((resp) => {
-          isOpen = resp.is_open;
-          isOpen = true;
-          if(isOpen) {
-            clearInterval(this.marketChecker);
-            resolve();
-          }
-        }).catch((err) => {writeToEventLog(err);});
-      }, 6000);
+      await this.alpaca.getClock().then(async (resp) => {
+        if(resp.is_open) {
+          resolve();
+        }
+        else {
+          this.marketChecker = setInterval(async () => {
+            await this.alpaca.getClock().then((resp) => {
+              isOpen = resp.is_open;
+              if(isOpen) {
+                clearInterval(this.marketChecker);
+                resolve();
+              } 
+              else {
+                var openTime = new Date(resp.next_open.substring(0, resp.next_close.length - 6));
+                var currTime = new Date(resp.timestamp.substring(0, resp.timestamp.length - 6));
+                this.timeToClose = Math.floor((openTime - currTime) / 1000 / 60);
+                writeToEventLog(this.timeToClose + " minutes til next market open.");
+              }
+            }).catch((err) => {writeToEventLog(err);});
+          }, 60000);
+        }
+      });
     });
     return prom;
   }
@@ -115,23 +129,26 @@ class LongShort {
 
     // Clear existing orders again.
     var orders;
-    await fetchRequest("GET", "orders?status=open").then((resp) => {return resp.json();}).then((resp) => {
+    await this.alpaca.getOrders({
+      status: 'open', 
+      direction: 'desc'
+    }).then((resp) => {
       orders = resp;
     }).catch((err) => {writeToEventLog(err);});
     var promOrders = [];
     orders.forEach((order) => {
       promOrders.push(new Promise(async (resolve, reject) => {
-        await fetchRequest("DELETE", `orders?id=${order.id}`).then((resp) => {return resp.json();}).catch((err) => {writeToEventLog(err);});
+        await this.alpaca.cancelOrder(order.id).catch((err) => {writeToEventLog(err);});
         resolve();
       }));
     });
     await Promise.all(promOrders);
 
-    writeToEventLog("We are longing: " + this.long.toString());
-    writeToEventLog("We are shorting: " + this.short.toString());
+    writeToEventLog("We are taking a long position in: " + this.long.toString());
+    writeToEventLog("We are taking a short position in: " + this.short.toString());
     // Remove positions that are no longer in the short or long list, and make a list of positions that do not need to change.  Adjust position quantities if needed.
     var positions;
-    await fetchRequest("GET", "positions").then((resp) => {return resp.json();}).then((resp) => {
+    await this.alpaca.getPositions().then((resp) => {
       positions = resp;
     }).catch((err) => {writeToEventLog(err);});
     var promPositions = [];
@@ -305,7 +322,7 @@ class LongShort {
     }
     // Determine amount to long/short based on total stock price of each bucket.
     var equity;
-    await fetchRequest("GET", "account").then((resp) => {return resp.json();}).then((resp) => {
+    await this.alpaca.getAccount().then((resp) => {
       equity = resp.equity;
     }).catch((err) => {writeToEventLog(err);});
     this.shortAmount = 0.30 * equity;
@@ -331,7 +348,7 @@ class LongShort {
     var proms = [];
     stocks.forEach(async (stock) => {
       proms.push(new Promise(async (resolve, reject) => {
-        await fetchDataRequest("GET", `bars/day?symbols=${stock}&limit=1`).then((resp) => {return resp.json();}).then((resp) => {
+        await this.alpaca.getBars('minute', stock, {limit: 1}).then((resp) => {
           resolve(resp[stock][0].c);
         }).catch((err) => {writeToEventLog(err);});
       }));
@@ -343,7 +360,13 @@ class LongShort {
   async submitOrder(quantity, stock, side){
     var prom = new Promise(async (resolve, reject) => {
       if(quantity > 0){
-        await fetchRequest("POST", `orders?symbol:${stock}&qty=${quantity}&side=${side}&type=market&time_in_force=day`).then((resp) => {return resp.json();}).then(() => {
+        await this.alpaca.createOrder({
+          symbol: stock,
+          qty: quantity,
+          side: side,
+          type: 'market',
+          time_in_force: 'day',
+        }).then(() => {
           writeToEventLog("Market order of |" + quantity + " " + stock + " " + side + "| completed.");
           resolve(true);
         }).catch((err) => {
@@ -391,7 +414,7 @@ class LongShort {
     var promStocks = [];
     allStocks.forEach((stock) => {
       promStocks.push(new Promise(async (resolve, reject) => {
-        await fetchDataRequest("GET", `bars/minute?symbols=${stock.name}&limit=${length.toString()}`).then((resp) => {return resp.json();}).then((resp) => {
+        await this.alpaca.getBars('minute', stock.name, {limit: length}).then((resp) => {
           stock.pc  = (resp[stock.name][length - 1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
         }).catch((err) => {writeToEventLog(err);});
         resolve();
@@ -415,12 +438,13 @@ class LongShort {
     clearInterval(this.spin);
     throw new error("Killed script");
   }
+  
 }
 
-var ls = new LongShort();
 function runScript(){
-  API_KEY = $("#api-key").val();
-  API_SECRET = $("#api-secret").val();
+  var API_KEY = $("#api-key").val();
+  var API_SECRET = $("#api-secret").val();
+  var ls = new LongShort(API_KEY,API_SECRET);
   ls.run();
 }
 function killScript(){
@@ -429,24 +453,4 @@ function killScript(){
 }
 function writeToEventLog(text) {
   $("#event-log").prepend(`<p>${text}</p>`)
-}
-function fetchRequest(reqType, req) {
-  return fetch(`https://cors-anywhere.herokuapp.com/https://paper-api.alpaca.markets/v2/${req}`, {
-    method: reqType, 
-    mode: 'cors', 
-    headers: {
-      "APCA-API-KEY-ID": API_KEY, 
-      "APCA-API-SECRET-KEY": API_SECRET
-    }
-  });
-}
-function fetchDataRequest(reqType, req) {
-  return fetch(`https://cors-anywhere.herokuapp.com/https://data.alpaca.markets/v1/${req}`, {
-    method: reqType, 
-    mode: 'cors', 
-    headers: {
-      "APCA-API-KEY-ID": API_KEY, 
-      "APCA-API-SECRET-KEY": API_SECRET
-    }
-  });
 }
