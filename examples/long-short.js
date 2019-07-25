@@ -85,6 +85,7 @@ class LongShort {
           await Promise.all(promClose);
         }).catch((err) => {console.log(err.error);});
         clearInterval(spin);
+        console.log("Sleeping until market close (15 minutes).");
         setTimeout(() => {
           // Run script again after market close for next trading day.
           this.run();
@@ -99,26 +100,30 @@ class LongShort {
 
   // Spin until the market is open
   awaitMarketOpen(){
-    var prom = new Promise((resolve, reject) => {
+    var prom = new Promise(async (resolve, reject) => {
       var isOpen = false;
-      var marketChecker = setInterval(async ()=>{
-        await this.alpaca.getClock().then(async (resp) => {
-          isOpen = resp.is_open;
-          if(isOpen) {
-            clearInterval(marketChecker);
-            resolve();
-          } else {
-            var openTime, currTime;
-            await this.alpaca.getClock().then((resp) =>{
-              openTime = new Date(resp.next_open.substring(0, resp.next_close.length - 6));
-              currTime = new Date(resp.timestamp.substring(0, resp.timestamp.length - 6));
-            }).then(() => {
-              this.timeToClose = Math.floor((openTime - currTime) / 1000 / 60);
+      await this.alpaca.getClock().then(async (resp) => {
+        if(resp.is_open) {
+          resolve();
+        }
+        else {
+          var marketChecker = setInterval(async () => {
+            await this.alpaca.getClock().then((resp) => {
+              isOpen = resp.is_open;
+              if(isOpen) {
+                clearInterval(marketChecker);
+                resolve();
+              } 
+              else {
+                var openTime = new Date(resp.next_open.substring(0, resp.next_close.length - 6));
+                var currTime = new Date(resp.timestamp.substring(0, resp.timestamp.length - 6));
+                this.timeToClose = Math.floor((openTime - currTime) / 1000 / 60);
+                console.log(this.timeToClose + " minutes til next market open.")
+              }
             }).catch((err) => {console.log(err.error);});
-            console.log(this.timeToClose + " minutes til next market open.")
-          }
-        }).catch((err) => {console.log(err.error);});
-      }, 60000);
+          }, 60000);
+        }
+      });
     });
     return prom;
   }
@@ -374,15 +379,15 @@ class LongShort {
           type: 'market',
           time_in_force: 'day',
         }).then(() => {
-          console.log("Market order of |" + quantity + " " + stock + " " + side + "| completed.");
+          console.log("Market order of | " + quantity + " " + stock + " " + side + " | completed.");
           resolve(true);
         }).catch((err) => {
-          console.log("Order of |" + quantity + " " + stock + " " + side + "| did not go through.");
+          console.log("Order of | " + quantity + " " + stock + " " + side + " | did not go through.");
           resolve(false);
         });
       }
       else {
-        console.log("Quantity is <=0, order of |" + quantity + " " + stock + " " + side + "| not sent.");
+        console.log("Quantity is <=0, order of | " + quantity + " " + stock + " " + side + " | not sent.");
         resolve(true);
       }
     });
