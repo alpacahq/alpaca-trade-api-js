@@ -1,10 +1,13 @@
-#event-log-container {
+body {
+  font-family: Verdana, Geneva, sans-serif;
+}
+#data-container {
   display: flex;
   align-items: center;
   flex-direction: row;
   justify-content: center;
   height: 50vh;
-  width: 80vw;
+  width: 90vw;
   margin: 0 auto;
 }
 #bottom-container {
@@ -31,16 +34,90 @@
   flex-direction: column;
   justify-content: center;
 }
-
+#side-container {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  height: 50vh;
+  width: 20vw;
+}
+#chart-container {
+  height: 50vh;
+  width: 50vw;
+}
 .control-button {
   width: 150px;
   margin: auto;
 }
 #event-log {
   height: 50vh;
-  width: 60vw;
+  width: 20vw;
   border: 1px solid black;
+  border-radius: 10px;
   overflow-y: scroll;
+}
+#positions {
+  height: 22vh;
+  width: 20vw;
+  border: 1px solid black;
+  border-radius: 10px;
+  margin: 5px;
+  
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+}
+#positions-log {
+  height: calc(22vh - 80px);
+  width: 20vw;
+  overflow-y: scroll;
+  scrollbar-width: none;
+}
+#positions-title {
+  width: 20vw;
+  font-size: 20px;
+  border-bottom: 1px black solid;
+
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+}
+#positions-log::-webkit-scrollbar {
+  display: none;
+}
+#orders {
+  height: 22vh;
+  width: 20vw;
+  border: 1px solid black;
+  border-radius: 10px;
+  margin: 5px;
+  
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+}
+#orders-log {
+  height: calc(22vh - 80px);
+  width: 20vw;
+  overflow-y: scroll;
+  scrollbar-width: none;
+}
+#orders-log::-webkit-scrollbar {
+  display: none;
+}
+#order-title {
+  width: 20vw;
+  font-size: 20px;
+  border-bottom: 1px black solid;
+
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
 }
 #input-title {
   margin-top: 10px;
@@ -53,4 +130,35 @@
 #api-secret {
   margin-top: 10px;
   margin-bottom: 10px;
+}
+#main_chart {
+  height: 50vh;
+  width: 50vw;
+}
+.position-inst {
+  width: 20vw;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+}
+.order-inst {
+  width: 20vw;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+}
+.position-fragment {
+  margin: 5px;
+  width: calc(20vw / 4);
+}
+.order-fragment {
+  margin: 5px;
+  width: calc(20vw / 4);
+}
+.event-fragment {
+  margin: 5px;
 }

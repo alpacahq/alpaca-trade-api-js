@@ -25,6 +25,9 @@ class LongShort {
     this.timeToClose = null;
     this.marketChecker = null;
     this.spin = null;
+    this.chart = null;
+    this.chart_data = [];
+    this.positions = [];
   }
   
   async run(){
@@ -90,6 +93,7 @@ class LongShort {
       else {
         // Rebalance the portfolio.
         await this.rebalance();
+        this.updateChart();
       }
     }, 60000);
   }
@@ -103,6 +107,7 @@ class LongShort {
         }
         else {
           this.marketChecker = setInterval(async () => {
+            this.updateChart();
             await this.alpaca.getClock().then((resp) => {
               isOpen = resp.is_open;
               if(isOpen) {
@@ -320,6 +325,7 @@ class LongShort {
       else if(i > (this.allStocks.length - 1 - longShortAmount)) this.long.push(this.allStocks[i].name);
       else continue;
     }
+
     // Determine amount to long/short based on total stock price of each bucket.
     var equity;
     await this.alpaca.getAccount().then((resp) => {
@@ -439,12 +445,119 @@ class LongShort {
     throw new error("Killed script");
   }
   
+  
+  async init() {
+    var prom = this.getTodayOpenClose();
+    await prom.then((resp) => {
+      this.chart = new Chart(document.getElementById("main_chart"), {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: "equity",
+            data: []
+          }]
+        },
+        options: {
+          scales: {
+            xAxes: [{
+              type: 'time',
+              time: {
+                unit: 'hour',
+                min: resp[0],
+                max: resp[1]
+              },
+            }],
+            yAxes: [{
+              
+            }],
+          },
+          title: {
+            display: true,
+            text: "Equity"
+          },
+        }
+      });
+      this.updateChart();
+    });
+  }
+
+  updateChart() {
+    this.alpaca.getAccount().then((resp) => {
+      this.chart.data.datasets[0].data.push({
+        t: new Date(),
+        y: resp.equity
+      });
+      this.chart.update();
+    });
+    this.updateOrders();
+    this.updatePositions();
+  }
+
+  getTodayOpenClose() {
+    return new Promise(async (resolve,reject) => {
+      await this.alpaca.getClock().then(async (resp) => {
+        await this.alpaca.getCalendar({
+          start: resp.timestamp,
+          end: resp.timestamp
+        }).then((resp) => {
+          var openTime = resp[0].open;
+          var closeTime = resp[0].close;
+          var calDate = resp[0].date;
+  
+          openTime = openTime.split(":");
+          closeTime = closeTime.split(":");
+          calDate = calDate.split("-");
+  
+          var offset = new Date(new Date().toLocaleString('en-US',{timeZone: 'America/New_York'})).getHours() - new Date().getHours();
+  
+          openTime = new Date(calDate[0],calDate[1]-1,calDate[2],openTime[0]-offset,openTime[1]);
+          closeTime = new Date(calDate[0],calDate[1]-1,calDate[2],closeTime[0]-offset,closeTime[1]);
+          resolve([openTime,closeTime]);
+        });
+      });
+    });
+  }
+
+  updatePositions() {
+    $("#positions-log").empty();
+    this.alpaca.getPositions().then((resp) => {
+      resp.forEach((position) => {
+        $("#positions-log").prepend(
+          `<div class="position-inst">
+            <p class="position-fragment">${position.symbol}</p>
+            <p class="position-fragment">${position.qty}</p>
+            <p class="position-fragment">${position.side}</p>
+            <p class="position-fragment">${position.unrealized_pl}</p>
+          </div>`
+        );
+      })
+    })
+  }
+
+  updateOrders() {
+    $("#orders-log").empty();
+    this.alpaca.getOrders({
+      status: "open"
+    }).then((resp) => {
+      resp.forEach((order) => {
+        $("#orders-log").prepend(
+          `<div class="order-inst">
+            <p class="order-fragment">${order.symbol}</p>
+            <p class="order-fragment">${order.qty}</p>
+            <p class="order-fragment">${order.side}</p>
+            <p class="order-fragment">${order.type}</p>
+          </div>`
+        );
+      })
+    })
+  }
 }
 
 function runScript(){
   var API_KEY = $("#api-key").val();
   var API_SECRET = $("#api-secret").val();
   var ls = new LongShort(API_KEY,API_SECRET);
+  ls.init();
   ls.run();
 }
 function killScript(){
@@ -452,5 +565,5 @@ function killScript(){
   ls.kill();
 }
 function writeToEventLog(text) {
-  $("#event-log").prepend(`<p>${text}</p>`)
+  $("#event-log").prepend(`<p class="event-fragment">${text}</p>`)
 }

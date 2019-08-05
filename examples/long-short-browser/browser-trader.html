@@ -11,23 +11,53 @@
   
   <!-- Local files -->
   <link rel="stylesheet" type="text/css" href="browser-trader-style.css"/>
+  <script src="../../lib/utils/Chart.bundle.js"></script>
   <script src="long-short-browser.js"></script>
   <script src="../../lib/cors-api.js"></script>
 </head>
 <body>
-  <div class="container" id="title-container">
+  <div id="title-container">
     <h1>Long-Short Equity Trading Algorithm</h1>
   </div>
-  <div class="container" id="event-log-container">
+  <div id="data-container">
+    <div id="side-container">
+      <div id="positions">
+        <h5 style="margin: 5px; font-weight: bold;">Positions</h3>
+        <div id="positions-title">
+          <p class="position-fragment">Symbol</p>
+          <p class="position-fragment">Qty</p>
+          <p class="position-fragment">Side</p>
+          <p class="position-fragment">+/-</p>
+        </div>
+        <div id="positions-log">
+
+        </div>
+      </div>
+      <div id="orders">
+        <h5 style="margin: 5px; font-weight: bold;">Orders</h3>
+        <div id="order-title">
+          <p class="order-fragment">Symbol</p>
+          <p class="order-fragment">Qty</p>
+          <p class="order-fragment">Side</p>
+          <p class="order-fragment">Type</p>
+        </div>
+        <div id="orders-log">
+
+        </div>
+      </div>
+    </div>
+    <div id="chart-container">
+      <canvas id="main_chart"></canvas>
+    </div>
     <div id="event-log">
 
     </div>
   </div>
-  <div class="container" id="bottom-container">
+  <div id="bottom-container">
     <button type="button" class="btn btn-success control-button" onclick="runScript();">
       Run script
     </button>
-    <div class="container" id="input-container">
+    <div id="input-container">
       <h5 id="input-title">Enter credentials here</h5>
       <input id="api-key" type="text" placeholder="API_KEY"/>
       <input id="api-secret" type="text" placeholder="API_SECRET"/>
