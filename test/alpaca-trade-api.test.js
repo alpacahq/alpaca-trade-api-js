@@ -14,6 +14,7 @@ describe('alpaca-trade-api', function () {
         polygonBaseUrl: 'https://polygon.example.com',
         keyId: 'test_id',
         secretKey: 'test_secret',
+        oauth: '',
       }
       const alpaca = new Alpaca(testConfig)
       expect(alpaca.configuration).to.deep.equal(testConfig)
