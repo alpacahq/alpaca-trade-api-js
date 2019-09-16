@@ -87,10 +87,31 @@ As a general rule, required method parameters are passed as plain function argum
 
 ### Account API
 
+#### Get Account
+
 Calls `GET /account` and returns the current account.
 
 ```ts
 getAccount() => Promise<Account>
+```
+
+### Account Configurations API
+
+#### Get Account Configurations
+
+Calls `GET /account/configurations` and returns the current account configurations.
+
+```ts
+getAccountConfigurations() => Promise<AccountConfigurations>
+```
+
+#### Update Account Configurations
+
+Calls `PATCH /account/configurations` to update the account configurations, and returns
+the updated configurations.
+
+```ts
+updateAccountConfigurations(AccountConfigurations) => Promise<AccountConfigurations>
 ```
 
 ### Orders API
@@ -143,12 +164,29 @@ You can set `client_order_id` upon order creation to more easily keep track of y
 getOrderByClientOrderId(string) => Promise<Order>
 ```
 
+#### Update Order by ID
+
+Calls `PATCH /orders/{id}` and updates an existing open order. The updated order will have
+a new ID.
+
+```ts
+replaceOrder(uuid) => Promise<Order>
+```
+
 #### Cancel Order
 
 Calls `DELETE /orders/{id}` and deletes an order.
 
 ```ts
 cancelOrder(uuid) => Promise
+```
+
+#### Cancel all Orders
+
+Calls `DELETE /orders` and deletes all open orders.
+
+```ts
+cancelAllOrders() => Promise
 ```
 
 ### Positions API
@@ -167,6 +205,20 @@ Calls `GET /positions` and returns all positions.
 
 ```ts
 getPositions() => Promise<Position[]>
+```
+
+#### Close a Position
+Calls `DELETE /positions/{symbol}` and liquidates your position in the given symbol.
+
+```ts
+closePosition(symbol) => Promise
+```
+
+#### Close all Positions
+Calls `DELETE /positions` and liquidates all open positions.
+
+```ts
+closeAllPositions() => Promise
 ```
 
 ### Assets API
