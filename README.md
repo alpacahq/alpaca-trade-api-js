@@ -114,6 +114,21 @@ the updated configurations.
 updateAccountConfigurations(AccountConfigurations) => Promise<AccountConfigurations>
 ```
 
+#### Get Account Activities
+
+Calls `GET /account/activities` and returns account actvities.
+
+```ts
+getActivities({
+  activityTypes: string | string[], // Any valid activity type
+  until: Date,
+  after: Date,
+  direction: string,
+  date: Date,
+  pageSize: number
+}) => Promise<AccountActivity[]>
+```
+
 ### Orders API
 
 #### Create Order
