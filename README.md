@@ -245,7 +245,7 @@ Calls `GET /assets` and returns assets matching your parameters.
 ```ts
 getAssets({
   status: 'active' | 'inactive',
-  asset_class: string,
+  asset_class: string
 }) => Promise<Asset[]>
 ```
 
@@ -280,21 +280,22 @@ getBars(
     after: Date,
     until: Date
   }
-)
+) => Promise<BarsObject>
 ```
 
 ### Websockets
+
 * `let websocket = alpaca.websocket`: Create a websocket client instance.
-* `websocket.connect()`: Connect to the alpaca server using websocket.
-* `websocket.subscribe(channels)`: Subscribe to the alpaca server and possibly Polygon server
-    Possible channels: 'trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', AM.*'
+* `websocket.connect()`: Connect to the Alpaca server using websocket.
+* `websocket.subscribe(channels)`: Subscribe to the Alpaca server and possibly the Polygon server.  
+    Possible channels: `['trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', 'AM.*']`.  
     This will unsubscribe from any previously subscribed channels.
-    `trade_updates` and `account_updates` are for the alpaca server, the rest are for the Polygon server.
-    In order to make calls to the Polygon api, you must have opened your Alpaca brokerage account.
-    Otherwise Polygon's api will be unavailable.
-* `websocket.onOrderUpdate(function(data))`: Register callback function for the channel 'trade_updates'.
-* `websocket.onAccountUpdate(function(data))`: Register callback function for the channel 'account_updates'.
-* `websocket.onStockTrades(function(data))`: Register callback function for the channel 'T.*'.
-* `websocket.onStockQuotes(function(data))`: Register callback function for the channel 'Q.*'.
-* `websocket.onStockAggSec(function(data))`: Register callback function for the channel 'A.*'.
-* `websocket.onStockAggMin(function(data))`: Register callback function for the channel 'AM.*'.
+    Channels `'trade_updates'` and `'account_updates'` are for the Alpaca server; the rest are for the Polygon server.
+    In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
+    Otherwise Polygon's API will be unavailable.
+* `websocket.onOrderUpdate(function(data))`: Register callback function for the channel `'trade_updates'`.
+* `websocket.onAccountUpdate(function(data))`: Register callback function for the channel `'account_updates'`.
+* `websocket.onStockTrades(function(data))`: Register callback function for the channel `'T.*'`.
+* `websocket.onStockQuotes(function(data))`: Register callback function for the channel `'Q.*'`.
+* `websocket.onStockAggSec(function(data))`: Register callback function for the channel `'A.*'`.
+* `websocket.onStockAggMin(function(data))`: Register callback function for the channel `'AM.*'`.
