@@ -38,6 +38,7 @@ module.exports = function createAlpacaMock() {
       after: joi.string().isoDate().optional(),
       until: joi.string().isoDate().optional(),
       direction: joi.string().optional().valid('asc', 'desc'),
+      nested: joi.string().optional(),
     })
     return [orderEntity]
   }))
