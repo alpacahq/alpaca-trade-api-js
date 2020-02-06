@@ -21,6 +21,7 @@ describe('order resource', function () {
         after: new Date(),
         direction: 'asc',
         limit: 4,
+        nested: false,
       })).to.eventually.be.an('array')
     })
   })
