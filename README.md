@@ -129,6 +129,22 @@ getActivities({
 }) => Promise<AccountActivity[]>
 ```
 
+### Portfolio History API
+
+#### Get Portfolio History
+
+Calls `GET /account/portfolio/history` and returns portfolio history.
+
+```ts
+getPortfolioHistory({
+  date_start: Date,
+  date_end: Date,
+  period: '1M' | '3M' | '6M' | '1A' | 'all' | 'intraday',
+  timeframe: '1Min' | '5Min' | '15Min' | '1H' | '1D',
+  extended_hours: Boolean
+}) => Promise<PortfolioHistory>
+```
+
 ### Orders API
 
 #### Create Order
@@ -287,8 +303,8 @@ getBars(
 
 * `let websocket = alpaca.websocket`: Create a websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
-* `websocket.subscribe(channels)`: Subscribe to the Alpaca server and possibly the Polygon server.  
-    Possible channels: `['trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', 'AM.*']`.  
+* `websocket.subscribe(channels)`: Subscribe to the Alpaca server and possibly the Polygon server.
+    Possible channels: `['trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', 'AM.*']`.
     This will unsubscribe from any previously subscribed channels.
     Channels `'trade_updates'` and `'account_updates'` are for the Alpaca server; the rest are for the Polygon server.
     In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
