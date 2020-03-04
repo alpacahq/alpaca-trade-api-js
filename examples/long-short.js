@@ -1,4 +1,4 @@
-const Alpaca = require('../lib/alpaca-trade-api')
+const Alpaca = require('@alpacahq/alpaca-trade-api')
 const API_KEY = 'YOUR_API_KEY_HERE';
 const API_SECRET = 'YOUR_API_SECRET_HERE';
 const MINUTE = 60000
