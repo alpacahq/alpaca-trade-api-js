@@ -49,7 +49,7 @@ The websocket api is a good way to watch and react to the market
 const client = alpaca.websocket
 client.onConnect(function() {
   console.log("Connected")
-  client.subscribe(['trade_updates', 'account_updates', 'T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])
+  client.subscribe(['trade_updates', 'account_updates', 'alpacadatav1/T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])
   setTimeout(() => {
     client.disconnect()
   }, 30 * 1000)
