@@ -319,6 +319,12 @@ getBars(
   }
 ) => Promise<BarsObject>
 ```
+###### example
+```js
+this.alpaca.getBars('1Min', ['AAPL', 'TSLA'], {start:'2020-04-20', end:'2020-04-29'}).then((response) => {
+          console.log(response)
+        })
+```
 
 #### Get Aggregates
 
@@ -330,6 +336,12 @@ getAggregates(
   to: Date,
 ) => Promise<AggregatesObject>
 ```
+###### example
+```js
+this.alpaca.getAggregates('AAPL', 'minute', '2020-04-20', '2020-04-20').then((response) => {
+          console.log(response)
+        })
+```
 
 #### Last trade
 
@@ -338,6 +350,12 @@ lastTrade(
   symbol: string)
 ) => Promise<LastTradeObject>
 ```
+###### example
+```js
+this.alpaca.lastTrade('AAPL').then((response) => {
+          console.log(response)
+        })
+```
 
 #### Last quote
 
@@ -345,6 +363,12 @@ lastTrade(
 lastQuote(
   symbol: string)
 ) => Promise<LastQuoteObject>
+```
+###### example
+```js
+this.alpaca.lastQuote('AAPL').then((response) => {
+          console.log(response)
+        })
 ```
 
 ### Websockets
