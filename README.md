@@ -330,13 +330,25 @@ lastQuote(
 
 * `let websocket = alpaca.websocket`: Create a websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
-* `websocket.subscribe(channels)`: Subscribe to the Alpaca server and
-/or possibly the Polygon server.
-    Possible channels: `['trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', 'AM.*', 'polyfeed/T.*', 'polyfeed/Q.*', 'polyfeed/A.*', 'polyfeed'/AM.*]`.
-    This will unsubscribe from any previously subscribed channels.
-    Channels `'trade_updates'`, `'account_updates'` and all `'polyfeed/*.*'` are for the Alpaca server; the rest are for the Polygon server.
-    In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
+* `websocket.subscribe(channels)`: Subscribe to the Alpaca data server and/or
+  the Polygon server.<br>
+  The way you choose the data server is by specifying the channel you want to
+   subscribe to as specified here:<br>
+    Channels for the Polygon service: `['trade_updates
+    ', 'account_updatecs', 'T.*', 'Q.*', 'A.*', 'AM.*']`.<br>
+    Channels for the Alpaca data service: `['alpacadatav1/T
+    .*', 'alpacadatav1/Q.*', 'alpacadatav1'/AM.*]`
+    
+    When calling `subscribe()` first it will unsubscribe from any previously
+     subscribed channels (so if you want to add channels you need to specifiy
+      all channels you want to subscribe to).<br>
+    Channels `'trade_updates'`, `'account_updates'` and all `'alpacadatav1
+    /*.*'` are for the Alpaca server; the rest are for the Polygon server.
+    <br>In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
     Otherwise Polygon's API will be unavailable.
+#### Callbacks
+how to get the data you subscribed to. we do this by calling these methods
+ with our callback for each and every channel:
 * `websocket.onOrderUpdate(function(data))`: Register callback function for the channel `'trade_updates'`.
 * `websocket.onAccountUpdate(function(data))`: Register callback function for the channel `'account_updates'`.
 * `websocket.onStockTrades(function(data))`: Register callback function for the channel `'T.<SYMBOL>'`.
@@ -345,5 +357,4 @@ lastQuote(
 * `websocket.onStockAggMin(function(data))`: Register callback function for the channel `'AM.<SYMBOL>'`.
 * `websocket.onTrades(function(data))`: Register callback function for the channel `'alpacadatav1/T.<SYMBOL>'`.
 * `websocket.onQuotes(function(data))`: Register callback function for the channel `'alpacadatav1/Q.<SYMBOL>'`.
-* `websocket.onAggSec(function(data))`: Register callback function for the channel `'alpacadatav1/A.<SYMBOL>'`.
 * `websocket.onAggMin(function(data))`: Register callback function for the channel `'alpacadatav1/AM.<SYMBOL>'`.
