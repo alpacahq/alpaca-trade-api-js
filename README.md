@@ -416,6 +416,7 @@ how to get the data you subscribed to. we do this by calling these methods
  the channel `'T.<SYMBOL>'` or `'alpacadatav1/T.<SYMBOL>'`.
 * `websocket.onStockQuotes(function(data))`: Register callback function for
  the channel `'Q.<SYMBOL>'` or `'alpacadatav1/Q.<SYMBOL>'`.
-* `websocket.onStockAggSec(function(data))`: Register callback function for the channel `'A.<SYMBOL>'`.
+* `websocket.onStockAggSec(function(data))`: Register callback function for
+ the channel `'A.<SYMBOL>'`. (Polygon only)
 * `websocket.onStockAggMin(function(data))`: Register callback function for
  the channel `'AM.<SYMBOL>'` or `'alpacadatav1/AM.<SYMBOL>'`.
