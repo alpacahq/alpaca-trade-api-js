@@ -30,6 +30,7 @@ const alpaca = new Alpaca({
   keyId: 'AKFZXJH121U18SHHDRFO',
   secretKey: 'pnq4YHlpMF3LhfLyOvmdfLmlz6BnASrTPQIASeiU',
   paper: true,
+  usePolygon: false
 })
 ```
 
@@ -327,6 +328,17 @@ lastQuote(
 ```
 
 ### Websockets
+When to use which websocket?
+1. first of all - if you don't have a funded account you cannot use the
+ polygon websocket. <br>The data in the Alpaca websocket is free (currently in
+  beta) and this is your onyl option.
+2. if you do have a funded account read the docs to understand exactly what
+ are the differences between the data<br>
+ 
+Now since there's is a redundancy in the data we assume that if you use one
+ you will not use the other.<br>
+The way you select which websocket to use is by setting the `usePolygon
+` argument when creating the Alpaca instance (see example above). 
 
 * `let websocket = alpaca.websocket`: Create a websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
