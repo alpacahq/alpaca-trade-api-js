@@ -45,7 +45,27 @@ alpaca.getAccount().then((account) => {
 ```
 
 The websocket api is a good way to watch and react to the market
+you could use one of the 2 websockets we provide:
+1. The Alpaca WS
+2. The Polygon WS
 
+The default WS is Alpaca. and you could use it even if you don't have a
+ funded account. The polygon WS can only be used with a funded account.
+<br>In order to use the Polygon WS you need to pass this parameter to the
+ Alpaca constructor `usePolygon: true`
+
+##### Subscribing to the different WS
+The other difference is the way we subscribe to different channels.
+###### Alpaca
+```js
+  client.subscribe(['trade_updates', 'account_updates', 'alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/AM.GOOG'])
+``` 
+
+###### Polygon
+```js
+  client.subscribe(['T.FB', 'Q.AAPL', 'AM.GOOG', 'A.TSLA'])
+``` 
+##### Example Code
 ```js
 const client = alpaca.websocket
 client.onConnect(function() {
