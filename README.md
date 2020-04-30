@@ -339,16 +339,21 @@ Now since there's is a redundancy in the data we assume that if you use one
  you will not use the other.<br>
 The way you select which websocket to use is by setting the `usePolygon
 ` argument when creating the Alpaca instance (see example above). 
-
-* `let websocket = alpaca.websocket`: Create a websocket client instance.
+#### Working with websocket
+* The websocket is created when you creating the Alpaca instance
+* `let websocket = alpaca.websocket`: Get the websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
+* `client.onConnect(function() {}`: all the following code should be inside
+ this function because we should not do anything until we're connected to the
+  websocket.
 * `websocket.subscribe(channels)`: Subscribe to the Alpaca data server and/or
   the Polygon server.<br>
-  The way you choose the data server is by specifying the channel you want to
+  Please note that Polygon and Alpaca servers use different channels. <br>
+    You need to specify the channel you want to
    subscribe to as specified here:<br>
-    Channels for the Polygon service: `['trade_updates
-    ', 'account_updatecs', 'T.*', 'Q.*', 'A.*', 'AM.*']`.<br>
-    Channels for the Alpaca data service: `['alpacadatav1/T
+    Channels for the Polygon service: `['T.*', 'Q.*', 'A.*', 'AM.*']`.<br>
+    Channels for the Alpaca data service: `['trade_updates
+    ', 'account_updatecs', 'alpacadatav1/T
     .*', 'alpacadatav1/Q.*', 'alpacadatav1'/AM.*]`
     
     When calling `subscribe()` first it will unsubscribe from any previously
