@@ -375,9 +375,9 @@ this.alpaca.lastQuote('AAPL').then((response) => {
 When to use which websocket?
 1. first of all - if you don't have a funded account you cannot use the
  polygon websocket. <br>The data in the Alpaca websocket is free (currently in
-  beta) and this is your onyl option.
+  beta) and this is your only option.
 2. if you do have a funded account read the docs to understand exactly what
- are the differences between the data<br>
+ are the differences between the data streams<br>
  
 Now since there's is a redundancy in the data we assume that if you use one
  you will not use the other.<br>
@@ -412,10 +412,10 @@ how to get the data you subscribed to. we do this by calling these methods
  with our callback for each and every channel:
 * `websocket.onOrderUpdate(function(data))`: Register callback function for the channel `'trade_updates'`.
 * `websocket.onAccountUpdate(function(data))`: Register callback function for the channel `'account_updates'`.
-* `websocket.onStockTrades(function(data))`: Register callback function for the channel `'T.<SYMBOL>'`.
-* `websocket.onStockQuotes(function(data))`: Register callback function for the channel `'Q.<SYMBOL>'`.
+* `websocket.onStockTrades(function(data))`: Register callback function for
+ the channel `'T.<SYMBOL>'` or `'alpacadatav1/T.<SYMBOL>'`.
+* `websocket.onStockQuotes(function(data))`: Register callback function for
+ the channel `'Q.<SYMBOL>'` or `'alpacadatav1/Q.<SYMBOL>'`.
 * `websocket.onStockAggSec(function(data))`: Register callback function for the channel `'A.<SYMBOL>'`.
-* `websocket.onStockAggMin(function(data))`: Register callback function for the channel `'AM.<SYMBOL>'`.
-* `websocket.onTrades(function(data))`: Register callback function for the channel `'alpacadatav1/T.<SYMBOL>'`.
-* `websocket.onQuotes(function(data))`: Register callback function for the channel `'alpacadatav1/Q.<SYMBOL>'`.
-* `websocket.onAggMin(function(data))`: Register callback function for the channel `'alpacadatav1/AM.<SYMBOL>'`.
+* `websocket.onStockAggMin(function(data))`: Register callback function for
+ the channel `'AM.<SYMBOL>'` or `'alpacadatav1/AM.<SYMBOL>'`.
