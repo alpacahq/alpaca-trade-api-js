@@ -1,6 +1,7 @@
 const API_KEY = 'YOUR_API_KEY_HERE';
 const API_SECRET = 'YOUR_API_SECRET_HERE';
 const PAPER = true;
+const USE_POLYGON = false;
 
 class LongShort {
   constructor(API_KEY, API_SECRET, PAPER){
@@ -8,7 +9,8 @@ class LongShort {
     this.alpaca = new this.Alpaca({
       keyId: API_KEY, 
       secretKey: API_SECRET, 
-      paper: PAPER
+      paper: PAPER,
+      usePolygon: USE_POLYGON
     });
 
     this.allStocks = ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP', 'SPLK', 'BA', 'AMZN', 'SUI', 'SUN', 'TSLA', 'CGC', 'SPWR', 'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'RTN', 'ATVI', 'GS', 'BAC', 'MS', 'TWLO', 'QCOM'];
@@ -361,7 +363,14 @@ class LongShort {
     stocks.forEach(async (stock) => {
       proms.push(new Promise(async (resolve, reject) => {
         await this.alpaca.getBars('minute', stock, {limit: 1}).then((resp) => {
-          resolve(resp[stock][0].c);
+          // polygon and alpaca as a different response for backwards
+          // compatibility so we handle it a bit differently
+          if (USE_POLYGON) {
+            resolve(resp[stock][0].c);
+          } else{
+            resolve(resp[stock][0].closePrice);
+          }
+
         }).catch((err) => {console.log(err.error);});
       }));
     });
@@ -427,7 +436,13 @@ class LongShort {
     allStocks.forEach((stock) => {
       promStocks.push(new Promise(async (resolve, reject) => {
         await this.alpaca.getBars('minute', stock.name, {limit: length}).then((resp) => {
-          stock.pc  = (resp[stock.name][length - 1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
+          // polygon and alpaca as a different response for backwards
+          // compatibility so we handle it a bit differently
+          if (USE_POLYGON) {
+            stock.pc = (resp[stock.name][length - 1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
+          } else{
+            stock.pc = (resp[stock.name][length - 1].closePrice - resp[stock.name][0].openPrice) / resp[stock.name][0].openPrice;
+          }
         }).catch((err) => {console.log(err.error);});
         resolve();
       }));
