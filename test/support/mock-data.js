@@ -46,6 +46,31 @@ module.exports = function createDataMock() {
     return barsEntity
   }))
 
+  v1.get('/aggs/ticker/:symbol/range/:multiplier/:timespan/:from/:to', apiMethod(req => {
+    assertSchema(req.params, {
+      symbol: joi.string().required(),
+      multiplier: joi.number().integer().required(),
+      timespan: joi.only('minute', 'hour', 'day', 'week', 'month', 'quarter', 'year'),
+      from: joi.date().required(),
+      to: joi.date().required(),
+    })
+    return aggsEntity
+  }))
+
+  v1.get('/last/stocks/:symbol', apiMethod(req => {
+    assertSchema(req.params, {
+      symbol: joi.string().required(),
+    })
+    return lastTradeEntity
+  }))
+
+  v1.get('/last_quote/stocks/:symbol', apiMethod(req => {
+    assertSchema(req.params, {
+      symbol: joi.string().required(),
+    })
+    return lastQuoteEntity
+  }))
+
   return express.Router().use('/v1', v1)
 }
 
@@ -60,5 +85,53 @@ const barsEntity = {
       "v": 3892,
     }
   ]
+}
+
+const aggsEntity = {
+  "status": "success",
+  "adjusted": true,
+  "ticker": "AAPL",
+  "queryCount": 1,
+  "resultsCount": 1,
+  "results": [
+    {
+      "o": 173.15,
+      "c": 173.2,
+      "l": 173.15,
+      "h": 173.21,
+      "v": 1800,
+      "n": 4,
+      "t": 1517529605000
+    }
+  ]
+}
+
+const lastTradeEntity = {
+  "status": "success",
+  "symbol": "AAPL",
+  "last": {
+    "price": 277.97,
+    "size": 20,
+    "exchange": 11,
+    "cond1": 14,
+    "cond2": 16,
+    "cond3": 0,
+    "cond4": 0,
+    "timestamp": 1584197840230
+  }
+}
+
+const lastQuoteEntity = {
+  "status": "success",
+  "symbol": "AAPL",
+  "last": {
+    "askprice": 159.59,
+    "asksize": 2,
+    "askexchange": 11,
+    "bidprice": 159.45,
+    "bidsize": 20,
+    "bidexchange": 12,
+    "timestamp": 1518086601843
+  }
 }
 

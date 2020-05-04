@@ -15,6 +15,7 @@ describe('alpaca-trade-api', function () {
         keyId: 'test_id',
         secretKey: 'test_secret',
         oauth: '',
+        usePolygon: true,
       }
       const alpaca = new Alpaca(testConfig)
       expect(alpaca.configuration).to.deep.equal(testConfig)
