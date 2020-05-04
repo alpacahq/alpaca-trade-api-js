@@ -93,7 +93,7 @@ const aggsEntity = {
   "ticker": "AAPL",
   "queryCount": 1,
   "resultsCount": 1,
-  "ticks": [
+  "results": [
     {
       "o": 173.15,
       "c": 173.2,
