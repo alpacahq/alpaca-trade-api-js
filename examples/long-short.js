@@ -363,8 +363,8 @@ class LongShort {
       return new Promise(async (resolve) => {
         try {
           let resp = await this.alpaca.getBars('minute', stock, { limit: 1 })
-          // polygon and alpaca as a different response for backwards
-          // compatibility so we handle it a bit differently
+          // polygon and alpaca have different responses to keep backwards
+          // compatibility, so we handle it a bit differently
           if (USE_POLYGON) {
             resolve(resp[stock][0].c);
           } else{
@@ -436,8 +436,8 @@ class LongShort {
       return new Promise(async (resolve) => {
         try {
           let resp = await this.alpaca.getBars('minute', stock.name, { limit: limit })
-          // polygon and alpaca as a different response for backwards
-          // compatibility so we handle it a bit differently
+          // polygon and alpaca have different responses to keep backwards
+          // compatibility, so we handle it a bit differently
           if (USE_POLYGON) {
             stock.pc = (resp[stock.name][length - 1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
           } else{
