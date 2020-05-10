@@ -312,10 +312,10 @@ getBars(
   symbol | symbol[], // which ticker symbols to get bars for
   {
     limit: number,
-    start: Date,
-    end: Date,
-    after: Date,
-    until: Date
+    start: date string yyyy-mm-dd,
+    end: date string yyyy-mm-dd,
+    after: date string yyyy-mm-dd,
+    until: date string yyyy-mm-dd
   }
 ) => Promise<BarsObject>
 ```
