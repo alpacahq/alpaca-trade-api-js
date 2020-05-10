@@ -46,7 +46,7 @@ alpaca.getAccount().then((account) => {
 
 The websocket api is a good way to watch and react to the market
 you could use one of the 2 websockets we provide:
-1. The Alpaca WS
+1. The Alpaca WS - (currently in beta and you need to request access to be in the test group)
 2. The Polygon WS
 
 The default WS is Alpaca. and you could use it even if you don't have a
