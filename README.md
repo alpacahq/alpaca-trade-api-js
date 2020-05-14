@@ -30,6 +30,7 @@ const alpaca = new Alpaca({
   keyId: 'AKFZXJH121U18SHHDRFO',
   secretKey: 'pnq4YHlpMF3LhfLyOvmdfLmlz6BnASrTPQIASeiU',
   paper: true,
+  usePolygon: false
 })
 ```
 
@@ -44,12 +45,32 @@ alpaca.getAccount().then((account) => {
 ```
 
 The websocket api is a good way to watch and react to the market
+you could use one of the 2 websockets we provide:
+1. The Alpaca WS - (currently in beta and you need to request access to be in the test group)
+2. The Polygon WS
 
+The default WS is Alpaca. and you could use it even if you don't have a
+ funded account. The polygon WS can only be used with a funded account.
+<br>In order to use the Polygon WS you need to pass this parameter to the
+ Alpaca constructor `usePolygon: true`
+
+##### Subscribing to the different WS
+The other difference is the way we subscribe to different channels.
+###### Alpaca
+```js
+  client.subscribe(['trade_updates', 'account_updates', 'alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/AM.GOOG'])
+``` 
+
+###### Polygon
+```js
+  client.subscribe(['T.FB', 'Q.AAPL', 'AM.GOOG', 'A.TSLA'])
+``` 
+##### Example Code
 ```js
 const client = alpaca.websocket
 client.onConnect(function() {
   console.log("Connected")
-  client.subscribe(['trade_updates', 'account_updates', 'T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])
+  client.subscribe(['trade_updates', 'account_updates', 'alpacadatav1/T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])
   setTimeout(() => {
     client.disconnect()
   }, 30 * 1000)
@@ -291,27 +312,111 @@ getBars(
   symbol | symbol[], // which ticker symbols to get bars for
   {
     limit: number,
-    start: Date,
-    end: Date,
-    after: Date,
-    until: Date
+    start: date string yyyy-mm-dd,
+    end: date string yyyy-mm-dd,
+    after: date string yyyy-mm-dd,
+    until: date string yyyy-mm-dd
   }
 ) => Promise<BarsObject>
 ```
+###### example
+```js
+this.alpaca.getBars('1Min', ['AAPL', 'TSLA'], {start:'2020-04-20', end:'2020-04-29'}).then((response) => {
+          console.log(response)
+        })
+```
+
+#### Get Aggregates
+
+```ts
+getAggregates(
+  symbol: string,
+  timespan: 'minute', 'hour', 'day', 'week', 'month', 'quarter', 'year',
+  from: Date,
+  to: Date,
+) => Promise<AggregatesObject>
+```
+###### example
+```js
+this.alpaca.getAggregates('AAPL', 'minute', '2020-04-20', '2020-04-20').then((response) => {
+          console.log(response)
+        })
+```
+
+#### Last trade
+
+```ts
+lastTrade(
+  symbol: string)
+) => Promise<LastTradeObject>
+```
+###### example
+```js
+this.alpaca.lastTrade('AAPL').then((response) => {
+          console.log(response)
+        })
+```
+
+#### Last quote
+
+```ts
+lastQuote(
+  symbol: string)
+) => Promise<LastQuoteObject>
+```
+###### example
+```js
+this.alpaca.lastQuote('AAPL').then((response) => {
+          console.log(response)
+        })
+```
 
 ### Websockets
-
-* `let websocket = alpaca.websocket`: Create a websocket client instance.
+When to use which websocket?
+1. first of all - if you don't have a funded account you cannot use the
+ polygon websocket. <br>The data in the Alpaca websocket is free (currently in
+  beta) and this is your only option.
+2. if you do have a funded account read the docs to understand exactly what
+ are the differences between the data streams<br>
+ 
+Now since there's is a redundancy in the data we assume that if you use one
+ you will not use the other.<br>
+The way you select which websocket to use is by setting the `usePolygon
+` argument when creating the Alpaca instance (see example above). 
+#### Working with websocket
+* The websocket is created when you creating the Alpaca instance
+* `let websocket = alpaca.websocket`: Get the websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
-* `websocket.subscribe(channels)`: Subscribe to the Alpaca server and possibly the Polygon server.
-    Possible channels: `['trade_updates', 'account_updates', 'T.*', 'Q.*', 'A.*', 'AM.*']`.
-    This will unsubscribe from any previously subscribed channels.
-    Channels `'trade_updates'` and `'account_updates'` are for the Alpaca server; the rest are for the Polygon server.
-    In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
+* `client.onConnect(function() {}`: all the following code should be inside
+ this function because we should not do anything until we're connected to the
+  websocket.
+* `websocket.subscribe(channels)`: Subscribe to the Alpaca data server and/or
+  the Polygon server.<br>
+  Please note that Polygon and Alpaca servers use different channels. <br>
+    You need to specify the channel you want to
+   subscribe to as specified here:<br>
+    Channels for the Polygon service: `['T.*', 'Q.*', 'A.*', 'AM.*']`.<br>
+    Channels for the Alpaca data service: `['trade_updates
+    ', 'account_updatecs', 'alpacadatav1/T
+    .*', 'alpacadatav1/Q.*', 'alpacadatav1'/AM.*]`
+    
+    When calling `subscribe()` first it will unsubscribe from any previously
+     subscribed channels (so if you want to add channels you need to specifiy
+      all channels you want to subscribe to).<br>
+    Channels `'trade_updates'`, `'account_updates'` and all `'alpacadatav1
+    /*.*'` are for the Alpaca server; the rest are for the Polygon server.
+    <br>In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
     Otherwise Polygon's API will be unavailable.
+#### Callbacks
+how to get the data you subscribed to. we do this by calling these methods
+ with our callback for each and every channel:
 * `websocket.onOrderUpdate(function(data))`: Register callback function for the channel `'trade_updates'`.
 * `websocket.onAccountUpdate(function(data))`: Register callback function for the channel `'account_updates'`.
-* `websocket.onStockTrades(function(data))`: Register callback function for the channel `'T.*'`.
-* `websocket.onStockQuotes(function(data))`: Register callback function for the channel `'Q.*'`.
-* `websocket.onStockAggSec(function(data))`: Register callback function for the channel `'A.*'`.
-* `websocket.onStockAggMin(function(data))`: Register callback function for the channel `'AM.*'`.
+* `websocket.onStockTrades(function(data))`: Register callback function for
+ the channel `'T.<SYMBOL>'` or `'alpacadatav1/T.<SYMBOL>'`.
+* `websocket.onStockQuotes(function(data))`: Register callback function for
+ the channel `'Q.<SYMBOL>'` or `'alpacadatav1/Q.<SYMBOL>'`.
+* `websocket.onStockAggSec(function(data))`: Register callback function for
+ the channel `'A.<SYMBOL>'`. (Polygon only)
+* `websocket.onStockAggMin(function(data))`: Register callback function for
+ the channel `'AM.<SYMBOL>'` or `'alpacadatav1/AM.<SYMBOL>'`.

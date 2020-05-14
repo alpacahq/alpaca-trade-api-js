@@ -1,13 +1,20 @@
 const Alpaca = require('@alpacahq/alpaca-trade-api')
 const API_KEY = 'YOUR_API_KEY_HERE';
 const API_SECRET = 'YOUR_API_SECRET_HERE';
+const USE_POLYGON = false;  // by default we use the Alpaca data stream but you can change that
+
 const MINUTE = 60000
 const SideType = { BUY: 'buy', SELL: 'sell' }
 const PositionType = { LONG: 'long', SHORT: 'short' }
 
 class LongShort {
   constructor ({ keyId, secretKey, paper = true, bucketPct = 0.25 }) {
-    this.alpaca = new Alpaca({ keyId, secretKey, paper })
+    this.alpaca = new Alpaca({
+      keyId: keyId, 
+      secretKey: secretKey, 
+      paper: paper,
+      usePolygon: USE_POLYGON
+    })
 
     let stocks = ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP', 'SPLK', 'BA', 'AMZN', 'SUI', 'SUN', 'TSLA', 'CGC', 'SPWR', 'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'RTN', 'ATVI', 'GS', 'BAC', 'MS', 'TWLO', 'QCOM']
     this.stockList = stocks.map(item => ({ name: item, pc: 0 }))
@@ -356,7 +363,13 @@ class LongShort {
       return new Promise(async (resolve) => {
         try {
           let resp = await this.alpaca.getBars('minute', stock, { limit: 1 })
-          resolve(resp[stock][0].c)
+          // polygon and alpaca have different responses to keep backwards
+          // compatibility, so we handle it a bit differently
+          if (USE_POLYGON) {
+            resolve(resp[stock][0].c);
+          } else{
+            resolve(resp[stock][0].closePrice);
+          }
         } catch (err) {
           log(err.error)
         }
@@ -417,12 +430,19 @@ class LongShort {
   }
 
   // Get percent changes of the stock prices over the past 10 minutes.
+
   getPercentChanges (limit = 10) {
     return Promise.all(this.stockList.map(stock => {
       return new Promise(async (resolve) => {
         try {
           let resp = await this.alpaca.getBars('minute', stock.name, { limit: limit })
-          stock.pc = (resp[stock.name][limit - 1].c - resp[stock.name][0].o) / resp[stock.name][0].o
+          // polygon and alpaca have different responses to keep backwards
+          // compatibility, so we handle it a bit differently
+          if (USE_POLYGON) {
+            stock.pc = (resp[stock.name][length - 1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
+          } else{
+            stock.pc = (resp[stock.name][length - 1].closePrice - resp[stock.name][0].openPrice) / resp[stock.name][0].openPrice;
+          }
         } catch (err) {
           log(err.error)
         }

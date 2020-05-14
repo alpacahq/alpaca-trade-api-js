@@ -5,7 +5,8 @@ const dateformat = require('../../lib/utils/dateformat')
 
 describe('date formatting', () => {
   it('formats timestamps as dates', () => {
-    const formatted = dateformat.toDateString(new Date('July 20, 69 00:20:18'))
+    const date = new Date(Date.UTC(1969, 6, 20, 0, 20, 18))
+    const formatted = dateformat.toDateString(date)
     expect(formatted).to.equal('1969-07-20')
   })
 
