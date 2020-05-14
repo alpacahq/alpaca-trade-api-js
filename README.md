@@ -45,8 +45,16 @@ alpaca.getAccount().then((account) => {
 ```
 
 The websocket api is a good way to watch and react to the market
+we have 2 types of websockets:
+- data websocket: get updates data equities
+- account/trade websocket: get updates on your account
+
+please refer to this [example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/websocket_listener.js) 
+code to see how to use the websockets. 
+
+##### Data WS 
 you could use one of the 2 websockets we provide:
-1. The Alpaca WS - (currently in beta and you need to request access to be in the test group)
+1. The Alpaca WS
 2. The Polygon WS
 
 The default WS is Alpaca. and you could use it even if you don't have a
@@ -58,7 +66,7 @@ The default WS is Alpaca. and you could use it even if you don't have a
 The other difference is the way we subscribe to different channels.
 ###### Alpaca
 ```js
-  client.subscribe(['trade_updates', 'account_updates', 'alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/AM.GOOG'])
+  client.subscribe(['alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/AM.GOOG'])
 ``` 
 
 ###### Polygon
@@ -67,13 +75,10 @@ The other difference is the way we subscribe to different channels.
 ``` 
 ##### Example Code
 ```js
-const client = alpaca.websocket
+const client = alpaca.data_ws
 client.onConnect(function() {
   console.log("Connected")
-  client.subscribe(['trade_updates', 'account_updates', 'alpacadatav1/T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])
-  setTimeout(() => {
-    client.disconnect()
-  }, 30 * 1000)
+  client.subscribe(['alpacadatav1/T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])
 })
 client.onDisconnect(() => {
   console.log("Disconnected")
@@ -81,17 +86,11 @@ client.onDisconnect(() => {
 client.onStateChange(newState => {
   console.log(`State changed to ${newState}`)
 })
-client.onOrderUpdate(data => {
-  console.log(`Order updates: ${JSON.stringify(data)}`)
-})
-client.onAccountUpdate(data => {
-  console.log(`Account updates: ${JSON.stringify(data)}`)
-})
 client.onStockTrades(function(subject, data) {
-  console.log(`Stock trades: ${subject}, ${data}`)
+  console.log(`Stock trades: ${subject}, price: ${data.price}`)
 })
 client.onStockQuotes(function(subject, data) {
-  console.log(`Stock quotes: ${subject}, ${data}`)
+  console.log(`Stock quotes: ${subject}, bid: ${data.bidprice}, ask: ${data.askprice}`)
 })
 client.onStockAggSec(function(subject, data) {
   console.log(`Stock agg sec: ${subject}, ${data}`)
@@ -100,6 +99,30 @@ client.onStockAggMin(function(subject, data) {
   console.log(`Stock agg min: ${subject}, ${data}`)
 })
 client.connect()
+```
+
+##### Account WS 
+used like this
+```js
+const updates_client = this.alpaca.trade_ws
+updates_client.onConnect(function () {
+    console.log("Connected")
+    const trade_keys = ['trade_updates', 'account_updates']
+    updates_client.subscribe(trade_keys);
+})
+updates_client.onDisconnect(() => {
+    console.log("Disconnected")
+})
+updates_client.onStateChange(newState => {
+    console.log(`State changed to ${newState}`)
+})
+updates_client.onOrderUpdate(data => {
+    console.log(`Order updates: ${JSON.stringify(data)}`)
+})
+updates_client.onAccountUpdate(data => {
+    console.log(`Account updates: ${JSON.stringify(data)}`)
+})
+updates_client.connect()
 ```
 
 ## Methods
@@ -385,7 +408,7 @@ The way you select which websocket to use is by setting the `usePolygon
 ` argument when creating the Alpaca instance (see example above). 
 #### Working with websocket
 * The websocket is created when you creating the Alpaca instance
-* `let websocket = alpaca.websocket`: Get the websocket client instance.
+* `let websocket = alpaca.data_ws`: Get the websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
 * `client.onConnect(function() {}`: all the following code should be inside
  this function because we should not do anything until we're connected to the
@@ -396,8 +419,7 @@ The way you select which websocket to use is by setting the `usePolygon
     You need to specify the channel you want to
    subscribe to as specified here:<br>
     Channels for the Polygon service: `['T.*', 'Q.*', 'A.*', 'AM.*']`.<br>
-    Channels for the Alpaca data service: `['trade_updates
-    ', 'account_updatecs', 'alpacadatav1/T
+    Channels for the Alpaca data service: `['alpacadatav1/T
     .*', 'alpacadatav1/Q.*', 'alpacadatav1'/AM.*]`
     
     When calling `subscribe()` first it will unsubscribe from any previously
