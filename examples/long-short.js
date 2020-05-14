@@ -365,13 +365,13 @@ class LongShort {
           let resp = await this.alpaca.getBars('minute', stock, { limit: 1 })
           // polygon and alpaca have different responses to keep backwards
           // compatibility, so we handle it a bit differently
-          if (USE_POLYGON) {
+          if (this.alpaca.configuration.usePolygon) {
             resolve(resp[stock][0].c);
           } else{
             resolve(resp[stock][0].closePrice);
           }
         } catch (err) {
-          log(err.error)
+          log(err.message)
         }
       })
     }))
@@ -438,13 +438,19 @@ class LongShort {
           let resp = await this.alpaca.getBars('minute', stock.name, { limit: limit })
           // polygon and alpaca have different responses to keep backwards
           // compatibility, so we handle it a bit differently
-          if (USE_POLYGON) {
-            stock.pc = (resp[stock.name][length - 1].c - resp[stock.name][0].o) / resp[stock.name][0].o;
+          if (this.alpaca.configuration.usePolygon) {
+            const l = resp[stock.name].length
+            const last_close = resp[stock.name][l - 1].c
+            const first_open = resp[stock.name][0].o
+            stock.pc = (last_close - first_open) / first_open;
           } else{
-            stock.pc = (resp[stock.name][length - 1].closePrice - resp[stock.name][0].openPrice) / resp[stock.name][0].openPrice;
+            const l = resp[stock.name].length
+            const last_close = resp[stock.name][l- 1].closePrice
+            const first_open = resp[stock.name][0].openPrice
+            stock.pc = (last_close - first_open) / first_open;
           }
         } catch (err) {
-          log(err.error)
+          log(err.message)
         }
         resolve()
       })
