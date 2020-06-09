@@ -31,8 +31,8 @@ module.exports = function createPolygonMock() {
   })
 
   const validSymbolSortParams = Object.keys(symbolEntity)
-    .map(key => `-${key}`)
-    .concat(Object.keys(symbolEntity))
+      .map(key => `-${key}`)
+      .concat(Object.keys(symbolEntity))
 
   v1.get('/meta/symbols', apiMethod(req => {
     assertSchema(req.query, {
@@ -56,56 +56,45 @@ module.exports = function createPolygonMock() {
     }))
   }
 
+  function makeSymbolEndpointV2(name, entity) {
+    const path = '/reference' + (name ? `/${name}` : '') + '/:symbol'
+    v2.get(path, apiMethod(req => {
+      assertSchema(req.params, {
+        symbol: joi.string().required()
+      })
+      if (req.params.symbol === 'FAKE') throw apiError(404)
+      return entity
+    }))
+  }
+
   makeSymbolEndpoint(null, symbolDetailsEntity)
   makeSymbolEndpoint('company', symbolCompanyEntity)
   makeSymbolEndpoint('analysts', symbolAnalystsEntity)
-  makeSymbolEndpoint('dividends', [symbolDividendEntity])
-  makeSymbolEndpoint('splits', [symbolSplitEntity])
   makeSymbolEndpoint('earnings', [symbolEarningEntity])
-  makeSymbolEndpoint('financials', [symbolFinanceEntity])
+  makeSymbolEndpointV2('financials', symbolFinanceEntity)
   makeSymbolEndpoint('news', [symbolNewsEntity])
+  makeSymbolEndpointV2('dividends', symbolDividendEntity)
+  makeSymbolEndpointV2('splits', symbolSplitEntity)
 
   v1.get('/marketstatus/now', apiMethod(() => marketStatusEntity))
   v1.get('/marketstatus/upcoming', apiMethod(() => [holidayEntity]))
   v1.get('/meta/exchanges', apiMethod(() => [exchangeEntity]))
   v1.get('/meta/symbol-types', apiMethod(() => symbolTypeMapEntity))
 
-  v1.get('/historic/trades/:symbol/:date', apiMethod(req => {
+  v2.get('/ticks/stocks/trades/:symbol/:date', apiMethod(req => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
       date: joi.date().required(),
     })
-    assertSchema(req.query, {
-      offset: joi.number().integer().positive().required(),
-      limit: joi.number().integer().positive().max(50000).required(),
-    }, { allowUnknown: true })
-    return historicTradesEntity
+    return historicTradesV2Entity
   }))
 
-  v1.get('/historic/quotes/:symbol/:date', apiMethod(req => {
+  v2.get('/ticks/stocks/nbbo/:symbol/:date', apiMethod(req => {
     assertSchema(req.params, {
       symbol: joi.string().required(),
       date: joi.date().required(),
     })
-    assertSchema(req.query, {
-      offset: joi.number().integer().positive().required(),
-      limit: joi.number().integer().positive().max(50000).required(),
-    }, { allowUnknown: true })
-    return historicQuotesEntity
-  }))
-
-  v1.get('/historic/agg/:size/:symbol', apiMethod(req => {
-    assertSchema(req.params, {
-      size: joi.only('day', 'minute'),
-      symbol: joi.string().required(),
-    })
-    assertSchema(req.query, {
-      from: joi.date().required(),
-      to: joi.date().required(),
-      limit: joi.number().integer().positive().max(50000).required(),
-      unadjusted: joi.boolean().required(),
-    }, { allowUnknown: true })
-    return historicAggregatesEntity
+    return historicQuotesV2Entity
   }))
 
   v2.get('/aggs/ticker/:symbol/range/:multiplier/:size/:from/:to', apiMethod(req => {
@@ -183,8 +172,8 @@ const symbolDetailsEntity = {
   "endpoints": {
     "company": "https://api.polygon.io/v1/meta/symbols/AAPL/company",
     "analysts": "http://localhost:8060/v1/meta/symbols/AAPL/analysts",
-    "dividends": "http://localhost:8060/v1/meta/symbols/AAPL/dividends",
-    "splits": "http://localhost:8060/v1/meta/symbols/AAPL/splits",
+    "dividends": "http://localhost:8060/v2/reference/dividends/AAPL",
+    "splits": "http://localhost:8060/v2/reference/splits/AAPL",
     "news": "https://api.polygon.io/v1/meta/symbols/AAPL/news"
   }
 }
@@ -270,26 +259,38 @@ const symbolAnalystsEntity = {
 }
 
 const symbolDividendEntity = {
-  "symbol": "AAPL",
-  "type": "Dividend income",
-  "exDate": "2016-11-03T04:00:00.000Z",
-  "paymentDate": "2016-11-03T04:00:00.000Z",
-  "recordDate": "2016-11-03T04:00:00.000Z",
-  "declaredDate": "2016-11-03T04:00:00.000Z",
-  "amount": 0.57,
-  "qualified": "Q",
-  "flag": "YE"
+  "status": "OK",
+  "count": 1,
+  "results": [
+    {
+      "symbol": "AAPL",
+      "type": "Dividend income",
+      "exDate": "2016-11-03T04:00:00.000Z",
+      "paymentDate": "2016-11-03T04:00:00.000Z",
+      "recordDate": "2016-11-03T04:00:00.000Z",
+      "declaredDate": "2016-11-03T04:00:00.000Z",
+      "amount": 0.57,
+      "qualified": "Q",
+      "flag": "YE"
+    }
+  ]
 }
 
 const symbolSplitEntity = {
-  "symbol": "AAPL",
-  "exDate": "2016-11-03T04:00:00.000Z",
-  "paymentDate": "2016-11-03T04:00:00.000Z",
-  "recordDate": "2016-11-03T04:00:00.000Z",
-  "declaredDate": "2016-11-03T04:00:00.000Z",
-  "ratio": 0.142857,
-  "tofactor": 7,
-  "forfactor": 1
+  "status": "OK",
+  "count": 1,
+  "results": [
+    {
+      "ticker": "AAPL",
+      "exDate": "1999-03-28",
+      "paymentDate": "1999-03-28",
+      "recordDate": "1999-03-28",
+      "declaredDate": "1999-03-28",
+      "ratio": 0.142857,
+      "tofactor": 7,
+      "forfactor": 1
+    }
+  ]
 }
 
 const symbolEarningEntity = {
@@ -310,28 +311,122 @@ const symbolEarningEntity = {
 }
 
 const symbolFinanceEntity = {
-  "symbol": "AAPL",
-  "reportDate": "2017-12-31T00:00:00.000Z",
-  "reportDateStr": "2017-12-31",
-  "grossProfit": 33912000000,
-  "costOfRevenue": 54381000000,
-  "operatingRevenue": 88293000000,
-  "totalRevenue": 88293000000,
-  "operatingIncome": 26274000000,
-  "netIncome": 20065000000,
-  "researchAndDevelopment": 3407000000,
-  "operatingExpense": 7638000000,
-  "currentAssets": 143810000000,
-  "totalAssets": 406794000000,
-  "totalLiabilities": 266595000000,
-  "currentCash": 27491000000,
-  "currentDebt": 18478000000,
-  "totalCash": 77153000000,
-  "totalDebt": 122400000000,
-  "shareholderEquity": 140199000000,
-  "cashChange": 7202000000,
-  "cashFlow": 28293000000,
-  "operatingGainsLosses": 0
+  "status": "OK",
+  "count": 1,
+  "results": [
+    {
+      "ticker": "AAPL",
+      "period": "Q",
+      "calendarDate": "2019-03-31",
+      "reportPeriod": "2019-03-31",
+      "updated": "1999-03-28",
+      "accumulatedOtherComprehensiveIncome": 0,
+      "assets": 0,
+      "assetsAverage": 0,
+      "assetsCurrent": 0,
+      "assetTurnover": 0,
+      "assetsNonCurrent": 0,
+      "bookValuePerShare": 0,
+      "capitalExpenditure": 0,
+      "cashAndEquivalents": 0,
+      "cashAndEquivalentsUSD": 0,
+      "costOfRevenue": 0,
+      "consolidatedIncome": 0,
+      "currentRatio": 0,
+      "debtToEquityRatio": 0,
+      "debt": 0,
+      "debtCurrent": 0,
+      "debtNonCurrent": 0,
+      "debtUSD": 0,
+      "deferredRevenue": 0,
+      "depreciationAmortizationAndAccretion": 0,
+      "deposits": 0,
+      "dividendYield": 0,
+      "dividendsPerBasicCommonShare": 0,
+      "earningBeforeInterestTaxes": 0,
+      "earningsBeforeInterestTaxesDepreciationAmortization": 0,
+      "EBITDAMargin": 0,
+      "earningsBeforeInterestTaxesDepreciationAmortizationUSD": 0,
+      "earningBeforeInterestTaxesUSD": 0,
+      "earningsBeforeTax": 0,
+      "earningsPerBasicShare": 0,
+      "earningsPerDilutedShare": 0,
+      "earningsPerBasicShareUSD": 0,
+      "shareholdersEquity": 0,
+      "averageEquity": 0,
+      "shareholdersEquityUSD": 0,
+      "enterpriseValue": 0,
+      "enterpriseValueOverEBIT": 0,
+      "enterpriseValueOverEBITDA": 0,
+      "freeCashFlow": 0,
+      "freeCashFlowPerShare": 0,
+      "foreignCurrencyUSDExchangeRate": 0,
+      "grossProfit": 0,
+      "grossMargin": 0,
+      "goodwillAndIntangibleAssets": 0,
+      "interestExpense": 0,
+      "investedCapital": 0,
+      "investedCapitalAverage": 0,
+      "inventory": 0,
+      "investments": 0,
+      "investmentsCurrent": 0,
+      "investmentsNonCurrent": 0,
+      "totalLiabilities": 0,
+      "currentLiabilities": 0,
+      "liabilitiesNonCurrent": 0,
+      "marketCapitalization": 0,
+      "netCashFlow": 0,
+      "netCashFlowBusinessAcquisitionsDisposals": 0,
+      "issuanceEquityShares": 0,
+      "issuanceDebtSecurities": 0,
+      "paymentDividendsOtherCashDistributions": 0,
+      "netCashFlowFromFinancing": 0,
+      "netCashFlowFromInvesting": 0,
+      "netCashFlowInvestmentAcquisitionsDisposals": 0,
+      "netCashFlowFromOperations": 0,
+      "effectOfExchangeRateChangesOnCash": 0,
+      "netIncome": 0,
+      "netIncomeCommonStock": 0,
+      "netIncomeCommonStockUSD": 0,
+      "netLossIncomeFromDiscontinuedOperations": 0,
+      "netIncomeToNonControllingInterests": 0,
+      "profitMargin": 0,
+      "operatingExpenses": 0,
+      "operatingIncome": 0,
+      "tradeAndNonTradePayables": 0,
+      "payoutRatio": 0,
+      "priceToBookValue": 0,
+      "priceEarnings": 0,
+      "priceToEarningsRatio": 0,
+      "propertyPlantEquipmentNet": 0,
+      "preferredDividendsIncomeStatementImpact": 0,
+      "sharePriceAdjustedClose": 0,
+      "priceSales": 0,
+      "priceToSalesRatio": 0,
+      "tradeAndNonTradeReceivables": 0,
+      "accumulatedRetainedEarningsDeficit": 0,
+      "revenues": 0,
+      "revenuesUSD": 0,
+      "researchAndDevelopmentExpense": 0,
+      "returnOnAverageAssets": 0,
+      "returnOnAverageEquity": 0,
+      "returnOnInvestedCapital": 0,
+      "returnOnSales": 0,
+      "shareBasedCompensation": 0,
+      "sellingGeneralAndAdministrativeExpense": 0,
+      "shareFactor": 0,
+      "shares": 0,
+      "weightedAverageShares": 0,
+      "weightedAverageSharesDiluted": 0,
+      "salesPerShare": 0,
+      "tangibleAssetValue": 0,
+      "taxAssets": 0,
+      "incomeTaxExpense": 0,
+      "taxLiabilities": 0,
+      "tangibleAssetsBookValuePerShare": 0,
+      "workingCapital": 0
+    }
+  ]
 }
 
 const symbolNewsEntity = {
@@ -406,106 +501,75 @@ const symbolTypeMapEntity = {
   "pfd": "Preferred Stock"
 }
 
-const historicTradesEntity = {
-  "day": "2018-2-2",
-  "map": {
-    "c1": "condition1",
-    "c2": "condition2",
-    "c3": "condition3",
-    "c4": "condition4",
-    "e": "exchange",
-    "p": "price",
-    "s": "size",
-    "t": "timestamp"
-  },
-  "msLatency": 8,
-  "status": "success",
-  "symbol": "AAPL",
-  "ticks": [
+const historicTradesV2Entity = {
+  "results_count": 10,
+  "db_latency": 2,
+  "success": true,
+  "ticker": "AAPL",
+  "results": [
     {
-      "c1": 14,
-      "c2": 12,
-      "c3": 0,
-      "c4": 0,
-      "e": 12,
-      "p": 172.17,
-      "s": 50,
-      "t": 1517529601006
+      "T": "AAPL",
+      "t": 1547787608999125800,
+      "y": 1547787608999125800,
+      "f": 1547787608999125800,
+      "q": 23547,
+      "i": "00MGON",
+      "x": 11,
+      "s": 100,
+      "c": [
+        {}
+      ],
+      "p": 223.001,
+      "z": 1
     }
   ]
 }
 
-const historicQuotesEntity = {
-  "day": "2018-2-2",
-  "map": {
-    "aE": "askexchange",
-    "aP": "askprice",
-    "aS": "asksize",
-    "bE": "bidexchange",
-    "bP": "bidprice",
-    "bS": "bidsize",
-    "c": "condition",
-    "t": "timestamp"
-  },
-  "msLatency": 3,
-  "status": "success",
-  "symbol": "AAPL",
-  "ticks": [
+const historicQuotesV2Entity = {
+  "results_count": 10,
+  "db_latency": 2,
+  "success": true,
+  "ticker": "AAPL",
+  "results": [
     {
-      "c": 0,
-      "bE": 11,
-      "aE": 12,
-      "aP": 173.15,
-      "bP": 173.13,
-      "bS": 25,
-      "aS": 55,
-      "t": 1517529601006
-    }
-  ]
-}
-
-const historicAggregatesEntity = {
-  "map": {
-    "a": "average",
-    "c": "close",
-    "h": "high",
-    "k": "transactions",
-    "l": "low",
-    "o": "open",
-    "t": "timestamp",
-    "v": "volume"
-  },
-  "status": "success",
-  "aggType": "second",
-  "symbol": "AAPL",
-  "ticks": [
-    {
-      "o": 173.15,
-      "c": 173.2,
-      "l": 173.15,
-      "h": 173.21,
-      "v": 1800,
-      "k": 4,
-      "t": 1517529605000
+      "T": "AAPL",
+      "t": 1547787608999125800,
+      "y": 1547787608999125800,
+      "f": 1547787608999125800,
+      "q": 23547,
+      "c": [
+        {}
+      ],
+      "i": [
+        {}
+      ],
+      "p": 223.001,
+      "x": 11,
+      "s": 100,
+      "P": 223.001,
+      "X": 11,
+      "S": 100,
+      "z": 1
     }
   ]
 }
 
 const historicAggregatesV2Entity = {
-  "status": "success",
-  "adjusted": true,
   "ticker": "AAPL",
-  "queryCount": 1,
-  "resultsCount": 1,
-  "ticks": [
+  "status": "OK",
+  "adjusted": true,
+  "queryCount": 55,
+  "resultsCount": 2,
+  "results": [
     {
-      "o": 173.15,
-      "c": 173.2,
-      "l": 173.15,
-      "h": 173.21,
-      "v": 1800,
-      "n": 4,
-      "t": 1517529605000
+      "T": "AAPL",
+      "v": 31315282,
+      "o": 102.87,
+      "c": 103.74,
+      "h": 103.82,
+      "l": 102.65,
+      "t": 1549314000000,
+      "n": 4
     }
   ]
 }
