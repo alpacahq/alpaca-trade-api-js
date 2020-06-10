@@ -66,18 +66,17 @@ const socket = paca.websocket;
 
   console.log(await paca.getExchanges())
   console.log(await paca.getSymbolTypeMap())
-  console.log(await paca.getHistoricTrades('AAPL', new Date(), { limit: 2, offset: 2 }))
-  console.log(await paca.getHistoricQuotes('AAPL', new Date(), { limit: 2, offset: 2 }))
-  console.log(await paca.getHistoricAggregates('minute', 'AAPL', {
-    from: new Date('December 1 2018'),
-    to: new Date(),
-    limit: 2,
-    unadjusted: false,
-  }))
+  console.log(await paca.getHistoricTradesV2('AAPL', new Date(), { limit: 2}))
+  console.log(await paca.getHistoricQuotesV2('AAPL', new Date(), { limit: 2}))
+  console.log(await paca.getHistoricAggregatesV2('AAPL', 1, 'minute',
+      new Date('December 1 2018'), new Date(),
+      {
+        unadjusted: false,
+      }))
   console.log(await paca.getHistoricAggregatesV2(
-    'AAPL', 1, 'day', new Date('December 1 2018'), new Date('December 5 2018'), {
-      unadjusted: false,
-    }
+      'AAPL', 1, 'day', new Date('December 1 2018'), new Date('December 5 2018'), {
+        unadjusted: false,
+      }
   ))
   console.log(await paca.getLastTrade('AAPL'))
   console.log(await paca.getLastQuote('AAPL'))

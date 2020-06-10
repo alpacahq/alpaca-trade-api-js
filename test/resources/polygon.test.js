@@ -28,6 +28,10 @@ describe('polygon methods', () => {
     return expect(alpaca.getSplits('AAPL')).to.eventually.be.an('array')
   })
 
+  it('can get financials', () => {
+    return expect(alpaca.getFinancials('AAPL')).to.eventually.be.an('array')
+  })
+
   it('can get a condition map', () => {
     return expect(alpaca.getConditionMap()).to.eventually.be.an('object')
   })
@@ -40,17 +44,6 @@ describe('polygon methods', () => {
     return expect(alpaca.getLastTrade()).to.eventually.have.property('last')
   })
 
-  it('can get historic aggregates', () => {
-    return expect(
-      alpaca.getHistoricAggregates('day', 'AAPL', {
-        from: new Date(),
-        to: new Date(),
-        limit: 12,
-        unadjusted: false,
-      })
-    ).to.eventually.have.property('aggType')
-  })
-
   it('can get historic aggregates v2', () => {
     return expect(
       alpaca.getHistoricAggregatesV2('AAPL', 1, 'day', '2018-02-01', '2018-02-10', {
@@ -59,16 +52,16 @@ describe('polygon methods', () => {
     ).to.eventually.have.property('queryCount')
   })
 
-  it('can get historic trades', () => {
+  it('can get historic trades v2', () => {
     return expect(
-      alpaca.getHistoricTrades('AAPL', '2018-3-2', { offset: 2, limit: 12 })
-    ).to.eventually.have.property('ticks')
+      alpaca.getHistoricTradesV2('AAPL', '2018-3-2', { limit: 12 })
+    ).to.eventually.have.property('results')
   })
 
-  it('can get historic quotes', () => {
+  it('can get historic quotes v2', () => {
     return expect(
-      alpaca.getHistoricQuotes('AAPL', '2018-3-2', { offset: 3, limit: 16 })
-    ).to.eventually.have.property('ticks')
+      alpaca.getHistoricQuotesV2('AAPL', '2018-3-2', { offset: 3, limit: 16 })
+    ).to.eventually.have.property('results')
   })
 
   it('can get the symbol type map', () => {
