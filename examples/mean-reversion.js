@@ -138,10 +138,10 @@ class MeanReversion {
     await this.alpaca.getBars('minute', this.stock,{limit: 20}).then((resp) => {
       bars = resp[this.stock];
     }).catch((err) => {console.log(err.error);});
-    var currPrice = bars[bars.length - 1].c;
+    var currPrice = bars[bars.length - 1].closePrice;
     this.runningAverage = 0;
     bars.forEach((bar) => {
-      this.runningAverage += bar.c;
+      this.runningAverage += bar.closePrice;
     })
     this.runningAverage /= 20;
   
