@@ -15,24 +15,24 @@ declare namespace Alpaca {
         symbol: string;
     }
 
-    export enum TradeDirection {
+    export const enum TradeDirection {
         buy = "buy",
         sell = "sell",
     }
 
-    export enum PositionDirection {
+    export const enum PositionDirection {
         long = "long",
         short = "short",
     }
 
-    export enum TradeType {
+    export const enum TradeType {
         market = "market",
         limit = "limit",
         stop = "stop",
         stop_limit = "stop_limit",
     }
 
-    export enum TimeInForce {
+    export const enum TimeInForce {
         day = "day",
         gtc = "gtc",
         opg = "opg",
@@ -40,7 +40,7 @@ declare namespace Alpaca {
         ioc = "ioc",
         fok = "fok",
     }
-    export enum OrderStatus {
+    export const enum OrderStatus {
         new = "new",
         partial_fill = "partially_filled",
         filled = "filled",
@@ -59,7 +59,7 @@ declare namespace Alpaca {
         position_qty: number;
     }
 
-    export enum OrderUpdateEvent {
+    export const enum OrderUpdateEvent {
         new = "new",
         fill = "fill",
         canceled = "canceled",
