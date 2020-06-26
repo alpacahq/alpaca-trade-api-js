@@ -4,6 +4,7 @@ export interface AlpacaParams {
     keyId: string;
     secretKey: string;
     paper: boolean;
+    usePolygon: boolean;
 }
 export interface GetAssetsParams {
     status: string;
@@ -171,6 +172,8 @@ export interface Broker {
     ): Promise<AlpacaOrder>;
 }
 
+export class PolygonStreamingClient extends EventEmitter {}
+
 export class AlpacaStreamingClient extends EventEmitter {
     connect(): void;
     reconnect(): void;
@@ -187,7 +190,7 @@ export class AlpacaStreamingClient extends EventEmitter {
     onStockQuotes(cb: (subject: string, data: string) => void): void;
     onStockAggSec(cb: (subject: string, data: string) => void): void;
     onStockAggMin(cb: (subject: string, data: string) => void): void;
-    polygon: 
+    polygon: PolygonStreamingClient;
 }
 
 export class Alpaca implements Broker {
