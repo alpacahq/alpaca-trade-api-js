@@ -163,7 +163,7 @@ updateAccountConfigurations(AccountConfigurations) => Promise<AccountConfigurati
 Calls `GET /account/activities` and returns account actvities.
 
 ```ts
-getActivities({
+getAccountActivities({
   activityTypes: string | string[], // Any valid activity type
   until: Date,
   after: Date,
