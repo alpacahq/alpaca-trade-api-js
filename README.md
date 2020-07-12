@@ -169,7 +169,8 @@ getAccountActivities({
   after: Date,
   direction: string,
   date: Date,
-  pageSize: number
+  pageSize: number,
+  pageToken: string
 }) => Promise<AccountActivity[]>
 ```
 
