@@ -78,7 +78,8 @@ The other difference is the way we subscribe to different channels.
 const client = alpaca.data_ws
 client.onConnect(function() {
   console.log("Connected")
-  client.subscribe(['alpacadatav1/T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])
+  client.subscribe(['alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/AM.AAPL']) // when using alpaca ws
+  client.subscribe(['alpacadatav1/T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])  // when using polygon ws
 })
 client.onDisconnect(() => {
   console.log("Disconnected")
