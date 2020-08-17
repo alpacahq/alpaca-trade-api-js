@@ -345,7 +345,7 @@ getBars(
 ```
 ###### example
 ```js
-this.alpaca.getBars('1Min', ['AAPL', 'TSLA'], {start:'2020-04-20T09:30:00-04:00', end:'2020-04-29T09:30:00-04:00'}).then((response) => {
+this.alpaca.getBars('1Min', ['AAPL', 'TSLA'], {start:'2020-04-20T09:30:00-04:00', end:'2020-04-29T16:00:00-04:00'}).then((response) => {
           console.log(response)
         })
 
