@@ -336,19 +336,26 @@ getBars(
   symbol | symbol[], // which ticker symbols to get bars for
   {
     limit: number,
-    start: date string yyyy-mm-dd,
-    end: date string yyyy-mm-dd,
-    after: date string yyyy-mm-dd,
-    until: date string yyyy-mm-dd
+    start: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
+    end: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
+    after: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
+    until: date isoformat string yyyy-mm-ddThh:MM:ss-04:00
   }
 ) => Promise<BarsObject>
 ```
 ###### example
 ```js
-this.alpaca.getBars('1Min', ['AAPL', 'TSLA'], {start:'2020-04-20', end:'2020-04-29'}).then((response) => {
+this.alpaca.getBars('1Min', ['AAPL', 'TSLA'], {start:'2020-04-20T09:30:00-04:00', end:'2020-04-29T09:30:00-04:00'}).then((response) => {
           console.log(response)
         })
+
+this.alpaca.getBars('1D', ['AAPL', 'TSLA'], {start:'2020-04-20T00:00:00-04:00', end:'2020-04-29T00:00:00-04:00samples'}).then((response) => {
+          console.log(response)
+        })
+
+
 ```
+note: to get the date of response samples you could do this `console.log(new Date(resp['AAPL'][0].startEpochTime*1000))`
 
 #### Get Aggregates
 
