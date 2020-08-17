@@ -44,7 +44,7 @@ class WebsocketSubscriber {
         data_client.onConnect(function () {
             console.log("Connected")
             const keys = USE_POLYGON ? ['T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'] :
-                ['alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/A.FB', 'alpacadatav1/AM.AAPL']
+                ['alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/AM.AAPL', 'alpacadatav1/AM.FB']
             data_client.subscribe(keys);
 
         })
