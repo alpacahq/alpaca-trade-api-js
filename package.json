@@ -3,7 +3,6 @@
   "version": "1.4.2",
   "description": "Javascript library for the Alpaca Trade API",
   "main": "lib/alpaca-trade-api.js",
-  "types": "index.d.ts",
   "scripts": {
     "test": "mocha --timeout 4s test/init.js 'test/**/*.test.js'"
   },
