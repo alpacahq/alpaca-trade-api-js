@@ -457,3 +457,13 @@ how to get the data you subscribed to. we do this by calling these methods
  the channel `'A.<SYMBOL>'`. (Polygon only)
 * `websocket.onStockAggMin(function(data))`: Register callback function for
  the channel `'AM.<SYMBOL>'` or `'alpacadatav1/AM.<SYMBOL>'`.
+
+## Running Multiple Strategies
+There's a way to execute more than one algorithm at once.<br>
+The websocket connection is limited to 1 connection per account. <br>
+For that exact purpose this ![project](https://github.com/shlomikushchi/alpaca-proxy-agent) was created<br>
+The steps to execute this are:
+* Run the Alpaca Proxy Agent as described in the project's README
+* Define this env variable: `DATA_PROXY_WS` to be the address of the proxy agent. (e.g: `DATA_PROXY_WS=ws://192.168.99.100:8765`)
+* execute your algorithm. it will connect to the servers through the proxy agent allowing you to execute multiple strategies
+
