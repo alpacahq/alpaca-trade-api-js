@@ -10,8 +10,8 @@ const PositionType = { LONG: 'long', SHORT: 'short' }
 class LongShort {
   constructor ({ keyId, secretKey, paper = true, bucketPct = 0.25 }) {
     this.alpaca = new Alpaca({
-      keyId: keyId, 
-      secretKey: secretKey, 
+      keyId: keyId,
+      secretKey: secretKey,
       paper: paper,
       usePolygon: USE_POLYGON
     })
@@ -362,12 +362,26 @@ class LongShort {
     return Promise.all(stocks.map(stock => {
       return new Promise(async (resolve) => {
         try {
-          let resp = await this.alpaca.getBars('minute', stock, { limit: 1 })
           // polygon and alpaca have different responses to keep backwards
           // compatibility, so we handle it a bit differently
           if (this.alpaca.configuration.usePolygon) {
-            resolve(resp[stock][0].c);
+            const now = new Date().getTime();
+            const resp = await this.alpaca.getHistoricAggregatesV2(stock,
+                1,
+                'minute',
+                // 60000 : minutes and in milliseconds
+                // 1+1: limit + 1, this will return exactly 1 sample
+                (now - (1+1) * 60000),
+                now,
+                {
+                  unadjusted: false,
+                });
+            const close = resp.results[0].c;
+            resolve(close);
           } else{
+            const resp = await this.alpaca.getBars('minute',
+                stock,
+                { limit: 1 })
             resolve(resp[stock][0].closePrice);
           }
         } catch (err) {
@@ -435,18 +449,31 @@ class LongShort {
     return Promise.all(this.stockList.map(stock => {
       return new Promise(async (resolve) => {
         try {
-          let resp = await this.alpaca.getBars('minute', stock.name, { limit: limit })
           // polygon and alpaca have different responses to keep backwards
           // compatibility, so we handle it a bit differently
           if (this.alpaca.configuration.usePolygon) {
-            const l = resp[stock.name].length
-            const last_close = resp[stock.name][l - 1].c
-            const first_open = resp[stock.name][0].o
+            const now = new Date().getTime();
+            const resp = await this.alpaca.getHistoricAggregatesV2(stock.name,
+                1,
+                'minute',
+                // 60000 : minutes and in milliseconds
+                // 1+1: limit + 1, this will return exactly limit samples
+                (now - (limit+1) * 60000),
+                now,
+                {
+                  unadjusted: false,
+                });
+            const l = resp.results.length;
+            const last_close = resp.results[l - 1].c;
+            const first_open = resp.results[0].o;
             stock.pc = (last_close - first_open) / first_open;
           } else{
+            const resp = await this.alpaca.getBars('minute',
+                stock.name,
+                { limit: limit })
             const l = resp[stock.name].length
-            const last_close = resp[stock.name][l- 1].closePrice
-            const first_open = resp[stock.name][0].openPrice
+            const last_close = resp[stock.name][l- 1].closePrice;
+            const first_open = resp[stock.name][0].openPrice;
             stock.pc = (last_close - first_open) / first_open;
           }
         } catch (err) {
