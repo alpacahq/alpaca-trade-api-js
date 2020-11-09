@@ -333,6 +333,69 @@ Calls `GET /calendar` and returns the market calendar.
 getCalendar({ start: Date, end: Date }) => Promise<Calendar[]>
 ```
 
+### Watchlist API
+available methods for you to use:
+
+```js
+module.exports = {
+    getWatchlists,
+    getWatchlist,
+    addWatchlist,
+    addToWatchlist,
+    updateWatchlist,
+    deleteWatchlist,
+    deleteFromWatchlist,
+}
+```
+
+#### Get All Watchlists
+```js
+this.alpaca.getWatchlists().then((response) => {
+      console.log(response)
+    })
+```
+
+#### Get Specific Watchlist
+```js
+ // xxxx.. are the watchlist id you get on creation or with gat all
+ this.alpaca.getWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
+      console.log(response)
+    })
+```
+
+#### Add a Watchlist
+```js
+this.alpaca.addWatchlist("myWatchList", []).then((response) => {
+      console.log(response)
+    })
+```
+#### Add to Watchlist
+
+```js
+this.alpaca.addToWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
+  console.log(response)
+})
+```
+#### Update a Watchlist
+```js
+this.alpaca.updateWatchlist("myWatchList", ["AAPL", "GOOG"]).then((response) => {
+      console.log(response)
+    })
+```
+#### Delete a Watchlist
+```js
+this.alpaca.deleteWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
+      console.log(response)
+    })
+```
+
+#### Delete from Watchlist
+```js
+this.alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
+  console.log(response)
+})
+```
+
 ### Data API
 
 #### Get Bars
