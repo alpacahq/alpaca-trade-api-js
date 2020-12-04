@@ -4,3 +4,4 @@ node_modules/
 .npm
 .env
 temp.js
+.DS_Store

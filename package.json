@@ -1,10 +1,10 @@
 {
   "name": "@alpacahq/alpaca-trade-api",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "Javascript library for the Alpaca Trade API",
   "main": "lib/alpaca-trade-api.js",
   "scripts": {
-    "test": "mocha --timeout 4s test/init.js 'test/**/*.test.js'"
+    "test": "mocha --timeout 4s test/init.js 'test/**/*.test.js' --require esm"
   },
   "repository": {
     "type": "git",
@@ -17,7 +17,8 @@
   "contributors": [
     "Jenya Tkachenko <jekatka@outlook.com>",
     "Aaron Suddjian <aaron@alpaca.markets>",
-    "Trevor Thackston <trevor@alpaca.markets>"
+    "Trevor Thackston <trevor@alpaca.markets>",
+    "Kyle Rose <email@kylerose.io>"
   ],
   "license": "Apache-2.0",
   "bugs": {
@@ -39,9 +40,11 @@
     "body-parser": "^1.19.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
+    "esm": "^3.2.25",
     "express": "^4.17.1",
     "joi": "^14.3.1",
     "mocha": "^5.2.0",
+    "prettier": "2.2.1",
     "sinon": "^6.3.5"
   }
 }
