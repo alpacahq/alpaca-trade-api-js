@@ -472,6 +472,28 @@ this.alpaca.lastQuote('AAPL').then((response) => {
         })
 ```
 
+### Fundamentals
+You could use the Polygon API (funded accounts) to get fundamental data:
+* alpaca.getCompany() : Company details (https://polygon.io/docs/get_v1_meta_symbols__stocksTicker__company_anchor)
+* alpaca.getDividends(): https://polygon.io/docs/get_v2_reference_dividends__stocksTicker__anchor
+* alpaca.getSplits(): https://polygon.io/docs/get_v2_reference_splits__stocksTicker__anchor
+* alpaca.getNews(): https://polygon.io/docs/get_v1_meta_symbols__stocksTicker__news_anchor
+
+Here's a usage example:
+```js 
+this.alpaca.getFinancials('AAPL', {'limit': 5}).then((resp) => {
+  console.log(resp)
+});
+```
+If you don't pass any parameters, the api will use the default values.<br>
+e.g 
+```js
+this.alpaca.getFinancials('AAPL').then((resp) => {
+  console.log(resp)
+});
+```
+For more information about each api, use the links provided. 
+
 ### Websockets
 When to use which websocket?
 1. first of all - if you don't have a funded account you cannot use the
