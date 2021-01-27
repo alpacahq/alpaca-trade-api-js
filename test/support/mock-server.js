@@ -5,6 +5,7 @@ const mockPolygon = require('./mock-polygon')
 const mockAlpaca = require('./mock-alpaca')
 const mockData = require('./mock-data')
 const { apiError, apiMethod } = require('./assertions')
+const mockDataV2 = require('./mock-data-v2')
 
 /**
  * This server mocks http methods from the alpaca api and returns 200 if the requests are formed correctly.
@@ -17,7 +18,7 @@ function createAlpacaMock({ port = PORT } = {}) {
   const app = express()
     .use('/polygon', mockPolygon())
     .use('/alpaca', mockAlpaca())
-    .use('/data', mockData())
+    .use('/data', [mockData(), mockDataV2()])
 
   app.use(apiMethod(() => {
     throw apiError(404, 'route not found')
