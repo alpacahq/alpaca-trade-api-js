@@ -25,13 +25,14 @@
   },
   "homepage": "https://alpaca.markets/",
   "dependencies": {
+    "axios": "^0.21.1",
     "dotenv": "^6.2.0",
     "just-extend": "^4.1.0",
     "lodash": "^4.17.19",
     "minimist": "^0.2.1",
     "nats": "^1.4.9",
-    "request": "^2.88.2",
-    "request-promise": "^4.2.6",
+    "qs": "^6.7.0",
+    "url-join": "^4.0.1",
     "urljoin": "^0.1.5",
     "ws": "^7.3.1"
   },
