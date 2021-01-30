@@ -4,7 +4,9 @@
   "description": "Javascript library for the Alpaca Trade API",
   "main": "lib/alpaca-trade-api.js",
   "scripts": {
-    "test": "mocha --timeout 4s test/init.js 'test/**/*.test.js'"
+    "test": "mocha --timeout 4s test/init.js 'test/**/*.test.js'",
+    "build": "webpack",
+    "install": "webpack"
   },
   "repository": {
     "type": "git",
@@ -26,7 +28,9 @@
   "homepage": "https://alpaca.markets/",
   "dependencies": {
     "axios": "^0.21.1",
+    "chart.js": "^2.9.4",
     "dotenv": "^6.2.0",
+    "isomorphic-ws": "^4.0.1",
     "just-extend": "^4.1.0",
     "lodash": "^4.17.19",
     "minimist": "^0.2.1",
@@ -34,15 +38,19 @@
     "qs": "^6.7.0",
     "url-join": "^4.0.1",
     "urljoin": "^0.1.5",
+    "vue-chartkick": "^0.6.1",
     "ws": "^7.3.1"
   },
   "devDependencies": {
     "body-parser": "^1.19.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
+    "expose-loader": "^1.0.3",
     "express": "^4.17.1",
     "joi": "^14.3.1",
     "mocha": "^5.2.0",
-    "sinon": "^6.3.5"
+    "sinon": "^6.3.5",
+    "webpack": "^5.19.0",
+    "webpack-cli": "^4.4.0"
   }
 }
