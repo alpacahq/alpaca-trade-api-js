@@ -1,9 +1,9 @@
 class LongShort {
   constructor(API_KEY,API_SECRET){
-    this.alpaca = new AlpacaCORS({
+    this.alpaca = new Alpaca({
       keyId: API_KEY,
       secretKey: API_SECRET,
-      baseUrl: 'https://paper-api.alpaca.markets'
+      paper: true
     });
 
     this.allStocks = ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP', 'SPLK', 'BA', 'AMZN', 'SUI', 'SUN', 'TSLA', 'CGC', 'SPWR', 'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'RTN', 'ATVI', 'GS', 'BAC', 'MS', 'TWLO', 'QCOM'];
