@@ -16,10 +16,6 @@ describe('polygon methods', () => {
     return expect(alpaca.getCompany('AAPL')).to.eventually.have.property('name')
   })
 
-  it('can get analysts', () => {
-    return expect(alpaca.getAnalysts('AAPL')).to.eventually.have.property('strongBuy')
-  })
-
   it('can get dividends', () => {
     return expect(alpaca.getDividends('AAPL')).to.eventually.be.an('array')
   })
