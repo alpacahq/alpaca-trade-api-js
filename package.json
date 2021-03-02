@@ -25,7 +25,9 @@
   },
   "homepage": "https://alpaca.markets/",
   "dependencies": {
+    "axios": "^0.21.1",
     "dotenv": "^6.2.0",
+    "events": "^3.2.0",
     "just-extend": "^4.1.0",
     "lodash": "^4.17.19",
     "minimist": "^0.2.1",
