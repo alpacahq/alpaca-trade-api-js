@@ -4,6 +4,8 @@ const { expect } = require("chai");
 const alpacaApi = require("../lib/alpaca-trade-api");
 const mockServer = require("./support/mock-streaming");
 
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
+
 describe("data_stream_v2", () => {
   let streaming_mock;
   let alpaca;
@@ -30,7 +32,7 @@ describe("data_stream_v2", () => {
       streaming_mock = new mockServer.StreamingWsMock(0);
       port = streaming_mock.conn._server.address().port;
       alpaca = new alpacaApi({
-        dataBaseUrl: `http://localhost:${port}`,
+        dataStreamUrl: `http://localhost:${port}`,
         keyId: "key1",
         secretKey: "secret1",
         feed: "sip",
@@ -53,6 +55,7 @@ describe("data_stream_v2", () => {
     });
 
     socket.connect();
+
     const res = await waitFor(() => {
       return status === "authenticated";
     });
@@ -62,7 +65,7 @@ describe("data_stream_v2", () => {
   it("try to auth with wrong apiKey and Secret", async () => {
     let status;
     const alpaca = new alpacaApi({
-      dataBaseUrl: `http://127.0.0.1:${port}`,
+      dataStreamUrl: `http://localhost:${port}`,
       keyId: "wrongkey",
       secretKey: "wrongsecret",
       feed: "sip",

@@ -1,6 +1,8 @@
 "use strict";
 
 const WebSocket = require("ws");
+const https = require("https");
+const Fs = require("fs");
 
 const client = {
   key: "key1",
@@ -35,11 +37,18 @@ const quote_apple = {
 
 class StreamingWsMock {
   constructor(port) {
-    this.conn = new WebSocket.Server({
-      port,
-      path: "/v2/stream/sip",
+    this.httpsServer = https.createServer({
+      key: Fs.readFileSync("test/support/key.pem"),
+      cert: Fs.readFileSync("test/support//cert.pem"),
     });
-
+    this.conn = new WebSocket.Server({
+      server: this.httpsServer,
+      path: "/v2/sip",
+      perMessageDeflate: {
+        serverNoContextTakeover: false,
+        clientNoContextTakeover: false,
+      },
+    });
     this.conn.on("connection", (socket) => {
       socket.send(JSON.stringify([{ T: "success", msg: "connected" }]));
       this.conn.emit("open");
@@ -48,6 +57,8 @@ class StreamingWsMock {
       });
       socket.on("error", (err) => console.log(err));
     });
+
+    this.httpsServer.listen(port);
 
     this.subscriptions = {
       trades: [],
@@ -171,7 +182,9 @@ class StreamingWsMock {
   }
 
   close() {
-    this.conn.close()
+    this.httpsServer.close(() => {
+      this.conn.close();
+    });
   }
 }
 
