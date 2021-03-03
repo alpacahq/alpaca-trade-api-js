@@ -18,8 +18,7 @@ describe("data v2 rest", () => {
         start: "2021-02-08",
         end: "2021-02-10",
         limit: 10,
-      },
-      alpaca.configuration
+      }
     );
     const trades = [];
 
@@ -46,8 +45,7 @@ describe("data v2 rest", () => {
         start: "2021-02-08",
         end: "2021-02-10",
         limit: 4,
-      },
-      alpaca.configuration
+      }
     );
     const quotes = [];
 
@@ -75,8 +73,7 @@ describe("data v2 rest", () => {
       {
         start: "2021-02-08",
         end: "2021-02-10",
-      },
-      alpaca.configuration
+      }
     );
     const quotes = [];
 
@@ -106,8 +103,7 @@ describe("data v2 rest", () => {
         limit: 2,
         timeframe: "1Day",
         adjustment: "all",
-      },
-      alpaca.configuration
+      }
     );
     const bars = [];
 
