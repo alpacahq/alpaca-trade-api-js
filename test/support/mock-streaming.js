@@ -182,6 +182,9 @@ class StreamingWsMock {
   }
 
   close() {
+    for (const client of this.conn.clients) {
+      client.close();
+    }
     this.httpsServer.close(() => {
       this.conn.close();
     });

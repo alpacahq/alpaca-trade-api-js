@@ -4,12 +4,12 @@ const { expect } = require("chai");
 const alpacaApi = require("../lib/alpaca-trade-api");
 const mockServer = require("./support/mock-streaming");
 
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 describe("data_stream_v2", () => {
   let streaming_mock;
   let alpaca;
-  let socket;
+  let socket, socket2;
   let port;
 
   function sleep(ms) {
@@ -45,6 +45,7 @@ describe("data_stream_v2", () => {
 
   after(() => {
     socket.disconnect();
+    socket2.disconnect();
     streaming_mock.close();
   });
 
@@ -70,13 +71,13 @@ describe("data_stream_v2", () => {
       secretKey: "wrongsecret",
       feed: "sip",
     });
-    const socket = alpaca.data_stream_v2;
+    socket2 = alpaca.data_stream_v2;
 
-    socket.onError((err) => {
+    socket2.onError((err) => {
       status = err;
     });
 
-    socket.connect();
+    socket2.connect();
     const res = await waitFor(() => {
       return status === "auth failed";
     });
@@ -91,7 +92,7 @@ describe("data_stream_v2", () => {
     });
 
     socket.subscribeForTrades(["AAPL"]);
-    socket.subscribeForBars(["GE"])
+    socket.subscribeForBars(["GE"]);
 
     const res = await waitFor(() => {
       return JSON.stringify(socket.getSubscriptions()) === expectedSubs;
@@ -103,7 +104,7 @@ describe("data_stream_v2", () => {
     const expectedSubs = JSON.stringify({ trades: [], quotes: [], bars: [] });
 
     socket.unsubscribeFromTrades("AAPL");
-    socket.unsubscribeFromBars(["GE"])
+    socket.unsubscribeFromBars(["GE"]);
 
     const res = await waitFor(() => {
       return JSON.stringify(socket.getSubscriptions()) === expectedSubs;
@@ -156,7 +157,7 @@ describe("data_stream_v2", () => {
     socket.subscribeForQuotes(["AAPL"]);
 
     const res = await waitFor(() => {
-      return JSON.stringify(data) === parsed
+      return JSON.stringify(data) === parsed;
     });
     expect(res).to.be.true;
   });
