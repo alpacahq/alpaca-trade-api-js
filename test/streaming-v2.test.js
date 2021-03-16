@@ -4,10 +4,12 @@ const { expect } = require("chai");
 const alpacaApi = require("../lib/alpaca-trade-api");
 const mockServer = require("./support/mock-streaming");
 
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+
 describe("data_stream_v2", () => {
   let streaming_mock;
   let alpaca;
-  let socket;
+  let socket, socket2;
   let port;
 
   function sleep(ms) {
@@ -30,7 +32,7 @@ describe("data_stream_v2", () => {
       streaming_mock = new mockServer.StreamingWsMock(0);
       port = streaming_mock.conn._server.address().port;
       alpaca = new alpacaApi({
-        dataBaseUrl: `http://localhost:${port}`,
+        dataStreamUrl: `http://localhost:${port}`,
         keyId: "key1",
         secretKey: "secret1",
         feed: "sip",
@@ -43,6 +45,7 @@ describe("data_stream_v2", () => {
 
   after(() => {
     socket.disconnect();
+    socket2.disconnect();
     streaming_mock.close();
   });
 
@@ -53,6 +56,7 @@ describe("data_stream_v2", () => {
     });
 
     socket.connect();
+
     const res = await waitFor(() => {
       return status === "authenticated";
     });
@@ -62,18 +66,18 @@ describe("data_stream_v2", () => {
   it("try to auth with wrong apiKey and Secret", async () => {
     let status;
     const alpaca = new alpacaApi({
-      dataBaseUrl: `http://127.0.0.1:${port}`,
+      dataStreamUrl: `http://localhost:${port}`,
       keyId: "wrongkey",
       secretKey: "wrongsecret",
       feed: "sip",
     });
-    const socket = alpaca.data_stream_v2;
+    socket2 = alpaca.data_stream_v2;
 
-    socket.onError((err) => {
+    socket2.onError((err) => {
       status = err;
     });
 
-    socket.connect();
+    socket2.connect();
     const res = await waitFor(() => {
       return status === "auth failed";
     });
@@ -88,7 +92,7 @@ describe("data_stream_v2", () => {
     });
 
     socket.subscribeForTrades(["AAPL"]);
-    socket.subscribeForBars(["GE"])
+    socket.subscribeForBars(["GE"]);
 
     const res = await waitFor(() => {
       return JSON.stringify(socket.getSubscriptions()) === expectedSubs;
@@ -100,7 +104,7 @@ describe("data_stream_v2", () => {
     const expectedSubs = JSON.stringify({ trades: [], quotes: [], bars: [] });
 
     socket.unsubscribeFromTrades("AAPL");
-    socket.unsubscribeFromBars(["GE"])
+    socket.unsubscribeFromBars(["GE"]);
 
     const res = await waitFor(() => {
       return JSON.stringify(socket.getSubscriptions()) === expectedSubs;
@@ -153,7 +157,7 @@ describe("data_stream_v2", () => {
     socket.subscribeForQuotes(["AAPL"]);
 
     const res = await waitFor(() => {
-      return JSON.stringify(data) === parsed
+      return JSON.stringify(data) === parsed;
     });
     expect(res).to.be.true;
   });

@@ -11,11 +11,14 @@ describe('alpaca-trade-api', function () {
         apiVersion: 'v2',
         baseUrl: 'https://base.example.com',
         dataBaseUrl: 'https://data.example.com',
+        dataStreamUrl: 'https://stream.data.alpaca.markets',
         polygonBaseUrl: 'https://polygon.example.com',
         keyId: 'test_id',
         secretKey: 'test_secret',
         oauth: '',
         usePolygon: true,
+        feed: 'iex',
+        verbose: false,
       }
       const alpaca = new Alpaca(testConfig)
       expect(alpaca.configuration).to.deep.equal(testConfig)
