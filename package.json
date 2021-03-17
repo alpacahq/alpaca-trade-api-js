@@ -1,6 +1,6 @@
 {
   "name": "@alpacahq/alpaca-trade-api",
-  "version": "1.4.2",
+  "version": "2.0.0",
   "description": "Javascript library for the Alpaca Trade API",
   "main": "lib/alpaca-trade-api.js",
   "scripts": {
