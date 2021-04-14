@@ -27,8 +27,8 @@ Instantiate the API with config options, obtained from the dashboard at app.alpa
 
 ```js
 const alpaca = new Alpaca({
-  keyId: 'PKB8RUM23P3H5EBES0LW',
-  secretKey: 'lJZCNK1OoMMy9FcCZ9cNRgHq6g2qrHWKHTa9VvPo',
+  keyId: 'AKFZXJH121U18SHHDRFO',
+  secretKey: 'pnq4YHlpMF3LhfLyOvmdfLmlz6BnASrTPQIASeiU',
   usePolygon: false
 })
 ```
