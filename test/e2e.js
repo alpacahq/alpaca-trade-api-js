@@ -12,7 +12,7 @@ const paca = new Alpaca({
   paper: true
 });
 
-const socket = paca.websocket;
+const socket = paca.data_ws;
 
 (async function () {
   console.log(await paca.getAccount())
@@ -38,7 +38,7 @@ const socket = paca.websocket;
 
   socket.connect()
 
-  const order = await paca.createOrder({
+  let order = await paca.createOrder({
     symbol: 'TWTR',
     qty: 2,
     side: 'buy',
@@ -52,9 +52,6 @@ const socket = paca.websocket;
   console.log(await paca.getOrderByClientId(order.client_order_id))
   console.log(await paca.getOrders({ status: 'canceled', limit: 2 }))
 
-  const positions = await paca.getPositions()
-  console.log(await paca.getPosition(positions[0].symbol))
-
   console.log(await paca.getAsset('AAPL'))
   await paca.getAssets({ status: 'inactive', asset_class: 'us_equity' })
 
@@ -64,30 +61,26 @@ const socket = paca.websocket;
     end: new Date()
   }))
 
-  console.log(await paca.getExchanges())
-  console.log(await paca.getSymbolTypeMap())
-  console.log(await paca.getHistoricTradesV2('AAPL', new Date(), { limit: 2}))
-  console.log(await paca.getHistoricQuotesV2('AAPL', new Date(), { limit: 2}))
-  console.log(await paca.getHistoricAggregatesV2('AAPL', 1, 'minute',
-      new Date('December 1 2018'), new Date(),
-      {
-        unadjusted: false,
-      }))
-  console.log(await paca.getHistoricAggregatesV2(
-      'AAPL', 1, 'day', new Date('December 1 2018'), new Date('December 5 2018'), {
-        unadjusted: false,
-      }
-  ))
-  console.log(await paca.getLastTrade('AAPL'))
-  console.log(await paca.getLastQuote('AAPL'))
-  console.log(await paca.getConditionMap())
-  console.log(await paca.getCompany('AAPL'))
-  console.log(await paca.getAnalysts('AAPL'))
-  console.log(await paca.getDividends('AAPL'))
-  console.log(await paca.getSplits('AAPL'))
-  console.log(await paca.getFinancials('AAPL'))
-  console.log(await paca.getEarnings('AAPL'))
-  console.log(await paca.getNews('AAPL'))
+  // fractional 
+  order = await paca.createOrder({
+    symbol: 'AAPL',
+    qty: 2.324,
+    side: 'buy',
+    type: 'market',
+    time_in_force: 'day',
+  })
+
+  // notional 
+  order = await paca.createOrder({
+    symbol: 'TSLA',
+    notional: 124.23,
+    side: 'buy',
+    type: 'market',
+    time_in_force: 'day',
+  })
+
+  await new Promise((r) => setTimeout(r, 1500))
+  console.log(await paca.getPositions())
 
   await socket.disconnect()
 
