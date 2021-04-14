@@ -29,6 +29,7 @@ Instantiate the API with config options, obtained from the dashboard at app.alpa
 const alpaca = new Alpaca({
   keyId: 'AKFZXJH121U18SHHDRFO',
   secretKey: 'pnq4YHlpMF3LhfLyOvmdfLmlz6BnASrTPQIASeiU',
+  paper: true,
   usePolygon: false
 })
 ```
