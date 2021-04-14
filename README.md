@@ -27,9 +27,8 @@ Instantiate the API with config options, obtained from the dashboard at app.alpa
 
 ```js
 const alpaca = new Alpaca({
-  keyId: 'AKFZXJH121U18SHHDRFO',
-  secretKey: 'pnq4YHlpMF3LhfLyOvmdfLmlz6BnASrTPQIASeiU',
-  paper: true,
+  keyId: 'PKB8RUM23P3H5EBES0LW',
+  secretKey: 'lJZCNK1OoMMy9FcCZ9cNRgHq6g2qrHWKHTa9VvPo',
   usePolygon: false
 })
 ```
@@ -131,7 +130,8 @@ Calls `POST /orders` and creates a new order.
 ```ts
 createOrder({
   symbol: string, // any valid ticker symbol
-  qty: number,
+  qty: number, 
+  notional: number, // qty or notional required, not both
   side: 'buy' | 'sell',
   type: 'market' | 'limit' | 'stop' | 'stop_limit' | 'trailing_stop',
   time_in_force: 'day' | 'gtc' | 'opg' | 'ioc',

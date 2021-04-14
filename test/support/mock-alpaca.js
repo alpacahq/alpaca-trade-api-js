@@ -58,7 +58,8 @@ module.exports = function createAlpacaMock() {
   v2.post('/orders', apiMethod((req) => {
     assertSchema(req.body, {
       symbol: joi.string().required(),
-      qty: joi.number().required().integer().positive(),
+      qty: joi.number().positive(),
+      notional: joi.number().positive(),
       side: joi.string().required().valid('buy', 'sell'),
       type: joi.string().required().valid('market', 'limit', 'stop', 'stop_limit'),
       time_in_force: joi.string().required().valid('day', 'gtc', 'opg', 'ioc', 'fok'),
