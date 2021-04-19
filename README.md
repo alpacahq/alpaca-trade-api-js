@@ -131,7 +131,8 @@ Calls `POST /orders` and creates a new order.
 ```ts
 createOrder({
   symbol: string, // any valid ticker symbol
-  qty: number,
+  qty: number, 
+  notional: number, // qty or notional required, not both
   side: 'buy' | 'sell',
   type: 'market' | 'limit' | 'stop' | 'stop_limit' | 'trailing_stop',
   time_in_force: 'day' | 'gtc' | 'opg' | 'ioc',
