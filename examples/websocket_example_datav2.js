@@ -53,6 +53,11 @@ class DataStream {
     });
 
     socket.connect();
+
+    // unsubscribe from FB after a second
+    setTimeout(() => {
+      socket.unsubscribeFromTrades(["FB"])
+    }, 1000)
   }
 }
 
