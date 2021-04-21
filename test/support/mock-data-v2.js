@@ -54,6 +54,34 @@ module.exports = function createDataV2Mock() {
     })
   );
 
+  v2.get(
+    "/stocks/:symbol/trades/latest",
+    apiMethod((req) => {
+      if (req.params.symbol !== latest.trade.symbol) {
+        throw apiError(422);
+      }
+      let resp = {
+          symbol: latest.trade.symbol,
+          trade: latest.trade.data,
+      };
+      return resp;
+    })
+  );
+
+  v2.get(
+    "/stocks/:symbol/quotes/latest",
+    apiMethod((req) => {
+      if (req.params.symbol !== latest.quote.symbol) {
+        throw apiError(422);
+      }
+      let resp = {
+          symbol: latest.quote.symbol,
+          quote: latest.quote.data,
+      };
+      return resp;
+    })
+  );
+
   return express.Router().use("/v2", v2);
 };
 
@@ -84,5 +112,33 @@ const symbols = {
     l: 136.9,
     c: 136.81,
     v: 31491496,
+  },
+};
+
+const latest = {
+  trade: {
+    symbol: "AAPL",
+    data: {
+      t: "2021-04-21T13:38:01.448130014Z",
+      x: "V",
+      p: 131.98,
+      s: 200,
+      c: ["@", "F"],
+      i: 814,
+      z: "C",
+    },
+  },
+  quote: {
+    symbol: "FB",
+    data: {
+      t: "2021-04-21T13:38:02.663218404Z",
+      ax: "V",
+      ap: 317,
+      as: 1,
+      bx: "V",
+      bp: 299.39,
+      bs: 1,
+      c: ["R"],
+    },
   },
 };
