@@ -55,7 +55,7 @@ describe("data v2 rest", () => {
       quotes.push(q);
     }
 
-    // default amount of data is 4 
+    // default amount of data is 4
     expect(quotes.length).equal(4);
     expect(quotes[0]).to.have.all.keys([
       "BidExchange",
@@ -95,7 +95,7 @@ describe("data v2 rest", () => {
       "Timestamp",
       "Condition",
     ]);
-  })
+  });
 
   it("get bars", async () => {
     let resp = alpaca.getBarsV2(
@@ -125,4 +125,33 @@ describe("data v2 rest", () => {
       "Timestamp",
     ]);
   });
+
+  it("get latest AAPL trade", async () => {
+    const resp = await alpaca.getLatestTrade("AAPL", alpaca.configuration);
+
+    expect(resp).to.have.all.keys([
+      "ID",
+      "Exchange",
+      "Price",
+      "Size",
+      "Timestamp",
+      "Conditions",
+      "Tape",
+    ]);
+  });
+
+  it("get last FB quote", async () => {
+    const resp = await alpaca.getLatestQuote("FB", alpaca.configuration);
+
+    expect(resp).to.have.all.keys([
+      "BidExchange",
+      "BidPrice",
+      "BidSize",
+      "AskExchange",
+      "AskPrice",
+      "AskSize",
+      "Timestamp",
+      "Condition",
+    ])
+  })
 });
