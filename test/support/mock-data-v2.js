@@ -27,6 +27,28 @@ module.exports = function createDataV2Mock() {
   });
 
   v2.get(
+    "/stocks/:symbol/snapshot",
+    apiMethod((req) => {
+      if (req.params.symbol == null) {
+        throw apiError(422);
+      }
+      return { ...snapshots[req.params.symbol] };
+    })
+  );
+
+  v2.get(
+    "/stocks/snapshots",
+    apiMethod((req) => {
+      if (req.query.symbols == "") {
+        throw apiError(422);
+      }
+      const syms = req.query.symbols.split(",");
+      const result = syms.map(s => snapshots[s])
+      return result;
+    })
+  );
+
+  v2.get(
     "/stocks/:symbol/:endpoint",
     apiMethod((req) => {
       assertSchema(req.query, {
@@ -61,8 +83,8 @@ module.exports = function createDataV2Mock() {
         throw apiError(422);
       }
       let resp = {
-          symbol: latest.trade.symbol,
-          trade: latest.trade.data,
+        symbol: latest.trade.symbol,
+        trade: latest.trade.data,
       };
       return resp;
     })
@@ -75,8 +97,8 @@ module.exports = function createDataV2Mock() {
         throw apiError(422);
       }
       let resp = {
-          symbol: latest.quote.symbol,
-          quote: latest.quote.data,
+        symbol: latest.quote.symbol,
+        quote: latest.quote.data,
       };
       return resp;
     })
@@ -139,6 +161,101 @@ const latest = {
       bp: 299.39,
       bs: 1,
       c: ["R"],
+    },
+  },
+};
+
+const snapshots = {
+  FB: {
+    symbol: "FB",
+    latestTrade: {
+      t: "2021-05-03T19:59:58.062211463Z",
+      x: "V",
+      p: 322.63,
+      s: 130,
+      c: ["@"],
+      i: 7556,
+      z: "C",
+    },
+    latestQuote: {
+      t: "2021-05-03T20:00:00.000098746Z",
+      ax: "V",
+      ap: 0,
+      as: 0,
+      bx: "V",
+      bp: 0,
+      bs: 0,
+      c: ["R"],
+    },
+    minuteBar: {
+      t: "2021-05-03T19:59:00Z",
+      o: 322.25,
+      h: 322.63,
+      l: 322.22,
+      c: 322.63,
+      v: 6394,
+    },
+    dailyBar: {
+      t: "2021-05-03T04:00:00Z",
+      o: 326.04,
+      h: 328.37,
+      l: 321.9,
+      c: 322.63,
+      v: 507529,
+    },
+    prevDailyBar: {
+      t: "2021-04-30T04:00:00Z",
+      o: 326.14,
+      h: 329.78,
+      l: 324.54,
+      c: 324.89,
+      v: 859473,
+    },
+  },
+  AAPL: {
+    symbol: "AAPL",
+    latestTrade: {
+      t: "2021-05-03T19:59:59.898542039Z",
+      x: "V",
+      p: 132.55,
+      s: 100,
+      c: ["@"],
+      i: 12637,
+      z: "C",
+    },
+    latestQuote: {
+      t: "2021-05-03T21:00:00.006562245Z",
+      ax: "V",
+      ap: 0,
+      as: 0,
+      bx: "V",
+      bp: 0,
+      bs: 0,
+      c: ["R"],
+    },
+    minuteBar: {
+      t: "2021-05-03T19:59:00Z",
+      o: 132.43,
+      h: 132.55,
+      l: 132.43,
+      c: 132.55,
+      v: 9736,
+    },
+    dailyBar: {
+      t: "2021-05-03T04:00:00Z",
+      o: 132.04,
+      h: 134.06,
+      l: 131.83,
+      c: 132.55,
+      v: 1364180,
+    },
+    prevDailyBar: {
+      t: "2021-04-30T04:00:00Z",
+      o: 131.8,
+      h: 133.55,
+      l: 131.07,
+      c: 131.44,
+      v: 2088793,
     },
   },
 };

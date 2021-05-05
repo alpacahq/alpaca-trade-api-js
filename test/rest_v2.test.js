@@ -4,6 +4,56 @@ const { expect } = require("chai");
 const api = require("../lib/alpaca-trade-api");
 const mock = require("./support/mock-server");
 
+function checkTrade(trade) {
+  expect(trade).to.have.all.keys([
+    "ID",
+    "Exchange",
+    "Price",
+    "Size",
+    "Timestamp",
+    "Conditions",
+    "Tape",
+  ]);
+}
+
+function checkBar(bar) {
+  expect(bar).to.have.all.keys([
+    "OpenPrice",
+    "HighPrice",
+    "LowPrice",
+    "ClosePrice",
+    "Volume",
+    "Timestamp",
+  ]);
+}
+
+function checkQuote(quote) {
+  expect(quote).to.have.all.keys([
+    "BidExchange",
+    "BidPrice",
+    "BidSize",
+    "AskExchange",
+    "AskPrice",
+    "AskSize",
+    "Timestamp",
+    "Condition",
+  ]);
+}
+
+function checkSnapshot(snapshot) {
+  expect(snapshot).to.have.all.keys([
+    "symbol",
+    "LatestTrade",
+    "LatestQuote",
+    "MinuteBar",
+    "DailyBar",
+    "PrevDailyBar",
+  ]);
+  checkTrade(snapshot.LatestTrade);
+  checkBar(snapshot.MinuteBar);
+  checkQuote(snapshot.LatestQuote);
+}
+
 describe("data v2 rest", () => {
   let alpaca;
 
@@ -28,15 +78,7 @@ describe("data v2 rest", () => {
     }
 
     expect(trades.length).equal(10);
-    expect(trades[0]).to.have.all.keys([
-      "ID",
-      "Exchange",
-      "Price",
-      "Size",
-      "Timestamp",
-      "Conditions",
-      "Tape",
-    ]);
+    checkTrade(trades[0]);
   });
 
   it("get quotes", async () => {
@@ -55,18 +97,8 @@ describe("data v2 rest", () => {
       quotes.push(q);
     }
 
-    // default amount of data is 4
     expect(quotes.length).equal(4);
-    expect(quotes[0]).to.have.all.keys([
-      "BidExchange",
-      "BidPrice",
-      "BidSize",
-      "AskExchange",
-      "AskPrice",
-      "AskSize",
-      "Timestamp",
-      "Condition",
-    ]);
+    checkQuote(quotes[0]);
   });
 
   it("get quotes without limit", async () => {
@@ -85,16 +117,7 @@ describe("data v2 rest", () => {
     }
 
     expect(quotes.length).equal(3);
-    expect(quotes[0]).to.have.all.keys([
-      "BidExchange",
-      "BidPrice",
-      "BidSize",
-      "AskExchange",
-      "AskPrice",
-      "AskSize",
-      "Timestamp",
-      "Condition",
-    ]);
+    checkQuote(quotes[0]);
   });
 
   it("get bars", async () => {
@@ -116,42 +139,36 @@ describe("data v2 rest", () => {
     }
 
     expect(bars.length).equal(2);
-    expect(bars[0]).to.have.all.keys([
-      "OpenPrice",
-      "HighPrice",
-      "LowPrice",
-      "ClosePrice",
-      "Volume",
-      "Timestamp",
-    ]);
+    checkBar(bars[0]);
   });
 
   it("get latest AAPL trade", async () => {
     const resp = await alpaca.getLatestTrade("AAPL", alpaca.configuration);
 
-    expect(resp).to.have.all.keys([
-      "ID",
-      "Exchange",
-      "Price",
-      "Size",
-      "Timestamp",
-      "Conditions",
-      "Tape",
-    ]);
+    checkTrade(resp);
   });
 
   it("get last FB quote", async () => {
     const resp = await alpaca.getLatestQuote("FB", alpaca.configuration);
 
-    expect(resp).to.have.all.keys([
-      "BidExchange",
-      "BidPrice",
-      "BidSize",
-      "AskExchange",
-      "AskPrice",
-      "AskSize",
-      "Timestamp",
-      "Condition",
-    ])
-  })
+    checkQuote(resp);
+  });
+
+  it("get snapshot for one symbol", async () => {
+    const resp = await alpaca.getSnapshot("AAPL", alpaca.configuration);
+
+    checkSnapshot(resp);
+  });
+
+  it("get snapashots for symbols", async () => {
+    const resp = await alpaca.getSnapshots(
+      ["FB", "AAPL"],
+      alpaca.configuration
+    );
+
+    expect(resp.length).equal(2);
+    resp.map((s) => {
+      checkSnapshot(s);
+    });
+  });
 });
