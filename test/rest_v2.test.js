@@ -4,7 +4,7 @@ const { expect } = require("chai");
 const api = require("../lib/alpaca-trade-api");
 const mock = require("./support/mock-server");
 
-function checkTrade(trade) {
+function assertTrade(trade) {
   expect(trade).to.have.all.keys([
     "ID",
     "Exchange",
@@ -16,7 +16,7 @@ function checkTrade(trade) {
   ]);
 }
 
-function checkBar(bar) {
+function assertBar(bar) {
   expect(bar).to.have.all.keys([
     "OpenPrice",
     "HighPrice",
@@ -27,7 +27,7 @@ function checkBar(bar) {
   ]);
 }
 
-function checkQuote(quote) {
+function assertQuote(quote) {
   expect(quote).to.have.all.keys([
     "BidExchange",
     "BidPrice",
@@ -40,7 +40,7 @@ function checkQuote(quote) {
   ]);
 }
 
-function checkSnapshot(snapshot) {
+function assertSnapshot(snapshot) {
   expect(snapshot).to.have.all.keys([
     "symbol",
     "LatestTrade",
@@ -49,9 +49,9 @@ function checkSnapshot(snapshot) {
     "DailyBar",
     "PrevDailyBar",
   ]);
-  checkTrade(snapshot.LatestTrade);
-  checkBar(snapshot.MinuteBar);
-  checkQuote(snapshot.LatestQuote);
+  assertTrade(snapshot.LatestTrade);
+  assertBar(snapshot.MinuteBar);
+  assertQuote(snapshot.LatestQuote);
 }
 
 describe("data v2 rest", () => {
@@ -78,7 +78,7 @@ describe("data v2 rest", () => {
     }
 
     expect(trades.length).equal(10);
-    checkTrade(trades[0]);
+    assertTrade(trades[0]);
   });
 
   it("get quotes", async () => {
@@ -98,7 +98,7 @@ describe("data v2 rest", () => {
     }
 
     expect(quotes.length).equal(4);
-    checkQuote(quotes[0]);
+    assertQuote(quotes[0]);
   });
 
   it("get quotes without limit", async () => {
@@ -117,7 +117,7 @@ describe("data v2 rest", () => {
     }
 
     expect(quotes.length).equal(3);
-    checkQuote(quotes[0]);
+    assertQuote(quotes[0]);
   });
 
   it("get bars", async () => {
@@ -139,25 +139,25 @@ describe("data v2 rest", () => {
     }
 
     expect(bars.length).equal(2);
-    checkBar(bars[0]);
+    assertBar(bars[0]);
   });
 
   it("get latest AAPL trade", async () => {
     const resp = await alpaca.getLatestTrade("AAPL", alpaca.configuration);
 
-    checkTrade(resp);
+    assertTrade(resp);
   });
 
   it("get last FB quote", async () => {
     const resp = await alpaca.getLatestQuote("FB", alpaca.configuration);
 
-    checkQuote(resp);
+    assertQuote(resp);
   });
 
   it("get snapshot for one symbol", async () => {
     const resp = await alpaca.getSnapshot("AAPL", alpaca.configuration);
 
-    checkSnapshot(resp);
+    assertSnapshot(resp);
   });
 
   it("get snapashots for symbols", async () => {
@@ -168,7 +168,7 @@ describe("data v2 rest", () => {
 
     expect(resp.length).equal(2);
     resp.map((s) => {
-      checkSnapshot(s);
+      assertSnapshot(s);
     });
   });
 });
