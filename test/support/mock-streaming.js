@@ -64,6 +64,7 @@ class StreamingWsMock {
       trades: [],
       quotes: [],
       bars: [],
+      dailyBars: [],
     };
   }
 
@@ -102,6 +103,7 @@ class StreamingWsMock {
     this.subscriptions.trades = [...this.subscriptions.trades, ...msg.trades];
     this.subscriptions.quotes = [...this.subscriptions.quotes, ...msg.quotes];
     this.subscriptions.bars = [...this.subscriptions.bars, ...msg.bars];
+    this.subscriptions.dailyBars = [...this.subscriptions.dailyBars, ...msg.dailyBars];
     socket.send(JSON.stringify(this.createSubMsg()));
     this.streamData(socket);
   }
@@ -119,6 +121,9 @@ class StreamingWsMock {
     this.subscriptions.bars = this.subscriptions.bars.filter(
       (val) => msg.bars.indexOf(val) === -1
     );
+    this.streamData.dailyBars = this.subscriptions.dailyBars.filter(
+      (val) => msg.dailyBars.indexOf(val) === -1
+    )
     socket.send(JSON.stringify(this.createSubMsg()));
   }
 
@@ -145,6 +150,7 @@ class StreamingWsMock {
         trades: this.subscriptions.trades,
         quotes: this.subscriptions.quotes,
         bars: this.subscriptions.bars,
+        dailyBars: this.subscriptions.dailyBars,
       },
     ];
   }

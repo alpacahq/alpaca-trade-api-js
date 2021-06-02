@@ -89,6 +89,7 @@ describe("data_stream_v2", () => {
       trades: ["AAPL"],
       quotes: [],
       bars: ["GE"],
+      dailyBars: [],
     });
 
     socket.subscribeForTrades(["AAPL"]);
@@ -101,7 +102,12 @@ describe("data_stream_v2", () => {
   });
 
   it("unsubscribe from symbol", async () => {
-    const expectedSubs = JSON.stringify({ trades: [], quotes: [], bars: [] });
+    const expectedSubs = JSON.stringify({
+      trades: [],
+      quotes: [],
+      bars: [],
+      dailyBars: [],
+    });
 
     socket.unsubscribeFromTrades("AAPL");
     socket.unsubscribeFromBars(["GE"]);
