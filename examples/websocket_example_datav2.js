@@ -26,6 +26,7 @@ class DataStream {
       socket.subscribeForQuotes(["AAPL"]);
       socket.subscribeForTrades(["FB"]);
       socket.subscribeForBars(["SPY"]);
+      socket.subscribeForStatuses(["*"]);
     });
 
     socket.onError((err) => {
@@ -44,6 +45,10 @@ class DataStream {
       console.log(bar);
     });
 
+    socket.onStatuses((s) => {
+      console.log(s);
+    });
+
     socket.onStateChange((state) => {
       console.log(state);
     });
@@ -56,8 +61,8 @@ class DataStream {
 
     // unsubscribe from FB after a second
     setTimeout(() => {
-      socket.unsubscribeFromTrades(["FB"])
-    }, 1000)
+      socket.unsubscribeFromTrades(["FB"]);
+    }, 1000);
   }
 }
 
