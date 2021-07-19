@@ -91,6 +91,7 @@ describe("data_stream_v2", () => {
       bars: ["GE"],
       dailyBars: [],
       statuses: [],
+      lulds: [],
     });
 
     socket.subscribeForTrades(["AAPL"]);
@@ -109,6 +110,7 @@ describe("data_stream_v2", () => {
       bars: [],
       dailyBars: [],
       statuses: [],
+      lulds: [],
     });
 
     socket.unsubscribeFromTrades("AAPL");
