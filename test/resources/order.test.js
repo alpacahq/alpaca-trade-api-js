@@ -22,6 +22,7 @@ describe('order resource', function () {
         direction: 'asc',
         limit: 4,
         nested: false,
+        symbols: 'AAPL,AWX',
       })).to.eventually.be.an('array')
     })
   })
