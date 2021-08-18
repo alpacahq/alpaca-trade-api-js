@@ -1,6 +1,7 @@
 "use strict";
 
 const WebSocket = require("ws");
+const msgpack = require('msgpack5')();
 const https = require("https");
 const Fs = require("fs");
 
@@ -61,7 +62,7 @@ class StreamingWsMock {
       },
     });
     this.conn.on("connection", (socket) => {
-      socket.send(JSON.stringify([{ T: "success", msg: "connected" }]));
+      socket.send(msgpack.encode([{ T: "success", msg: "connected" }]));
       this.conn.emit("open");
       socket.on("message", (msg) => {
         this.messageHandler(msg, socket);
@@ -82,12 +83,12 @@ class StreamingWsMock {
   }
 
   messageHandler(msg, socket) {
-    const message = JSON.parse(msg);
+    const message = msgpack.decode(msg);
     const action = message.action ?? null;
 
     if (!action) {
       socket.send(
-        JSON.stringify([
+        msgpack.encode([
           {
             T: "error",
             code: 400,
@@ -128,7 +129,7 @@ class StreamingWsMock {
       ...this.subscriptions.lulds,
       ...msg.lulds,
     ]
-    socket.send(JSON.stringify(this.createSubMsg()));
+    socket.send(msgpack.encode(this.createSubMsg()));
     this.streamData(socket);
   }
 
@@ -154,13 +155,13 @@ class StreamingWsMock {
     this.subscriptions.lulds = this.subscriptions.lulds.filter(
       (val) => msg.lulds.indexof(val) === -1
     );
-    socket.send(JSON.stringify(this.createSubMsg()));
+    socket.send(msgpack.encode(this.createSubMsg()));
   }
 
   checkSubMsgSyntax(msg) {
     if (!msg.trades || !msg.quotes || !msg.bars) {
       socket.send(
-        JSON.stringify([
+        msgpack.encode([
           {
             T: "error",
             code: 400,
@@ -189,20 +190,20 @@ class StreamingWsMock {
 
   streamData(socket) {
     if (this.subscriptions.trades.length > 0) {
-      socket.send(JSON.stringify([trade_apple]));
+      socket.send(msgpack.encode([trade_apple]));
     }
     if (this.subscriptions.quotes.length > 0) {
-      socket.send(JSON.stringify([quote_apple]));
+      socket.send(msgpack.encode([quote_apple]));
     }
     if (this.subscriptions.statuses.length > 0) {
-      socket.send(JSON.stringify([status_AAPL]));
+      socket.send(msgpack.encode([status_AAPL]));
     }
   }
 
   authenticate(message, socket) {
     if (message.key === client.key && message.secret === client.secret) {
       socket.send(
-        JSON.stringify([
+        msgpack.encode([
           {
             T: "success",
             msg: "authenticated",
@@ -211,7 +212,7 @@ class StreamingWsMock {
       );
     } else {
       socket.send(
-        JSON.stringify([
+        msgpack.encode([
           {
             T: "error",
             code: 402,
