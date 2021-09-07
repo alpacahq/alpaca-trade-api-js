@@ -172,6 +172,34 @@ describe("data_stream_v2", () => {
     expect(res).to.be.true;
   });
 
+  it("subscribe for bar and parse it", async () => {
+    let data;
+    const parsed = JSON.stringify({
+      T: "b",
+      Symbol: "AAPL",
+      OpenPrice: 127.82,
+      HighPrice: 128.32,
+      LowPrice: 126.32,
+      ClosePrice: 126.9,
+      Volume: 72015712,
+      Timestamp: "2021-05-25T04:00:00Z",
+      VWAP: 127.07392,
+      TradeCount: 462915,
+    });
+
+    socket.onStockBar((bar) => {
+      data = bar;
+    });
+
+    socket.subscribeForBars(["AAPL"]);
+
+    const res = await waitFor(() => {
+      return JSON.stringify(data) === parsed;
+    });
+
+    expect(res).to.be.true;
+  });
+
   it("subscribe for status and parse it", async () => {
     let data;
     const parsed = JSON.stringify({

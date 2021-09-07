@@ -1,7 +1,7 @@
 "use strict";
 
 const WebSocket = require("ws");
-const msgpack = require('msgpack5')();
+const msgpack = require("msgpack5")();
 const https = require("https");
 const Fs = require("fs");
 
@@ -10,7 +10,7 @@ const client = {
   secret: "secret1",
 };
 
-const trade_apple = {
+const trade_appl = {
   T: "t",
   i: 1532,
   S: "AAPL",
@@ -22,7 +22,7 @@ const trade_apple = {
   z: "C",
 };
 
-const quote_apple = {
+const quote_appl = {
   T: "q",
   S: "AAPL",
   bx: "Z",
@@ -34,6 +34,19 @@ const quote_apple = {
   t: "2021-01-28T15:20:41.384564Z",
   c: "R",
   z: "C",
+};
+
+const bar_aapl = {
+  T: "b",
+  S: "AAPL",
+  o: 127.82,
+  h: 128.32,
+  l: 126.32,
+  c: 126.9,
+  v: 72015712,
+  t: "2021-05-25T04:00:00Z",
+  vw: 127.07392,
+  n: 462915,
 };
 
 const status_AAPL = {
@@ -125,10 +138,7 @@ class StreamingWsMock {
       ...this.subscriptions.statuses,
       ...msg.statuses,
     ];
-    this.subscriptions.lulds = [
-      ...this.subscriptions.lulds,
-      ...msg.lulds,
-    ]
+    this.subscriptions.lulds = [...this.subscriptions.lulds, ...msg.lulds];
     socket.send(msgpack.encode(this.createSubMsg()));
     this.streamData(socket);
   }
@@ -190,13 +200,16 @@ class StreamingWsMock {
 
   streamData(socket) {
     if (this.subscriptions.trades.length > 0) {
-      socket.send(msgpack.encode([trade_apple]));
+      socket.send(msgpack.encode([trade_appl]));
     }
     if (this.subscriptions.quotes.length > 0) {
-      socket.send(msgpack.encode([quote_apple]));
+      socket.send(msgpack.encode([quote_appl]));
     }
     if (this.subscriptions.statuses.length > 0) {
       socket.send(msgpack.encode([status_AAPL]));
+    }
+    if (this.subscriptions.bars.length > 0) {
+      socket.send(msgpack.encode([bar_aapl]));
     }
   }
 
