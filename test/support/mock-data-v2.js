@@ -43,7 +43,7 @@ module.exports = function createDataV2Mock() {
         throw apiError(422);
       }
       const syms = req.query.symbols.split(",");
-      const result = syms.map(s => snapshots[s])
+      const result = syms.map((s) => snapshots[s]);
       return result;
     })
   );
@@ -70,7 +70,7 @@ module.exports = function createDataV2Mock() {
         limit = req.query.limit > 5 ? 5 : req.query.limit;
       }
       for (let i = 0; i < limit; i++) {
-        response[req.params.endpoint].push(symbols[req.params.endpoint]);
+        response[req.params.endpoint].push(data[req.params.endpoint]);
       }
       return response;
     })
@@ -104,10 +104,34 @@ module.exports = function createDataV2Mock() {
     })
   );
 
+  v2.get(
+    "/stocks/:endpoint",
+    apiMethod((req) => {
+      assertSchema(req.query, {
+        symbols: joi.string(),
+        start: joi.string().isoDate(),
+        end: joi.string().isoDate().optional(),
+        feed: joi.string().optional(),
+        limit: joi.number().integer().min(0).max(10000).optional(),
+        page_token: joi.string().optional(),
+        timeframe: joi.string().optional(),
+        adjustment: joi.string().optional(),
+      });
+      let response = {
+        next_page_token: null,
+      };
+      response[req.params.endpoint] = { FB: [], AAPL: [] };
+      for (let s in response[req.params.endpoint]) {
+        response[req.params.endpoint][s].push(data[req.params.endpoint]);
+      }
+      return response;
+    })
+  );
+
   return express.Router().use("/v2", v2);
 };
 
-const symbols = {
+const data = {
   trades: {
     t: "2021-02-08T09:00:19.932405248Z",
     x: "P",

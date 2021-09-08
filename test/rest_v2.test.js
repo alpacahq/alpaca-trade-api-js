@@ -4,16 +4,11 @@ const { expect } = require("chai");
 const api = require("../lib/alpaca-trade-api");
 const mock = require("./support/mock-server");
 
-function assertTrade(trade) {
-  expect(trade).to.have.all.keys([
-    "ID",
-    "Exchange",
-    "Price",
-    "Size",
-    "Timestamp",
-    "Conditions",
-    "Tape",
-  ]);
+function assertTrade(
+  trade,
+  keys = ["ID", "Exchange", "Price", "Size", "Timestamp", "Conditions", "Tape"]
+) {
+  expect(trade).to.have.all.keys(keys);
 }
 
 function assertBar(bar) {
@@ -27,8 +22,9 @@ function assertBar(bar) {
   ]);
 }
 
-function assertQuote(quote) {
-  expect(quote).to.have.all.keys([
+function assertQuote(
+  quote,
+  keys = [
     "BidExchange",
     "BidPrice",
     "BidSize",
@@ -37,7 +33,9 @@ function assertQuote(quote) {
     "AskSize",
     "Timestamp",
     "Condition",
-  ]);
+  ]
+) {
+  expect(quote).to.have.all.keys(keys);
 }
 
 function assertSnapshot(snapshot) {
@@ -170,5 +168,88 @@ describe("data v2 rest", () => {
     resp.map((s) => {
       assertSnapshot(s);
     });
+  });
+
+  it("get multi trades with wrong symbols param", async () => {
+    await expect(
+      alpaca.getMultiTradesV2(
+        "",
+        {
+          start: "2021-09-01T00:00:00.00Z",
+          end: "2021-09-02T22:00:00Z",
+        },
+        alpaca.configuration
+      )
+    ).to.eventually.be.rejectedWith("symbols should be an array");
+  });
+
+  it("get multi trades", async () => {
+    const resp = await alpaca.getMultiTradesV2(
+      ["AAPL", "FB"],
+      {
+        start: "2021-09-01T00:00:00.00Z",
+        end: "2021-09-02T22:00:00Z",
+      },
+      alpaca.configuration
+    );
+    let gotSymbols = [];
+    for (let symbol in resp) {
+      gotSymbols.push(symbol);
+      assertTrade(resp[symbol][0]);
+    }
+    expect(gotSymbols.length).to.equal(2);
+  });
+
+  it("get multi trades async", async () => {
+    const resp = alpaca.getMultiTradesAsyncV2(
+      ["AAPL", "FB"],
+      {
+        start: "2021-09-01T00:00:00.00Z",
+        end: "2021-09-02T22:00:00Z",
+      },
+      alpaca.configuration
+    );
+    let gotSymbols = new Map();
+    for await (let t of resp) {
+      gotSymbols.set(t.Symbol, {});
+      assertTrade(t, [
+        "ID",
+        "Symbol",
+        "Exchange",
+        "Price",
+        "Size",
+        "Timestamp",
+        "Conditions",
+        "Tape",
+      ]);
+    }
+    expect(gotSymbols.size).to.equal(2);
+  });
+
+  it("get multi quotes async", async () => {
+    const resp = alpaca.getMultiQuotesAsyncV2(
+      ["AAPL", "FB"],
+      {
+        start: "2021-08-11T08:30:00.00Z",
+        end: "2021-09-12T16:00:00Z",
+      },
+      alpaca.configuration
+    );
+    let gotSymbols = new Map();
+    for await (let q of resp) {
+      gotSymbols.set(q.Symbol, {});
+      assertQuote(q, [
+        "Symbol",
+        "BidExchange",
+        "BidPrice",
+        "BidSize",
+        "AskExchange",
+        "AskPrice",
+        "AskSize",
+        "Timestamp",
+        "Condition",
+      ]);
+    }
+    expect(gotSymbols.size).to.equal(2);
   });
 });
