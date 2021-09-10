@@ -263,3 +263,44 @@ describe("data v2 rest", () => {
     expect(gotSymbols.size).to.equal(2);
   });
 });
+
+function assertCryptoQuote(quote) {
+  expect(quote).to.have.all.keys([
+    "Symbol",
+    "Timestamp",
+    "Exchange",
+    "BidPrice",
+    "BidSize",
+    "AskPrice",
+    "AskSize",
+  ]);
+}
+
+describe("crypto data", () => {
+  let alpaca;
+
+  before(() => {
+    alpaca = new api(mock.getConfig());
+  });
+
+  it("get quotes", async () => {
+    const resp = alpaca.getCryptoQuotes(
+      "BTCUSD",
+      {
+        start: "2021-09-10",
+        end: "2021-09-11",
+        limit: 3,
+        exchanges: "CBSE",
+      },
+      alpaca.configuration
+    );
+
+    const quotes = [];
+
+    for await (let q of resp) {
+      quotes.push(q);
+      assertCryptoQuote(q);
+    }
+    expect(quotes.length).equal(3);
+  });
+});
