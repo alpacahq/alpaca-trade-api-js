@@ -36,7 +36,7 @@ module.exports = function createCryptoDataMock() {
         page_token: joi.string().optional(),
         timeframe: joi.string().optional(),
         adjustment: joi.string().optional(),
-        exchanges: joi.string().optional(),
+        exchanges: joi.array().optional(),
       });
 
       let response = {

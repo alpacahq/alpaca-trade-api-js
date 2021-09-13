@@ -316,7 +316,7 @@ describe("crypto data", () => {
         start: "2021-09-10",
         end: "2021-09-11",
         limit: 3,
-        exchanges: "CBSE",
+        exchanges: ["CBSE"],
       },
       alpaca.configuration
     );
@@ -343,7 +343,7 @@ describe("crypto data", () => {
   it("get latest xbbo", async () => {
     const resp = await alpaca.getLatestCryptoXBBO(
       "BTCUSD",
-      { exchanges: "CBSE,ERSX" },
+      { exchanges: ["CBSE", "ERSX"] },
       alpaca.configuration
     );
 
