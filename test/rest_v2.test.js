@@ -1,6 +1,7 @@
 "use strict";
 
 const { expect } = require("chai");
+const { assert } = require("joi/lib/types/object");
 const api = require("../lib/alpaca-trade-api");
 const mock = require("./support/mock-server");
 
@@ -276,6 +277,31 @@ function assertCryptoQuote(quote) {
   ]);
 }
 
+function assertCryptoTrade(trade) {
+  expect(trade).to.have.all.keys([
+    "Symbol",
+    "Timestamp",
+    "Exchanhge",
+    "Price",
+    "Size",
+    "TakerSide",
+    "Id",
+  ]);
+}
+
+function assertCryptoXBBO(xbbo) {
+  expect(xbbo).to.have.all.keys([
+    "Symbol",
+    "Timestamp",
+    "AskPrice",
+    "AskSize",
+    "AskExchange",
+    "BidPrice",
+    "BidSize",
+    "BidExchange",
+  ]);
+}
+
 describe("crypto data", () => {
   let alpaca;
 
@@ -302,5 +328,25 @@ describe("crypto data", () => {
       assertCryptoQuote(q);
     }
     expect(quotes.length).equal(3);
+  });
+
+  it("get latest trade", async () => {
+    const resp = await alpaca.getLatestCryptoTrade(
+      "BTCUSD",
+      { exchange: "ERSX" },
+      alpaca.configuration
+    );
+
+    assertCryptoTrade(resp);
+  });
+
+  it("get latest xbbo", async () => {
+    const resp = await alpaca.getLatestCryptoXBBO(
+      "BTCUSD",
+      { exchanges: "CBSE,ERSX" },
+      alpaca.configuration
+    );
+
+    assertCryptoXBBO(resp);
   });
 });

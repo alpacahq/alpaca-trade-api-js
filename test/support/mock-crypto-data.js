@@ -13,9 +13,9 @@ const { apiMethod, assertSchema, apiError } = require("./assertions");
  */
 
 module.exports = function createCryptoDataMock() {
-  const v1alpha1 = express.Router().use(bodyParser.json());
+  const v1beta1 = express.Router().use(bodyParser.json());
 
-  v1alpha1.use((req, res, next) => {
+  v1beta1.use((req, res, next) => {
     if (
       !req.get("APCA-API-KEY-ID") ||
       !req.get("APCA-API-SECRET-KEY") ||
@@ -26,7 +26,7 @@ module.exports = function createCryptoDataMock() {
     next();
   });
 
-  v1alpha1.get(
+  v1beta1.get(
     "/crypto/:symbol/:endpoint",
     apiMethod((req) => {
       assertSchema(req.query, {
@@ -57,36 +57,32 @@ module.exports = function createCryptoDataMock() {
     })
   );
 
-  v1alpha1.get(
+  v1beta1.get(
     "/crypto/:symbol/:endpoint/latest",
     apiMethod((req) => {
       if (!latestDataBySymbol[req.params.symbol]) {
         throw apiError(422);
       }
       let resp = {
-        symbol: req.params.symbol,
-        trade: latestDataBySymbol[req.params.symbol][req.params.endpoint],
+        ...latestDataBySymbol[req.params.symbol][req.params.endpoint],
       };
       return resp;
     })
   );
 
-  return express.Router().use("/v1alpha1", v1alpha1);
+  return express.Router().use("/v1beta1", v1beta1);
 };
 
 const dataBySymbol = {
   BTCUSD: {
     trades: {},
     quotes: {
-      symbol: "BTCUSD",
-      quote: {
-        t: "2021-09-10T12:09:00.827Z",
-        x: "CBSE",
-        bp: 46317.6,
-        bs: 1.23,
-        ap: 46318.09,
-        as: 3.4,
-      },
+      t: "2021-09-10T12:09:00.827Z",
+      x: "CBSE",
+      bp: 46317.6,
+      bs: 1.23,
+      ap: 46318.09,
+      as: 3.4,
     },
     bars: {},
   },
@@ -116,6 +112,17 @@ const latestDataBySymbol = {
         as: 0.00054836,
       },
     },
-    xbbo: {},
+    xbbo: {
+      symbol: "BTCUSD",
+      xbbo: {
+        t: "2021-09-13T11:16:42.712Z",
+        ax: "ERSX",
+        ap: 44720.38,
+        as: 1.6939,
+        bx: "ERSX",
+        bp: 43813.34,
+        bs: 1.3855,
+      },
+    },
   },
 };
