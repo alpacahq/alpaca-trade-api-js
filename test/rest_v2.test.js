@@ -126,7 +126,7 @@ describe("data v2 rest", () => {
         end: "2021-02-10",
         limit: 2,
         timeframe: "1Day",
-        adjustment: "all",
+        adjustment: alpaca.adjustment.RAW,
       },
       alpaca.configuration
     );
@@ -195,7 +195,17 @@ describe("data v2 rest", () => {
     let gotSymbols = [];
     for (let symbol in resp) {
       gotSymbols.push(symbol);
-      assertTrade(resp[symbol][0]);
+      const trade = resp[symbol][0];
+      assertTrade(trade, [
+        "Symbol",
+        "ID",
+        "Exchange",
+        "Price",
+        "Size",
+        "Timestamp",
+        "Conditions",
+        "Tape",
+      ]);
     }
     expect(gotSymbols.length).to.equal(2);
   });
