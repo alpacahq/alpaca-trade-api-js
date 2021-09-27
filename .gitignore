@@ -1,6 +1,7 @@
 .vscode/
 npm-debug.log*
 node_modules/
+dist/
 .npm
 .env
 temp.js

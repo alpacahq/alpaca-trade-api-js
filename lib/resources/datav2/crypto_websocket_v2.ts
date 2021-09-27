@@ -11,7 +11,7 @@ import {
   EVENT,
   ERROR,
   WebsocketOptions,
-} from "./websokcet";
+} from "./websocket";
 
 interface CrypotoWebsocketOptions extends WebsocketOptions {
   exchanges?: string | Array<string>;

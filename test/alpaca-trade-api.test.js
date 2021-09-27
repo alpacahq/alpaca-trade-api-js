@@ -1,7 +1,7 @@
 "use strict";
 
 const expect = require("chai").expect;
-const Alpaca = require("../lib/alpaca-trade-api");
+const Alpaca = require("../dist/alpaca-trade-api");
 
 describe("alpaca-trade-api", function () {
   describe("configure", function () {

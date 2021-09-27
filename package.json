@@ -2,9 +2,12 @@
   "name": "@alpacahq/alpaca-trade-api",
   "version": "2.6.0",
   "description": "Javascript library for the Alpaca Trade API",
-  "main": "lib/alpaca-trade-api.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "mocha --timeout 4s test/init.js 'test/**/*.test.js'"
+    "pretest": "npx tsc",
+    "test": "mocha --timeout 4s test/init.js 'test/**/*.test.js'",
+    "tsc:w": "tsc -w"
   },
   "repository": {
     "type": "git",
@@ -25,6 +28,7 @@
   },
   "homepage": "https://alpaca.markets/",
   "dependencies": {
+    "@types/node": "^16.9.6",
     "axios": "^0.21.1",
     "dotenv": "^6.2.0",
     "events": "^3.2.0",
@@ -39,12 +43,16 @@
     "ws": "^7.4.3"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.173",
+    "@types/msgpack5": "^3.4.2",
+    "@types/ws": "^8.2.0",
     "body-parser": "^1.19.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "express": "^4.17.1",
     "joi": "^14.3.1",
     "mocha": "^5.2.0",
-    "sinon": "^6.3.5"
+    "sinon": "^6.3.5",
+    "typescript": "^4.4.3"
   }
 }

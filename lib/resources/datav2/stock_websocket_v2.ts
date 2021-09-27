@@ -15,7 +15,7 @@ import {
   EVENT,
   ERROR,
   WebsocketOptions,
-} from "./websokcet";
+} from "./websocket";
 
 interface StockWebsocketOptions extends WebsocketOptions {
   feed?: string;
