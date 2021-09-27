@@ -2,7 +2,7 @@
 
 const expect = require("chai").expect;
 const { isEqual } = require("lodash");
-const entytyV2 = require("../../lib/resources/datav2/entityv2");
+const entytyV2 = require("../../dist/resources/datav2/entityv2");
 
 function assertData(got, expected) {
   expect(got).have.all.keys(Object.keys(expected));
@@ -125,7 +125,7 @@ const expected = {
     BidExchange: "P",
     BidPrice: 136.56,
     BidSize: 2,
-    Condition: ["R"],
+    Conditions: ["R"],
   },
   bar: {
     Timestamp: "2021-02-08T00:00:00Z",
@@ -154,7 +154,7 @@ const expected = {
       BidExchange: "V",
       BidPrice: 0,
       BidSize: 0,
-      Condition: ["R"],
+      Conditions: ["R"],
     },
     MinuteBar: {
       Timestamp: "2021-05-03T19:59:00Z",
