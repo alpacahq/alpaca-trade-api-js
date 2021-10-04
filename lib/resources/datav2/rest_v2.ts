@@ -1,23 +1,32 @@
-const axios = require("axios").default;
-const entityv2 = require("./entityv2");
+import axios from "axios";
+const {
+  AlpacaTradeV2,
+  AlpacaBarV2,
+  AlpacaQuoteV2,
+  AlpacaSnaphotV2,
+  AlpacaCryptoTrade,
+  AlpacaCryptoQuote,
+  AlpacaCryptoBar,
+  AlpacaCryptoXBBO,
+} = require("./entityv2");
 
 // Number of data points to return.
 const V2_MAX_LIMIT = 10000;
 
-const TYPE = {
-  TRADES: "trades",
-  QUOTES: "quotes",
-  BARS: "bars",
-};
+export enum Adjustment {
+  RAW = "raw",
+  DIVIDEND = "dividend",
+  SPLIT = "split",
+  BOTH = "both",
+}
 
-const ADJUSTMENT = {
-  RAW: "raw",
-  DIVIDEND: "dividend",
-  SPLIT: "split",
-  BOTH: "both",
-};
+export enum TYPE {
+  TRADES = "trades",
+  QUOTES = "quotes",
+  BARS = "bars",
+}
 
-function dataV2HttpRequest(url, queryParams, config) {
+export function dataV2HttpRequest(url: string, queryParams: any, config: any) {
   const { dataBaseUrl, keyId, secretKey, oauth } = config;
   const resp = axios
     .get(`${dataBaseUrl}${url}`, {
@@ -34,31 +43,32 @@ function dataV2HttpRequest(url, queryParams, config) {
               "APCA-API-SECRET-KEY": secretKey,
             },
     })
-    .catch((err) => {
+    .catch((err: any) => {
       let message = err.message;
-      if (err.response.statusText) {
-        message += "\n" + err.response.statusText;
-      }
       throw new Error(message);
     });
   return resp;
 }
 
-async function* getDataV2(endpoint, path, options = {}, config) {
-  let pageToken = null;
-  let totalItems = 0;
+export async function* getDataV2(
+  endpoint: TYPE,
+  path: string,
+  options: any,
+  config: any
+) {
+  let pageToken: string | null = null;
+  let totalItems: number = 0;
   const limit = options.limit;
   while (true) {
-    let actualLimit = null;
+    let actualLimit: number | null = null;
     if (limit) {
       actualLimit = Math.min(limit - totalItems, V2_MAX_LIMIT);
       if (actualLimit < 1) {
         break;
       }
     }
-    let params = options;
-    Object.assign(params, { limit: actualLimit, page_token: pageToken });
-    const resp = await dataV2HttpRequest(`${path}`, params, config);
+    Object.assign(options, { limit: actualLimit, page_token: pageToken });
+    const resp = await dataV2HttpRequest(`${path}`, options, config);
     const items = resp.data[endpoint];
     for (let item of items) {
       yield item;
@@ -71,12 +81,18 @@ async function* getDataV2(endpoint, path, options = {}, config) {
   }
 }
 
-async function* getMultiDataV2(endpoint, options = {}, config) {
+export async function* getMultiDataV2(
+  symbols: Array<string>,
+  endpoint: string,
+  options: any,
+  config: any
+) {
   let pageToken = null;
   while (true) {
-    let params = {
+    let params: any = {
       ...options,
-      limit: options.pageLimit,
+      symbols: symbols.join(","),
+      limit: options.page_limit,
       page_token: pageToken,
     };
 
@@ -98,228 +114,246 @@ async function* getMultiDataV2(endpoint, options = {}, config) {
   }
 }
 
-async function* getTrades(symbol, options, config) {
+export interface GetTradesParams {
+  start: string;
+  end: string;
+  page_limit: number;
+  limit: number;
+  feed: string;
+  page_token: string;
+}
+
+export async function* getTrades(
+  symbol: string,
+  options: GetTradesParams,
+  config: any
+) {
   const trades = getDataV2(
     TYPE.TRADES,
     `/v2/stocks/${symbol}/${TYPE.TRADES}`,
-    { start: options.start, end: options.end, limit: options.limit },
+    options,
     config
   );
   for await (let trade of trades) {
-    yield entityv2.AlpacaTradeV2(trade);
+    yield AlpacaTradeV2(trade);
   }
 }
 
-async function getMultiTrades(
-  symbols,
-  options = { start: null, end: null, pageLimit: null, feed: null },
-  config
+export async function getMultiTrades(
+  symbols: Array<string>,
+  options: GetTradesParams,
+  config: any
 ) {
   const multiTrades = getMultiTradesAsync(symbols, options, config);
-  let trades = {};
+  let trades = new Map<string, Array<any>>();
   for await (let t of multiTrades) {
-    const items = trades[t.Symbol] || [];
-    trades[t.Symbol] = [...items, t];
+    const items = trades.get(t.Symbol) || new Array<any>();
+    trades.set(t.Symbol, [...items, t]);
   }
   return trades;
 }
 
-async function* getMultiTradesAsync(
-  symbols,
-  options = { start: null, end: null, pageLimit: null, feed: null },
-  config
+export async function* getMultiTradesAsync(
+  symbols: Array<string>,
+  options: GetTradesParams,
+  config: any
 ) {
-  if (!Array.isArray(symbols)) {
-    throw new Error("symbols should be an array");
-  }
-  options = { ...options, symbols: symbols.join() };
-  const multiTrades = getMultiDataV2(TYPE.TRADES, options, config);
+  const multiTrades = getMultiDataV2(symbols, TYPE.TRADES, options, config);
   for await (let t of multiTrades) {
     t.data = { ...t.data, S: t.symbol };
-    yield entityv2.AlpacaTradeV2(t.data);
+    yield AlpacaTradeV2(t.data);
   }
 }
 
-async function* getQuotes(symbol, options, config) {
+export interface GetQoutesParams {
+  start: string;
+  end: string;
+  page_limit: number;
+  limit: number;
+  feed: string;
+  page_token: string;
+}
+
+export async function* getQuotes(
+  symbol: string,
+  options: GetQoutesParams,
+  config: any
+) {
   const quotes = getDataV2(
     TYPE.QUOTES,
     `/v2/stocks/${symbol}/${TYPE.QUOTES}`,
-    { start: options.start, end: options.end, limit: options.limit },
+    options,
     config
   );
   for await (let quote of quotes) {
-    yield entityv2.AlpacaQuoteV2(quote);
+    yield AlpacaQuoteV2(quote);
   }
 }
 
-async function getMultiQuotes(
-  symbols,
-  options = { start: null, end: null, pageLimit: null, feed: null },
-  config
+export async function getMultiQuotes(
+  symbols: Array<string>,
+  options: GetQoutesParams,
+  config: any
 ) {
   const multiQuotes = getMultiQuotesAsync(symbols, options, config);
-  let quotes = {};
+  let quotes = new Map<string, Array<any>>();
   for await (let q of multiQuotes) {
-    const items = quotes[q.Symbol] || [];
-    quotes[q.Symbol] = [...items, q];
+    const items = quotes.get(q.Symbol) || new Array<any>();
+    quotes.set(q.Symbol, [...items, q]);
   }
   return quotes;
 }
 
-async function* getMultiQuotesAsync(
-  symbols,
-  options = { start: null, end: null, pageLimit: null, feed: null },
-  config
+export async function* getMultiQuotesAsync(
+  symbols: Array<string>,
+  options: GetQoutesParams,
+  config: any
 ) {
-  if (!Array.isArray(symbols)) {
-    throw new Error("symbols should be an array");
-  }
-  options = { ...options, symbols: symbols.join() };
-  const multiQuotes = getMultiDataV2(TYPE.QUOTES, options, config);
+  const multiQuotes = getMultiDataV2(symbols, TYPE.QUOTES, options, config);
   for await (let q of multiQuotes) {
     q.data = { ...q.data, S: q.symbol };
-    yield entityv2.AlpacaQuoteV2(q.data);
+    yield AlpacaQuoteV2(q.data);
   }
 }
 
-async function* getBars(symbol, options, config) {
+export interface GetBarsParams {
+  timeframe: string;
+  adjustment: Adjustment;
+  start: string;
+  end: string;
+  page_limit: number;
+  limit: number;
+  feed: string;
+  page_token: string;
+}
+
+export async function* getBars(
+  symbol: string,
+  options: GetBarsParams,
+  config: any
+) {
   const bars = getDataV2(
     TYPE.BARS,
     `/v2/stocks/${symbol}/${TYPE.BARS}`,
-    {
-      start: options.start,
-      end: options.end,
-      limit: options.limit,
-      timeframe: options.timeframe,
-      adjustment: options.adjustment,
-    },
+    options,
     config
   );
+
   for await (let bar of bars) {
-    yield entityv2.AlpacaBarV2(bar);
+    yield AlpacaBarV2(bar);
   }
 }
 
-async function getMultiBars(
-  symbols,
-  options = {
-    start: null,
-    end: null,
-    timeframe: null,
-    adjustment: null,
-    pageLimit: null,
-    feed: null,
-  },
-  config
+export async function getMultiBars(
+  symbols: Array<string>,
+  options: GetBarsParams,
+  config: any
 ) {
   const multiBars = getMultiBarsAsync(symbols, options, config);
-  let bars = {};
+  let bars = new Map<string, Array<any>>();
   for await (let b of multiBars) {
-    const items = bars[b.Symbol] || [];
-    bars[b.Symbol] = [...items, b];
+    const items = bars.get(b.Symbol) || new Array<any>();
+    bars.set(b.Symbol, [...items, b]);
   }
   return bars;
 }
 
-async function* getMultiBarsAsync(
-  symbols,
-  options = {
-    start: null,
-    end: null,
-    timeframe: null,
-    adjustment: null,
-    pageLimit: null,
-    feed: null,
-  },
-  config
+export async function* getMultiBarsAsync(
+  symbols: Array<string>,
+  options: GetBarsParams,
+  config: any
 ) {
-  if (!Array.isArray(symbols)) {
-    throw new Error("symbols should be an array");
-  }
-  options = { ...options, symbols: symbols.join() };
-  const multiBars = getMultiDataV2(TYPE.BARS, options, config);
+  const multiBars = getMultiDataV2(symbols, TYPE.BARS, options, config);
   for await (let b of multiBars) {
     b.data = { ...b.data, S: b.symbol };
-    yield entityv2.AlpacaBarV2(b.data);
+    yield AlpacaBarV2(b.data);
   }
 }
 
-async function getLatestTrade(symbol, config) {
+export async function getLatestTrade(symbol: string, config: any) {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${symbol}/trades/latest`,
     {},
     config
   );
-  if (resp.data) {
-    return entityv2.AlpacaTradeV2(resp.data.trade);
-  }
+  return AlpacaTradeV2(resp.data.trade);
 }
 
-async function getLatestQuote(symbol, config) {
+export async function getLatestQuote(symbol: string, config: any) {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${symbol}/quotes/latest`,
     {},
     config
   );
-  if (resp.data) {
-    return entityv2.AlpacaQuoteV2(resp.data.quote);
-  }
+  return AlpacaQuoteV2(resp.data.quote);
 }
 
-async function getSnapshot(symbol, config) {
+export async function getSnapshot(symbol: string, config: any) {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${symbol}/snapshot`,
     {},
     config
   );
 
-  return entityv2.AlpacaSnaphotV2(resp.data);
+  return AlpacaSnaphotV2(resp.data);
 }
 
-async function getSnapshots(symbols, config) {
+export async function getSnapshots(symbols: Array<string>, config: any) {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/snapshots?symbols=${symbols.join(",")}`,
     {},
     config
   );
 
-  const result = Object.entries(resp.data).map(([key, val]) => {
-    return entityv2.AlpacaSnaphotV2({
-      symbol: key,
-      ...val,
-    });
-  });
+  const result = Object.entries(resp.data as Map<string, any>).map(
+    ([key, val]) => {
+      return AlpacaSnaphotV2({
+        symbol: key,
+        ...val,
+      });
+    }
+  );
 
   return result;
 }
 
-async function* getCryptoTrades(
-  symbol,
-  options = { start: null, end: null, limit: null, exchanges: null },
-  config
+export interface GetCryptoTradesParams {
+  start: string;
+  end: string;
+  limit: number;
+  page_limit: number;
+  exchanges: Array<string>;
+}
+
+export async function* getCryptoTrades(
+  symbol: string,
+  options: GetCryptoTradesParams,
+  config: any
 ) {
-  if (options.exchanges != null && !Array.isArray(options.exchanges)) {
-    throw new Error("exchanges should be a list of strings");
-  }
   const cryptoTrades = getDataV2(
     TYPE.TRADES,
     `/v1beta1/crypto/${symbol}/trades`,
-    { start: options.start, end: options.end, limit: options.limit },
+    options,
     config
   );
   for await (let t of cryptoTrades) {
-    yield entityv2.AlpacaCryptoTrade({ S: symbol, ...t });
+    yield AlpacaCryptoTrade({ S: symbol, ...t });
   }
 }
 
-async function* getCryptoQuotes(
-  symbol,
-  options = { start: null, end: null, limit: null, exchanges: null },
-  config
+export interface GetCryptoQuotesParams {
+  start: string;
+  end: string;
+  limit: number;
+  page_limit: number;
+  exchanges: Array<string>;
+}
+
+export async function* getCryptoQuotes(
+  symbol: string,
+  options: GetCryptoQuotesParams,
+  config: any
 ) {
-  if (options.exchanges != null && !Array.isArray(options.exchanges)) {
-    throw new Error("exchanges should be a list of strings");
-  }
   const cryptoQuotes = getDataV2(
     TYPE.QUOTES,
     `/v1beta1/crypto/${symbol}/quotes`,
@@ -327,27 +361,24 @@ async function* getCryptoQuotes(
     config
   );
   for await (const q of cryptoQuotes) {
-    yield entityv2.AlpacaCryptoQuote({ S: symbol, ...q });
+    yield AlpacaCryptoQuote({ S: symbol, ...q });
   }
 }
 
-async function* getCryptoBars(
-  symbol,
-  options = {
-    start: null,
-    end: null,
-    timeframe: null,
-    limit: null,
-    exchanges: null,
-  },
-  config
+export interface GetCryptoBarsParams {
+  start: string;
+  end: string;
+  timeframe: string;
+  limit: number;
+  page_limit: number;
+  exchanges: Array<string>;
+}
+
+export async function* getCryptoBars(
+  symbol: string,
+  options: GetCryptoBarsParams,
+  config: any
 ) {
-  if (options.timeframe == null) {
-    throw new Error("timeframe is required  ");
-  }
-  if (options.exchanges != null && !Array.isArray(options.exchanges)) {
-    throw new Error("exchanges should be a list of strings");
-  }
   const cryptoBars = getDataV2(
     TYPE.BARS,
     `/v1beta1/crypto/${symbol}/bars`,
@@ -356,85 +387,54 @@ async function* getCryptoBars(
   );
   if (Symbol.iterator in Object(cryptoBars)) {
     for await (const b of cryptoBars) {
-      yield entityv2.AlpacaCryptoBar({ S: symbol, ...b });
+      yield AlpacaCryptoBar({ S: symbol, ...b });
     }
   }
 }
 
-async function getLatestCryptoTrade(
-  symbol,
-  options = { exchange: null },
-  config
+export async function getLatestCryptoTrade(
+  symbol: string,
+  options: { exchange: string },
+  config: any
 ) {
-  if (options.exchange == null) {
-    throw new Error("exchange is required");
-  }
   const resp = await dataV2HttpRequest(
     `/v1beta1/crypto/${symbol}/trades/latest`,
     options,
     config
   );
-  return entityv2.AlpacaCryptoTrade({
+  return AlpacaCryptoTrade({
     S: resp.data.symbol,
     ...resp.data.trade,
   });
 }
 
-async function getLatestCryptoQuote(
-  symbol,
-  options = { exchange: null },
-  config
+export async function getLatestCryptoQuote(
+  symbol: string,
+  options: { exchange: string },
+  config: any
 ) {
-  if (options.exchange == null) {
-    throw new Error("exchange is required");
-  }
   const resp = await dataV2HttpRequest(
     `/v1beta1/crypto/${symbol}/quotes/latest`,
     options,
     config
   );
   console.log(resp.data);
-  return entityv2.AlpacaCryptoQuote({
+  return AlpacaCryptoQuote({
     S: resp.data.symbol,
     ...resp.data.quote,
   });
 }
 
-async function getLatestCryptoXBBO(
-  symbol,
-  options = { exchanges: null },
-  config
+export async function getLatestCryptoXBBO(
+  symbol: string,
+  options: { exchanges: Array<string> },
+  config: any
 ) {
-  if (!Array.isArray(options.exchanges)) {
-    throw new Error("exchanges should be a list of strings");
-  }
+  const params = { exchanges: options.exchanges.join(",") };
   const resp = await dataV2HttpRequest(
     `/v1beta1/crypto/${symbol}/xbbo/latest`,
-    { exchanges: options.exchanges.join(",") },
+    params,
     config
   );
-  return entityv2.AlpacaCryptoXBBO({ S: resp.data.symbol, ...resp.data.xbbo });
+  return AlpacaCryptoXBBO({ S: resp.data.symbol, ...resp.data.xbbo });
 }
-
-module.exports = {
-  getTrades,
-  getMultiTrades,
-  getMultiTradesAsync,
-  getQuotes,
-  getMultiQuotes,
-  getMultiQuotesAsync,
-  getBars,
-  getMultiBars,
-  getMultiBarsAsync,
-  getLatestTrade,
-  getLatestQuote,
-  getSnapshot,
-  getSnapshots,
-  getCryptoTrades,
-  getCryptoBars,
-  getCryptoQuotes,
-  getLatestCryptoTrade,
-  getLatestCryptoQuote,
-  getLatestCryptoXBBO,
-  ADJUSTMENT,
-};

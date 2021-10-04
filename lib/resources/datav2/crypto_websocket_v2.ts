@@ -1,129 +1,75 @@
-"use strict";
+import {
+  AlpacaCryptoBar,
+  AlpacaCryptoQuote,
+  AlpacaCryptoTrade,
+  CryptoBar,
+  CryptoQuote,
+  CryptoTrade,
+} from "./entityv2";
+import {
+  AlpacaWebsocket as Websocket,
+  EVENT,
+  ERROR,
+  WebsocketOptions,
+} from "./websokcet";
 
-const events = require("events");
-const WebSocket = require("ws");
-const msgpack = require("msgpack5")();
-const entityv2 = require("./entityv2");
-const { CRYPTO_EVENT, CONN_ERROR, STATE } = require("./websocket");
+interface CrypotoWebsocketOptions extends WebsocketOptions {
+  exchanges?: string | Array<string>;
+}
 
-class AlpacaCryptoClient extends events.EventEmitter {
-  constructor(options = {}) {
-    super();
-    this.session = {
-      apiKey: options.apiKey,
-      secretKey: options.secretKey,
-      subscriptions: {
-        trades: [],
-        quotes: [],
-        bars: [],
-        dailyBars: [],
-      },
-      reconnect: true,
-      // If true, client outputs detailed log messages
-      verbose: options.verbose,
-      // Reconnection backoff: if true, then the reconnection time will be initially
-      // reconnectTimeout, then will double with each unsuccessful connection attempt.
-      // It will not exceed maxReconnectTimeout
-      backoff: true,
-      // Initial reconnect timeout (seconds) a minimum of 1 will be used if backoff=false
-      reconnectTimeout: 0,
-      // The maximum amount of time between reconnect tries (applies to backoff)
-      maxReconnectTimeout: 30,
-      // The amount of time to increment the delay between each reconnect attempt
-      backoffIncrement: 0.5,
-      url: this.getUrl(options.url, options.exchanges),
-      currentState: STATE.WAITING_TO_CONNECT,
-    };
+interface CryptoSubscription {
+  trades: Array<string>;
+  quotes: Array<string>;
+  bars: Array<string>;
+  dailyBars: Array<string>;
+}
 
-    if (this.session.apiKey.length === 0) {
-      throw new Error(CONN_ERROR.MISSING_API_KEY);
-    }
-    if (this.session.secretKey.length === 0) {
-      throw new Error(CONN_ERROR.MISSING_SECERT_KEY);
-    }
-
-    // Register internal event handlers
-    // Log and emit every state change
-    Object.keys(STATE).forEach((s) => {
-      this.on(STATE[s], () => {
-        this.session.currentState = STATE[s];
-        this.emit(CRYPTO_EVENT.STATE_CHANGE, STATE[s]);
-      });
-    });
+export class AlpacaCryptoClient extends Websocket {
+  constructor(options: CrypotoWebsocketOptions) {
+    let url: string =
+      "wss" +
+      options.url.substr(options.url.indexOf(":")) +
+      "/v1beta1/crypto?exchanges=";
+    url += Array.isArray(options.exchanges)
+      ? options.exchanges.join(",")
+      : options.exchanges;
+    console.log("url " + url);
+    options.url = url;
+    options.subscriptions = {
+      trades: [],
+      quotes: [],
+      bars: [],
+      dailyBars: [],
+    } as CryptoSubscription;
+    super(options);
   }
 
-  onConnect(fn) {
-    this.on(STATE.AUTHENTICATED, () => {
-      fn();
-      //if reconnected the user should subcribe to its symbols again
-      this.subscribeAll();
-    });
-  }
-
-  connect() {
-    this.emit(STATE.CONNECTING);
-    this.session.currentState = STATE.CONNECTING;
-    this.conn = new WebSocket(this.session.url, {
-      perMessageDeflate: {
-        serverNoContextTakeover: false,
-        clientNoContextTakeover: false,
-      },
-      headers: {
-        "Content-Type": "application/msgpack",
-      },
-    });
-    this.conn.binaryType = "nodebuffer";
-    this.conn.once("open", () => this.authenticate());
-    this.conn.on("message", (data) => {
-      this.handleMessage(msgpack.decode(data));
-    });
-    this.conn.once("close", () => {
-      this.emit(STATE.DISCONNECTED);
-      this.session.currentState = STATE.DISCONNECTED;
-      if (this.session.reconnect) {
-        this.reconnecting();
-      } else {
-        this.disconnect();
-      }
-    });
-  }
-
-  reconnecting() {
-    setTimeout(() => {
-      if (this.session.backoff) {
-        const { reconnectTimeout, backoffIncrement, maxReconnectTimeout } =
-          this.session;
-        this.session.reconnectTimeout = Math.min(
-          backoffIncrement + reconnectTimeout,
-          maxReconnectTimeout
-        );
-      }
-      this.connect();
-    }, this.session.reconnectTimeout * 1000);
-    this.emit(STATE.WAITING_TO_RECONNECT, this.session.reconnectTimeout);
-  }
-
-  subscribeForTrades(trades) {
+  subscribeForTrades(trades: Array<string>) {
     this.session.subscriptions.trades.push(...trades);
     this.subscribe(trades, [], [], []);
   }
 
-  subscribeForQuotes(quotes) {
+  subscribeForQuotes(quotes: Array<string>) {
     this.session.subscriptions.quotes.push(...quotes);
     this.subscribe([], quotes, [], []);
   }
 
-  subscribeForBars(bars) {
+  subscribeForBars(bars: Array<string>) {
     this.session.subscriptions.bars.push(...bars);
     this.subscribe([], [], bars, []);
   }
 
-  subscribeForDailyBars(dailyBars) {
+  subscribeForDailyBars(dailyBars: Array<string>) {
     this.session.subscriptions.dailyBars.push(...dailyBars);
     this.subscribe([], [], [], dailyBars);
   }
 
-  subscribe(trades, quotes, bars, dailyBars) {
+  subscribe(
+    trades: Array<string>,
+    quotes: Array<string>,
+    bars: Array<string>,
+    dailyBars: Array<string>
+  ) {
     const subMsg = {
       action: "subscribe",
       trades: trades,
@@ -131,7 +77,7 @@ class AlpacaCryptoClient extends events.EventEmitter {
       bars: bars,
       dailyBars: dailyBars,
     };
-    this.conn.send(msgpack.encode(subMsg));
+    this.conn.send(this.msgpack.encode(subMsg));
   }
 
   subscribeAll() {
@@ -149,42 +95,47 @@ class AlpacaCryptoClient extends events.EventEmitter {
         bars,
         dailyBars,
       };
-      this.conn.send(msgpack.encode(msg));
+      this.conn.send(this.msgpack.encode(msg));
     }
   }
 
-  unsubscribeFromTrades(trades) {
+  unsubscribeFromTrades(trades: Array<string>) {
     this.session.subscriptions.trades =
       this.session.subscriptions.trades.filter(
-        (trade) => !trades.includes(trade)
+        (trade: string) => !trades.includes(trade)
       );
     this.unsubscribe(trades, [], [], []);
   }
 
-  unsubscribeFromQuotes(quotes) {
+  unsubscribeFromQuotes(quotes: Array<string>) {
     this.session.subscriptions.quotes =
       this.session.subscriptions.quotes.filter(
-        (quote) => !quotes.includes(quote)
+        (quote: string) => !quotes.includes(quote)
       );
     this.unsubscribe([], quotes, [], []);
   }
 
-  unsubscribeFromBars(bars) {
+  unsubscribeFromBars(bars: Array<string>) {
     this.session.subscriptions.bars = this.session.subscriptions.bars.filter(
-      (bar) => !bars.includes(bar)
+      (bar: string) => !bars.includes(bar)
     );
     this.unsubscribe([], [], bars, []);
   }
 
-  unsubscriceFromDailyBars(dailyBars) {
+  unsubscriceFromDailyBars(dailyBars: Array<string>) {
     this.session.subscriptions.dailyBars =
       this.session.subscriptions.dailyBars.filter(
-        (dailyBar) => !dailyBars.includes(dailyBar)
+        (dailyBar: string) => !dailyBars.includes(dailyBar)
       );
     this.unsubscribe([], [], [], dailyBars);
   }
 
-  unsubscribe(trades, quotes, bars, dailyBars) {
+  unsubscribe(
+    trades: Array<string>,
+    quotes: Array<string>,
+    bars: Array<string>,
+    dailyBars: Array<string>
+  ) {
     const unsubMsg = {
       action: "unsubscribe",
       trades: trades,
@@ -192,12 +143,12 @@ class AlpacaCryptoClient extends events.EventEmitter {
       bars: bars,
       dailyBars: dailyBars,
     };
-    this.conn.send(msgpack.encode(unsubMsg));
+    this.conn.send(this.msgpack.encode(unsubMsg));
   }
 
-  updateSubscriptions(msg) {
+  updateSubscriptions(msg: any) {
+    console.log("called");
     this.log(
-      "info",
       `listening to streams:
         trades: ${msg.trades},
         quotes: ${msg.quotes},
@@ -212,136 +163,42 @@ class AlpacaCryptoClient extends events.EventEmitter {
     };
   }
 
-  onCryptoTrade(fn) {
-    this.on(CRYPTO_EVENT.TRADES, (trade) => fn(trade));
+  onCryptoTrade(fn: (trade: CryptoTrade) => void) {
+    this.on(EVENT.TRADES, (trade: CryptoTrade) => fn(trade));
   }
 
-  onCryptoQuote(fn) {
-    this.on(CRYPTO_EVENT.QUOTES, (quote) => fn(quote));
+  onCryptoQuote(fn: (quote: CryptoQuote) => void) {
+    this.on(EVENT.QUOTES, (quote: CryptoQuote) => fn(quote));
   }
 
-  onCryptoBar(fn) {
-    this.on(CRYPTO_EVENT.BARS, (bar) => fn(bar));
+  onCryptoBar(fn: (bar: CryptoBar) => void) {
+    this.on(EVENT.BARS, (bar: CryptoBar) => fn(bar));
   }
 
-  onCryptoDailyBar(fn) {
-    this.on(CRYPTO_EVENT.DAILY_BARS, (dailyBar) => fn(dailyBar));
+  onCryptoDailyBar(fn: (dailyBar: CryptoBar) => void) {
+    this.on(EVENT.DAILY_BARS, (dailyBar: CryptoBar) => fn(dailyBar));
   }
 
-  onError(fn) {
-    this.on(CRYPTO_EVENT.CLIENT_ERROR, (err) => fn(err));
-  }
-
-  onStateChange(fn) {
-    this.on(CRYPTO_EVENT.STATE_CHANGE, (newState) => fn(newState));
-  }
-
-  handleMessage(data) {
-    const msgType = !!data?.length ? data[0].T : null;
-
-    if (msgType == null) {
-      this.emit(CONN_ERROR.UNEXPECTED_MESSAGE);
-      return;
-    }
-
-    switch (msgType) {
-      case "success":
-        if (data[0].msg === "connected") {
-          this.emit(STATE.CONNECTED);
-          this.session.currentState = STATE.CONNECTED;
-        } else if (data[0].msg === "authenticated") {
-          this.session.authenticated = true;
-          this.emit(STATE.AUTHENTICATED);
-          this.session.currentState = STATE.AUTHENTICATED;
-        }
-        break;
-      case "subscription":
-        this.updateSubscriptions(data[0]);
-        break;
-      case "error":
-        this.emit(CRYPTO_EVENT.CLIENT_ERROR, CONN_ERROR[data[0].code]);
-        break;
-      default:
-        this.dataHandler(data);
-    }
-  }
-
-  dataHandler(data) {
-    data.forEach((element) => {
+  dataHandler(data: any) {
+    data.forEach((element: any) => {
       if ("T" in element) {
         switch (element.T) {
           case "t":
-            this.emit(CRYPTO_EVENT.TRADES, entityv2.AlpacaCryptoTrade(element));
+            this.emit(EVENT.TRADES, AlpacaCryptoTrade(element));
             break;
           case "q":
-            this.emit(CRYPTO_EVENT.QUOTES, entityv2.AlpacaCryptoQuote(element));
+            this.emit(EVENT.QUOTES, AlpacaCryptoQuote(element));
             break;
           case "b":
-            this.emit(CRYPTO_EVENT.BARS, entityv2.AlpacaCryptoBar(element));
+            this.emit(EVENT.BARS, AlpacaCryptoBar(element));
             break;
           case "d":
-            this.emit(
-              CRYPTO_EVENT.DAILY_BARS,
-              entityv2.AlpacaCryptoBar(element)
-            );
+            this.emit(EVENT.DAILY_BARS, AlpacaCryptoBar(element));
             break;
           default:
-            this.emit(CRYPTO_EVENT.CLIENT_ERROR, CONN_ERROR.UNEXPECTED_MESSAGE);
+            this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
         }
       }
     });
   }
-
-  authenticate() {
-    const authMsg = {
-      action: "auth",
-      key: this.session.apiKey,
-      secret: this.session.secretKey,
-    };
-    this.conn.send(msgpack.encode(authMsg));
-    this.emit(STATE.AUTHENTICATING);
-    this.session.currentState = STATE.AUTHENTICATING;
-  }
-
-  onDisconnect(fn) {
-    this.on(STATE.DISCONNECTED, () => fn());
-  }
-
-  disconnect() {
-    this.emit(STATE.DISCONNECTED);
-    this.session.currentState = STATE.DISCONNECTED;
-    this.conn.close();
-    this.session.reconnect = false;
-  }
-
-  log(level, ...msg) {
-    if (this.session.verbose) {
-      console[level](...msg);
-    }
-  }
-
-  getSubscriptions() {
-    return this.session.subscriptions;
-  }
-
-  getUrl(baseUrl, exchanges) {
-    let parameter;
-    if (typeof exchanges === "string") {
-      parameter = exchanges;
-    } else if (Array.isArray(exchanges)) {
-      parameter = exchanges.join(",");
-    } else {
-      throw new Error("exchanges should be a string or list of strings");
-    }
-    return (
-      "wss" +
-      baseUrl.substr(baseUrl.indexOf(":")) +
-      "/v1beta1/crypto?exchanges=" +
-      parameter
-    );
-  }
 }
-
-module.exports = {
-  AlpacaCryptoClient,
-};

@@ -1,4 +1,5 @@
-const { mapKeys, mapValues } = require("lodash");
+import mapKeys from "lodash/mapKeys";
+import mapValues from "lodash/mapValues";
 
 const trade_mapping_v2 = {
   i: "ID",
@@ -11,6 +12,17 @@ const trade_mapping_v2 = {
   z: "Tape",
 };
 
+export interface AlpacaTrade {
+  ID: number;
+  Symbol: string;
+  Exchange: string;
+  Price: number;
+  Size: number;
+  Timestamp: string;
+  Conditions: Array<string>;
+  Tape: string;
+}
+
 const quote_mapping_v2 = {
   S: "Symbol",
   bx: "BidExchange",
@@ -20,9 +32,21 @@ const quote_mapping_v2 = {
   ap: "AskPrice",
   as: "AskSize",
   t: "Timestamp",
-  c: "Condition",
+  c: "Conditions",
   z: "Tape",
 };
+
+export interface AlapacaQuote {
+  Symbol: string;
+  BidExchange: string;
+  BidSize: number;
+  AskExchange: string;
+  AskPrice: number;
+  AskSize: number;
+  Timestamp: string;
+  Conditions: Array<string>;
+  Tape: string;
+}
 
 const bar_mapping_v2 = {
   S: "Symbol",
@@ -36,6 +60,18 @@ const bar_mapping_v2 = {
   n: "TradeCount",
 };
 
+export interface AlpacaBar {
+  Symbol: string;
+  OpenPrice: number;
+  HishPrice: number;
+  LowPrice: number;
+  ClosePrice: number;
+  Volume: number;
+  Timestamp: string;
+  VWAP: number;
+  TradeCount: number;
+}
+
 const snapshot_mapping_v2 = {
   latestTrade: "LatestTrade",
   latestQuote: "LatestQuote",
@@ -43,6 +79,14 @@ const snapshot_mapping_v2 = {
   dailyBar: "DailyBar",
   prevDailyBar: "PrevDailyBar",
 };
+
+export interface AlpacaSnapshot {
+  LatestTrade: AlpacaTrade;
+  LatestQuote: AlapacaQuote;
+  MinuteBar: AlpacaBar;
+  DailyBar: AlpacaBar;
+  PrevDailyBar: AlpacaBar;
+}
 
 const status_mapping_v2 = {
   S: "Symbol",
@@ -54,6 +98,16 @@ const status_mapping_v2 = {
   z: "Tape",
 };
 
+export interface AlpacaStatus {
+  Symbol: string;
+  StatusCode: string;
+  StatusMessage: string;
+  ReasonCode: string;
+  ReasonMessage: string;
+  Timestamp: string;
+  Tape: string;
+}
+
 const luld_mapping_v2 = {
   S: "Symbol",
   u: "LimitUpPrice",
@@ -62,6 +116,15 @@ const luld_mapping_v2 = {
   t: "Timestamp",
   z: "Tape",
 };
+
+export interface AlpacaLuld {
+  Symbol: string;
+  LimitUpPrice: number;
+  LimitDownPrice: number;
+  Indicator: string;
+  Timestamp: string;
+  Tape: string;
+}
 
 const crypto_trade_mapping = {
   S: "Symbol",
@@ -73,6 +136,16 @@ const crypto_trade_mapping = {
   i: "Id",
 };
 
+export interface CryptoTrade {
+  Symbol: string;
+  Timestamp: string;
+  Exchange: string;
+  Price: number;
+  Size: number;
+  TakerSide: string;
+  Id: number;
+}
+
 const crypto_quote_mapping = {
   S: "Symbol",
   t: "Timestamp",
@@ -82,6 +155,16 @@ const crypto_quote_mapping = {
   ap: "AskPrice",
   as: "AskSize",
 };
+
+export interface CryptoQuote {
+  Symbol: string;
+  Timestamp: string;
+  Exchange: string;
+  BidPrice: number;
+  BidSize: number;
+  AskPrice: number;
+  AskSize: number;
+}
 
 const crypro_bar_mapping = {
   S: "Symbol",
@@ -95,6 +178,18 @@ const crypro_bar_mapping = {
   n: "TradeCount",
 };
 
+export interface CryptoBar {
+  Symbol: string;
+  Timestamp: string;
+  Open: number;
+  High: number;
+  Low: number;
+  Close: number;
+  Volume: number;
+  VWAP: number;
+  TradeCount: number;
+}
+
 const crypto_xbbo_mapping = {
   S: "Symbol",
   t: "Timestamp",
@@ -106,57 +201,68 @@ const crypto_xbbo_mapping = {
   bx: "BidExchange",
 };
 
-function AlpacaQuoteV2(data) {
-  return aliasObjectKey(data, quote_mapping_v2);
+export interface CryptoXBBO {
+  Symbol: string;
+  Timestamp: string;
+  BidExchange: string;
+  BidPrice: number;
+  BidSize: number;
+  AskExchange: string;
+  AskPrice: number;
+  AskSize: number;
 }
 
-function AlpacaTradeV2(data) {
-  return aliasObjectKey(data, trade_mapping_v2);
+export function AlpacaTradeV2(data: any): AlpacaTrade {
+  return aliasObjectKey(data, trade_mapping_v2) as AlpacaTrade;
 }
 
-function AlpacaBarV2(data) {
-  return aliasObjectKey(data, bar_mapping_v2);
+export function AlpacaQuoteV2(data: any): AlapacaQuote {
+  return aliasObjectKey(data, quote_mapping_v2) as AlapacaQuote;
 }
 
-function AlpacaSnaphotV2(data) {
+export function AlpacaBarV2(data: any): AlpacaBar {
+  return aliasObjectKey(data, bar_mapping_v2) as AlpacaBar;
+}
+
+export function AlpacaSnaphotV2(data: any): AlpacaSnapshot {
   let snapshot = aliasObjectKey(data, snapshot_mapping_v2);
 
-  return mapValues(snapshot, (value, key) => {
+  return mapValues(snapshot, (value: any, key: any) => {
     return convertSnapshotData(key, value);
-  });
+  }) as AlpacaSnapshot;
 }
 
-function AlpacaStatusV2(data) {
-  return aliasObjectKey(data, status_mapping_v2);
+export function AlpacaStatusV2(data: any): AlpacaStatus {
+  return aliasObjectKey(data, status_mapping_v2) as AlpacaStatus;
 }
 
-function AlpacaLuldV2(data) {
-  return aliasObjectKey(data, luld_mapping_v2);
+export function AlpacaLuldV2(data: any): AlpacaLuld {
+  return aliasObjectKey(data, luld_mapping_v2) as AlpacaLuld;
 }
 
-function AlpacaCryptoTrade(data) {
-  return aliasObjectKey(data, crypto_trade_mapping);
+export function AlpacaCryptoTrade(data: any): CryptoTrade {
+  return aliasObjectKey(data, crypto_trade_mapping) as CryptoTrade;
 }
 
-function AlpacaCryptoQuote(data) {
-  return aliasObjectKey(data, crypto_quote_mapping);
+export function AlpacaCryptoQuote(data: any): CryptoQuote {
+  return aliasObjectKey(data, crypto_quote_mapping) as CryptoQuote;
 }
 
-function AlpacaCryptoBar(data) {
+export function AlpacaCryptoBar(data: any) {
   return aliasObjectKey(data, crypro_bar_mapping);
 }
 
-function AlpacaCryptoXBBO(data) {
-  return aliasObjectKey(data, crypto_xbbo_mapping);
-}
-
-function aliasObjectKey(data, mapping) {
-  return mapKeys(data, (value, key) => {
+function aliasObjectKey(data: any, mapping: any) {
+  return mapKeys(data, (value: any, key: any) => {
     return mapping.hasOwnProperty(key) ? mapping[key] : key;
   });
 }
 
-function convertSnapshotData(key, data) {
+export function AlpacaCryptoXBBO(data: any): CryptoXBBO {
+  return aliasObjectKey(data, crypto_xbbo_mapping) as CryptoXBBO;
+}
+
+function convertSnapshotData(key: string, data: any) {
   switch (key) {
     case "LatestTrade":
       return AlpacaTradeV2(data);
@@ -170,16 +276,3 @@ function convertSnapshotData(key, data) {
       return data;
   }
 }
-
-module.exports = {
-  AlpacaTradeV2,
-  AlpacaQuoteV2,
-  AlpacaBarV2,
-  AlpacaSnaphotV2,
-  AlpacaStatusV2,
-  AlpacaLuldV2,
-  AlpacaCryptoTrade,
-  AlpacaCryptoQuote,
-  AlpacaCryptoBar,
-  AlpacaCryptoXBBO,
-};

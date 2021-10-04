@@ -1,143 +1,89 @@
-"use strict";
+import {
+  AlpacaTradeV2,
+  AlpacaQuoteV2,
+  AlpacaBarV2,
+  AlpacaLuldV2,
+  AlpacaStatusV2,
+  AlpacaTrade,
+  AlapacaQuote,
+  AlpacaBar,
+  AlpacaStatus,
+  AlpacaLuld,
+} from "./entityv2";
+import {
+  AlpacaWebsocket as Websocket,
+  EVENT,
+  ERROR,
+  WebsocketOptions,
+} from "./websokcet";
 
-const events = require("events");
-const WebSocket = require("ws");
-const msgpack = require("msgpack5")();
-const entityv2 = require("./entityv2");
-const { EVENT, CONN_ERROR, STATE } = require("./websocket");
-
-class AlpacaStocksClient extends events.EventEmitter {
-  constructor(options = {}) {
-    super();
-    this.session = {
-      apiKey: options.apiKey,
-      secretKey: options.secretKey,
-      subscriptions: {
-        trades: [],
-        quotes: [],
-        bars: [],
-        dailyBars: [],
-        statuses: [],
-        lulds: [],
-      },
-      reconnect: true,
-      // If true, client outputs detailed log messages
-      verbose: options.verbose,
-      // Reconnection backoff: if true, then the reconnection time will be initially
-      // reconnectTimeout, then will double with each unsuccessful connection attempt.
-      // It will not exceed maxReconnectTimeout
-      backoff: true,
-      // Initial reconnect timeout (seconds) a minimum of 1 will be used if backoff=false
-      reconnectTimeout: 0,
-      // The maximum amount of time between reconnect tries (applies to backoff)
-      maxReconnectTimeout: 30,
-      // The amount of time to increment the delay between each reconnect attempt
-      backoffIncrement: 0.5,
-      url:
-        "wss" +
-        options.url.substr(options.url.indexOf(":")) +
-        "/v2/" +
-        options.feed,
-      currentState: STATE.WAITING_TO_CONNECT,
-    };
-
-    if (this.session.apiKey.length === 0) {
-      throw new Error(CONN_ERROR.MISSING_API_KEY);
-    }
-    if (this.session.secretKey.length === 0) {
-      throw new Error(CONN_ERROR.MISSING_SECERT_KEY);
-    }
-
-    // Register internal event handlers
-    // Log and emit every state change
-    Object.keys(STATE).forEach((s) => {
-      this.on(STATE[s], () => {
-        this.session.currentState = STATE[s];
-        this.emit(EVENT.STATE_CHANGE, STATE[s]);
-      });
-    });
+interface StockWebsocketOptions extends WebsocketOptions {
+  feed?: string;
+}
+interface StockWebSocketSession {
+  trades: Array<string>;
+  quotes: Array<string>;
+  bars: Array<string>;
+  dailyBars: Array<string>;
+  statuses: Array<string>;
+  lulds: Array<string>;
+}
+export class AlpacaStocksClient extends Websocket {
+  constructor(options: StockWebsocketOptions) {
+    let url: string =
+      "wss" +
+      options.url.substr(options.url.indexOf(":")) +
+      "/v2/" +
+      options.feed;
+    options.url = url;
+    options.subscriptions = {
+      trades: [],
+      quotes: [],
+      bars: [],
+      dailyBars: [],
+      statuses: [],
+      lulds: [],
+    } as StockWebSocketSession;
+    super(options);
   }
 
-  onConnect(fn) {
-    this.on(STATE.AUTHENTICATED, () => {
-      fn();
-      //if reconnected the user should subcribe to its symbols again
-      this.subscribeAll();
-    });
-  }
-
-  connect() {
-    this.emit(STATE.CONNECTING);
-    this.session.currentState = STATE.CONNECTING;
-    this.conn = new WebSocket(this.session.url, {
-      perMessageDeflate: {
-        serverNoContextTakeover: false,
-        clientNoContextTakeover: false,
-      },
-      headers: {
-        "Content-Type": "application/msgpack",
-      },
-    });
-    this.conn.binaryType = "nodebuffer";
-    this.conn.once("open", () => this.authenticate());
-    this.conn.on("message", (data) => {
-      this.handleMessage(msgpack.decode(data));
-    });
-    this.conn.once("close", () => {
-      this.emit(STATE.DISCONNECTED);
-      this.session.currentState = STATE.DISCONNECTED;
-      if (this.session.reconnect) {
-        this.reconnecting();
-      } else {
-        this.disconnect();
-      }
-    });
-  }
-
-  reconnecting() {
-    setTimeout(() => {
-      if (this.session.backoff) {
-        this.session.reconnectTimeout += this.session.backoffIncrement;
-        if (this.session.reconnectTimeout > this.session.maxReconnectTimeout) {
-          this.session.reconnectTimeout = this.session.maxReconnectTimeout;
-        }
-      }
-      this.connect();
-    }, this.session.reconnectTimeout * 1000);
-    this.emit(STATE.WAITING_TO_RECONNECT, this.session.reconnectTimeout);
-  }
-
-  subscribeForTrades(trades) {
+  subscribeForTrades(trades: Array<string>) {
     this.session.subscriptions.trades.push(...trades);
     this.subscribe(trades, [], [], [], [], []);
   }
 
-  subscribeForQuotes(quotes) {
+  subscribeForQuotes(quotes: Array<string>) {
     this.session.subscriptions.quotes.push(...quotes);
     this.subscribe([], quotes, [], [], [], []);
   }
 
-  subscribeForBars(bars) {
+  subscribeForBars(bars: Array<string>) {
     this.session.subscriptions.bars.push(...bars);
     this.subscribe([], [], bars, [], [], []);
   }
 
-  subscribeForDailyBars(dailyBars) {
+  subscribeForDailyBars(dailyBars: Array<string>) {
     this.session.subscriptions.dailyBars.push(...dailyBars);
     this.subscribe([], [], [], dailyBars, [], []);
   }
-
-  subscribeForStatuses(statuses) {
+  subscribeForStatuses(statuses: Array<string>) {
     this.session.subscriptions.statuses.push(...statuses);
     this.subscribe([], [], [], [], statuses, []);
   }
 
-  subscribeForLulds(lulds) {
+  subscribeForLulds(lulds: Array<string>) {
     this.session.subscriptions.lulds.push(...lulds);
     this.subscribe([], [], [], [], [], lulds);
   }
 
-  subscribe(trades, quotes, bars, dailyBars, statuses, lulds) {
+  subscribe(
+    trades: Array<string>,
+    quotes: Array<string>,
+    bars: Array<string>,
+    dailyBars: Array<string>,
+    statuses: Array<string>,
+    lulds: Array<string>
+  ) {
     const subMsg = {
       action: "subscribe",
       trades: trades,
@@ -147,7 +93,7 @@ class AlpacaStocksClient extends events.EventEmitter {
       statuses: statuses,
       lulds: lulds,
     };
-    this.conn.send(msgpack.encode(subMsg));
+    this.conn.send(this.msgpack.encode(subMsg));
   }
 
   subscribeAll() {
@@ -163,63 +109,72 @@ class AlpacaStocksClient extends events.EventEmitter {
     ) {
       const msg = {
         action: "subscribe",
-        trades: this.session.subscriptions.trades,
-        quotes: this.session.subscriptions.quotes,
-        bars: this.session.subscriptions.bars,
-        dailyBars: this.session.subscriptions.dailyBars,
-        statuses: this.session.subscriptions.statuses,
-        lulds: this.session.subscriptions.lulds,
+        trades,
+        quotes,
+        bars,
+        dailyBars,
+        statuses,
+        lulds,
       };
-      this.conn.send(msgpack.encode(msg));
+      this.conn.send(this.msgpack.encode(msg));
     }
   }
 
-  unsubscribeFromTrades(trades) {
+  unsubscribeFromTrades(trades: Array<string>) {
     this.session.subscriptions.trades =
       this.session.subscriptions.trades.filter(
-        (trade) => !trades.includes(trade)
+        (trade: string) => !trades.includes(trade)
       );
     this.unsubscribe(trades, [], [], [], [], []);
   }
 
-  unsubscribeFromQuotes(quotes) {
+  unsubscribeFromQuotes(quotes: Array<string>) {
     this.session.subscriptions.quotes =
       this.session.subscriptions.quotes.filter(
-        (quote) => !quotes.includes(quote)
+        (quote: string) => !quotes.includes(quote)
       );
     this.unsubscribe([], quotes, [], [], [], []);
   }
 
-  unsubscribeFromBars(bars) {
+  unsubscribeFromBars(bars: Array<string>) {
     this.session.subscriptions.bars = this.session.subscriptions.bars.filter(
-      (bar) => !bars.includes(bar)
+      (bar: string) => !bars.includes(bar)
     );
     this.unsubscribe([], [], bars, [], [], []);
   }
 
-  unsubscriceFromDailyBars(dailyBars) {
+  unsubscriceFromDailyBars(dailyBars: Array<string>) {
     this.session.subscriptions.dailyBars =
       this.session.subscriptions.dailyBars.filter(
-        (dailyBar) => !dailyBars.includes(dailyBar)
+        (dailyBar: string) => !dailyBars.includes(dailyBar)
       );
     this.unsubscribe([], [], [], dailyBars, [], []);
   }
 
-  unsubscribeFromStatuses(statuses) {
+  unsubscribeFromStatuses(statuses: Array<string>) {
     this.session.subscriptions.statuses =
       this.session.subscriptions.statuses.filter(
-        (status) => !statuses.includes(status)
+        (status: string) => !statuses.includes(status)
       );
     this.unsubscribe([], [], [], [], statuses, []);
   }
 
-  unsubscribeFromLulds(lulds) {
+  unsubscribeFromLulds(lulds: Array<string>) {
     this.session.subscriptions.statuses =
-      this.session.subscriptions.lulds.filter((luld) => !lulds.includes(luld));
+      this.session.subscriptions.lulds.filter(
+        (luld: string) => !lulds.includes(luld)
+      );
     this.unsubscribe([], [], [], [], [], lulds);
   }
 
-  unsubscribe(trades, quotes, bars, dailyBars, statuses, lulds) {
+  unsubscribe(
+    trades: Array<string>,
+    quotes: Array<string>,
+    bars: Array<string>,
+    dailyBars: Array<string>,
+    statuses: Array<string>,
+    lulds: Array<string>
+  ) {
     const unsubMsg = {
       action: "unsubscribe",
       trades: trades,
@@ -229,12 +184,11 @@ class AlpacaStocksClient extends events.EventEmitter {
       statuses: statuses,
       lulds: lulds,
     };
-    this.conn.send(msgpack.encode(unsubMsg));
+    this.conn.send(this.msgpack.encode(unsubMsg));
   }
 
-  updateSubscriptions(msg) {
+  updateSubscriptions(msg: any) {
     this.log(
-      "info",
       `listening to streams:
         trades: ${msg.trades},
         quotes: ${msg.quotes},
@@ -253,132 +207,56 @@ class AlpacaStocksClient extends events.EventEmitter {
     };
   }
 
-  onStockTrade(fn) {
-    this.on(EVENT.STOCK_TRADES, (trade) => fn(trade));
+  onStockTrade(fn: (tarde: AlpacaTrade) => void) {
+    this.on(EVENT.TRADES, (trade: AlpacaTrade) => fn(trade));
   }
 
-  onStockQuote(fn) {
-    this.on(EVENT.STOCK_QUOTES, (quote) => fn(quote));
+  onStockQuote(fn: (quote: AlapacaQuote) => void) {
+    this.on(EVENT.QUOTES, (quote: AlapacaQuote) => fn(quote));
   }
 
-  onStockBar(fn) {
-    this.on(EVENT.STOCK_BARS, (bar) => fn(bar));
+  onStockBar(fn: (bar: AlpacaBar) => void) {
+    this.on(EVENT.BARS, (bar: AlpacaBar) => fn(bar));
   }
 
-  onStockDailyBar(fn) {
-    this.on(EVENT.STOCK_DAILY_BARS, (dailyBar) => fn(dailyBar));
+  onStockDailyBar(fn: (dailyBar: AlpacaBar) => void) {
+    this.on(EVENT.DAILY_BARS, (dailyBar: AlpacaBar) => fn(dailyBar));
   }
 
-  onStatuses(fn) {
-    this.on(EVENT.TRADING_STATUSES, (statuses) => fn(statuses));
+  onStatuses(fn: (status: AlpacaStatus) => void) {
+    this.on(EVENT.TRADING_STATUSES, (status: AlpacaStatus) => fn(status));
   }
 
-  onLulds(fn) {
-    this.on(EVENT.LULDS, (lulds) => fn(lulds));
+  onLulds(fn: (luld: AlpacaLuld) => void) {
+    this.on(EVENT.LULDS, (luld: AlpacaLuld) => fn(luld));
   }
 
-  onError(fn) {
-    this.on(EVENT.CLIENT_ERROR, (err) => fn(err));
-  }
-
-  onStateChange(fn) {
-    this.on(EVENT.STATE_CHANGE, (newState) => fn(newState));
-  }
-
-  handleMessage(data) {
-    const msgType = !!data?.length ? data[0].T : null;
-
-    if (msgType == null) {
-      this.emit(CONN_ERROR.UNEXPECTED_MESSAGE);
-      return;
-    }
-
-    switch (msgType) {
-      case "success":
-        if (data[0].msg === "connected") {
-          this.emit(STATE.CONNECTED);
-          this.session.currentState = STATE.CONNECTED;
-        } else if (data[0].msg === "authenticated") {
-          this.emit(STATE.AUTHENTICATED);
-          this.session.currentState = STATE.AUTHENTICATED;
-        }
-        break;
-      case "subscription":
-        this.updateSubscriptions(data[0]);
-        break;
-      case "error":
-        this.emit(EVENT.CLIENT_ERROR, CONN_ERROR[data[0].code]);
-        break;
-      default:
-        this.dataHandler(data);
-    }
-  }
-
-  dataHandler(data) {
-    data.forEach((element) => {
+  dataHandler(data: any) {
+    data.forEach((element: any) => {
       if ("T" in element) {
         switch (element.T) {
           case "t":
-            this.emit(EVENT.STOCK_TRADES, entityv2.AlpacaTradeV2(element));
+            this.emit(EVENT.TRADES, AlpacaTradeV2(element));
             break;
           case "q":
-            this.emit(EVENT.STOCK_QUOTES, entityv2.AlpacaQuoteV2(element));
+            this.emit(EVENT.QUOTES, AlpacaQuoteV2(element));
             break;
           case "b":
-            this.emit(EVENT.STOCK_BARS, entityv2.AlpacaBarV2(element));
+            this.emit(EVENT.BARS, AlpacaBarV2(element));
             break;
           case "d":
-            this.emit(EVENT.STOCK_DAILY_BARS, entityv2.AlpacaBarV2(element));
+            this.emit(EVENT.DAILY_BARS, AlpacaBarV2(element));
             break;
           case "s":
-            this.emit(EVENT.TRADING_STATUSES, entityv2.AlpacaStatusV2(element));
+            this.emit(EVENT.TRADING_STATUSES, AlpacaStatusV2(element));
             break;
           case "l":
-            this.emit(EVENT.LULDS, entityv2.AlpacaLuldV2(element));
+            this.emit(EVENT.LULDS, AlpacaLuldV2(element));
             break;
           default:
-            this.emit(EVENT.CLIENT_ERROR, CONN_ERROR.UNEXPECTED_MESSAGE);
+            this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
         }
       }
     });
   }
-
-  authenticate() {
-    const authMsg = {
-      action: "auth",
-      key: this.session.apiKey,
-      secret: this.session.secretKey,
-    };
-    this.conn.send(msgpack.encode(authMsg));
-    this.emit(STATE.AUTHENTICATING);
-    this.session.currentState = STATE.AUTHENTICATING;
-  }
-
-  onDisconnect(fn) {
-    this.on(STATE.DISCONNECTED, () => fn());
-  }
-
-  disconnect() {
-    this.emit(STATE.DISCONNECTED);
-    this.session.currentState = STATE.DISCONNECTED;
-    this.conn.close();
-    this.session.reconnect = false;
-  }
-
-  log(level, ...msg) {
-    if (this.session.verbose) {
-      console[level](...msg);
-    }
-  }
-
-  getSubscriptions() {
-    return this.session.subscriptions;
-  }
 }
-
-module.exports = {
-  AlpacaStocksClient,
-  EVENT,
-  CONN_ERROR,
-  STATE,
-};
