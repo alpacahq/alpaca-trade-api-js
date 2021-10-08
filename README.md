@@ -289,7 +289,7 @@ this.alpaca.getWatchlists().then((response) => {
 
 #### Get Specific Watchlist
 ```js
- // xxxx.. are the watchlist id you get on creation or with gat all
+ // xxxx.. are the watchlist id you get on creation or with get all
  this.alpaca.getWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
       console.log(response)
     })
