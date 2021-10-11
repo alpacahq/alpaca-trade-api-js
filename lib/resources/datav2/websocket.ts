@@ -17,8 +17,8 @@ export enum STATE {
 
 // Stock client events
 export enum EVENT {
-  CLIENT_ERROR = "client error",
-  STATE_CHANGE = "state change",
+  CLIENT_ERROR = "client_error",
+  STATE_CHANGE = "state_change",
   AUTHORIZED = "authorized",
   UNAUTHORIZED = "unauthorized",
   TRADES = "stock_trades",
@@ -228,11 +228,7 @@ export abstract class AlpacaWebsocket
   }
 
   handleMessage(data: any) {
-    const msgType = !!data?.length ? data[0].T : null;
-
-    if (msgType == null) {
-      this.emit(ERROR.UNEXPECTED_MESSAGE);
-    }
+    const msgType = !!data?.length ? data[0].T : "";
 
     switch (msgType) {
       case "success":

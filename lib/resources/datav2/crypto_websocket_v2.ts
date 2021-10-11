@@ -5,6 +5,9 @@ import {
   CryptoBar,
   CryptoQuote,
   CryptoTrade,
+  StreamCryptoTrade,
+  StreamCryptoQuote,
+  StreamCryptoBar,
 } from "./entityv2";
 import {
   AlpacaWebsocket as Websocket,
@@ -26,15 +29,11 @@ interface CryptoSubscription {
 
 export class AlpacaCryptoClient extends Websocket {
   constructor(options: CrypotoWebsocketOptions) {
-    let url: string =
-      "wss" +
-      options.url.substr(options.url.indexOf(":")) +
-      "/v1beta1/crypto?exchanges=";
-    url += Array.isArray(options.exchanges)
+    const url = options.url.replace("https", "wss") + "/v1beta1/crypto";
+    const exchanges = Array.isArray(options.exchanges)
       ? options.exchanges.join(",")
       : options.exchanges;
-    console.log("url " + url);
-    options.url = url;
+    options.url = `${url}?exchanges=${exchanges}`;
     options.subscriptions = {
       trades: [],
       quotes: [],
@@ -46,36 +45,36 @@ export class AlpacaCryptoClient extends Websocket {
 
   subscribeForTrades(trades: Array<string>) {
     this.session.subscriptions.trades.push(...trades);
-    this.subscribe(trades, [], [], []);
+    this.subscribe({ trades });
   }
 
   subscribeForQuotes(quotes: Array<string>) {
     this.session.subscriptions.quotes.push(...quotes);
-    this.subscribe([], quotes, [], []);
+    this.subscribe({ quotes });
   }
 
   subscribeForBars(bars: Array<string>) {
     this.session.subscriptions.bars.push(...bars);
-    this.subscribe([], [], bars, []);
+    this.subscribe({ bars });
   }
 
   subscribeForDailyBars(dailyBars: Array<string>) {
     this.session.subscriptions.dailyBars.push(...dailyBars);
-    this.subscribe([], [], [], dailyBars);
+    this.subscribe({ dailyBars });
   }
 
-  subscribe(
-    trades: Array<string>,
-    quotes: Array<string>,
-    bars: Array<string>,
-    dailyBars: Array<string>
-  ) {
+  subscribe(symbols: {
+    trades?: Array<string>;
+    quotes?: Array<string>;
+    bars?: Array<string>;
+    dailyBars?: Array<string>;
+  }) {
     const subMsg = {
       action: "subscribe",
-      trades: trades,
-      quotes: quotes,
-      bars: bars,
-      dailyBars: dailyBars,
+      trades: symbols.trades ?? [],
+      quotes: symbols.quotes ?? [],
+      bars: symbols.bars ?? [],
+      dailyBars: symbols.dailyBars ?? [],
     };
     this.conn.send(this.msgpack.encode(subMsg));
   }
@@ -104,7 +103,7 @@ export class AlpacaCryptoClient extends Websocket {
       this.session.subscriptions.trades.filter(
         (trade: string) => !trades.includes(trade)
       );
-    this.unsubscribe(trades, [], [], []);
+    this.unsubscribe({ trades });
   }
 
   unsubscribeFromQuotes(quotes: Array<string>) {
@@ -112,14 +111,14 @@ export class AlpacaCryptoClient extends Websocket {
       this.session.subscriptions.quotes.filter(
         (quote: string) => !quotes.includes(quote)
       );
-    this.unsubscribe([], quotes, [], []);
+    this.unsubscribe({ quotes });
   }
 
   unsubscribeFromBars(bars: Array<string>) {
     this.session.subscriptions.bars = this.session.subscriptions.bars.filter(
       (bar: string) => !bars.includes(bar)
     );
-    this.unsubscribe([], [], bars, []);
+    this.unsubscribe({ bars });
   }
 
   unsubscriceFromDailyBars(dailyBars: Array<string>) {
@@ -127,40 +126,41 @@ export class AlpacaCryptoClient extends Websocket {
       this.session.subscriptions.dailyBars.filter(
         (dailyBar: string) => !dailyBars.includes(dailyBar)
       );
-    this.unsubscribe([], [], [], dailyBars);
+    this.unsubscribe({ dailyBars });
   }
 
-  unsubscribe(
-    trades: Array<string>,
-    quotes: Array<string>,
-    bars: Array<string>,
-    dailyBars: Array<string>
-  ) {
+  unsubscribe(symbols: {
+    trades?: Array<string>;
+    quotes?: Array<string>;
+    bars?: Array<string>;
+    dailyBars?: Array<string>;
+  }) {
     const unsubMsg = {
       action: "unsubscribe",
-      trades: trades,
-      quotes: quotes,
-      bars: bars,
-      dailyBars: dailyBars,
+      trades: symbols.trades ?? [],
+      quotes: symbols.quotes ?? [],
+      bars: symbols.bars ?? [],
+      dailyBars: symbols.dailyBars ?? [],
     };
     this.conn.send(this.msgpack.encode(unsubMsg));
   }
 
-  updateSubscriptions(msg: any) {
-    console.log("called");
-    this.log(
-      `listening to streams:
-        trades: ${msg.trades},
-        quotes: ${msg.quotes},
-        bars: ${msg.bars},
-        dailyBars: ${msg.dailyBars},`
-    );
+  updateSubscriptions(msg: {
+    trades: Array<string>;
+    quotes: Array<string>;
+    bars: Array<string>;
+    dailyBars: Array<string>;
+  }) {
     this.session.subscriptions = {
       trades: msg.trades,
       quotes: msg.quotes,
       bars: msg.bars,
       dailyBars: msg.dailyBars,
     };
+    this.log(
+      `listening to streams:
+        ${JSON.stringify(this.session.subscriptions)}`
+    );
   }
 
   onCryptoTrade(fn: (trade: CryptoTrade) => void) {
@@ -179,7 +179,9 @@ export class AlpacaCryptoClient extends Websocket {
     this.on(EVENT.DAILY_BARS, (dailyBar: CryptoBar) => fn(dailyBar));
   }
 
-  dataHandler(data: any) {
+  dataHandler(
+    data: Array<StreamCryptoTrade | StreamCryptoQuote | StreamCryptoBar>
+  ) {
     data.forEach((element: any) => {
       if ("T" in element) {
         switch (element.T) {

@@ -2,8 +2,8 @@ import mapKeys from "lodash/mapKeys";
 import mapValues from "lodash/mapValues";
 
 const trade_mapping_v2 = {
-  i: "ID",
   S: "Symbol",
+  i: "ID",
   x: "Exchange",
   p: "Price",
   s: "Size",
@@ -13,14 +13,26 @@ const trade_mapping_v2 = {
 };
 
 export interface AlpacaTrade {
-  ID: number;
   Symbol: string;
+  ID: number;
   Exchange: string;
   Price: number;
   Size: number;
   Timestamp: string;
   Conditions: Array<string>;
   Tape: string;
+}
+
+export interface StreamTrade {
+  T: string;
+  S: string;
+  i: number;
+  x: string;
+  p: number;
+  s: number;
+  t: string;
+  c: Array<string>;
+  z: string;
 }
 
 const quote_mapping_v2 = {
@@ -39,6 +51,7 @@ const quote_mapping_v2 = {
 export interface AlapacaQuote {
   Symbol: string;
   BidExchange: string;
+  BidPrice: number;
   BidSize: number;
   AskExchange: string;
   AskPrice: number;
@@ -46,6 +59,20 @@ export interface AlapacaQuote {
   Timestamp: string;
   Conditions: Array<string>;
   Tape: string;
+}
+
+export interface StreamQuote {
+  T: string;
+  S: string;
+  bx: string;
+  bp: number;
+  bs: number;
+  ax: string;
+  ap: number;
+  as: number;
+  t: string;
+  c: Array<string>;
+  z: string;
 }
 
 const bar_mapping_v2 = {
@@ -63,13 +90,26 @@ const bar_mapping_v2 = {
 export interface AlpacaBar {
   Symbol: string;
   OpenPrice: number;
-  HishPrice: number;
+  HighPrice: number;
   LowPrice: number;
   ClosePrice: number;
   Volume: number;
   Timestamp: string;
   VWAP: number;
   TradeCount: number;
+}
+
+export interface StreamBar {
+  T: string;
+  S: string;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+  t: string;
+  vw: number;
+  n: number;
 }
 
 const snapshot_mapping_v2 = {
@@ -108,6 +148,17 @@ export interface AlpacaStatus {
   Tape: string;
 }
 
+export interface StreamStatus {
+  T: string;
+  S: string;
+  sc: string;
+  sm: string;
+  rc: string;
+  rm: string;
+  t: string;
+  z: string;
+}
+
 const luld_mapping_v2 = {
   S: "Symbol",
   u: "LimitUpPrice",
@@ -124,6 +175,16 @@ export interface AlpacaLuld {
   Indicator: string;
   Timestamp: string;
   Tape: string;
+}
+
+export interface StreamLuld {
+  T: string;
+  S: string;
+  u: number;
+  d: number;
+  i: string;
+  t: string;
+  z: string;
 }
 
 const crypto_trade_mapping = {
@@ -146,6 +207,17 @@ export interface CryptoTrade {
   Id: number;
 }
 
+export interface StreamCryptoTrade {
+  T: string;
+  S: string;
+  t: string;
+  x: string;
+  p: number;
+  s: number;
+  tks: string;
+  i: number;
+}
+
 const crypto_quote_mapping = {
   S: "Symbol",
   t: "Timestamp",
@@ -164,6 +236,17 @@ export interface CryptoQuote {
   BidSize: number;
   AskPrice: number;
   AskSize: number;
+}
+
+export interface StreamCryptoQuote {
+  T: string;
+  S: string;
+  t: string;
+  x: string;
+  bp: number;
+  bs: number;
+  ap: number;
+  as: number;
 }
 
 const crypro_bar_mapping = {
@@ -188,6 +271,19 @@ export interface CryptoBar {
   Volume: number;
   VWAP: number;
   TradeCount: number;
+}
+
+export interface StreamCryptoBar {
+  T: string;
+  S: string;
+  t: string;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+  vw: number;
+  n: number;
 }
 
 const crypto_xbbo_mapping = {

@@ -418,7 +418,6 @@ export async function getLatestCryptoQuote(
     options,
     config
   );
-  console.log(resp.data);
   return AlpacaCryptoQuote({
     S: resp.data.symbol,
     ...resp.data.quote,
