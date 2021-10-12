@@ -43,22 +43,22 @@ export class AlpacaCryptoClient extends Websocket {
     super(options);
   }
 
-  subscribeForTrades(trades: Array<string>) {
+  subscribeForTrades(trades: Array<string>): void {
     this.session.subscriptions.trades.push(...trades);
     this.subscribe({ trades });
   }
 
-  subscribeForQuotes(quotes: Array<string>) {
+  subscribeForQuotes(quotes: Array<string>): void {
     this.session.subscriptions.quotes.push(...quotes);
     this.subscribe({ quotes });
   }
 
-  subscribeForBars(bars: Array<string>) {
+  subscribeForBars(bars: Array<string>): void {
     this.session.subscriptions.bars.push(...bars);
     this.subscribe({ bars });
   }
 
-  subscribeForDailyBars(dailyBars: Array<string>) {
+  subscribeForDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars.push(...dailyBars);
     this.subscribe({ dailyBars });
   }
@@ -68,7 +68,7 @@ export class AlpacaCryptoClient extends Websocket {
     quotes?: Array<string>;
     bars?: Array<string>;
     dailyBars?: Array<string>;
-  }) {
+  }): void {
     const subMsg = {
       action: "subscribe",
       trades: symbols.trades ?? [],
@@ -79,7 +79,7 @@ export class AlpacaCryptoClient extends Websocket {
     this.conn.send(this.msgpack.encode(subMsg));
   }
 
-  subscribeAll() {
+  subscribeAll(): void {
     const { trades, quotes, bars, dailyBars } = this.session.subscriptions;
     if (
       trades.length > 0 ||
@@ -98,7 +98,7 @@ export class AlpacaCryptoClient extends Websocket {
     }
   }
 
-  unsubscribeFromTrades(trades: Array<string>) {
+  unsubscribeFromTrades(trades: Array<string>): void {
     this.session.subscriptions.trades =
       this.session.subscriptions.trades.filter(
         (trade: string) => !trades.includes(trade)
@@ -106,7 +106,7 @@ export class AlpacaCryptoClient extends Websocket {
     this.unsubscribe({ trades });
   }
 
-  unsubscribeFromQuotes(quotes: Array<string>) {
+  unsubscribeFromQuotes(quotes: Array<string>): void {
     this.session.subscriptions.quotes =
       this.session.subscriptions.quotes.filter(
         (quote: string) => !quotes.includes(quote)
@@ -114,14 +114,14 @@ export class AlpacaCryptoClient extends Websocket {
     this.unsubscribe({ quotes });
   }
 
-  unsubscribeFromBars(bars: Array<string>) {
+  unsubscribeFromBars(bars: Array<string>): void {
     this.session.subscriptions.bars = this.session.subscriptions.bars.filter(
       (bar: string) => !bars.includes(bar)
     );
     this.unsubscribe({ bars });
   }
 
-  unsubscriceFromDailyBars(dailyBars: Array<string>) {
+  unsubscriceFromDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars =
       this.session.subscriptions.dailyBars.filter(
         (dailyBar: string) => !dailyBars.includes(dailyBar)
@@ -134,7 +134,7 @@ export class AlpacaCryptoClient extends Websocket {
     quotes?: Array<string>;
     bars?: Array<string>;
     dailyBars?: Array<string>;
-  }) {
+  }): void {
     const unsubMsg = {
       action: "unsubscribe",
       trades: symbols.trades ?? [],
@@ -150,7 +150,7 @@ export class AlpacaCryptoClient extends Websocket {
     quotes: Array<string>;
     bars: Array<string>;
     dailyBars: Array<string>;
-  }) {
+  }): void {
     this.session.subscriptions = {
       trades: msg.trades,
       quotes: msg.quotes,
@@ -163,44 +163,46 @@ export class AlpacaCryptoClient extends Websocket {
     );
   }
 
-  onCryptoTrade(fn: (trade: CryptoTrade) => void) {
+  onCryptoTrade(fn: (trade: CryptoTrade) => void): void {
     this.on(EVENT.TRADES, (trade: CryptoTrade) => fn(trade));
   }
 
-  onCryptoQuote(fn: (quote: CryptoQuote) => void) {
+  onCryptoQuote(fn: (quote: CryptoQuote) => void): void {
     this.on(EVENT.QUOTES, (quote: CryptoQuote) => fn(quote));
   }
 
-  onCryptoBar(fn: (bar: CryptoBar) => void) {
+  onCryptoBar(fn: (bar: CryptoBar) => void): void {
     this.on(EVENT.BARS, (bar: CryptoBar) => fn(bar));
   }
 
-  onCryptoDailyBar(fn: (dailyBar: CryptoBar) => void) {
+  onCryptoDailyBar(fn: (dailyBar: CryptoBar) => void): void {
     this.on(EVENT.DAILY_BARS, (dailyBar: CryptoBar) => fn(dailyBar));
   }
 
   dataHandler(
     data: Array<StreamCryptoTrade | StreamCryptoQuote | StreamCryptoBar>
-  ) {
-    data.forEach((element: any) => {
-      if ("T" in element) {
-        switch (element.T) {
-          case "t":
-            this.emit(EVENT.TRADES, AlpacaCryptoTrade(element));
-            break;
-          case "q":
-            this.emit(EVENT.QUOTES, AlpacaCryptoQuote(element));
-            break;
-          case "b":
-            this.emit(EVENT.BARS, AlpacaCryptoBar(element));
-            break;
-          case "d":
-            this.emit(EVENT.DAILY_BARS, AlpacaCryptoBar(element));
-            break;
-          default:
-            this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
+  ): void {
+    data.forEach(
+      (element: StreamCryptoTrade | StreamCryptoQuote | StreamCryptoBar) => {
+        if ("T" in element) {
+          switch (element.T) {
+            case "t":
+              this.emit(EVENT.TRADES, AlpacaCryptoTrade(element));
+              break;
+            case "q":
+              this.emit(EVENT.QUOTES, AlpacaCryptoQuote(element));
+              break;
+            case "b":
+              this.emit(EVENT.BARS, AlpacaCryptoBar(element));
+              break;
+            case "d":
+              this.emit(EVENT.DAILY_BARS, AlpacaCryptoBar(element));
+              break;
+            default:
+              this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
+          }
         }
       }
-    });
+    );
   }
 }

@@ -1,4 +1,3 @@
-import { createHash } from "crypto";
 import {
   AlpacaTradeV2,
   AlpacaQuoteV2,
@@ -36,7 +35,7 @@ interface StockWebSocketSession {
 }
 export class AlpacaStocksClient extends Websocket {
   constructor(options: StockWebsocketOptions) {
-    let url: string =
+    const url: string =
       "wss" +
       options.url.substr(options.url.indexOf(":")) +
       "/v2/" +
@@ -53,31 +52,31 @@ export class AlpacaStocksClient extends Websocket {
     super(options);
   }
 
-  subscribeForTrades(trades: Array<string>) {
+  subscribeForTrades(trades: Array<string>): void {
     this.session.subscriptions.trades.push(...trades);
     this.subscribe({ trades });
   }
 
-  subscribeForQuotes(quotes: Array<string>) {
+  subscribeForQuotes(quotes: Array<string>): void {
     this.session.subscriptions.quotes.push(...quotes);
     this.subscribe({ quotes });
   }
 
-  subscribeForBars(bars: Array<string>) {
+  subscribeForBars(bars: Array<string>): void {
     this.session.subscriptions.bars.push(...bars);
     this.subscribe({ bars });
   }
 
-  subscribeForDailyBars(dailyBars: Array<string>) {
+  subscribeForDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars.push(...dailyBars);
     this.subscribe({ dailyBars });
   }
-  subscribeForStatuses(statuses: Array<string>) {
+  subscribeForStatuses(statuses: Array<string>): void {
     this.session.subscriptions.statuses.push(...statuses);
     this.subscribe({ statuses });
   }
 
-  subscribeForLulds(lulds: Array<string>) {
+  subscribeForLulds(lulds: Array<string>): void {
     this.session.subscriptions.lulds.push(...lulds);
     this.subscribe({ lulds });
   }
@@ -89,7 +88,7 @@ export class AlpacaStocksClient extends Websocket {
     dailyBars?: Array<string>;
     statuses?: Array<string>;
     lulds?: Array<string>;
-  }) {
+  }): void {
     const subMsg = {
       action: "subscribe",
       trades: symbols.trades ?? [],
@@ -102,7 +101,7 @@ export class AlpacaStocksClient extends Websocket {
     this.conn.send(this.msgpack.encode(subMsg));
   }
 
-  subscribeAll() {
+  subscribeAll(): void {
     const { trades, quotes, bars, dailyBars, statuses, lulds } =
       this.session.subscriptions;
     if (
@@ -126,7 +125,7 @@ export class AlpacaStocksClient extends Websocket {
     }
   }
 
-  unsubscribeFromTrades(trades: Array<string>) {
+  unsubscribeFromTrades(trades: Array<string>): void {
     this.session.subscriptions.trades =
       this.session.subscriptions.trades.filter(
         (trade: string) => !trades.includes(trade)
@@ -134,7 +133,7 @@ export class AlpacaStocksClient extends Websocket {
     this.unsubscribe({ trades });
   }
 
-  unsubscribeFromQuotes(quotes: Array<string>) {
+  unsubscribeFromQuotes(quotes: Array<string>): void {
     this.session.subscriptions.quotes =
       this.session.subscriptions.quotes.filter(
         (quote: string) => !quotes.includes(quote)
@@ -142,14 +141,14 @@ export class AlpacaStocksClient extends Websocket {
     this.unsubscribe({ quotes });
   }
 
-  unsubscribeFromBars(bars: Array<string>) {
+  unsubscribeFromBars(bars: Array<string>): void {
     this.session.subscriptions.bars = this.session.subscriptions.bars.filter(
       (bar: string) => !bars.includes(bar)
     );
     this.unsubscribe({ bars });
   }
 
-  unsubscriceFromDailyBars(dailyBars: Array<string>) {
+  unsubscriceFromDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars =
       this.session.subscriptions.dailyBars.filter(
         (dailyBar: string) => !dailyBars.includes(dailyBar)
@@ -157,7 +156,7 @@ export class AlpacaStocksClient extends Websocket {
     this.unsubscribe({ dailyBars });
   }
 
-  unsubscribeFromStatuses(statuses: Array<string>) {
+  unsubscribeFromStatuses(statuses: Array<string>): void {
     this.session.subscriptions.statuses =
       this.session.subscriptions.statuses.filter(
         (status: string) => !statuses.includes(status)
@@ -165,7 +164,7 @@ export class AlpacaStocksClient extends Websocket {
     this.unsubscribe({ statuses });
   }
 
-  unsubscribeFromLulds(lulds: Array<string>) {
+  unsubscribeFromLulds(lulds: Array<string>): void {
     this.session.subscriptions.statuses =
       this.session.subscriptions.lulds.filter(
         (luld: string) => !lulds.includes(luld)
@@ -180,7 +179,7 @@ export class AlpacaStocksClient extends Websocket {
     dailyBars?: Array<string>;
     statuses?: Array<string>;
     lulds?: Array<string>;
-  }) {
+  }): void {
     const unsubMsg = {
       action: "unsubscribe",
       trades: symbols.trades ?? [],
@@ -200,7 +199,7 @@ export class AlpacaStocksClient extends Websocket {
     dailyBars: Array<string>;
     statuses: Array<string>;
     lulds: Array<string>;
-  }) {
+  }): void {
     this.log(
       `listening to streams:
         trades: ${msg.trades},
@@ -220,27 +219,27 @@ export class AlpacaStocksClient extends Websocket {
     };
   }
 
-  onStockTrade(fn: (tarde: AlpacaTrade) => void) {
+  onStockTrade(fn: (tarde: AlpacaTrade) => void): void {
     this.on(EVENT.TRADES, (trade: AlpacaTrade) => fn(trade));
   }
 
-  onStockQuote(fn: (quote: AlapacaQuote) => void) {
+  onStockQuote(fn: (quote: AlapacaQuote) => void): void {
     this.on(EVENT.QUOTES, (quote: AlapacaQuote) => fn(quote));
   }
 
-  onStockBar(fn: (bar: AlpacaBar) => void) {
+  onStockBar(fn: (bar: AlpacaBar) => void): void {
     this.on(EVENT.BARS, (bar: AlpacaBar) => fn(bar));
   }
 
-  onStockDailyBar(fn: (dailyBar: AlpacaBar) => void) {
+  onStockDailyBar(fn: (dailyBar: AlpacaBar) => void): void {
     this.on(EVENT.DAILY_BARS, (dailyBar: AlpacaBar) => fn(dailyBar));
   }
 
-  onStatuses(fn: (status: AlpacaStatus) => void) {
+  onStatuses(fn: (status: AlpacaStatus) => void): void {
     this.on(EVENT.TRADING_STATUSES, (status: AlpacaStatus) => fn(status));
   }
 
-  onLulds(fn: (luld: AlpacaLuld) => void) {
+  onLulds(fn: (luld: AlpacaLuld) => void): void {
     this.on(EVENT.LULDS, (luld: AlpacaLuld) => fn(luld));
   }
 
@@ -248,32 +247,41 @@ export class AlpacaStocksClient extends Websocket {
     data: Array<
       StreamTrade | StreamQuote | StreamBar | StreamStatus | StreamLuld
     >
-  ) {
-    data.forEach((element: any) => {
-      if ("T" in element) {
-        switch (element.T) {
-          case "t":
-            this.emit(EVENT.TRADES, AlpacaTradeV2(element));
-            break;
-          case "q":
-            this.emit(EVENT.QUOTES, AlpacaQuoteV2(element));
-            break;
-          case "b":
-            this.emit(EVENT.BARS, AlpacaBarV2(element));
-            break;
-          case "d":
-            this.emit(EVENT.DAILY_BARS, AlpacaBarV2(element));
-            break;
-          case "s":
-            this.emit(EVENT.TRADING_STATUSES, AlpacaStatusV2(element));
-            break;
-          case "l":
-            this.emit(EVENT.LULDS, AlpacaLuldV2(element));
-            break;
-          default:
-            this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
+  ): void {
+    data.forEach(
+      (
+        element:
+          | StreamTrade
+          | StreamQuote
+          | StreamBar
+          | StreamStatus
+          | StreamLuld
+      ) => {
+        if ("T" in element) {
+          switch (element.T) {
+            case "t":
+              this.emit(EVENT.TRADES, AlpacaTradeV2(element));
+              break;
+            case "q":
+              this.emit(EVENT.QUOTES, AlpacaQuoteV2(element));
+              break;
+            case "b":
+              this.emit(EVENT.BARS, AlpacaBarV2(element));
+              break;
+            case "d":
+              this.emit(EVENT.DAILY_BARS, AlpacaBarV2(element));
+              break;
+            case "s":
+              this.emit(EVENT.TRADING_STATUSES, AlpacaStatusV2(element));
+              break;
+            case "l":
+              this.emit(EVENT.LULDS, AlpacaLuldV2(element));
+              break;
+            default:
+              this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
+          }
         }
       }
-    });
+    );
   }
 }

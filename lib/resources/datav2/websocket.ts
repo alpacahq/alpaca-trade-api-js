@@ -80,15 +80,15 @@ interface WebsocketSession {
 interface AlpacaBaseWebsocket {
   session: WebsocketSession;
   connect: () => void;
-  onConnect: (fn: () => {}) => void;
+  onConnect: (fn: () => void) => void;
   reconnecting: () => void;
-  onError: (fn: (err: Error) => {}) => void;
-  onStateChange: (fn: () => {}) => void;
+  onError: (fn: (err: Error) => void) => void;
+  onStateChange: (fn: () => void) => void;
   authenticate: () => void;
   handleMessage(data: any): void;
   disconnect: () => void;
-  onDisconnect: (fn: () => {}) => void;
-  getSubscriptions: () => {};
+  onDisconnect: (fn: () => void) => void;
+  getSubscriptions: () => void;
   log: (msg: Array<any>) => void;
 }
 
@@ -169,7 +169,7 @@ export abstract class AlpacaWebsocket
     });
   }
 
-  onConnect(fn: () => void) {
+  onConnect(fn: () => void): void {
     this.on(STATE.AUTHENTICATED, () => {
       fn();
       //if reconnected the user should subcribe to its symbols again
@@ -177,9 +177,9 @@ export abstract class AlpacaWebsocket
     });
   }
 
-  reconnecting() {
-    let { backoff, reconnectTimeout, backoffIncrement, maxReconnectTimeout } =
-      this.session;
+  reconnecting(): void {
+    const { backoff, backoffIncrement, maxReconnectTimeout } = this.session;
+    let reconnectTimeout = this.session.reconnectTimeout;
     if (
       backoff &&
       reconnectTimeout &&
@@ -197,7 +197,7 @@ export abstract class AlpacaWebsocket
     }
   }
 
-  authenticate() {
+  authenticate(): void {
     const authMsg = {
       action: "auth",
       key: this.session.apiKey,
@@ -215,20 +215,20 @@ export abstract class AlpacaWebsocket
     this.session.reconnect = false;
   }
 
-  onDisconnect(fn: () => void) {
+  onDisconnect(fn: () => void): void {
     this.on(STATE.DISCONNECTED, () => fn());
   }
 
-  onError(fn: (err: Error) => void) {
+  onError(fn: (err: Error) => void): void {
     this.on(EVENT.CLIENT_ERROR, (err: any) => fn(err));
   }
 
-  onStateChange(fn: (newState: STATE) => void) {
+  onStateChange(fn: (newState: STATE) => void): void {
     this.on(EVENT.STATE_CHANGE, (newState: any) => fn(newState));
   }
 
-  handleMessage(data: any) {
-    const msgType = !!data?.length ? data[0].T : "";
+  handleMessage(data: any): void {
+    const msgType = data?.length ? data[0].T : "";
 
     switch (msgType) {
       case "success":
@@ -251,17 +251,18 @@ export abstract class AlpacaWebsocket
     }
   }
 
-  log(msg: any) {
+  log(msg: unknown): void {
     if (this.session.verbose) {
+      // eslint-disable-next-line no-console
       console.log(msg);
     }
   }
 
-  getSubscriptions() {
+  getSubscriptions(): void {
     return this.session.subscriptions;
   }
 
-  abstract dataHandler(data: any): void;
-  abstract updateSubscriptions(data: any): void;
+  abstract dataHandler(data: unknown): void;
+  abstract updateSubscriptions(data: unknown): void;
   abstract subscribeAll(): void;
 }
