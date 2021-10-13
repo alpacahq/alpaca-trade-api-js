@@ -1,2 +1,2 @@
 import Alpaca from "./alpaca-trade-api";
-export { Alpaca };
+export { Alpaca as api };

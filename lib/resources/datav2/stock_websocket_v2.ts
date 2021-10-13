@@ -9,11 +9,11 @@ import {
   AlpacaBar,
   AlpacaStatus,
   AlpacaLuld,
-  StreamTrade,
-  StreamQuote,
-  StreamBar,
-  StreamLuld,
-  StreamStatus,
+  RawTrade,
+  RawQuote,
+  RawBar,
+  RawLuld,
+  RawStatus,
 } from "./entityv2";
 import {
   AlpacaWebsocket as Websocket,
@@ -244,38 +244,32 @@ export class AlpacaStocksClient extends Websocket {
   }
 
   dataHandler(
-    data: Array<
-      StreamTrade | StreamQuote | StreamBar | StreamStatus | StreamLuld
-    >
+    data: Array<RawTrade | RawQuote | RawBar | RawStatus | RawLuld>
   ): void {
     data.forEach(
-      (
-        element:
-          | StreamTrade
-          | StreamQuote
-          | StreamBar
-          | StreamStatus
-          | StreamLuld
-      ) => {
+      (element: RawTrade | RawQuote | RawBar | RawStatus | RawLuld) => {
         if ("T" in element) {
           switch (element.T) {
             case "t":
-              this.emit(EVENT.TRADES, AlpacaTradeV2(element));
+              this.emit(EVENT.TRADES, AlpacaTradeV2(element as RawTrade));
               break;
             case "q":
-              this.emit(EVENT.QUOTES, AlpacaQuoteV2(element));
+              this.emit(EVENT.QUOTES, AlpacaQuoteV2(element as RawQuote));
               break;
             case "b":
-              this.emit(EVENT.BARS, AlpacaBarV2(element));
+              this.emit(EVENT.BARS, AlpacaBarV2(element as RawBar));
               break;
             case "d":
-              this.emit(EVENT.DAILY_BARS, AlpacaBarV2(element));
+              this.emit(EVENT.DAILY_BARS, AlpacaBarV2(element as RawBar));
               break;
             case "s":
-              this.emit(EVENT.TRADING_STATUSES, AlpacaStatusV2(element));
+              this.emit(
+                EVENT.TRADING_STATUSES,
+                AlpacaStatusV2(element as RawStatus)
+              );
               break;
             case "l":
-              this.emit(EVENT.LULDS, AlpacaLuldV2(element));
+              this.emit(EVENT.LULDS, AlpacaLuldV2(element as RawLuld));
               break;
             default:
               this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);

@@ -5,9 +5,9 @@ import {
   CryptoBar,
   CryptoQuote,
   CryptoTrade,
-  StreamCryptoTrade,
-  StreamCryptoQuote,
-  StreamCryptoBar,
+  RawCryptoTrade,
+  RawCryptoQuote,
+  RawCryptoBar,
 } from "./entityv2";
 import {
   AlpacaWebsocket as Websocket,
@@ -180,29 +180,36 @@ export class AlpacaCryptoClient extends Websocket {
   }
 
   dataHandler(
-    data: Array<StreamCryptoTrade | StreamCryptoQuote | StreamCryptoBar>
+    data: Array<RawCryptoTrade | RawCryptoQuote | RawCryptoBar>
   ): void {
-    data.forEach(
-      (element: StreamCryptoTrade | StreamCryptoQuote | StreamCryptoBar) => {
-        if ("T" in element) {
-          switch (element.T) {
-            case "t":
-              this.emit(EVENT.TRADES, AlpacaCryptoTrade(element));
-              break;
-            case "q":
-              this.emit(EVENT.QUOTES, AlpacaCryptoQuote(element));
-              break;
-            case "b":
-              this.emit(EVENT.BARS, AlpacaCryptoBar(element));
-              break;
-            case "d":
-              this.emit(EVENT.DAILY_BARS, AlpacaCryptoBar(element));
-              break;
-            default:
-              this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
-          }
+    data.forEach((element: RawCryptoTrade | RawCryptoQuote | RawCryptoBar) => {
+      if ("T" in element) {
+        switch (element.T) {
+          case "t":
+            this.emit(
+              EVENT.TRADES,
+              AlpacaCryptoTrade(element as RawCryptoTrade)
+            );
+            break;
+          case "q":
+            this.emit(
+              EVENT.QUOTES,
+              AlpacaCryptoQuote(element as RawCryptoQuote)
+            );
+            break;
+          case "b":
+            this.emit(EVENT.BARS, AlpacaCryptoBar(element as RawCryptoBar));
+            break;
+          case "d":
+            this.emit(
+              EVENT.DAILY_BARS,
+              AlpacaCryptoBar(element as RawCryptoBar)
+            );
+            break;
+          default:
+            this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
         }
       }
-    );
+    });
   }
 }

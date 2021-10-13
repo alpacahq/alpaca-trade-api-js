@@ -208,7 +208,7 @@ export abstract class AlpacaWebsocket
     this.session.currentState = STATE.AUTHENTICATING;
   }
 
-  disconnect() {
+  disconnect(): void {
     this.emit(STATE.DISCONNECTED);
     this.session.currentState = STATE.DISCONNECTED;
     this.conn.close();

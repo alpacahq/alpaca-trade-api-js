@@ -1,5 +1,5 @@
-import axios from "axios";
-const {
+import axios, { AxiosResponse } from "axios";
+import {
   AlpacaTradeV2,
   AlpacaBarV2,
   AlpacaQuoteV2,
@@ -8,7 +8,7 @@ const {
   AlpacaCryptoQuote,
   AlpacaCryptoBar,
   AlpacaCryptoXBBO,
-} = require("./entityv2");
+} from "./entityv2";
 
 // Number of data points to return.
 const V2_MAX_LIMIT = 10000;
@@ -26,7 +26,11 @@ export enum TYPE {
   BARS = "bars",
 }
 
-export function dataV2HttpRequest(url: string, queryParams: any, config: any) {
+export function dataV2HttpRequest(
+  url: string,
+  queryParams: any,
+  config: any
+): Promise<AxiosResponse<any>> {
   const { dataBaseUrl, keyId, secretKey, oauth } = config;
   const resp = axios
     .get(`${dataBaseUrl}${url}`, {
@@ -44,8 +48,7 @@ export function dataV2HttpRequest(url: string, queryParams: any, config: any) {
             },
     })
     .catch((err: any) => {
-      let message = err.message;
-      throw new Error(message);
+      throw new Error(err.message);
     });
   return resp;
 }
@@ -57,7 +60,7 @@ export async function* getDataV2(
   config: any
 ) {
   let pageToken: string | null = null;
-  let totalItems: number = 0;
+  let totalItems = 0;
   const limit = options.limit;
   while (true) {
     let actualLimit: number | null = null;
@@ -70,7 +73,7 @@ export async function* getDataV2(
     Object.assign(options, { limit: actualLimit, page_token: pageToken });
     const resp = await dataV2HttpRequest(`${path}`, options, config);
     const items = resp.data[endpoint];
-    for (let item of items) {
+    for (const item of items) {
       yield item;
     }
     totalItems += items.length;
@@ -89,7 +92,7 @@ export async function* getMultiDataV2(
 ) {
   let pageToken = null;
   while (true) {
-    let params: any = {
+    const params: any = {
       ...options,
       symbols: symbols.join(","),
       limit: options.page_limit,
@@ -116,11 +119,11 @@ export async function* getMultiDataV2(
 
 export interface GetTradesParams {
   start: string;
-  end: string;
-  page_limit: number;
-  limit: number;
-  feed: string;
-  page_token: string;
+  end?: string;
+  page_limit?: number;
+  limit?: number;
+  feed?: string;
+  page_token?: string;
 }
 
 export async function* getTrades(
@@ -134,7 +137,8 @@ export async function* getTrades(
     options,
     config
   );
-  for await (let trade of trades) {
+  for await (const trade of trades) {
+    console.log(trade);
     yield AlpacaTradeV2(trade);
   }
 }
@@ -145,8 +149,8 @@ export async function getMultiTrades(
   config: any
 ) {
   const multiTrades = getMultiTradesAsync(symbols, options, config);
-  let trades = new Map<string, Array<any>>();
-  for await (let t of multiTrades) {
+  const trades = new Map<string, Array<any>>();
+  for await (const t of multiTrades) {
     const items = trades.get(t.Symbol) || new Array<any>();
     trades.set(t.Symbol, [...items, t]);
   }
@@ -159,7 +163,7 @@ export async function* getMultiTradesAsync(
   config: any
 ) {
   const multiTrades = getMultiDataV2(symbols, TYPE.TRADES, options, config);
-  for await (let t of multiTrades) {
+  for await (const t of multiTrades) {
     t.data = { ...t.data, S: t.symbol };
     yield AlpacaTradeV2(t.data);
   }
@@ -167,11 +171,11 @@ export async function* getMultiTradesAsync(
 
 export interface GetQoutesParams {
   start: string;
-  end: string;
-  page_limit: number;
-  limit: number;
-  feed: string;
-  page_token: string;
+  end?: string;
+  page_limit?: number;
+  limit?: number;
+  feed?: string;
+  page_token?: string;
 }
 
 export async function* getQuotes(
@@ -185,7 +189,7 @@ export async function* getQuotes(
     options,
     config
   );
-  for await (let quote of quotes) {
+  for await (const quote of quotes) {
     yield AlpacaQuoteV2(quote);
   }
 }
@@ -196,8 +200,8 @@ export async function getMultiQuotes(
   config: any
 ) {
   const multiQuotes = getMultiQuotesAsync(symbols, options, config);
-  let quotes = new Map<string, Array<any>>();
-  for await (let q of multiQuotes) {
+  const quotes = new Map<string, Array<any>>();
+  for await (const q of multiQuotes) {
     const items = quotes.get(q.Symbol) || new Array<any>();
     quotes.set(q.Symbol, [...items, q]);
   }
@@ -210,7 +214,7 @@ export async function* getMultiQuotesAsync(
   config: any
 ) {
   const multiQuotes = getMultiDataV2(symbols, TYPE.QUOTES, options, config);
-  for await (let q of multiQuotes) {
+  for await (const q of multiQuotes) {
     q.data = { ...q.data, S: q.symbol };
     yield AlpacaQuoteV2(q.data);
   }
@@ -218,13 +222,13 @@ export async function* getMultiQuotesAsync(
 
 export interface GetBarsParams {
   timeframe: string;
-  adjustment: Adjustment;
+  adjustment?: Adjustment;
   start: string;
-  end: string;
-  page_limit: number;
-  limit: number;
-  feed: string;
-  page_token: string;
+  end?: string;
+  page_limit?: number;
+  limit?: number;
+  feed?: string;
+  page_token?: string;
 }
 
 export async function* getBars(
@@ -239,7 +243,7 @@ export async function* getBars(
     config
   );
 
-  for await (let bar of bars) {
+  for await (const bar of bars) {
     yield AlpacaBarV2(bar);
   }
 }
@@ -250,8 +254,8 @@ export async function getMultiBars(
   config: any
 ) {
   const multiBars = getMultiBarsAsync(symbols, options, config);
-  let bars = new Map<string, Array<any>>();
-  for await (let b of multiBars) {
+  const bars = new Map<string, Array<any>>();
+  for await (const b of multiBars) {
     const items = bars.get(b.Symbol) || new Array<any>();
     bars.set(b.Symbol, [...items, b]);
   }
@@ -264,7 +268,7 @@ export async function* getMultiBarsAsync(
   config: any
 ) {
   const multiBars = getMultiDataV2(symbols, TYPE.BARS, options, config);
-  for await (let b of multiBars) {
+  for await (const b of multiBars) {
     b.data = { ...b.data, S: b.symbol };
     yield AlpacaBarV2(b.data);
   }
@@ -319,10 +323,10 @@ export async function getSnapshots(symbols: Array<string>, config: any) {
 
 export interface GetCryptoTradesParams {
   start: string;
-  end: string;
-  limit: number;
-  page_limit: number;
-  exchanges: Array<string>;
+  end?: string;
+  limit?: number;
+  page_limit?: number;
+  exchanges?: Array<string>;
 }
 
 export async function* getCryptoTrades(
@@ -336,17 +340,17 @@ export async function* getCryptoTrades(
     options,
     config
   );
-  for await (let t of cryptoTrades) {
+  for await (const t of cryptoTrades) {
     yield AlpacaCryptoTrade({ S: symbol, ...t });
   }
 }
 
 export interface GetCryptoQuotesParams {
   start: string;
-  end: string;
-  limit: number;
-  page_limit: number;
-  exchanges: Array<string>;
+  end?: string;
+  limit?: number;
+  page_limit?: number;
+  exchanges?: Array<string>;
 }
 
 export async function* getCryptoQuotes(
@@ -367,11 +371,11 @@ export async function* getCryptoQuotes(
 
 export interface GetCryptoBarsParams {
   start: string;
-  end: string;
+  end?: string;
   timeframe: string;
-  limit: number;
-  page_limit: number;
-  exchanges: Array<string>;
+  limit?: number;
+  page_limit?: number;
+  exchanges?: Array<string>;
 }
 
 export async function* getCryptoBars(
@@ -426,10 +430,10 @@ export async function getLatestCryptoQuote(
 
 export async function getLatestCryptoXBBO(
   symbol: string,
-  options: { exchanges: Array<string> },
+  options: { exchanges?: Array<string> },
   config: any
 ) {
-  const params = { exchanges: options.exchanges.join(",") };
+  const params = { exchanges: options.exchanges?.join(",") };
   const resp = await dataV2HttpRequest(
     `/v1beta1/crypto/${symbol}/xbbo/latest`,
     params,

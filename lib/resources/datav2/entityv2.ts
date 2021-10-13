@@ -23,7 +23,7 @@ export interface AlpacaTrade {
   Tape: string;
 }
 
-export interface StreamTrade {
+export interface RawTrade {
   T: string;
   S: string;
   i: number;
@@ -61,7 +61,7 @@ export interface AlapacaQuote {
   Tape: string;
 }
 
-export interface StreamQuote {
+export interface RawQuote {
   T: string;
   S: string;
   bx: string;
@@ -99,7 +99,7 @@ export interface AlpacaBar {
   TradeCount: number;
 }
 
-export interface StreamBar {
+export interface RawBar {
   T: string;
   S: string;
   o: number;
@@ -148,7 +148,7 @@ export interface AlpacaStatus {
   Tape: string;
 }
 
-export interface StreamStatus {
+export interface RawStatus {
   T: string;
   S: string;
   sc: string;
@@ -177,7 +177,7 @@ export interface AlpacaLuld {
   Tape: string;
 }
 
-export interface StreamLuld {
+export interface RawLuld {
   T: string;
   S: string;
   u: number;
@@ -207,7 +207,7 @@ export interface CryptoTrade {
   Id: number;
 }
 
-export interface StreamCryptoTrade {
+export interface RawCryptoTrade {
   T: string;
   S: string;
   t: string;
@@ -238,7 +238,7 @@ export interface CryptoQuote {
   AskSize: number;
 }
 
-export interface StreamCryptoQuote {
+export interface RawCryptoQuote {
   T: string;
   S: string;
   t: string;
@@ -273,7 +273,7 @@ export interface CryptoBar {
   TradeCount: number;
 }
 
-export interface StreamCryptoBar {
+export interface RawCryptoBar {
   T: string;
   S: string;
   t: string;
@@ -308,44 +308,56 @@ export interface CryptoXBBO {
   AskSize: number;
 }
 
-export function AlpacaTradeV2(data: any): AlpacaTrade {
+export interface RawCryptoXBBO {
+  T: string;
+  S: string;
+  t: string;
+  bx: string;
+  bp: number;
+  bs: number;
+  ax: string;
+  ap: number;
+  as: number;
+}
+
+export function AlpacaTradeV2(data: RawTrade): AlpacaTrade {
   return aliasObjectKey(data, trade_mapping_v2) as AlpacaTrade;
 }
 
-export function AlpacaQuoteV2(data: any): AlapacaQuote {
+export function AlpacaQuoteV2(data: RawQuote): AlapacaQuote {
   return aliasObjectKey(data, quote_mapping_v2) as AlapacaQuote;
 }
 
-export function AlpacaBarV2(data: any): AlpacaBar {
+export function AlpacaBarV2(data: RawBar): AlpacaBar {
   return aliasObjectKey(data, bar_mapping_v2) as AlpacaBar;
 }
 
-export function AlpacaSnaphotV2(data: any): AlpacaSnapshot {
-  let snapshot = aliasObjectKey(data, snapshot_mapping_v2);
+export function AlpacaSnaphotV2(data: AlpacaStatus): AlpacaSnapshot {
+  const snapshot = aliasObjectKey(data, snapshot_mapping_v2);
 
   return mapValues(snapshot, (value: any, key: any) => {
     return convertSnapshotData(key, value);
   }) as AlpacaSnapshot;
 }
 
-export function AlpacaStatusV2(data: any): AlpacaStatus {
+export function AlpacaStatusV2(data: RawStatus): AlpacaStatus {
   return aliasObjectKey(data, status_mapping_v2) as AlpacaStatus;
 }
 
-export function AlpacaLuldV2(data: any): AlpacaLuld {
+export function AlpacaLuldV2(data: RawLuld): AlpacaLuld {
   return aliasObjectKey(data, luld_mapping_v2) as AlpacaLuld;
 }
 
-export function AlpacaCryptoTrade(data: any): CryptoTrade {
+export function AlpacaCryptoTrade(data: RawCryptoTrade): CryptoTrade {
   return aliasObjectKey(data, crypto_trade_mapping) as CryptoTrade;
 }
 
-export function AlpacaCryptoQuote(data: any): CryptoQuote {
+export function AlpacaCryptoQuote(data: RawCryptoQuote): CryptoQuote {
   return aliasObjectKey(data, crypto_quote_mapping) as CryptoQuote;
 }
 
-export function AlpacaCryptoBar(data: any) {
-  return aliasObjectKey(data, crypro_bar_mapping);
+export function AlpacaCryptoBar(data: RawCryptoBar): CryptoBar {
+  return aliasObjectKey(data, crypro_bar_mapping) as CryptoBar;
 }
 
 function aliasObjectKey(data: any, mapping: any) {
@@ -354,7 +366,7 @@ function aliasObjectKey(data: any, mapping: any) {
   });
 }
 
-export function AlpacaCryptoXBBO(data: any): CryptoXBBO {
+export function AlpacaCryptoXBBO(data: RawCryptoXBBO): CryptoXBBO {
   return aliasObjectKey(data, crypto_xbbo_mapping) as CryptoXBBO;
 }
 
