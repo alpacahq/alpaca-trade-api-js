@@ -8,6 +8,14 @@ import {
   AlpacaCryptoQuote,
   AlpacaCryptoBar,
   AlpacaCryptoXBBO,
+  CryptoXBBO,
+  CryptoQuote,
+  CryptoTrade,
+  CryptoBar,
+  AlpacaSnapshot,
+  AlapacaQuote,
+  AlpacaTrade,
+  AlpacaBar,
 } from "./entityv2";
 
 // Number of data points to return.
@@ -58,7 +66,7 @@ export async function* getDataV2(
   path: string,
   options: any,
   config: any
-) {
+): AsyncGenerator<any, void, unknown> {
   let pageToken: string | null = null;
   let totalItems = 0;
   const limit = options.limit;
@@ -89,7 +97,14 @@ export async function* getMultiDataV2(
   endpoint: string,
   options: any,
   config: any
-) {
+): AsyncGenerator<
+  {
+    symbol: string;
+    data: any;
+  },
+  void,
+  unknown
+> {
   let pageToken = null;
   while (true) {
     const params: any = {
@@ -130,7 +145,7 @@ export async function* getTrades(
   symbol: string,
   options: GetTradesParams,
   config: any
-) {
+): AsyncGenerator<AlpacaTrade, void, unknown> {
   const trades = getDataV2(
     TYPE.TRADES,
     `/v2/stocks/${symbol}/${TYPE.TRADES}`,
@@ -138,7 +153,6 @@ export async function* getTrades(
     config
   );
   for await (const trade of trades) {
-    console.log(trade);
     yield AlpacaTradeV2(trade);
   }
 }
@@ -147,7 +161,7 @@ export async function getMultiTrades(
   symbols: Array<string>,
   options: GetTradesParams,
   config: any
-) {
+): Promise<Map<string, any[]>> {
   const multiTrades = getMultiTradesAsync(symbols, options, config);
   const trades = new Map<string, Array<any>>();
   for await (const t of multiTrades) {
@@ -161,7 +175,7 @@ export async function* getMultiTradesAsync(
   symbols: Array<string>,
   options: GetTradesParams,
   config: any
-) {
+): AsyncGenerator<AlpacaTrade, void, unknown> {
   const multiTrades = getMultiDataV2(symbols, TYPE.TRADES, options, config);
   for await (const t of multiTrades) {
     t.data = { ...t.data, S: t.symbol };
@@ -182,7 +196,7 @@ export async function* getQuotes(
   symbol: string,
   options: GetQoutesParams,
   config: any
-) {
+): AsyncGenerator<AlapacaQuote, void, unknown> {
   const quotes = getDataV2(
     TYPE.QUOTES,
     `/v2/stocks/${symbol}/${TYPE.QUOTES}`,
@@ -198,7 +212,7 @@ export async function getMultiQuotes(
   symbols: Array<string>,
   options: GetQoutesParams,
   config: any
-) {
+): Promise<Map<string, any[]>> {
   const multiQuotes = getMultiQuotesAsync(symbols, options, config);
   const quotes = new Map<string, Array<any>>();
   for await (const q of multiQuotes) {
@@ -212,7 +226,7 @@ export async function* getMultiQuotesAsync(
   symbols: Array<string>,
   options: GetQoutesParams,
   config: any
-) {
+): AsyncGenerator<AlapacaQuote, void, unknown> {
   const multiQuotes = getMultiDataV2(symbols, TYPE.QUOTES, options, config);
   for await (const q of multiQuotes) {
     q.data = { ...q.data, S: q.symbol };
@@ -235,7 +249,7 @@ export async function* getBars(
   symbol: string,
   options: GetBarsParams,
   config: any
-) {
+): AsyncGenerator<AlpacaBar, void, unknown> {
   const bars = getDataV2(
     TYPE.BARS,
     `/v2/stocks/${symbol}/${TYPE.BARS}`,
@@ -252,7 +266,7 @@ export async function getMultiBars(
   symbols: Array<string>,
   options: GetBarsParams,
   config: any
-) {
+): Promise<Map<string, any[]>> {
   const multiBars = getMultiBarsAsync(symbols, options, config);
   const bars = new Map<string, Array<any>>();
   for await (const b of multiBars) {
@@ -266,7 +280,7 @@ export async function* getMultiBarsAsync(
   symbols: Array<string>,
   options: GetBarsParams,
   config: any
-) {
+): AsyncGenerator<AlpacaBar, void, unknown> {
   const multiBars = getMultiDataV2(symbols, TYPE.BARS, options, config);
   for await (const b of multiBars) {
     b.data = { ...b.data, S: b.symbol };
@@ -274,7 +288,10 @@ export async function* getMultiBarsAsync(
   }
 }
 
-export async function getLatestTrade(symbol: string, config: any) {
+export async function getLatestTrade(
+  symbol: string,
+  config: any
+): Promise<AlpacaTrade> {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${symbol}/trades/latest`,
     {},
@@ -283,7 +300,10 @@ export async function getLatestTrade(symbol: string, config: any) {
   return AlpacaTradeV2(resp.data.trade);
 }
 
-export async function getLatestQuote(symbol: string, config: any) {
+export async function getLatestQuote(
+  symbol: string,
+  config: any
+): Promise<AlapacaQuote> {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${symbol}/quotes/latest`,
     {},
@@ -292,7 +312,10 @@ export async function getLatestQuote(symbol: string, config: any) {
   return AlpacaQuoteV2(resp.data.quote);
 }
 
-export async function getSnapshot(symbol: string, config: any) {
+export async function getSnapshot(
+  symbol: string,
+  config: any
+): Promise<AlpacaSnapshot> {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${symbol}/snapshot`,
     {},
@@ -302,7 +325,10 @@ export async function getSnapshot(symbol: string, config: any) {
   return AlpacaSnaphotV2(resp.data);
 }
 
-export async function getSnapshots(symbols: Array<string>, config: any) {
+export async function getSnapshots(
+  symbols: Array<string>,
+  config: any
+): Promise<AlpacaSnapshot[]> {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/snapshots?symbols=${symbols.join(",")}`,
     {},
@@ -333,7 +359,7 @@ export async function* getCryptoTrades(
   symbol: string,
   options: GetCryptoTradesParams,
   config: any
-) {
+): AsyncGenerator<CryptoTrade, void, unknown> {
   const cryptoTrades = getDataV2(
     TYPE.TRADES,
     `/v1beta1/crypto/${symbol}/trades`,
@@ -357,7 +383,7 @@ export async function* getCryptoQuotes(
   symbol: string,
   options: GetCryptoQuotesParams,
   config: any
-) {
+): AsyncGenerator<CryptoQuote, void, unknown> {
   const cryptoQuotes = getDataV2(
     TYPE.QUOTES,
     `/v1beta1/crypto/${symbol}/quotes`,
@@ -382,7 +408,7 @@ export async function* getCryptoBars(
   symbol: string,
   options: GetCryptoBarsParams,
   config: any
-) {
+): AsyncGenerator<CryptoBar, void, unknown> {
   const cryptoBars = getDataV2(
     TYPE.BARS,
     `/v1beta1/crypto/${symbol}/bars`,
@@ -400,7 +426,7 @@ export async function getLatestCryptoTrade(
   symbol: string,
   options: { exchange: string },
   config: any
-) {
+): Promise<CryptoTrade> {
   const resp = await dataV2HttpRequest(
     `/v1beta1/crypto/${symbol}/trades/latest`,
     options,
@@ -416,7 +442,7 @@ export async function getLatestCryptoQuote(
   symbol: string,
   options: { exchange: string },
   config: any
-) {
+): Promise<CryptoQuote> {
   const resp = await dataV2HttpRequest(
     `/v1beta1/crypto/${symbol}/quotes/latest`,
     options,
@@ -432,7 +458,7 @@ export async function getLatestCryptoXBBO(
   symbol: string,
   options: { exchanges?: Array<string> },
   config: any
-) {
+): Promise<CryptoXBBO> {
   const params = { exchanges: options.exchanges?.join(",") };
   const resp = await dataV2HttpRequest(
     `/v1beta1/crypto/${symbol}/xbbo/latest`,
