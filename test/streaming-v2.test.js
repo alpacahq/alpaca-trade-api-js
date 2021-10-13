@@ -1,7 +1,8 @@
 "use strict";
 
 const { expect } = require("chai");
-const alpacaApi = require("../lib/alpaca-trade-api");
+const { isEqual } = require("lodash");
+const alpacaApi = require("../dist/alpaca-trade-api");
 const mockServer = require("./support/mock-streaming");
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
@@ -85,46 +86,46 @@ describe("data_stream_v2", () => {
   });
 
   it("subscribe for symbol", async () => {
-    const expectedSubs = JSON.stringify({
+    const expectedSubs = {
       trades: ["AAPL"],
       quotes: [],
       bars: ["GE"],
       dailyBars: [],
       statuses: [],
       lulds: [],
-    });
+    };
 
     socket.subscribeForTrades(["AAPL"]);
     socket.subscribeForBars(["GE"]);
 
     const res = await waitFor(() => {
-      return JSON.stringify(socket.getSubscriptions()) === expectedSubs;
+      return isEqual(socket.getSubscriptions(), expectedSubs);
     });
     expect(res).to.be.true;
   });
 
   it("unsubscribe from symbol", async () => {
-    const expectedSubs = JSON.stringify({
+    const expectedSubs = {
       trades: [],
       quotes: [],
       bars: [],
       dailyBars: [],
       statuses: [],
       lulds: [],
-    });
+    };
 
     socket.unsubscribeFromTrades("AAPL");
     socket.unsubscribeFromBars(["GE"]);
 
     const res = await waitFor(() => {
-      return JSON.stringify(socket.getSubscriptions()) === expectedSubs;
+      return isEqual(socket.getSubscriptions(), expectedSubs);
     });
     expect(res).to.be.true;
   });
 
   it("parse streamed trade", async () => {
     let data;
-    const parsed = JSON.stringify({
+    const parsed = {
       T: "t",
       ID: 1532,
       Symbol: "AAPL",
@@ -134,20 +135,20 @@ describe("data_stream_v2", () => {
       Timestamp: "2021-01-27T10:35:34.82840127Z",
       Conditions: ["@", "F", "T", "I"],
       Tape: "C",
-    });
+    };
     socket.onStockTrade((trade) => {
       data = trade;
     });
 
     socket.subscribeForTrades(["AAPL"]);
 
-    const res = await waitFor(() => JSON.stringify(data) === parsed);
+    const res = await waitFor(() => isEqual(data, parsed));
     expect(res).to.be.true;
   });
 
   it("parse streamed quote", async () => {
     let data;
-    const parsed = JSON.stringify({
+    const parsed = {
       T: "q",
       Symbol: "AAPL",
       BidExchange: "Z",
@@ -157,24 +158,23 @@ describe("data_stream_v2", () => {
       AskPrice: 139.77,
       AskSize: 1,
       Timestamp: "2021-01-28T15:20:41.384564Z",
-      Condition: "R",
+      Conditions: "R",
       Tape: "C",
-    });
+    };
     socket.onStockQuote((quote) => {
       data = quote;
     });
-
     socket.subscribeForQuotes(["AAPL"]);
 
     const res = await waitFor(() => {
-      return JSON.stringify(data) === parsed;
+      return isEqual(data, parsed);
     });
     expect(res).to.be.true;
   });
 
   it("subscribe for bar and parse it", async () => {
     let data;
-    const parsed = JSON.stringify({
+    const parsed = {
       T: "b",
       Symbol: "AAPL",
       OpenPrice: 127.82,
@@ -185,7 +185,7 @@ describe("data_stream_v2", () => {
       Timestamp: "2021-05-25T04:00:00Z",
       VWAP: 127.07392,
       TradeCount: 462915,
-    });
+    };
 
     socket.onStockBar((bar) => {
       data = bar;
@@ -194,7 +194,7 @@ describe("data_stream_v2", () => {
     socket.subscribeForBars(["AAPL"]);
 
     const res = await waitFor(() => {
-      return JSON.stringify(data) === parsed;
+      return isEqual(data, parsed);
     });
 
     expect(res).to.be.true;
@@ -202,7 +202,7 @@ describe("data_stream_v2", () => {
 
   it("subscribe for status and parse it", async () => {
     let data;
-    const parsed = JSON.stringify({
+    const parsed = {
       T: "s",
       Symbol: "AAPL",
       StatusCode: "StatusCode",
@@ -211,7 +211,7 @@ describe("data_stream_v2", () => {
       ReasonMessage: "ReasonMessage",
       Timestamp: "Timestamp",
       Tape: "Tape",
-    });
+    };
 
     socket.onStatuses((s) => {
       data = s;
@@ -219,7 +219,7 @@ describe("data_stream_v2", () => {
     socket.subscribeForStatuses(["AAPL"]);
 
     const res = await waitFor(() => {
-      return JSON.stringify(data) === parsed;
+      return isEqual(data, parsed);
     });
     expect(res).to.be.true;
   });

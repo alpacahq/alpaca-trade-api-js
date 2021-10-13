@@ -1,8 +1,7 @@
 "use strict";
 
 const { expect } = require("chai");
-const { assert } = require("joi/lib/types/object");
-const api = require("../lib/alpaca-trade-api");
+const api = require("../dist/alpaca-trade-api");
 const mock = require("./support/mock-server");
 
 function assertTrade(
@@ -33,7 +32,7 @@ function assertQuote(
     "AskPrice",
     "AskSize",
     "Timestamp",
-    "Condition",
+    "Conditions",
   ]
 ) {
   expect(quote).to.have.all.keys(keys);
@@ -181,7 +180,7 @@ describe("data v2 rest", () => {
         },
         alpaca.configuration
       )
-    ).to.eventually.be.rejectedWith("symbols should be an array");
+    ).to.eventually.be.rejectedWith("symbols.join is not a function");
   });
 
   it("get multi trades", async () => {
@@ -194,10 +193,9 @@ describe("data v2 rest", () => {
       alpaca.configuration
     );
     let gotSymbols = [];
-    for (let symbol in resp) {
+    for (let [symbol, trade] of resp) {
       gotSymbols.push(symbol);
-      const trade = resp[symbol][0];
-      assertTrade(trade, [
+      assertTrade(trade[0], [
         "Symbol",
         "ID",
         "Exchange",
@@ -258,7 +256,7 @@ describe("data v2 rest", () => {
         "AskPrice",
         "AskSize",
         "Timestamp",
-        "Condition",
+        "Conditions",
       ]);
     }
     expect(gotSymbols.size).to.equal(2);

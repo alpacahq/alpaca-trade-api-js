@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./dist",
+    "allowJs": true,
+    "checkJs": false,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "alwaysStrict": true,
+    "skipLibCheck": true
+  },
+  "include": ["./lib/**/*.ts", "./lib/**/*.js"],
+  "exclude": ["./dist/**/*"]
+}
