@@ -40,7 +40,7 @@ export function dataV2HttpRequest(
   config: any
 ): Promise<AxiosResponse<any>> {
   const { dataBaseUrl, keyId, secretKey, oauth } = config;
-  let headers: any = {
+  const headers: any = {
     "Content-Type": "application/json", 
     "Accept-Encoding": "gzip",
   }
