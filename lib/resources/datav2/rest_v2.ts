@@ -40,20 +40,20 @@ export function dataV2HttpRequest(
   config: any
 ): Promise<AxiosResponse<any>> {
   const { dataBaseUrl, keyId, secretKey, oauth } = config;
+  const headers: any = {
+    "Content-Type": "application/json", 
+    "Accept-Encoding": "gzip",
+  }
+  if (oauth == "") {
+    headers["APCA-API-KEY-ID"] = keyId
+    headers["APCA-API-SECRET-KEY"] = secretKey
+  } else {
+    headers["Authorization"] = "Bearer " + oauth
+  }
   const resp = axios
     .get(`${dataBaseUrl}${url}`, {
       params: queryParams,
-      headers:
-        oauth !== ""
-          ? {
-              "content-type": "application/json",
-              Authorization: "Bearer " + oauth,
-            }
-          : {
-              "content-type": "application/json",
-              "APCA-API-KEY-ID": keyId,
-              "APCA-API-SECRET-KEY": secretKey,
-            },
+      headers: headers,
     })
     .catch((err: any) => {
       throw new Error(err.message);
