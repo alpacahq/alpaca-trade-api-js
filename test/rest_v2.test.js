@@ -60,15 +60,11 @@ describe("data v2 rest", () => {
   });
 
   it("get trades with paging", async () => {
-    let resp = alpaca.getTradesV2(
-      "AAPL",
-      {
-        start: "2021-02-08",
-        end: "2021-02-10",
-        limit: 10,
-      },
-      alpaca.configuration
-    );
+    let resp = alpaca.getTradesV2("AAPL", {
+      start: "2021-02-08",
+      end: "2021-02-10",
+      limit: 10,
+    });
     const trades = [];
 
     for await (let t of resp) {
@@ -80,15 +76,11 @@ describe("data v2 rest", () => {
   });
 
   it("get quotes", async () => {
-    let resp = alpaca.getQuotesV2(
-      "AAPL",
-      {
-        start: "2021-02-08",
-        end: "2021-02-10",
-        limit: 4,
-      },
-      alpaca.configuration
-    );
+    let resp = alpaca.getQuotesV2("AAPL", {
+      start: "2021-02-08",
+      end: "2021-02-10",
+      limit: 4,
+    });
     const quotes = [];
 
     for await (let q of resp) {
@@ -100,14 +92,10 @@ describe("data v2 rest", () => {
   });
 
   it("get quotes without limit", async () => {
-    let resp = alpaca.getQuotesV2(
-      "AAPL",
-      {
-        start: "2021-02-08",
-        end: "2021-02-10",
-      },
-      alpaca.configuration
-    );
+    let resp = alpaca.getQuotesV2("AAPL", {
+      start: "2021-02-08",
+      end: "2021-02-10",
+    });
     const quotes = [];
 
     for await (let q of resp) {
@@ -119,17 +107,13 @@ describe("data v2 rest", () => {
   });
 
   it("get bars", async () => {
-    let resp = alpaca.getBarsV2(
-      "AAPL",
-      {
-        start: "2021-02-01",
-        end: "2021-02-10",
-        limit: 2,
-        timeframe: "1Day",
-        adjustment: alpaca.adjustment.RAW,
-      },
-      alpaca.configuration
-    );
+    let resp = alpaca.getBarsV2("AAPL", {
+      start: "2021-02-01",
+      end: "2021-02-10",
+      limit: 2,
+      timeframe: "1Day",
+      adjustment: alpaca.adjustment.RAW,
+    });
     const bars = [];
 
     for await (let b of resp) {
@@ -141,28 +125,25 @@ describe("data v2 rest", () => {
   });
 
   it("get latest AAPL trade", async () => {
-    const resp = await alpaca.getLatestTrade("AAPL", alpaca.configuration);
+    const resp = await alpaca.getLatestTrade("AAPL");
 
     assertTrade(resp);
   });
 
   it("get last FB quote", async () => {
-    const resp = await alpaca.getLatestQuote("FB", alpaca.configuration);
+    const resp = await alpaca.getLatestQuote("FB");
 
     assertQuote(resp);
   });
 
   it("get snapshot for one symbol", async () => {
-    const resp = await alpaca.getSnapshot("AAPL", alpaca.configuration);
+    const resp = await alpaca.getSnapshot("AAPL");
 
     assertSnapshot(resp);
   });
 
   it("get snapashots for symbols", async () => {
-    const resp = await alpaca.getSnapshots(
-      ["FB", "AAPL"],
-      alpaca.configuration
-    );
+    const resp = await alpaca.getSnapshots(["FB", "AAPL"]);
 
     expect(resp.length).equal(2);
     resp.map((s) => {
@@ -172,26 +153,18 @@ describe("data v2 rest", () => {
 
   it("get multi trades with wrong symbols param", async () => {
     await expect(
-      alpaca.getMultiTradesV2(
-        "",
-        {
-          start: "2021-09-01T00:00:00.00Z",
-          end: "2021-09-02T22:00:00Z",
-        },
-        alpaca.configuration
-      )
+      alpaca.getMultiTradesV2("", {
+        start: "2021-09-01T00:00:00.00Z",
+        end: "2021-09-02T22:00:00Z",
+      })
     ).to.eventually.be.rejectedWith("symbols.join is not a function");
   });
 
   it("get multi trades", async () => {
-    const resp = await alpaca.getMultiTradesV2(
-      ["AAPL", "FB"],
-      {
-        start: "2021-09-01T00:00:00.00Z",
-        end: "2021-09-02T22:00:00Z",
-      },
-      alpaca.configuration
-    );
+    const resp = await alpaca.getMultiTradesV2(["AAPL", "FB"], {
+      start: "2021-09-01T00:00:00.00Z",
+      end: "2021-09-02T22:00:00Z",
+    });
     let gotSymbols = [];
     for (let [symbol, trade] of resp) {
       gotSymbols.push(symbol);
@@ -210,14 +183,10 @@ describe("data v2 rest", () => {
   });
 
   it("get multi trades async", async () => {
-    const resp = alpaca.getMultiTradesAsyncV2(
-      ["AAPL", "FB"],
-      {
-        start: "2021-09-01T00:00:00.00Z",
-        end: "2021-09-02T22:00:00Z",
-      },
-      alpaca.configuration
-    );
+    const resp = alpaca.getMultiTradesAsyncV2(["AAPL", "FB"], {
+      start: "2021-09-01T00:00:00.00Z",
+      end: "2021-09-02T22:00:00Z",
+    });
     let gotSymbols = new Map();
     for await (let t of resp) {
       gotSymbols.set(t.Symbol, {});
@@ -236,14 +205,10 @@ describe("data v2 rest", () => {
   });
 
   it("get multi quotes async", async () => {
-    const resp = alpaca.getMultiQuotesAsyncV2(
-      ["AAPL", "FB"],
-      {
-        start: "2021-08-11T08:30:00.00Z",
-        end: "2021-09-12T16:00:00Z",
-      },
-      alpaca.configuration
-    );
+    const resp = alpaca.getMultiQuotesAsyncV2(["AAPL", "FB"], {
+      start: "2021-08-11T08:30:00.00Z",
+      end: "2021-09-12T16:00:00Z",
+    });
     let gotSymbols = new Map();
     for await (let q of resp) {
       gotSymbols.set(q.Symbol, {});
@@ -308,16 +273,12 @@ describe("crypto data", () => {
   });
 
   it("get quotes", async () => {
-    const resp = alpaca.getCryptoQuotes(
-      "BTCUSD",
-      {
-        start: "2021-09-10",
-        end: "2021-09-11",
-        limit: 3,
-        exchanges: ["CBSE"],
-      },
-      alpaca.configuration
-    );
+    const resp = alpaca.getCryptoQuotes("BTCUSD", {
+      start: "2021-09-10",
+      end: "2021-09-11",
+      limit: 3,
+      exchanges: ["CBSE"],
+    });
 
     const quotes = [];
 
@@ -329,21 +290,17 @@ describe("crypto data", () => {
   });
 
   it("get latest trade", async () => {
-    const resp = await alpaca.getLatestCryptoTrade(
-      "BTCUSD",
-      { exchange: "ERSX" },
-      alpaca.configuration
-    );
+    const resp = await alpaca.getLatestCryptoTrade("BTCUSD", {
+      exchange: "ERSX",
+    });
 
     assertCryptoTrade(resp);
   });
 
   it("get latest xbbo", async () => {
-    const resp = await alpaca.getLatestCryptoXBBO(
-      "BTCUSD",
-      { exchanges: ["CBSE", "ERSX"] },
-      alpaca.configuration
-    );
+    const resp = await alpaca.getLatestCryptoXBBO("BTCUSD", {
+      exchanges: ["CBSE", "ERSX"],
+    });
 
     assertCryptoXBBO(resp);
   });
