@@ -49,6 +49,28 @@ module.exports = function createDataV2Mock() {
   );
 
   v2.get(
+    "/stocks/:endpoint/latest",
+    apiMethod((req) => {
+      assertSchema(req.query, {
+        symbols: joi.string(),
+        timeframe: joi.string().optional(),
+      });
+      const response = {};
+      response[req.params.endpoint] = {};
+      const symbols = req.query.symbols.split(",");
+      symbols.forEach((s) => {
+        response[req.params.endpoint][s] = {};
+      });
+      let i = 0;
+      for (const s in response[req.params.endpoint]) {
+        response[req.params.endpoint][s] = latest[req.params.endpoint][i].data;
+        i++;
+      }
+      return response;
+    })
+  );
+
+  v2.get(
     "/stocks/:symbol/:endpoint",
     apiMethod((req) => {
       assertSchema(req.query, {
@@ -79,12 +101,12 @@ module.exports = function createDataV2Mock() {
   v2.get(
     "/stocks/:symbol/trades/latest",
     apiMethod((req) => {
-      if (req.params.symbol !== latest.trade.symbol) {
+      if (req.params.symbol !== latest.trades[0].symbol) {
         throw apiError(422);
       }
       let resp = {
-        symbol: latest.trade.symbol,
-        trade: latest.trade.data,
+        symbol: latest.trades[0].symbol,
+        trade: latest.trades[0].data,
       };
       return resp;
     })
@@ -93,12 +115,12 @@ module.exports = function createDataV2Mock() {
   v2.get(
     "/stocks/:symbol/quotes/latest",
     apiMethod((req) => {
-      if (req.params.symbol !== latest.quote.symbol) {
+      if (req.params.symbol !== latest.quotes[0].symbol) {
         throw apiError(422);
       }
       let resp = {
-        symbol: latest.quote.symbol,
-        quote: latest.quote.data,
+        symbol: latest.quotes[0].symbol,
+        quote: latest.quotes[0].data,
       };
       return resp;
     })
@@ -158,35 +180,69 @@ const data = {
     l: 136.9,
     c: 136.81,
     v: 31491496,
+    vw: 136.0,
+    n: 3000,
   },
 };
 
 const latest = {
-  trade: {
-    symbol: "AAPL",
-    data: {
-      t: "2021-04-21T13:38:01.448130014Z",
-      x: "V",
-      p: 131.98,
-      s: 200,
-      c: ["@", "F"],
-      i: 814,
-      z: "C",
+  trades: [
+    {
+      symbol: "AAPL",
+      data: {
+        t: "2021-04-21T13:38:01.448130014Z",
+        x: "V",
+        p: 131.98,
+        s: 200,
+        c: ["@", "F"],
+        i: 814,
+        z: "C",
+      },
     },
-  },
-  quote: {
-    symbol: "FB",
-    data: {
-      t: "2021-04-21T13:38:02.663218404Z",
-      ax: "V",
-      ap: 317,
-      as: 1,
-      bx: "V",
-      bp: 299.39,
-      bs: 1,
-      c: ["R"],
+
+    {
+      symbol: "FB",
+      data: {
+        t: "2021-04-21T13:38:01.448130014Z",
+        x: "V",
+        p: 131.98,
+        s: 200,
+        c: ["@", "F"],
+        i: 814,
+        z: "C",
+      },
     },
-  },
+  ],
+  quotes: [
+    {
+      symbol: "FB",
+      data: {
+        t: "2021-04-21T13:38:02.663218404Z",
+        ax: "V",
+        ap: 317,
+        as: 1,
+        bx: "V",
+        bp: 299.39,
+        bs: 1,
+        c: ["R"],
+      },
+    },
+  ],
+  bars: [
+    {
+      symbol: "SPY",
+      data: {
+        t: "2021-02-08T00:00:00Z",
+        o: 136.11,
+        h: 134.93,
+        l: 136.9,
+        c: 136.81,
+        v: 31491496,
+        vw: 136.0,
+        n: 3000,
+      },
+    },
+  ],
 };
 
 const snapshots = {
@@ -218,6 +274,8 @@ const snapshots = {
       l: 322.22,
       c: 322.63,
       v: 6394,
+      vw: 322.0,
+      n: 3000,
     },
     dailyBar: {
       t: "2021-05-03T04:00:00Z",
@@ -226,6 +284,8 @@ const snapshots = {
       l: 321.9,
       c: 322.63,
       v: 507529,
+      vw: 324.0,
+      n: 3000,
     },
     prevDailyBar: {
       t: "2021-04-30T04:00:00Z",
@@ -234,6 +294,8 @@ const snapshots = {
       l: 324.54,
       c: 324.89,
       v: 859473,
+      vw: 325.0,
+      n: 3000,
     },
   },
   AAPL: {
@@ -264,6 +326,8 @@ const snapshots = {
       l: 132.43,
       c: 132.55,
       v: 9736,
+      vw: 132.0,
+      n: 300,
     },
     dailyBar: {
       t: "2021-05-03T04:00:00Z",
@@ -272,6 +336,8 @@ const snapshots = {
       l: 131.83,
       c: 132.55,
       v: 1364180,
+      vw: 132.0,
+      n: 300,
     },
     prevDailyBar: {
       t: "2021-04-30T04:00:00Z",
@@ -280,6 +346,8 @@ const snapshots = {
       l: 131.07,
       c: 131.44,
       v: 2088793,
+      vw: 132.0,
+      n: 300,
     },
   },
 };

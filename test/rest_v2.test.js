@@ -4,37 +4,47 @@ const { expect } = require("chai");
 const api = require("../dist/alpaca-trade-api");
 const mock = require("./support/mock-server");
 
-function assertTrade(
-  trade,
-  keys = ["ID", "Exchange", "Price", "Size", "Timestamp", "Conditions", "Tape"]
-) {
+const tradeKeys = [
+  "ID",
+  "Exchange",
+  "Price",
+  "Size",
+  "Timestamp",
+  "Conditions",
+  "Tape",
+];
+
+function assertTrade(trade, keys = tradeKeys) {
   expect(trade).to.have.all.keys(keys);
 }
 
-function assertBar(bar) {
-  expect(bar).to.have.all.keys([
-    "OpenPrice",
-    "HighPrice",
-    "LowPrice",
-    "ClosePrice",
-    "Volume",
-    "Timestamp",
-  ]);
+const barKeys = [
+  "OpenPrice",
+  "HighPrice",
+  "LowPrice",
+  "ClosePrice",
+  "Volume",
+  "Timestamp",
+  "TradeCount",
+  "VWAP",
+];
+
+function assertBar(bar, keys = barKeys) {
+  expect(bar).to.have.all.keys(keys);
 }
 
-function assertQuote(
-  quote,
-  keys = [
-    "BidExchange",
-    "BidPrice",
-    "BidSize",
-    "AskExchange",
-    "AskPrice",
-    "AskSize",
-    "Timestamp",
-    "Conditions",
-  ]
-) {
+const quoteKeys = [
+  "BidExchange",
+  "BidPrice",
+  "BidSize",
+  "AskExchange",
+  "AskPrice",
+  "AskSize",
+  "Timestamp",
+  "Conditions",
+];
+
+function assertQuote(quote, keys = quoteKeys) {
   expect(quote).to.have.all.keys(keys);
 }
 
@@ -168,16 +178,7 @@ describe("data v2 rest", () => {
     let gotSymbols = [];
     for (let [symbol, trade] of resp) {
       gotSymbols.push(symbol);
-      assertTrade(trade[0], [
-        "Symbol",
-        "ID",
-        "Exchange",
-        "Price",
-        "Size",
-        "Timestamp",
-        "Conditions",
-        "Tape",
-      ]);
+      assertTrade(trade[0], ["Symbol", ...tradeKeys]);
     }
     expect(gotSymbols.length).to.equal(2);
   });
@@ -190,16 +191,7 @@ describe("data v2 rest", () => {
     let gotSymbols = new Map();
     for await (let t of resp) {
       gotSymbols.set(t.Symbol, {});
-      assertTrade(t, [
-        "ID",
-        "Symbol",
-        "Exchange",
-        "Price",
-        "Size",
-        "Timestamp",
-        "Conditions",
-        "Tape",
-      ]);
+      assertTrade(t, ["Symbol", ...tradeKeys]);
     }
     expect(gotSymbols.size).to.equal(2);
   });
@@ -212,19 +204,28 @@ describe("data v2 rest", () => {
     let gotSymbols = new Map();
     for await (let q of resp) {
       gotSymbols.set(q.Symbol, {});
-      assertQuote(q, [
-        "Symbol",
-        "BidExchange",
-        "BidPrice",
-        "BidSize",
-        "AskExchange",
-        "AskPrice",
-        "AskSize",
-        "Timestamp",
-        "Conditions",
-      ]);
+      assertQuote(q, ["Symbol", ...quoteKeys]);
     }
     expect(gotSymbols.size).to.equal(2);
+  });
+
+  it("get multi latest trades", async () => {
+    const resp = await alpaca.getLatestTrades(
+      ["AAPL", "FB"],
+      alpaca.configuration
+    );
+
+    expect(resp.size).equal(2);
+    for (const [s, t] of resp) {
+      assertTrade(t, ["Symbol", ...tradeKeys]);
+    }
+  });
+
+  it("get multi latest bars", async () => {
+    const resp = await alpaca.getLatestBars(["SPY"], alpaca.configuration);
+
+    expect(resp.size).equal(1);
+    assertBar(resp.get("SPY"), ["Symbol", ...barKeys]);
   });
 });
 
