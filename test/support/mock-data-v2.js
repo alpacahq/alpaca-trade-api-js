@@ -55,8 +55,7 @@ module.exports = function createDataV2Mock() {
         symbols: joi.string(),
         timeframe: joi.string().optional(),
       });
-      const response = {};
-      response[req.params.endpoint] = {};
+      const response = { [req.params.endpoint]: {} };
       const symbols = req.query.symbols.split(",");
       symbols.forEach((s) => {
         response[req.params.endpoint][s] = {};
@@ -83,10 +82,10 @@ module.exports = function createDataV2Mock() {
       });
 
       let response = {
+        [req.params.endpoint]: [],
         symbol: req.params.symbol,
         next_page_token: req.query.limit > 5 ? "token" : null,
       };
-      response[req.params.endpoint] = [];
       let limit = 3;
       if (req.query.limit) {
         limit = req.query.limit > 5 ? 5 : req.query.limit;
@@ -140,9 +139,9 @@ module.exports = function createDataV2Mock() {
         adjustment: joi.string().optional(),
       });
       let response = {
+        [req.params.endpoint]: { FB: [], AAPL: [] },
         next_page_token: null,
       };
-      response[req.params.endpoint] = { FB: [], AAPL: [] };
       for (let s in response[req.params.endpoint]) {
         response[req.params.endpoint][s].push(data[req.params.endpoint]);
       }
