@@ -41,14 +41,14 @@ export function dataV2HttpRequest(
 ): Promise<AxiosResponse<any>> {
   const { dataBaseUrl, keyId, secretKey, oauth } = config;
   const headers: any = {
-    "Content-Type": "application/json", 
+    "Content-Type": "application/json",
     "Accept-Encoding": "gzip",
-  }
+  };
   if (oauth == "") {
-    headers["APCA-API-KEY-ID"] = keyId
-    headers["APCA-API-SECRET-KEY"] = secretKey
+    headers["APCA-API-KEY-ID"] = keyId;
+    headers["APCA-API-SECRET-KEY"] = secretKey;
   } else {
-    headers["Authorization"] = "Bearer " + oauth
+    headers["Authorization"] = "Bearer " + oauth;
   }
   const resp = axios
     .get(`${dataBaseUrl}${url}`, {
@@ -78,7 +78,10 @@ export async function* getDataV2(
         break;
       }
     }
-    Object.assign(options, { limit: actualLimit, page_token: pageToken });
+    Object.assign(options, {
+      limit: actualLimit,
+      page_token: pageToken,
+    });
     const resp = await dataV2HttpRequest(`${path}`, options, config);
     const items = resp.data[endpoint];
     for (const item of items) {
@@ -300,6 +303,26 @@ export async function getLatestTrade(
   return AlpacaTradeV2(resp.data.trade);
 }
 
+export async function getLatestTrades(
+  symbols: Array<string>,
+  config: any
+): Promise<Map<string, AlpacaTrade>> {
+  const resp = await dataV2HttpRequest(
+    `/v2/stocks/${TYPE.TRADES}/latest`,
+    { symbols: symbols.join(",") },
+    config
+  );
+  const multiLatestTrades = resp.data.trades;
+  const multiLatestTradesResp = new Map<string, AlpacaTrade>();
+  for (const symbol in multiLatestTrades) {
+    multiLatestTradesResp.set(
+      symbol,
+      AlpacaTradeV2({ S: symbol, ...multiLatestTrades[symbol] })
+    );
+  }
+  return multiLatestTradesResp;
+}
+
 export async function getLatestQuote(
   symbol: string,
   config: any
@@ -310,6 +333,58 @@ export async function getLatestQuote(
     config
   );
   return AlpacaQuoteV2(resp.data.quote);
+}
+
+export async function getLatestQuotes(
+  symbols: Array<string>,
+  config: any
+): Promise<Map<string, AlapacaQuote>> {
+  const resp = await dataV2HttpRequest(
+    `/v2/stocks/${TYPE.QUOTES}/latest`,
+    { symbols: symbols.join(",") },
+    config
+  );
+  const multiLatestQuotes = resp.data.quotes;
+  const multiLatestQuotesResp = new Map<string, AlapacaQuote>();
+  for (const symbol in multiLatestQuotes) {
+    multiLatestQuotesResp.set(
+      symbol,
+      AlpacaQuoteV2({ S: symbol, ...multiLatestQuotes[symbol] })
+    );
+  }
+  return multiLatestQuotesResp;
+}
+
+export async function getLatestBar(
+  symbol: string,
+  config: any
+): Promise<AlpacaBar> {
+  const resp = await dataV2HttpRequest(
+    `/v2/stocks/${symbol}/bars/latest`,
+    {},
+    config
+  );
+  return AlpacaBarV2(resp.data.bar);
+}
+
+export async function getLatestBars(
+  symbols: Array<string>,
+  config: any
+): Promise<Map<string, AlpacaBar>> {
+  const resp = await dataV2HttpRequest(
+    `/v2/stocks/${TYPE.BARS}/latest`,
+    { symbols: symbols.join(",") },
+    config
+  );
+  const multiLatestBars = resp.data.bars;
+  const multiLatestBarsResp = new Map<string, AlpacaBar>();
+  for (const symbol in multiLatestBars) {
+    multiLatestBarsResp.set(
+      symbol,
+      AlpacaBarV2({ S: symbol, ...multiLatestBars[symbol] })
+    );
+  }
+  return multiLatestBarsResp;
 }
 
 export async function getSnapshot(
@@ -415,10 +490,8 @@ export async function* getCryptoBars(
     options,
     config
   );
-  if (Symbol.iterator in Object(cryptoBars)) {
-    for await (const b of cryptoBars) {
-      yield AlpacaCryptoBar({ S: symbol, ...b });
-    }
+  for await (const b of cryptoBars) {
+    yield AlpacaCryptoBar({ S: symbol, ...b });
   }
 }
 
