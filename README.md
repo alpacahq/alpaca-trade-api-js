@@ -46,7 +46,7 @@ alpaca.getAccount().then((account) => {
 
 The websocket api is a good way to watch and react to the market
 we have 2 types of websockets:
-- data websocket: get updates data equities
+- data websocket: get updates to data equities
 - account/trade websocket: get updates on your account
 
 please refer to this [example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/websocket_example_datav2.js) 
