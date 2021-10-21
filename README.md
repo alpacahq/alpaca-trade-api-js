@@ -406,7 +406,7 @@ Now since there's is a redundancy in the data we assume that if you use one
 The way you select which websocket to use is by setting the `usePolygon
 ` argument when creating the Alpaca instance (see example above). 
 #### Working with websocket
-* The websocket is created when you creating the Alpaca instance
+* The websocket is created when you create the Alpaca instance
 * `let websocket = alpaca.data_ws`: Get the websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
 * `client.onConnect(function() {}`: all the following code should be inside
