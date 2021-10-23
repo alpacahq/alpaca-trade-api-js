@@ -15,6 +15,11 @@ The REST API documentation can be found in https://docs.alpaca.markets. For deta
 npm install --save @alpacahq/alpaca-trade-api
 ```
 
+## Runtime Dependencies
+
+- Node.js v14.x
+- npm >= v6
+
 ## Usage
 
 Import the module first.
