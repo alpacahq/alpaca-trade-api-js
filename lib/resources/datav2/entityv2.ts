@@ -48,7 +48,7 @@ const quote_mapping_v2 = {
   z: "Tape",
 };
 
-export interface AlapacaQuote {
+export interface AlpacaQuote {
   Symbol: string;
   BidExchange: string;
   BidPrice: number;
@@ -122,7 +122,7 @@ const snapshot_mapping_v2 = {
 
 export interface AlpacaSnapshot {
   LatestTrade: AlpacaTrade;
-  LatestQuote: AlapacaQuote;
+  LatestQuote: AlpacaQuote;
   MinuteBar: AlpacaBar;
   DailyBar: AlpacaBar;
   PrevDailyBar: AlpacaBar;
@@ -324,8 +324,8 @@ export function AlpacaTradeV2(data: RawTrade): AlpacaTrade {
   return aliasObjectKey(data, trade_mapping_v2) as AlpacaTrade;
 }
 
-export function AlpacaQuoteV2(data: RawQuote): AlapacaQuote {
-  return aliasObjectKey(data, quote_mapping_v2) as AlapacaQuote;
+export function AlpacaQuoteV2(data: RawQuote): AlpacaQuote {
+  return aliasObjectKey(data, quote_mapping_v2) as AlpacaQuote;
 }
 
 export function AlpacaBarV2(data: RawBar): AlpacaBar {
