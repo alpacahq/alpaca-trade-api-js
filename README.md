@@ -14,8 +14,10 @@ The REST API documentation can be found in https://docs.alpaca.markets. For deta
 ```sh
 npm install --save @alpacahq/alpaca-trade-api
 ```
+
 ### News
-As in the latest changes we released the typescript support of this package and definition files are provided as well!
+
+We introduced Typescript support recently, which allows you to use strongly typed data structures and better IDE experience if you are using it.
 
 ## Runtime Dependencies
 
@@ -27,18 +29,18 @@ As in the latest changes we released the typescript support of this package and 
 Import the module first.
 
 ```js
-const Alpaca = require('@alpacahq/alpaca-trade-api')
+const Alpaca = require("@alpacahq/alpaca-trade-api");
 ```
 
 Instantiate the API with config options, obtained from the dashboard at app.alpaca.markets.
 
 ```js
 const alpaca = new Alpaca({
-  keyId: 'AKFZXJH121U18SHHDRFO',
-  secretKey: 'pnq4YHlpMF3LhfLyOvmdfLmlz6BnASrTPQIASeiU',
+  keyId: "AKFZXJH121U18SHHDRFO",
+  secretKey: "pnq4YHlpMF3LhfLyOvmdfLmlz6BnASrTPQIASeiU",
   paper: true,
-  usePolygon: false
-})
+  usePolygon: false,
+});
 ```
 
 Note: `keyId` and `secretKey` may also be specified by setting the `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` environment variables, respectively. Also, rather than specifying `paper`, you may set `APCA_API_BASE_URL` as an environment variable to direct your API calls to the paper trading API.
@@ -47,22 +49,23 @@ Call methods, which will return a promise.
 
 ```js
 alpaca.getAccount().then((account) => {
-  console.log('Current Account:', account)
-})
+  console.log("Current Account:", account);
+});
 ```
 
 The websocket api is a good way to watch and react to the market
 we have 2 types of websockets:
+
 - data websocket: get updates to data equities
 - account/trade websocket: get updates on your account
 
-please refer to this [example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/websocket_example_datav2.js) 
-code to see how to use the websockets. 
+please refer to this [example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/websocket_example_datav2.js)
+code to see how to use the websockets.
 
-##### Data WS 
-The Alapca websocket service now supports V2. Make sure you update your old sample code accordingly.<br> 
+##### Data WS
+
+The Alapca websocket service now supports V2. Make sure you update your old sample code accordingly.<br>
 You could use it even if you don't have a funded account. <br>
-
 
 ## Methods
 
@@ -138,7 +141,7 @@ Calls `POST /orders` and creates a new order.
 ```ts
 createOrder({
   symbol: string, // any valid ticker symbol
-  qty: number, 
+  qty: number,
   notional: number, // qty or notional required, not both
   side: 'buy' | 'sell',
   type: 'market' | 'limit' | 'stop' | 'stop_limit' | 'trailing_stop',
@@ -157,7 +160,7 @@ createOrder({
 
 #### Get Orders
 
-  Calls `GET /orders` and returns a list of orders.
+Calls `GET /orders` and returns a list of orders.
 
 ```ts
 getOrders({
@@ -230,6 +233,7 @@ getPositions() => Promise<Position[]>
 ```
 
 #### Close a Position
+
 Calls `DELETE /positions/{symbol}` and liquidates your position in the given symbol.
 
 ```ts
@@ -237,6 +241,7 @@ closePosition(symbol) => Promise
 ```
 
 #### Close all Positions
+
 Calls `DELETE /positions` and liquidates all open positions.
 
 ```ts
@@ -273,66 +278,86 @@ getCalendar({ start: Date, end: Date }) => Promise<Calendar[]>
 ```
 
 ### Watchlist API
+
 available methods for you to use:
 
 ```js
 module.exports = {
-    getWatchlists,
-    getWatchlist,
-    addWatchlist,
-    addToWatchlist,
-    updateWatchlist,
-    deleteWatchlist,
-    deleteFromWatchlist,
-}
+  getWatchlists,
+  getWatchlist,
+  addWatchlist,
+  addToWatchlist,
+  updateWatchlist,
+  deleteWatchlist,
+  deleteFromWatchlist,
+};
 ```
 
 #### Get All Watchlists
+
 ```js
 this.alpaca.getWatchlists().then((response) => {
-      console.log(response)
-    })
+  console.log(response);
+});
 ```
 
 #### Get Specific Watchlist
+
 ```js
- // xxxx.. are the watchlist id you get on creation or with get all
- this.alpaca.getWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
-      console.log(response)
-    })
+// xxxx.. are the watchlist id you get on creation or with get all
+this.alpaca
+  .getWatchlist("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+  .then((response) => {
+    console.log(response);
+  });
 ```
 
 #### Add a Watchlist
+
 ```js
 this.alpaca.addWatchlist("myWatchList", []).then((response) => {
-      console.log(response)
-    })
+  console.log(response);
+});
 ```
+
 #### Add to Watchlist
 
 ```js
-this.alpaca.addToWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
-  console.log(response)
-})
+this.alpaca
+  .addToWatchlist("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", "AAPL")
+  .then((response) => {
+    console.log(response);
+  });
 ```
+
 #### Update a Watchlist
+
 ```js
-this.alpaca.updateWatchlist("myWatchList", ["AAPL", "GOOG"]).then((response) => {
-      console.log(response)
-    })
+this.alpaca
+  .updateWatchlist("myWatchList", ["AAPL", "GOOG"])
+  .then((response) => {
+    console.log(response);
+  });
 ```
+
 #### Delete a Watchlist
+
 ```js
-this.alpaca.deleteWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
-      console.log(response)
-    })
+this.alpaca
+  .deleteWatchlist("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+  .then((response) => {
+    console.log(response);
+  });
 ```
 
 #### Delete from Watchlist
+
 ```js
-this.alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
-  console.log(response)
-})
+this.alpaca
+  .deleteFromWatchlist("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", "AAPL")
+  .then((response) => {
+    console.log(response);
+  });
 ```
 
 ### Data API
@@ -342,7 +367,7 @@ this.alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").
 ```ts
 getBarsV2(
   symbol,
-  
+
   {
     limit: number,
     start: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
@@ -351,25 +376,28 @@ getBarsV2(
   }
 ) => Promise<BarsObject>
 ```
+
 ###### example
+
 ```js
 let resp = this.alpaca.getBarsV2(
-    "AAPL",
-    {
-        start: "2021-02-01",
-        end: "2021-02-10",
-        limit: 2,
-        timeframe: "1Day",
-        adjustment: "all",
-    },
-    alpaca.configuration
+  "AAPL",
+  {
+    start: "2021-02-01",
+    end: "2021-02-10",
+    limit: 2,
+    timeframe: "1Day",
+    adjustment: "all",
+  },
+  alpaca.configuration
 );
 const bars = [];
 
 for await (let b of resp) {
-    console.log(b)
+  console.log(b);
 }
 ```
+
 note: to get the date of response samples you could do this `console.log(new Date(resp['AAPL'][0].startEpochTime*1000))`
 
 #### Last trade
@@ -379,11 +407,13 @@ lastTrade(
   symbol: string)
 ) => Promise<LastTradeObject>
 ```
+
 ###### example
+
 ```js
-this.alpaca.lastTrade('AAPL').then((response) => {
-          console.log(response)
-        })
+this.alpaca.lastTrade("AAPL").then((response) => {
+  console.log(response);
+});
 ```
 
 #### Last quote
@@ -393,45 +423,48 @@ lastQuote(
   symbol: string)
 ) => Promise<LastQuoteObject>
 ```
+
 ###### example
+
 ```js
-this.alpaca.lastQuote('AAPL').then((response) => {
-          console.log(response)
-        })
+this.alpaca.lastQuote("AAPL").then((response) => {
+  console.log(response);
+});
 ```
 
 ### Websockets
+
 When to use which websocket?
+
 1. first of all - if you don't have a funded account you cannot use the
- polygon websocket. <br>The data in the Alpaca websocket is free (currently in
-  beta) and this is your only option.
+   polygon websocket. <br>The data in the Alpaca websocket is free (currently in
+   beta) and this is your only option.
 2. if you do have a funded account read the docs to understand exactly what
- are the differences between the data streams<br>
- 
+   are the differences between the data streams<br>
+
 Now since there's is a redundancy in the data we assume that if you use one
- you will not use the other.<br>
-The way you select which websocket to use is by setting the `usePolygon
-` argument when creating the Alpaca instance (see example above). 
+you will not use the other.<br>
+The way you select which websocket to use is by setting the `usePolygon ` argument when creating the Alpaca instance (see example above).
+
 #### Working with websocket
-* The websocket is created when you creating the Alpaca instance
-* `let websocket = alpaca.data_ws`: Get the websocket client instance.
-* `websocket.connect()`: Connect to the Alpaca server using websocket.
-* `client.onConnect(function() {}`: all the following code should be inside
- this function because we should not do anything until we're connected to the
+
+- The websocket is created when you creating the Alpaca instance
+- `let websocket = alpaca.data_ws`: Get the websocket client instance.
+- `websocket.connect()`: Connect to the Alpaca server using websocket.
+- `client.onConnect(function() {}`: all the following code should be inside
+  this function because we should not do anything until we're connected to the
   websocket.
-* `websocket.subscribe(channels)`: Subscribe to the Alpaca data server and/or
+- `websocket.subscribe(channels)`: Subscribe to the Alpaca data server and/or
   the Polygon server.<br>
   Please note that Polygon and Alpaca servers use different channels. <br>
-    You need to specify the channel you want to
-   subscribe to as specified here:<br>
-    Channels for the Polygon service: `['T.*', 'Q.*', 'A.*', 'AM.*']`.<br>
-    Channels for the Alpaca data service: `['alpacadatav1/T
-    .*', 'alpacadatav1/Q.*', 'alpacadatav1'/AM.*]`
-    
-    When calling `subscribe()` first it will unsubscribe from any previously
-     subscribed channels (so if you want to add channels you need to specifiy
-      all channels you want to subscribe to).<br>
-    Channels `'trade_updates'`, `'account_updates'` and all `'alpacadatav1
-    /*.*'` are for the Alpaca server; the rest are for the Polygon server.
-    <br>In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
-    Otherwise Polygon's API will be unavailable.
+  You need to specify the channel you want to
+  subscribe to as specified here:<br>
+  Channels for the Polygon service: `['T.*', 'Q.*', 'A.*', 'AM.*']`.<br>
+  Channels for the Alpaca data service: `['alpacadatav1/T .*', 'alpacadatav1/Q.*', 'alpacadatav1'/AM.*]`
+
+  When calling `subscribe()` first it will unsubscribe from any previously
+  subscribed channels (so if you want to add channels you need to specifiy
+  all channels you want to subscribe to).<br>
+  Channels `'trade_updates'`, `'account_updates'` and all `'alpacadatav1 /*.*'` are for the Alpaca server; the rest are for the Polygon server.
+  <br>In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
+  Otherwise Polygon's API will be unavailable.
