@@ -14,6 +14,8 @@ The REST API documentation can be found in https://docs.alpaca.markets. For deta
 ```sh
 npm install --save @alpacahq/alpaca-trade-api
 ```
+### News
+As in the latest changes we released the typescript support of this package and definition files are provided as well!
 
 ## Runtime Dependencies
 
