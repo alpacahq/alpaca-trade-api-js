@@ -9,6 +9,10 @@ Node.js library for Alpaca Trade API.
 
 The REST API documentation can be found in https://docs.alpaca.markets. For detailed information about an endpoint, please consult the REST API docs. Documentation specific to this library can be found below.
 
+### News
+
+We introduced Typescript support recently, which allows you to use strongly typed data structures and better IDE experience if you are using it.
+
 ## Installation
 
 ```sh
@@ -19,6 +23,7 @@ npm install --save @alpacahq/alpaca-trade-api
 
 - Node.js v14.x or newer
 - npm version 6 and above
+
 
 ## Usage
 
