@@ -3,7 +3,7 @@ import {
   AlpacaTradeV2,
   AlpacaBarV2,
   AlpacaQuoteV2,
-  AlpacaSnaphotV2,
+  AlpacaSnapshotV2,
   AlpacaCryptoTrade,
   AlpacaCryptoQuote,
   AlpacaCryptoBar,
@@ -13,7 +13,7 @@ import {
   CryptoTrade,
   CryptoBar,
   AlpacaSnapshot,
-  AlapacaQuote,
+  AlpacaQuote,
   AlpacaTrade,
   AlpacaBar,
 } from "./entityv2";
@@ -50,7 +50,7 @@ export function dataV2HttpRequest(
   } else {
     headers["Authorization"] = "Bearer " + oauth;
   }
-  const resp = axios
+  return axios
     .get(`${dataBaseUrl}${url}`, {
       params: queryParams,
       headers: headers,
@@ -58,7 +58,6 @@ export function dataV2HttpRequest(
     .catch((err: any) => {
       throw new Error(err.message);
     });
-  return resp;
 }
 
 export async function* getDataV2(
@@ -78,10 +77,7 @@ export async function* getDataV2(
         break;
       }
     }
-    Object.assign(options, {
-      limit: actualLimit,
-      page_token: pageToken,
-    });
+    options = { ...options, limit: actualLimit, page_token: pageToken };
     const resp = await dataV2HttpRequest(`${path}`, options, config);
     const items = resp.data[endpoint];
     for (const item of items) {
@@ -100,14 +96,7 @@ export async function* getMultiDataV2(
   endpoint: string,
   options: any,
   config: any
-): AsyncGenerator<
-  {
-    symbol: string;
-    data: any;
-  },
-  void,
-  unknown
-> {
+): AsyncGenerator<{ symbol: string; data: any }, void, unknown> {
   let pageToken = null;
   while (true) {
     const params: any = {
@@ -116,7 +105,6 @@ export async function* getMultiDataV2(
       limit: options.page_limit,
       page_token: pageToken,
     };
-
     const resp = await dataV2HttpRequest(
       `/v2/stocks/${endpoint}`,
       params,
@@ -186,7 +174,7 @@ export async function* getMultiTradesAsync(
   }
 }
 
-export interface GetQoutesParams {
+export interface GetQuotesParams {
   start: string;
   end?: string;
   page_limit?: number;
@@ -197,9 +185,9 @@ export interface GetQoutesParams {
 
 export async function* getQuotes(
   symbol: string,
-  options: GetQoutesParams,
+  options: GetQuotesParams,
   config: any
-): AsyncGenerator<AlapacaQuote, void, unknown> {
+): AsyncGenerator<AlpacaQuote, void, unknown> {
   const quotes = getDataV2(
     TYPE.QUOTES,
     `/v2/stocks/${symbol}/${TYPE.QUOTES}`,
@@ -213,7 +201,7 @@ export async function* getQuotes(
 
 export async function getMultiQuotes(
   symbols: Array<string>,
-  options: GetQoutesParams,
+  options: GetQuotesParams,
   config: any
 ): Promise<Map<string, any[]>> {
   const multiQuotes = getMultiQuotesAsync(symbols, options, config);
@@ -227,9 +215,9 @@ export async function getMultiQuotes(
 
 export async function* getMultiQuotesAsync(
   symbols: Array<string>,
-  options: GetQoutesParams,
+  options: GetQuotesParams,
   config: any
-): AsyncGenerator<AlapacaQuote, void, unknown> {
+): AsyncGenerator<AlpacaQuote, void, unknown> {
   const multiQuotes = getMultiDataV2(symbols, TYPE.QUOTES, options, config);
   for await (const q of multiQuotes) {
     q.data = { ...q.data, S: q.symbol };
@@ -326,7 +314,7 @@ export async function getLatestTrades(
 export async function getLatestQuote(
   symbol: string,
   config: any
-): Promise<AlapacaQuote> {
+): Promise<AlpacaQuote> {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${symbol}/quotes/latest`,
     {},
@@ -338,14 +326,14 @@ export async function getLatestQuote(
 export async function getLatestQuotes(
   symbols: Array<string>,
   config: any
-): Promise<Map<string, AlapacaQuote>> {
+): Promise<Map<string, AlpacaQuote>> {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${TYPE.QUOTES}/latest`,
     { symbols: symbols.join(",") },
     config
   );
   const multiLatestQuotes = resp.data.quotes;
-  const multiLatestQuotesResp = new Map<string, AlapacaQuote>();
+  const multiLatestQuotesResp = new Map<string, AlpacaQuote>();
   for (const symbol in multiLatestQuotes) {
     multiLatestQuotesResp.set(
       symbol,
@@ -397,7 +385,7 @@ export async function getSnapshot(
     config
   );
 
-  return AlpacaSnaphotV2(resp.data);
+  return AlpacaSnapshotV2(resp.data);
 }
 
 export async function getSnapshots(
@@ -409,16 +397,11 @@ export async function getSnapshots(
     {},
     config
   );
-
   const result = Object.entries(resp.data as Map<string, any>).map(
     ([key, val]) => {
-      return AlpacaSnaphotV2({
-        symbol: key,
-        ...val,
-      });
+      return AlpacaSnapshotV2({ symbol: key, ...val });
     }
   );
-
   return result;
 }
 
