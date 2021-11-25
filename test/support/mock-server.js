@@ -3,7 +3,6 @@
 const express = require("express");
 const mockPolygon = require("./mock-polygon");
 const mockAlpaca = require("./mock-alpaca");
-const mockData = require("./mock-data");
 const { apiError, apiMethod } = require("./assertions");
 const mockDataV2 = require("./mock-data-v2");
 const mockCryptoData = require("./mock-crypto-data");
@@ -19,7 +18,7 @@ function createAlpacaMock({ port = PORT } = {}) {
   const app = express()
     .use("/polygon", mockPolygon())
     .use("/alpaca", mockAlpaca())
-    .use("/data", [mockData(), mockDataV2(), mockCryptoData()]);
+    .use("/data", [mockDataV2(), mockCryptoData()]);
 
   app.use(
     apiMethod(() => {
@@ -58,7 +57,6 @@ const stop = () => {
 const getConfig = () => ({
   baseUrl: `http://localhost:${PORT}/alpaca`,
   dataBaseUrl: `http://localhost:${PORT}/data`,
-  polygonBaseUrl: `http://localhost:${PORT}/polygon`,
   keyId: "test_id",
   secretKey: "test_secret",
 });

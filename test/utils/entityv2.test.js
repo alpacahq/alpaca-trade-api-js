@@ -2,7 +2,7 @@
 
 const expect = require("chai").expect;
 const { isEqual } = require("lodash");
-const entytyV2 = require("../../dist/resources/datav2/entityv2");
+const entityV2 = require("../../dist/resources/datav2/entityv2");
 
 function assertData(got, expected) {
   expect(got).have.all.keys(Object.keys(expected));
@@ -11,22 +11,22 @@ function assertData(got, expected) {
 
 describe("test convert functions", () => {
   it("test aliasObjectKey for trades", () => {
-    const got = entytyV2.AlpacaTradeV2(data.trade);
+    const got = entityV2.AlpacaTradeV2(data.trade);
     assertData(got, expected.trade);
   });
 
   it("test aliasObjectKey for quotes", () => {
-    const got = entytyV2.AlpacaQuoteV2(data.quote);
+    const got = entityV2.AlpacaQuoteV2(data.quote);
     assertData(got, expected.quote);
   });
 
   it("test aliasObjectKey for bars", () => {
-    const got = entytyV2.AlpacaBarV2(data.bar);
+    const got = entityV2.AlpacaBarV2(data.bar);
     assertData(got, expected.bar);
   });
 
   it("test aliasObjectKey for snapshot", () => {
-    const got = entytyV2.AlpacaSnaphotV2(data.snapshot);
+    const got = entityV2.AlpacaSnapshotV2(data.snapshot);
     assertData(got, expected.snapshot);
   });
 });

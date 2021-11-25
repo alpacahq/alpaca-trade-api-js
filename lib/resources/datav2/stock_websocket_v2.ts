@@ -5,7 +5,7 @@ import {
   AlpacaLuldV2,
   AlpacaStatusV2,
   AlpacaTrade,
-  AlapacaQuote,
+  AlpacaQuote,
   AlpacaBar,
   AlpacaStatus,
   AlpacaLuld,
@@ -223,8 +223,8 @@ export class AlpacaStocksClient extends Websocket {
     this.on(EVENT.TRADES, (trade: AlpacaTrade) => fn(trade));
   }
 
-  onStockQuote(fn: (quote: AlapacaQuote) => void): void {
-    this.on(EVENT.QUOTES, (quote: AlapacaQuote) => fn(quote));
+  onStockQuote(fn: (quote: AlpacaQuote) => void): void {
+    this.on(EVENT.QUOTES, (quote: AlpacaQuote) => fn(quote));
   }
 
   onStockBar(fn: (bar: AlpacaBar) => void): void {

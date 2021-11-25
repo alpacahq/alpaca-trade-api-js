@@ -40,7 +40,6 @@ const alpaca = new Alpaca({
   keyId: 'AKFZXJH121U18SHHDRFO',
   secretKey: 'pnq4YHlpMF3LhfLyOvmdfLmlz6BnASrTPQIASeiU',
   paper: true,
-  usePolygon: false
 })
 ```
 
@@ -404,37 +403,28 @@ this.alpaca.lastQuote('AAPL').then((response) => {
 ```
 
 ### Websockets
-When to use which websocket?
-1. first of all - if you don't have a funded account you cannot use the
- polygon websocket. <br>The data in the Alpaca websocket is free (currently in
-  beta) and this is your only option.
-2. if you do have a funded account read the docs to understand exactly what
- are the differences between the data streams<br>
- 
-Now since there's is a redundancy in the data we assume that if you use one
- you will not use the other.<br>
-The way you select which websocket to use is by setting the `usePolygon
-` argument when creating the Alpaca instance (see example above). 
+You can use data websocket with or without a funded account. 
 #### Working with websocket
 * The websocket is created when you creating the Alpaca instance
-* `let websocket = alpaca.data_ws`: Get the websocket client instance.
+* `const websocket = alpaca.data_stream_v2`: Get the websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
-* `client.onConnect(function() {}`: all the following code should be inside
- this function because we should not do anything until we're connected to the
-  websocket.
-* `websocket.subscribe(channels)`: Subscribe to the Alpaca data server and/or
-  the Polygon server.<br>
-  Please note that Polygon and Alpaca servers use different channels. <br>
-    You need to specify the channel you want to
-   subscribe to as specified here:<br>
-    Channels for the Polygon service: `['T.*', 'Q.*', 'A.*', 'AM.*']`.<br>
-    Channels for the Alpaca data service: `['alpacadatav1/T
-    .*', 'alpacadatav1/Q.*', 'alpacadatav1'/AM.*]`
+* `client.onConnect(function() {})`: all the following code will be executed after 
+  the user authentication. You can also subscribe and unsubscribe for data 
+  outside this function.
+* `websocket.subscribeForTrades(["symbol"])`: Subscribe for trades data for the
+  given symbol(s). You can do the same with quotes, bars, dailyBars, statuses
+  and lulds.
+* `websocket.onStockTrade(function(trade) {})`: Get the data and process it inside this function.
+* `websocket.unsubscribeFromTrades(["symbol"])`: Unsunscribe from symbol(s).
+* `websocket.onDisconnect(function() {})` and `websocket.disconnect()`: the function
+  inside the onDisconnect will run when you disconnect, then closes the connection
+  between the client and server.
+<br><br>
+* `const cryptoWebsocket = alpaca.crypto_stream_v2`: Get the crypto websocket client
+  instance.
+* `cryptoWebsocket.subscribeForTrades(["symbol"])`, `cryptoWebsocket.unsubscribeFromTrades(["symbol"])`,
+  `cryptoWebsocket.onCryptoTrade(function(cryptoTrade) {})`
+  Working as the examples above.
+* `cryptoWebsocket.onDisconnect(function() {})` and `cryptoWebsocket.disconnect()`:
+  Same as above.
     
-    When calling `subscribe()` first it will unsubscribe from any previously
-     subscribed channels (so if you want to add channels you need to specifiy
-      all channels you want to subscribe to).<br>
-    Channels `'trade_updates'`, `'account_updates'` and all `'alpacadatav1
-    /*.*'` are for the Alpaca server; the rest are for the Polygon server.
-    <br>In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
-    Otherwise Polygon's API will be unavailable.
