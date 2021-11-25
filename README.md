@@ -412,13 +412,12 @@ You can use data websocket with or without a funded account.
   the user authentication. You can also subscribe and unsubscribe for data 
   outside this function.
 * `websocket.subscribeForTrades(["symbol"])`: Subscribe for trades data for the
-  given symbols(s). You can do the same with quotes, bars, dailyBars, statuses
+  given symbol(s). You can do the same with quotes, bars, dailyBars, statuses
   and lulds.
-* `websocket.onStockTrade(function(trade) {})`: Get the data and do wathever you 
-  want with it inside this function.
+* `websocket.onStockTrade(function(trade) {})`: Get the data and process it inside this function.
 * `websocket.unsubscribeFromTrades(["symbol"])`: Unsunscribe from symbol(s).
 * `websocket.onDisconnect(function() {})` and `websocket.disconnect()`: the function
-  inside the onDisconnect will run when you cann disconnect, then closes the connection
+  inside the onDisconnect will run when you disconnect, then closes the connection
   between the client and server.
 <br><br>
 * `const cryptoWebsocket = alpaca.crypto_stream_v2`: Get the crypto websocket client
