@@ -190,11 +190,11 @@ export interface RawLuld {
 const crypto_trade_mapping = {
   S: "Symbol",
   t: "Timestamp",
-  x: "Exchanhge",
+  x: "Exchange",
   p: "Price",
   s: "Size",
   tks: "TakerSide",
-  i: "Id",
+  i: "ID",
 };
 
 export interface CryptoTrade {
