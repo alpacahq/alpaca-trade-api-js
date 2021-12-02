@@ -245,11 +245,11 @@ function assertCryptoTrade(trade) {
   expect(trade).to.have.all.keys([
     "Symbol",
     "Timestamp",
-    "Exchanhge",
+    "Exchange",
     "Price",
     "Size",
     "TakerSide",
-    "Id",
+    "ID",
   ]);
 }
 
