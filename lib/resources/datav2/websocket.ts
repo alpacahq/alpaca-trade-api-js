@@ -27,6 +27,8 @@ export enum EVENT {
   DAILY_BARS = "stock_daily_bars",
   TRADING_STATUSES = "trading_statuses",
   LULDS = "lulds",
+  CANCEL_ERRORS = "cancel_errors",
+  CORRECTIONS = "corrections",
 }
 
 // Connection errors by code

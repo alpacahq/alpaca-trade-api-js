@@ -93,6 +93,8 @@ describe("data_stream_v2", () => {
       dailyBars: [],
       statuses: [],
       lulds: [],
+      cancelErrors: [],
+      corrections: [],
     };
 
     socket.subscribeForTrades(["AAPL"]);
@@ -112,6 +114,8 @@ describe("data_stream_v2", () => {
       dailyBars: [],
       statuses: [],
       lulds: [],
+      cancelErrors: [],
+      corrections: [],
     };
 
     socket.unsubscribeFromTrades("AAPL");
