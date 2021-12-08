@@ -93,8 +93,8 @@ describe("data_stream_v2", () => {
       dailyBars: [],
       statuses: [],
       lulds: [],
-      cancelErrors: [],
-      corrections: [],
+      cancelErrors: ["AAPL"],
+      corrections: ["AAPL"],
     };
 
     socket.subscribeForTrades(["AAPL"]);
