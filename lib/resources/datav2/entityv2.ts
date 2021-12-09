@@ -252,6 +252,7 @@ export interface RawCryptoQuote {
 const crypto_bar_mapping = {
   S: "Symbol",
   t: "Timestamp",
+  x: "Exchange",
   o: "Open",
   h: "High",
   l: "Low",

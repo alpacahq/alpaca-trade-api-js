@@ -27,6 +27,19 @@ module.exports = function createCryptoDataMock() {
   });
 
   v1beta1.get(
+    "/crypto/:symbol/snapshot",
+    apiMethod((req) => {
+      if (req.params.symbol == null) {
+        throw apiError(422);
+      }
+      if (req.query.exchange == null) {
+        throw apiError(422);
+      }
+      return { ...snapshots[req.params.symbol][req.query.exchange] };
+    })
+  );
+
+  v1beta1.get(
     "/crypto/:symbol/:endpoint",
     apiMethod((req) => {
       assertSchema(req.query, {
@@ -126,3 +139,60 @@ const latestDataBySymbol = {
     },
   },
 };
+
+const snapshots = {
+  BTCUSD: {
+    ERSX: {
+      symbol: "BTCUSD",
+      latestTrade: {
+          t: "2021-12-09T15:07:13.573434454Z",
+          x: "ERSX",
+          p: 48714.5,
+          s: 0.0205,
+          tks: "B",
+          i: 0
+      },
+      latestQuote: {
+          t: "2021-12-09T15:08:33.405330416Z",
+          x: "ERSX",
+          bp: 48738.9,
+          bs: 1.5388,
+          ap: 48759,
+          as: 1.5382
+      },
+      minuteBar: {
+          t: "2021-12-09T15:07:00Z",
+          x: "ERSX",
+          o: 48714.5,
+          h: 48714.5,
+          l: 48714.5,
+          c: 48714.5,
+          v: 0.0205,
+          n: 1,
+          vw: 48714.5
+      },
+      dailyBar: {
+          t: "2021-12-09T06:00:00Z",
+          x: "ERSX",
+          o: 49838,
+          h: 50310.5,
+          l: 48361.3,
+          c: 48714.5,
+          v: 305.0539,
+          n: 215,
+          vw: 49176.7255476491
+      },
+      prevDailyBar: {
+          t: "2021-12-08T06:00:00Z",
+          x: "ERSX",
+          o: 50692,
+          h: 51269,
+          l: 48734.2,
+          c: 49883.4,
+          v: 481.7121,
+          n: 476,
+          vw: 50083.3525751792
+      }
+    }
+  }
+}
