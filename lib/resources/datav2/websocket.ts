@@ -193,6 +193,7 @@ export abstract class AlpacaWebsocket
   }
 
   reconnecting(): void {
+    this.log("Reconnecting...");
     const { backoff, backoffIncrement, maxReconnectTimeout } = this.session;
     let reconnectTimeout = this.session.reconnectTimeout;
     if (
