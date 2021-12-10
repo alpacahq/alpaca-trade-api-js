@@ -187,6 +187,86 @@ export interface RawLuld {
   z: string;
 }
 
+const cancel_error_mapping_v2 = {
+  S: "Symbol",
+	i: "ID",
+	x: "Exchange",
+	p: "Price",
+	s: "Size",
+	a: "CancelErrorAction",
+	z: "Tape",
+	t: "Timestamp",
+};
+
+export interface AlpacaCancelError {
+  Symbol: string;
+  ID: number;
+  Exchange: string;
+  Price: number;
+  Size: number;
+  CancelErrorAction: string;
+  Tape: string;
+  Timestamp: string;
+}
+
+export interface RawCancelError {
+  T: string;
+  S: string;
+  i: number;
+  x: string;
+  p: number;
+  s: number;
+  a: string;
+  z: string;
+  t: string;
+}
+
+const correction_mapping_v2 = {
+  S: "Symbol",
+	x: "Exchange",
+	oi: "OriginalID",
+	op: "OriginalPrice",
+	os: "OriginalSize",
+	oc: "OriginalConditions",
+	ci: "CorrectedID",
+	cp: "CorrectedPrice",
+	cs: "CorrectedSize",
+	cc: "CorrectedConditions",
+	z: "Tape",
+	t: "Timestamp",
+};
+
+export interface AlpacaCorrection {
+  Symbol: string;
+  Exchange: string;
+  OriginalID: number;
+  OriginalPrice: number;
+  OriginalSize: number;
+  OriginalConditions: Array<string>;
+  CorrectedID: number;
+  CorrectedPrice: number;
+  CorrectedSize: number;
+  CorrectedConditions: Array<string>;
+  Tape: string;
+  Timestamp: string;
+}
+
+export interface RawCorrection {
+  T: string;
+  S: string;
+  x: string;
+  oi: number;
+  op: number;
+  os: number;
+  oc: Array<string>;
+  ci: number;
+  cp: number;
+  cs: number;
+  cc: Array<string>;
+  z: string;
+  t: string;
+}
+
 const crypto_trade_mapping = {
   S: "Symbol",
   t: "Timestamp",
@@ -346,6 +426,14 @@ export function AlpacaStatusV2(data: RawStatus): AlpacaStatus {
 
 export function AlpacaLuldV2(data: RawLuld): AlpacaLuld {
   return aliasObjectKey(data, luld_mapping_v2) as AlpacaLuld;
+}
+
+export function AlpacaCancelErrorV2(data: RawCancelError): AlpacaCancelError {
+  return aliasObjectKey(data, cancel_error_mapping_v2) as AlpacaCancelError;
+}
+
+export function AlpacaCorrectionV2(data: RawCorrection): AlpacaCorrection {
+  return aliasObjectKey(data, correction_mapping_v2) as AlpacaCorrection;
 }
 
 export function AlpacaCryptoTrade(data: RawCryptoTrade): CryptoTrade {

@@ -92,6 +92,8 @@ class StreamingWsMock {
       dailyBars: [],
       statuses: [],
       lulds: [],
+      cancelErrors: [],
+      corrections: [],
     };
   }
 
@@ -194,6 +196,8 @@ class StreamingWsMock {
         dailyBars: this.subscriptions.dailyBars,
         statuses: this.subscriptions.statuses,
         lulds: this.subscriptions.lulds,
+        cancelErrors: this.subscriptions.trades,  // Subscribed automatically.
+        corrections: this.subscriptions.trades, // // Subscribed automatically.
       },
     ];
   }

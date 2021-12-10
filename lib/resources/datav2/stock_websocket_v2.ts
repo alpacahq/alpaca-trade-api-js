@@ -2,18 +2,24 @@ import {
   AlpacaTradeV2,
   AlpacaQuoteV2,
   AlpacaBarV2,
-  AlpacaLuldV2,
   AlpacaStatusV2,
+  AlpacaLuldV2,
+  AlpacaCancelErrorV2,
+  AlpacaCorrectionV2,
   AlpacaTrade,
   AlpacaQuote,
   AlpacaBar,
   AlpacaStatus,
   AlpacaLuld,
+  AlpacaCancelError,
+  AlpacaCorrection,
   RawTrade,
   RawQuote,
   RawBar,
   RawLuld,
   RawStatus,
+  RawCancelError,
+  RawCorrection,
 } from "./entityv2";
 import {
   AlpacaWebsocket as Websocket,
@@ -32,6 +38,8 @@ interface StockWebSocketSession {
   dailyBars: Array<string>;
   statuses: Array<string>;
   lulds: Array<string>;
+  cancelErrors: Array<string>;
+  corrections: Array<string>;
 }
 export class AlpacaStocksClient extends Websocket {
   constructor(options: StockWebsocketOptions) {
@@ -48,6 +56,8 @@ export class AlpacaStocksClient extends Websocket {
       dailyBars: [],
       statuses: [],
       lulds: [],
+      cancelErrors: [],
+      corrections: [],
     } as StockWebSocketSession;
     super(options);
   }
@@ -199,6 +209,8 @@ export class AlpacaStocksClient extends Websocket {
     dailyBars: Array<string>;
     statuses: Array<string>;
     lulds: Array<string>;
+    cancelErrors: Array<string>;
+    corrections: Array<string>;
   }): void {
     this.log(
       `listening to streams:
@@ -207,7 +219,9 @@ export class AlpacaStocksClient extends Websocket {
         bars: ${msg.bars},
         dailyBars: ${msg.dailyBars},
         statuses: ${msg.statuses},
-        lulds: ${msg.lulds}`
+        lulds: ${msg.lulds},
+        cancelErrors: ${msg.cancelErrors},
+        corrections: ${msg.corrections}`
     );
     this.session.subscriptions = {
       trades: msg.trades,
@@ -216,6 +230,8 @@ export class AlpacaStocksClient extends Websocket {
       dailyBars: msg.dailyBars,
       statuses: msg.statuses,
       lulds: msg.lulds,
+      cancelErrors: msg.cancelErrors,
+      corrections: msg.corrections,
     };
   }
 
@@ -243,11 +259,19 @@ export class AlpacaStocksClient extends Websocket {
     this.on(EVENT.LULDS, (luld: AlpacaLuld) => fn(luld));
   }
 
+  onCancelErrors(fn: (cancelError: AlpacaCancelError) => void): void {
+    this.on(EVENT.CANCEL_ERRORS, (cancelError: AlpacaCancelError) => fn(cancelError));
+  }
+
+  onCorrections(fn: (correction: AlpacaCorrection) => void): void {
+    this.on(EVENT.CORRECTIONS, (correction: AlpacaCorrection) => fn(correction));
+  }
+
   dataHandler(
-    data: Array<RawTrade | RawQuote | RawBar | RawStatus | RawLuld>
+    data: Array<RawTrade | RawQuote | RawBar | RawStatus | RawLuld | RawCancelError | RawCorrection>
   ): void {
     data.forEach(
-      (element: RawTrade | RawQuote | RawBar | RawStatus | RawLuld) => {
+      (element: RawTrade | RawQuote | RawBar | RawStatus | RawLuld | RawCancelError | RawCorrection) => {
         if ("T" in element) {
           switch (element.T) {
             case "t":
@@ -270,6 +294,12 @@ export class AlpacaStocksClient extends Websocket {
               break;
             case "l":
               this.emit(EVENT.LULDS, AlpacaLuldV2(element as RawLuld));
+              break;
+            case "x":
+              this.emit(EVENT.CANCEL_ERRORS, AlpacaCancelErrorV2(element as RawCancelError));
+              break;
+            case "c":
+              this.emit(EVENT.CORRECTIONS, AlpacaCorrectionV2(element as RawCorrection));
               break;
             default:
               this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
