@@ -2,8 +2,6 @@ import events from "events";
 import WebSocket from "ws";
 import { MessagePack } from "msgpack5";
 import msgpack5 from "msgpack5";
-import { callbackify } from "util";
-import { NO_USER_JWT_IN_CREDS } from "nats";
 
 // Connection states. Each of these will also emit EVENT.STATE_CHANGE
 export enum STATE {
@@ -179,7 +177,7 @@ export abstract class AlpacaWebsocket
           this.log("connection may closed, terminating...");
           this.conn.terminate();
           this.reconnecting();
-        }, 9000 + 1000);
+        }, 9000 + 1000); // Server sends ping in every 9 sec
       }
     });
   }
