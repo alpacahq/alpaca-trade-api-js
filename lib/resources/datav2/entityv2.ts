@@ -329,9 +329,10 @@ export interface RawCryptoQuote {
   as: number;
 }
 
-const crypro_bar_mapping = {
+const crypto_bar_mapping = {
   S: "Symbol",
   t: "Timestamp",
+  x: "Exchange",
   o: "Open",
   h: "High",
   l: "Low",
@@ -400,6 +401,22 @@ export interface RawCryptoXBBO {
   as: number;
 }
 
+const crypto_snapshot_mapping = {
+  latestTrade: "LatestTrade",
+  latestQuote: "LatestQuote",
+  minuteBar: "MinuteBar",
+  dailyBar: "DailyBar",
+  prevDailyBar: "PrevDailyBar",
+};
+
+export interface CryptoSnapshot {
+  LatestTrade: CryptoTrade;
+  LatestQuote: CryptoQuote;
+  MinuteBar: CryptoBar;
+  DailyBar: CryptoBar;
+  PrevDailyBar: CryptoBar;
+}
+
 export function AlpacaTradeV2(data: RawTrade): AlpacaTrade {
   return aliasObjectKey(data, trade_mapping_v2) as AlpacaTrade;
 }
@@ -412,11 +429,11 @@ export function AlpacaBarV2(data: RawBar): AlpacaBar {
   return aliasObjectKey(data, bar_mapping_v2) as AlpacaBar;
 }
 
-export function AlpacaSnapshotV2(data: AlpacaStatus): AlpacaSnapshot {
+export function AlpacaSnapshotV2(data: any): AlpacaSnapshot {
   const snapshot = aliasObjectKey(data, snapshot_mapping_v2);
 
   return mapValues(snapshot, (value: any, key: any) => {
-    return convertSnapshotData(key, value);
+    return convertSnapshotData(key, value, false);
   }) as AlpacaSnapshot;
 }
 
@@ -445,7 +462,15 @@ export function AlpacaCryptoQuote(data: RawCryptoQuote): CryptoQuote {
 }
 
 export function AlpacaCryptoBar(data: RawCryptoBar): CryptoBar {
-  return aliasObjectKey(data, crypro_bar_mapping) as CryptoBar;
+  return aliasObjectKey(data, crypto_bar_mapping) as CryptoBar;
+}
+
+export function AlpacaCryptoSnapshot(data: any): CryptoSnapshot {
+  const snapshot = aliasObjectKey(data, crypto_snapshot_mapping);
+
+  return mapValues(snapshot, (value: any, key: any) => {
+    return convertSnapshotData(key, value, true);
+  }) as CryptoSnapshot;
 }
 
 function aliasObjectKey(data: any, mapping: any) {
@@ -458,16 +483,16 @@ export function AlpacaCryptoXBBO(data: RawCryptoXBBO): CryptoXBBO {
   return aliasObjectKey(data, crypto_xbbo_mapping) as CryptoXBBO;
 }
 
-function convertSnapshotData(key: string, data: any) {
+function convertSnapshotData(key: string, data: any, isCrypto: boolean) {
   switch (key) {
     case "LatestTrade":
-      return AlpacaTradeV2(data);
+      return isCrypto ? AlpacaCryptoTrade(data) : AlpacaTradeV2(data);
     case "LatestQuote":
-      return AlpacaQuoteV2(data);
+      return isCrypto ? AlpacaCryptoQuote(data) : AlpacaQuoteV2(data);
     case "MinuteBar":
     case "DailyBar":
     case "PrevDailyBar":
-      return AlpacaBarV2(data);
+      return isCrypto ? AlpacaCryptoBar(data) : AlpacaBarV2(data);
     default:
       return data;
   }

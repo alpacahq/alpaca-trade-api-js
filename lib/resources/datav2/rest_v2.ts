@@ -12,10 +12,12 @@ import {
   CryptoQuote,
   CryptoTrade,
   CryptoBar,
+  CryptoSnapshot,
   AlpacaSnapshot,
   AlpacaQuote,
   AlpacaTrade,
   AlpacaBar,
+  AlpacaCryptoSnapshot,
 } from "./entityv2";
 
 // Number of data points to return.
@@ -522,4 +524,18 @@ export async function getLatestCryptoXBBO(
     config
   );
   return AlpacaCryptoXBBO({ S: resp.data.symbol, ...resp.data.xbbo });
+}
+
+export async function getCryptoSnapshot(
+  symbol: string,
+  options: { exchange: string },
+  config: any
+): Promise<CryptoSnapshot> {
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/crypto/${symbol}/snapshot`,
+    options,
+    config
+  );
+
+  return AlpacaCryptoSnapshot(resp.data);
 }
