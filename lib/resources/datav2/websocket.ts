@@ -3,6 +3,7 @@ import WebSocket from "ws";
 import { MessagePack } from "msgpack5";
 import msgpack5 from "msgpack5";
 import { callbackify } from "util";
+import { NO_USER_JWT_IN_CREDS } from "nats";
 
 // Connection states. Each of these will also emit EVENT.STATE_CHANGE
 export enum STATE {
@@ -77,6 +78,7 @@ interface WebsocketSession {
   backoffIncrement: number;
   url: string;
   currentState: STATE;
+  pingTimeout?: NodeJS.Timeout;
 }
 
 interface AlpacaBaseWebsocket {
@@ -164,9 +166,20 @@ export abstract class AlpacaWebsocket
       this.emit(EVENT.CLIENT_ERROR, err.message);
       this.disconnect();
     });
-    this.conn.once("close", () => {
+    this.conn.on("close", (code: any, msg: any) => {
+      this.log(`connection closed with code: ${code} and message: ${msg}`);
       if (this.session.reconnect) {
         this.reconnecting();
+      }
+    });
+    this.conn.on("ping", () => {
+      if (this.session.pingTimeout) {
+        clearTimeout(this.session.pingTimeout);
+        this.session.pingTimeout = setTimeout(() => {
+          this.log("connection may closed, terminating...");
+          this.conn.terminate();
+          this.reconnecting();
+        }, 9000 + 1000);
       }
     });
   }
@@ -174,7 +187,7 @@ export abstract class AlpacaWebsocket
   onConnect(fn: () => void): void {
     this.on(STATE.AUTHENTICATED, () => {
       fn();
-      //if reconnected the user should subcribe to its symbols again
+      //if reconnected the user should subscribe to its symbols again
       this.subscribeAll();
     });
   }
