@@ -29,10 +29,7 @@ module.exports = function createCryptoDataMock() {
   v1beta1.get(
     "/crypto/:symbol/snapshot",
     apiMethod((req) => {
-      if (req.params.symbol == null) {
-        throw apiError(422);
-      }
-      if (req.query.exchange == null) {
+      if (req.params.symbol == null || req.query.exchange == null) {
         throw apiError(422);
       }
       return { ...snapshots[req.params.symbol][req.query.exchange] };

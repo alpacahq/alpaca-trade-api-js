@@ -353,7 +353,7 @@ export function AlpacaSnapshotV2(data: any): AlpacaSnapshot {
   const snapshot = aliasObjectKey(data, snapshot_mapping_v2);
 
   return mapValues(snapshot, (value: any, key: any) => {
-    return convertSnapshotData(key, value);
+    return convertSnapshotData(key, value, false);
   }) as AlpacaSnapshot;
 }
 
@@ -381,7 +381,7 @@ export function AlpacaCryptoSnapshot(data: any): CryptoSnapshot {
   const snapshot = aliasObjectKey(data, crypto_snapshot_mapping);
 
   return mapValues(snapshot, (value: any, key: any) => {
-    return convertCryptoSnapshotData(key, value);
+    return convertSnapshotData(key, value, true);
   }) as CryptoSnapshot;
 }
 
@@ -395,31 +395,16 @@ export function AlpacaCryptoXBBO(data: RawCryptoXBBO): CryptoXBBO {
   return aliasObjectKey(data, crypto_xbbo_mapping) as CryptoXBBO;
 }
 
-function convertSnapshotData(key: string, data: any) {
+function convertSnapshotData(key: string, data: any, isCrypto: boolean) {
   switch (key) {
     case "LatestTrade":
-      return AlpacaTradeV2(data);
+      return isCrypto ? AlpacaCryptoTrade(data) : AlpacaTradeV2(data);
     case "LatestQuote":
-      return AlpacaQuoteV2(data);
+      return isCrypto ? AlpacaCryptoQuote(data) : AlpacaQuoteV2(data);
     case "MinuteBar":
     case "DailyBar":
     case "PrevDailyBar":
-      return AlpacaBarV2(data);
-    default:
-      return data;
-  }
-}
-
-function convertCryptoSnapshotData(key: string, data: any) {
-  switch (key) {
-    case "LatestTrade":
-      return AlpacaCryptoTrade(data);
-    case "LatestQuote":
-      return AlpacaCryptoQuote(data);
-    case "MinuteBar":
-    case "DailyBar":
-    case "PrevDailyBar":
-      return AlpacaCryptoBar(data);
+      return isCrypto ? AlpacaCryptoBar(data) : AlpacaBarV2(data);
     default:
       return data;
   }
