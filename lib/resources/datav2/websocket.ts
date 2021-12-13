@@ -77,13 +77,14 @@ interface WebsocketSession {
   url: string;
   currentState: STATE;
   pingTimeout?: NodeJS.Timeout;
+  pingTimeoutThreshold: number;
 }
 
 interface AlpacaBaseWebsocket {
   session: WebsocketSession;
   connect: () => void;
   onConnect: (fn: () => void) => void;
-  reconnecting: () => void;
+  reconnect: () => void;
   onError: (fn: (err: Error) => void) => void;
   onStateChange: (fn: () => void) => void;
   authenticate: () => void;
@@ -125,6 +126,7 @@ export abstract class AlpacaWebsocket
       backoffIncrement: 0.5,
       url: options.url,
       currentState: STATE.WAITING_TO_CONNECT,
+      pingTimeoutThreshold: 1000,
     };
 
     if (this.session.apiKey.length === 0) {
@@ -167,18 +169,17 @@ export abstract class AlpacaWebsocket
     this.conn.on("close", (code: any, msg: any) => {
       this.log(`connection closed with code: ${code} and message: ${msg}`);
       if (this.session.reconnect) {
-        this.reconnecting();
+        this.reconnect();
       }
     });
     this.conn.on("ping", () => {
       if (this.session.pingTimeout) {
         clearTimeout(this.session.pingTimeout);
-        this.session.pingTimeout = setTimeout(() => {
-          this.log("connection may closed, terminating...");
-          this.conn.terminate();
-          this.reconnecting();
-        }, 9000 + 1000); // Server sends ping in every 9 sec
       }
+      this.session.pingTimeout = setTimeout(() => {
+        this.log("connection may closed, terminating...");
+        this.conn.terminate();
+      }, 9000 + this.session.pingTimeoutThreshold); // Server pings in every 9 sec
     });
   }
 
@@ -190,15 +191,15 @@ export abstract class AlpacaWebsocket
     });
   }
 
-  reconnecting(): void {
+  reconnect(): void {
     this.log("Reconnecting...");
     const { backoff, backoffIncrement, maxReconnectTimeout } = this.session;
     let reconnectTimeout = this.session.reconnectTimeout;
     if (
       backoff &&
-      reconnectTimeout &&
-      backoffIncrement &&
-      maxReconnectTimeout
+      reconnectTimeout != null &&
+      backoffIncrement != null &&
+      maxReconnectTimeout != null
     ) {
       setTimeout(() => {
         reconnectTimeout += backoffIncrement;
