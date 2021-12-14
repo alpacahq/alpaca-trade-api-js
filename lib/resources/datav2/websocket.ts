@@ -78,6 +78,7 @@ interface WebsocketSession {
   currentState: STATE;
   pingTimeout?: NodeJS.Timeout;
   pingTimeoutThreshold: number;
+  isReconnected: boolean;
 }
 
 interface AlpacaBaseWebsocket {
@@ -127,6 +128,7 @@ export abstract class AlpacaWebsocket
       url: options.url,
       currentState: STATE.WAITING_TO_CONNECT,
       pingTimeoutThreshold: 1000,
+      isReconnected: false,
     };
 
     if (this.session.apiKey.length === 0) {
@@ -185,22 +187,21 @@ export abstract class AlpacaWebsocket
 
   onConnect(fn: () => void): void {
     this.on(STATE.AUTHENTICATED, () => {
-      fn();
-      //if reconnected the user should subscribe to its symbols again
-      this.subscribeAll();
+      if (this.session.isReconnected) {
+        //if reconnected the user should subscribe to its symbols again
+        this.subscribeAll();
+      } else {
+        fn();
+      }
     });
   }
 
   reconnect(): void {
     this.log("Reconnecting...");
+    this.session.isReconnected = true;
     const { backoff, backoffIncrement, maxReconnectTimeout } = this.session;
     let reconnectTimeout = this.session.reconnectTimeout;
-    if (
-      backoff &&
-      reconnectTimeout != null &&
-      backoffIncrement != null &&
-      maxReconnectTimeout != null
-    ) {
+    if (backoff) {
       setTimeout(() => {
         reconnectTimeout += backoffIncrement;
         if (reconnectTimeout > maxReconnectTimeout) {
