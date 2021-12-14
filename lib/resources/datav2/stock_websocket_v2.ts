@@ -158,7 +158,7 @@ export class AlpacaStocksClient extends Websocket {
     this.unsubscribe({ bars });
   }
 
-  unsubscriceFromDailyBars(dailyBars: Array<string>): void {
+  unsubscribeFromDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars =
       this.session.subscriptions.dailyBars.filter(
         (dailyBar: string) => !dailyBars.includes(dailyBar)
@@ -260,18 +260,39 @@ export class AlpacaStocksClient extends Websocket {
   }
 
   onCancelErrors(fn: (cancelError: AlpacaCancelError) => void): void {
-    this.on(EVENT.CANCEL_ERRORS, (cancelError: AlpacaCancelError) => fn(cancelError));
+    this.on(EVENT.CANCEL_ERRORS, (cancelError: AlpacaCancelError) =>
+      fn(cancelError)
+    );
   }
 
   onCorrections(fn: (correction: AlpacaCorrection) => void): void {
-    this.on(EVENT.CORRECTIONS, (correction: AlpacaCorrection) => fn(correction));
+    this.on(EVENT.CORRECTIONS, (correction: AlpacaCorrection) =>
+      fn(correction)
+    );
   }
 
   dataHandler(
-    data: Array<RawTrade | RawQuote | RawBar | RawStatus | RawLuld | RawCancelError | RawCorrection>
+    data: Array<
+      | RawTrade
+      | RawQuote
+      | RawBar
+      | RawStatus
+      | RawLuld
+      | RawCancelError
+      | RawCorrection
+    >
   ): void {
     data.forEach(
-      (element: RawTrade | RawQuote | RawBar | RawStatus | RawLuld | RawCancelError | RawCorrection) => {
+      (
+        element:
+          | RawTrade
+          | RawQuote
+          | RawBar
+          | RawStatus
+          | RawLuld
+          | RawCancelError
+          | RawCorrection
+      ) => {
         if ("T" in element) {
           switch (element.T) {
             case "t":
@@ -296,10 +317,16 @@ export class AlpacaStocksClient extends Websocket {
               this.emit(EVENT.LULDS, AlpacaLuldV2(element as RawLuld));
               break;
             case "x":
-              this.emit(EVENT.CANCEL_ERRORS, AlpacaCancelErrorV2(element as RawCancelError));
+              this.emit(
+                EVENT.CANCEL_ERRORS,
+                AlpacaCancelErrorV2(element as RawCancelError)
+              );
               break;
             case "c":
-              this.emit(EVENT.CORRECTIONS, AlpacaCorrectionV2(element as RawCorrection));
+              this.emit(
+                EVENT.CORRECTIONS,
+                AlpacaCorrectionV2(element as RawCorrection)
+              );
               break;
             default:
               this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);

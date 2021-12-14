@@ -2,7 +2,6 @@ import events from "events";
 import WebSocket from "ws";
 import { MessagePack } from "msgpack5";
 import msgpack5 from "msgpack5";
-import { callbackify } from "util";
 
 // Connection states. Each of these will also emit EVENT.STATE_CHANGE
 export enum STATE {
@@ -77,13 +76,16 @@ interface WebsocketSession {
   backoffIncrement: number;
   url: string;
   currentState: STATE;
+  pingTimeout?: NodeJS.Timeout;
+  pingTimeoutThreshold: number;
+  isReconnected: boolean;
 }
 
 interface AlpacaBaseWebsocket {
   session: WebsocketSession;
   connect: () => void;
   onConnect: (fn: () => void) => void;
-  reconnecting: () => void;
+  reconnect: () => void;
   onError: (fn: (err: Error) => void) => void;
   onStateChange: (fn: () => void) => void;
   authenticate: () => void;
@@ -125,6 +127,8 @@ export abstract class AlpacaWebsocket
       backoffIncrement: 0.5,
       url: options.url,
       currentState: STATE.WAITING_TO_CONNECT,
+      pingTimeoutThreshold: 1000,
+      isReconnected: false,
     };
 
     if (this.session.apiKey.length === 0) {
@@ -164,30 +168,40 @@ export abstract class AlpacaWebsocket
       this.emit(EVENT.CLIENT_ERROR, err.message);
       this.disconnect();
     });
-    this.conn.once("close", () => {
+    this.conn.on("close", (code: any, msg: any) => {
+      this.log(`connection closed with code: ${code} and message: ${msg}`);
       if (this.session.reconnect) {
-        this.reconnecting();
+        this.reconnect();
       }
+    });
+    this.conn.on("ping", () => {
+      if (this.session.pingTimeout) {
+        clearTimeout(this.session.pingTimeout);
+      }
+      this.session.pingTimeout = setTimeout(() => {
+        this.log("connection may closed, terminating...");
+        this.conn.terminate();
+      }, 9000 + this.session.pingTimeoutThreshold); // Server pings in every 9 sec
     });
   }
 
   onConnect(fn: () => void): void {
     this.on(STATE.AUTHENTICATED, () => {
-      fn();
-      //if reconnected the user should subcribe to its symbols again
-      this.subscribeAll();
+      if (this.session.isReconnected) {
+        //if reconnected the user should subscribe to its symbols again
+        this.subscribeAll();
+      } else {
+        fn();
+      }
     });
   }
 
-  reconnecting(): void {
+  reconnect(): void {
+    this.log("Reconnecting...");
+    this.session.isReconnected = true;
     const { backoff, backoffIncrement, maxReconnectTimeout } = this.session;
     let reconnectTimeout = this.session.reconnectTimeout;
-    if (
-      backoff &&
-      reconnectTimeout &&
-      backoffIncrement &&
-      maxReconnectTimeout
-    ) {
+    if (backoff) {
       setTimeout(() => {
         reconnectTimeout += backoffIncrement;
         if (reconnectTimeout > maxReconnectTimeout) {
