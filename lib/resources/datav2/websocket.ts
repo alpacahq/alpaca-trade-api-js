@@ -2,6 +2,7 @@ import events from "events";
 import WebSocket from "ws";
 import { MessagePack } from "msgpack5";
 import msgpack5 from "msgpack5";
+import { timeStamp } from "console";
 
 // Connection states. Each of these will also emit EVENT.STATE_CHANGE
 export enum STATE {
@@ -77,6 +78,7 @@ interface WebsocketSession {
   url: string;
   currentState: STATE;
   pongTimeout?: NodeJS.Timeout;
+  pingInterval?: NodeJS.Timer;
   pongWait: number;
   pingCounter: number;
   isReconnected: boolean;
@@ -181,7 +183,7 @@ export abstract class AlpacaWebsocket
         clearTimeout(this.session.pongTimeout);
       }
     });
-    setInterval(() => {
+    this.session.pingInterval = setInterval(() => {
       this.ping();
     }, 10000);
   }
@@ -239,6 +241,12 @@ export abstract class AlpacaWebsocket
     this.session.currentState = STATE.DISCONNECTED;
     this.conn.close();
     this.session.reconnect = false;
+    if (this.session.pongTimeout) {
+      clearTimeout(this.session.pongTimeout);
+    }
+    if (this.session.pingInterval) {
+      clearInterval(this.session.pingInterval);
+    }
   }
 
   onDisconnect(fn: () => void): void {
