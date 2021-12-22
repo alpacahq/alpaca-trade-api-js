@@ -76,8 +76,9 @@ interface WebsocketSession {
   backoffIncrement: number;
   url: string;
   currentState: STATE;
-  pingTimeout?: NodeJS.Timeout;
-  pingTimeoutThreshold: number;
+  pongTimeout?: NodeJS.Timeout;
+  pongWait: number;
+  pingCounter: number;
   isReconnected: boolean;
 }
 
@@ -127,8 +128,9 @@ export abstract class AlpacaWebsocket
       backoffIncrement: 0.5,
       url: options.url,
       currentState: STATE.WAITING_TO_CONNECT,
-      pingTimeoutThreshold: 1000,
       isReconnected: false,
+      pingCounter: 0,
+      pongWait: 5000,
     };
 
     if (this.session.apiKey.length === 0) {
@@ -147,7 +149,7 @@ export abstract class AlpacaWebsocket
     });
   }
 
-  connect() {
+  connect(): void {
     this.emit(STATE.CONNECTING);
     this.session.currentState = STATE.CONNECTING;
     this.conn = new WebSocket(this.session.url, {
@@ -174,15 +176,14 @@ export abstract class AlpacaWebsocket
         this.reconnect();
       }
     });
-    this.conn.on("ping", () => {
-      if (this.session.pingTimeout) {
-        clearTimeout(this.session.pingTimeout);
+    this.conn.on("pong", () => {
+      if (this.session.pongTimeout) {
+        clearTimeout(this.session.pongTimeout);
       }
-      this.session.pingTimeout = setTimeout(() => {
-        this.log("connection may closed, terminating...");
-        this.conn.terminate();
-      }, 9000 + this.session.pingTimeoutThreshold); // Server pings in every 9 sec
     });
+    setInterval(() => {
+      this.ping();
+    }, 10000);
   }
 
   onConnect(fn: () => void): void {
@@ -211,6 +212,15 @@ export abstract class AlpacaWebsocket
       }, reconnectTimeout * 1000);
       this.emit(STATE.WAITING_TO_RECONNECT, reconnectTimeout);
     }
+  }
+
+  ping(): void {
+    this.conn.ping(this.msgpack.encode(this.session.pingCounter));
+    this.session.pingCounter++;
+    this.session.pongTimeout = setTimeout(() => {
+      this.log("connection may closed, terminating...");
+      this.conn.terminate();
+    }, this.session.pongWait);
   }
 
   authenticate(): void {
