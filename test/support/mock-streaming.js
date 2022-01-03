@@ -200,7 +200,7 @@ class StreamingWsMock {
         statuses: this.subscriptions.statuses,
         lulds: this.subscriptions.lulds,
         cancelErrors: this.subscriptions.trades, // Subscribed automatically.
-        corrections: this.subscriptions.trades, // // Subscribed automatically.
+        corrections: this.subscriptions.trades, // Subscribed automatically.
       },
     ];
   }

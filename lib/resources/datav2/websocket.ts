@@ -2,7 +2,6 @@ import events from "events";
 import WebSocket from "ws";
 import { MessagePack } from "msgpack5";
 import msgpack5 from "msgpack5";
-import { timeStamp } from "console";
 
 // Connection states. Each of these will also emit EVENT.STATE_CHANGE
 export enum STATE {
@@ -80,7 +79,6 @@ interface WebsocketSession {
   pongTimeout?: NodeJS.Timeout;
   pingInterval?: NodeJS.Timer;
   pongWait: number;
-  pingCounter: number;
   isReconnected: boolean;
 }
 
@@ -131,7 +129,6 @@ export abstract class AlpacaWebsocket
       url: options.url,
       currentState: STATE.WAITING_TO_CONNECT,
       isReconnected: false,
-      pingCounter: 0,
       pongWait: 5000,
     };
 
@@ -217,10 +214,9 @@ export abstract class AlpacaWebsocket
   }
 
   ping(): void {
-    this.conn.ping(this.msgpack.encode(this.session.pingCounter));
-    this.session.pingCounter++;
+    this.conn.ping();
     this.session.pongTimeout = setTimeout(() => {
-      this.log("connection may closed, terminating...");
+      this.log("no pong received from server, terminating...");
       this.conn.terminate();
     }, this.session.pongWait);
   }
