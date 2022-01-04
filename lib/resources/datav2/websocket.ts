@@ -151,6 +151,7 @@ export abstract class AlpacaWebsocket
   connect(): void {
     this.emit(STATE.CONNECTING);
     this.session.currentState = STATE.CONNECTING;
+    this.resetSession();
     this.conn = new WebSocket(this.session.url, {
       perMessageDeflate: {
         serverNoContextTakeover: false,
@@ -290,6 +291,20 @@ export abstract class AlpacaWebsocket
 
   getSubscriptions(): void {
     return this.session.subscriptions;
+  }
+
+  resetSession(): void {
+    this.session.reconnect = true;
+    this.session.backoff = true;
+    this.session.reconnectTimeout = 0;
+    this.session.maxReconnectTimeout = 30;
+    this.session.backoffIncrement = 0.5;
+    if (this.session.pongTimeout) {
+      clearTimeout(this.session.pongTimeout);
+    }
+    if (this.session.pingInterval) {
+      clearInterval(this.session.pingInterval);
+    }
   }
 
   abstract dataHandler(data: unknown): void;
