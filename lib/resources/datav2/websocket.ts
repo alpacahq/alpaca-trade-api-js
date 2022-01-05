@@ -76,8 +76,9 @@ interface WebsocketSession {
   backoffIncrement: number;
   url: string;
   currentState: STATE;
-  pingTimeout?: NodeJS.Timeout;
-  pingTimeoutThreshold: number;
+  pongTimeout?: NodeJS.Timeout;
+  pingInterval?: NodeJS.Timer;
+  pongWait: number;
   isReconnected: boolean;
 }
 
@@ -127,8 +128,8 @@ export abstract class AlpacaWebsocket
       backoffIncrement: 0.5,
       url: options.url,
       currentState: STATE.WAITING_TO_CONNECT,
-      pingTimeoutThreshold: 1000,
       isReconnected: false,
+      pongWait: 5000,
     };
 
     if (this.session.apiKey.length === 0) {
@@ -147,9 +148,10 @@ export abstract class AlpacaWebsocket
     });
   }
 
-  connect() {
+  connect(): void {
     this.emit(STATE.CONNECTING);
     this.session.currentState = STATE.CONNECTING;
+    this.resetSession();
     this.conn = new WebSocket(this.session.url, {
       perMessageDeflate: {
         serverNoContextTakeover: false,
@@ -174,15 +176,14 @@ export abstract class AlpacaWebsocket
         this.reconnect();
       }
     });
-    this.conn.on("ping", () => {
-      if (this.session.pingTimeout) {
-        clearTimeout(this.session.pingTimeout);
+    this.conn.on("pong", () => {
+      if (this.session.pongTimeout) {
+        clearTimeout(this.session.pongTimeout);
       }
-      this.session.pingTimeout = setTimeout(() => {
-        this.log("connection may closed, terminating...");
-        this.conn.terminate();
-      }, 9000 + this.session.pingTimeoutThreshold); // Server pings in every 9 sec
     });
+    this.session.pingInterval = setInterval(() => {
+      this.ping();
+    }, 10000);
   }
 
   onConnect(fn: () => void): void {
@@ -213,6 +214,14 @@ export abstract class AlpacaWebsocket
     }
   }
 
+  ping(): void {
+    this.conn.ping();
+    this.session.pongTimeout = setTimeout(() => {
+      this.log("no pong received from server, terminating...");
+      this.conn.terminate();
+    }, this.session.pongWait);
+  }
+
   authenticate(): void {
     const authMsg = {
       action: "auth",
@@ -229,6 +238,12 @@ export abstract class AlpacaWebsocket
     this.session.currentState = STATE.DISCONNECTED;
     this.conn.close();
     this.session.reconnect = false;
+    if (this.session.pongTimeout) {
+      clearTimeout(this.session.pongTimeout);
+    }
+    if (this.session.pingInterval) {
+      clearInterval(this.session.pingInterval);
+    }
   }
 
   onDisconnect(fn: () => void): void {
@@ -276,6 +291,20 @@ export abstract class AlpacaWebsocket
 
   getSubscriptions(): void {
     return this.session.subscriptions;
+  }
+
+  resetSession(): void {
+    this.session.reconnect = true;
+    this.session.backoff = true;
+    this.session.reconnectTimeout = 0;
+    this.session.maxReconnectTimeout = 30;
+    this.session.backoffIncrement = 0.5;
+    if (this.session.pongTimeout) {
+      clearTimeout(this.session.pongTimeout);
+    }
+    if (this.session.pingInterval) {
+      clearInterval(this.session.pingInterval);
+    }
   }
 
   abstract dataHandler(data: unknown): void;

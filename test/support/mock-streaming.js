@@ -82,6 +82,9 @@ class StreamingWsMock {
       });
       socket.on("error", (err) => console.log(err));
     });
+    this.conn.on("ping", (data) => {
+      this.conn.pong(data);
+    });
 
     this.httpsServer.listen(port);
 
@@ -196,8 +199,8 @@ class StreamingWsMock {
         dailyBars: this.subscriptions.dailyBars,
         statuses: this.subscriptions.statuses,
         lulds: this.subscriptions.lulds,
-        cancelErrors: this.subscriptions.trades,  // Subscribed automatically.
-        corrections: this.subscriptions.trades, // // Subscribed automatically.
+        cancelErrors: this.subscriptions.trades, // Subscribed automatically.
+        corrections: this.subscriptions.trades, // Subscribed automatically.
       },
     ];
   }
