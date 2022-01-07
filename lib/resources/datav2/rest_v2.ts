@@ -539,3 +539,40 @@ export async function getCryptoSnapshot(
 
   return AlpacaCryptoSnapshot(resp.data);
 }
+
+export enum Sort {
+  ASC = "asc",
+  DESC = "desc",
+}
+
+export interface GetNewsParams {
+  // Symbols filters the news to the related symbols.
+  // If empty or nil, all articles will be returned.
+  symbols: Array<string>;
+  // Start is the inclusive beginning of the interval
+  start: string;
+  // End is the inclusive end of the interval
+  end: string;
+  // Sort sets the sort order of the results. Sorting will be done by the UpdatedAt field.
+  sort: Sort;
+  // IncludeContent tells the server to include the article content in the response.
+  includeContent: boolean;
+  // ExcludeContentless tells the server to exclude articles that has no content.
+  excludeContentless: boolean;
+  // TotalLimit is the limit of the total number of the returned news.
+  //
+  // If it's zero then the NoTotalLimit parameter is considered: if NoTotalLimit is true,
+  // then all the articles in the given start-end interval are returned.
+  // If NoTotalLimit is false, then 50 articles will be returned.
+  //
+  // The reason for this complication is that the default (empty GetNewsParams) would
+  // not return all the news articles.
+  totalLimit: number;
+  // NoTotalLimit is only evaluated if TotalLimit is 0. See the documentation on TotalLimit
+  // for more information.
+  noTotalLimit: boolean;
+  // PageLimit is the pagination size. If empty, the default page size will be used.
+  pageLimit: number;
+}
+
+export async function getNews(options: GetNewsParams): {};
