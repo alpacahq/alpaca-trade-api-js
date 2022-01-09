@@ -351,7 +351,7 @@ getBarsV2(
     end: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
     timeframe: "1Min" | "1Hour" | "1Day"
   }
-) => Promise<BarsObject>
+) => AsyncGenerator<AlpacaBar, void, unknown>
 ```
 ###### example
 ```js
