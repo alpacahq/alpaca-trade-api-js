@@ -86,6 +86,9 @@ module.exports = function createDataV2Mock() {
         symbol: req.params.symbol,
         next_page_token: req.query.limit > 5 ? "token" : null,
       };
+      if (req.query.page_token) {
+        response.next_page_token = null;
+      }
       let limit = 3;
       if (req.query.limit) {
         limit = req.query.limit > 5 ? 5 : req.query.limit;

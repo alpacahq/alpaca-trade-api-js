@@ -18,10 +18,12 @@ import {
   AlpacaTrade,
   AlpacaBar,
   AlpacaCryptoSnapshot,
+  AlpacaNews,
 } from "./entityv2";
 
 // Number of data points to return.
 const V2_MAX_LIMIT = 10000;
+const V2_NEWS_MAX_LIMIT = 50;
 
 export enum Adjustment {
   RAW = "raw",
@@ -62,6 +64,29 @@ export function dataV2HttpRequest(
     });
 }
 
+function getQueryLimit(
+  totalLimit: number,
+  pageLimit: number,
+  received: number,
+  maxLimit: number
+): number {
+  let limit = 0;
+  if (pageLimit !== 0) {
+    limit = pageLimit;
+  }
+  if (totalLimit !== 0) {
+    const remaining = totalLimit - received;
+    if (remaining <= 0) {
+      return -1;
+    }
+    if ((limit == 0 || limit > remaining) && remaining <= maxLimit) {
+      limit = remaining;
+    }
+  }
+
+  return limit;
+}
+
 export async function* getDataV2(
   endpoint: TYPE,
   path: string,
@@ -69,23 +94,28 @@ export async function* getDataV2(
   config: any
 ): AsyncGenerator<any, void, unknown> {
   let pageToken: string | null = null;
-  let totalItems = 0;
-  const limit = options.limit;
+  let received = 0;
+  let pageLimit = 0;
+  const maxLimit = options.max_limit || V2_MAX_LIMIT;
+  delete options.maxLimit;
+  const totalLimit = options.limit || maxLimit;
+  if (options.pageLimit > 0) {
+    pageLimit = options.pageLimit;
+    delete options.pageLimit;
+  }
   while (true) {
-    let actualLimit: number | null = null;
-    if (limit) {
-      actualLimit = Math.min(limit - totalItems, V2_MAX_LIMIT);
-      if (actualLimit < 1) {
-        break;
-      }
+    const limit = getQueryLimit(totalLimit, pageLimit, received, maxLimit);
+    if (limit < 1) {
+      break;
     }
-    options = { ...options, limit: actualLimit, page_token: pageToken };
-    const resp = await dataV2HttpRequest(`${path}`, options, config);
+
+    options = { ...options, limit: limit, page_token: pageToken };
+    const resp = await dataV2HttpRequest(path, options, config);
     const items = resp.data[endpoint];
     for (const item of items) {
       yield item;
     }
-    totalItems += items.length;
+    received += items.length;
     pageToken = resp.data.next_page_token;
     if (!pageToken) {
       break;
@@ -550,15 +580,15 @@ export interface GetNewsParams {
   // If empty or nil, all articles will be returned.
   symbols: Array<string>;
   // Start is the inclusive beginning of the interval
-  start: string;
+  start?: string;
   // End is the inclusive end of the interval
-  end: string;
+  end?: string;
   // Sort sets the sort order of the results. Sorting will be done by the UpdatedAt field.
-  sort: Sort;
+  sort?: Sort;
   // IncludeContent tells the server to include the article content in the response.
-  includeContent: boolean;
+  includeContent?: boolean;
   // ExcludeContentless tells the server to exclude articles that has no content.
-  excludeContentless: boolean;
+  excludeContentless?: boolean;
   // TotalLimit is the limit of the total number of the returned news.
   //
   // If it's zero then the NoTotalLimit parameter is considered: if NoTotalLimit is true,
@@ -567,12 +597,14 @@ export interface GetNewsParams {
   //
   // The reason for this complication is that the default (empty GetNewsParams) would
   // not return all the news articles.
-  totalLimit: number;
+  totalLimit?: number;
   // NoTotalLimit is only evaluated if TotalLimit is 0. See the documentation on TotalLimit
   // for more information.
-  noTotalLimit: boolean;
+  noTotalLimit?: boolean;
   // PageLimit is the pagination size. If empty, the default page size will be used.
-  pageLimit: number;
+  pageLimit?: number;
 }
 
-export async function getNews(options: GetNewsParams): {};
+export async function getNews(options: GetNewsParams): Promise<Array<AlpacaNews> {
+
+}

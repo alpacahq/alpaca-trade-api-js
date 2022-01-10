@@ -534,7 +534,7 @@ function convertSnapshotData(key: string, data: any, isCrypto: boolean) {
 
 export function AlpacaNews(data: any): AlpacaNews {
   const mappedNews = aliasObjectKey(data, news_mapping);
-
   mappedNews.Images = aliasObjectKey(mappedNews.Images, news_image_mapping);
+
   return mappedNews as AlpacaNews;
 }

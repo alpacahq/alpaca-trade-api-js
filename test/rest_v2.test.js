@@ -112,7 +112,7 @@ describe("data v2 rest", () => {
       quotes.push(q);
     }
 
-    expect(quotes.length).equal(3);
+    expect(quotes.length).equal(10);
     assertQuote(quotes[0]);
   });
 
@@ -306,14 +306,14 @@ describe("crypto data", () => {
   before(() => {
     alpaca = new api(mock.getConfig());
   });
-  
-    it("get latest trade", async () => {
-      const resp = await alpaca.getLatestCryptoTrade("BTCUSD", {
-        exchange: "ERSX",
-      });
-  
-      assertCryptoTrade(resp, ["Symbol", ...cryptoTradeKeys]);
+
+  it("get latest trade", async () => {
+    const resp = await alpaca.getLatestCryptoTrade("BTCUSD", {
+      exchange: "ERSX",
     });
+
+    assertCryptoTrade(resp, ["Symbol", ...cryptoTradeKeys]);
+  });
 
   it("get quotes", async () => {
     const resp = alpaca.getCryptoQuotes("BTCUSD", {
@@ -342,7 +342,7 @@ describe("crypto data", () => {
 
   it("get snapshot for one symbol", async () => {
     const resp = await alpaca.getCryptoSnapshot("BTCUSD", {
-      exchange: "ERSX"
+      exchange: "ERSX",
     });
     assertCryptoSnapshot(resp);
   });
