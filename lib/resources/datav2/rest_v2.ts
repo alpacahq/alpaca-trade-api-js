@@ -19,6 +19,7 @@ import {
   AlpacaBar,
   AlpacaCryptoSnapshot,
   AlpacaNews,
+  RawAlpacaNews,
 } from "./entityv2";
 
 // Number of data points to return.
@@ -96,9 +97,11 @@ export async function* getDataV2(
   let pageToken: string | null = null;
   let received = 0;
   let pageLimit = 0;
-  const maxLimit = options.max_limit || V2_MAX_LIMIT;
+  const maxLimit = options.max_limit ?? V2_MAX_LIMIT;
   delete options.maxLimit;
-  const totalLimit = options.limit || maxLimit;
+  const totalLimit = options.limit
+    ? Math.min(options.limit, V2_MAX_LIMIT)
+    : V2_MAX_LIMIT;
   if (options.pageLimit > 0) {
     pageLimit = options.pageLimit;
     delete options.pageLimit;
@@ -605,6 +608,56 @@ export interface GetNewsParams {
   pageLimit?: number;
 }
 
-export async function getNews(options: GetNewsParams): Promise<Array<AlpacaNews> {
+function getNewsParams(options: GetNewsParams): any {
+  const query = {} as any;
+  query.symbols = options.symbols?.length ? options.symbols : null;
+  query.start = options.start ? options.start : null;
+  query.end = options.end ? options.end : null;
+  query.sort = options.sort ? options.sort : null;
+  query.includeContent = options.includeContent ? options.includeContent : null;
+  query.excludeContentless = options.excludeContentless
+    ? options.excludeContentless
+    : null;
+}
 
+export async function getNews(
+  options: GetNewsParams,
+  config: any
+): Promise<AlpacaNews[]> {
+  let pageToken: string | null = null;
+  let received = 0;
+  let pageLimit = 0;
+  const result: AlpacaNews[] = [];
+  const totalLimit = options.totalLimit
+    ? Math.min(options.totalLimit, V2_NEWS_MAX_LIMIT)
+    : V2_NEWS_MAX_LIMIT;
+  if (options.pageLimit && options.pageLimit > 0) {
+    pageLimit = options.pageLimit;
+    delete options.pageLimit;
+  }
+  for (;;) {
+    const limit = getQueryLimit(
+      totalLimit,
+      pageLimit,
+      received,
+      V2_NEWS_MAX_LIMIT
+    );
+    if (limit < 1) {
+      break;
+    }
+
+    const params = getNewsParams(options);
+    const resp: AxiosResponse<any> = await dataV2HttpRequest(
+      "/v1beta1/news",
+      { ...params, limit: limit, page_token: pageToken },
+      config
+    );
+    resp.data.news.map((n: RawAlpacaNews) => result.push(AlpacaNews(n)));
+    received += resp.data.news.length;
+    pageToken = resp.data.next_page_token;
+    if (!pageToken) {
+      break;
+    }
+  }
+  return result;
 }
