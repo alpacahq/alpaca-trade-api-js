@@ -1,6 +1,6 @@
 "use strict";
 
-const { expect } = require("chai");
+const { expect, assert } = require("chai");
 const api = require("../dist/alpaca-trade-api");
 const mock = require("./support/mock-server");
 
@@ -345,5 +345,19 @@ describe("crypto data", () => {
       exchange: "ERSX",
     });
     assertCryptoSnapshot(resp);
+  });
+
+  it("get news", async () => {
+    const news = await alpaca.getNews({});
+
+    expect(news.length).equal(2);
+    const news1 = news[0];
+
+    assert.equal(news1.ID, 20472678);
+    assert.equal(news1.Headline, "CEO John Krafcik Leaves Waymo");
+    assert.equal(news1.Author, "Bibhu Pattnaik");
+    assert.equal(news1.CreatedAt, "2021-04-03T15:35:21Z");
+    assert.equal(news1.Images.length, 3);
+    assert.equal(news1.Symbols.length, 3);
   });
 });
