@@ -593,17 +593,7 @@ export interface GetNewsParams {
   // ExcludeContentless tells the server to exclude articles that has no content.
   excludeContentless?: boolean;
   // TotalLimit is the limit of the total number of the returned news.
-  //
-  // If it's zero then the NoTotalLimit parameter is considered: if NoTotalLimit is true,
-  // then all the articles in the given start-end interval are returned.
-  // If NoTotalLimit is false, then 50 articles will be returned.
-  //
-  // The reason for this complication is that the default (empty GetNewsParams) would
-  // not return all the news articles.
   totalLimit?: number;
-  // NoTotalLimit is only evaluated if TotalLimit is 0. See the documentation on TotalLimit
-  // for more information.
-  noTotalLimit?: boolean;
   // PageLimit is the pagination size. If empty, the default page size will be used.
   pageLimit?: number;
 }
