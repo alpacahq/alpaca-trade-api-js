@@ -14,7 +14,7 @@ export enum STATE {
   WAITING_TO_RECONNECT = "waiting to reconnect",
 }
 
-// Stock client events
+// Client events
 export enum EVENT {
   CLIENT_ERROR = "client_error",
   STATE_CHANGE = "state_change",
@@ -28,6 +28,7 @@ export enum EVENT {
   LULDS = "lulds",
   CANCEL_ERRORS = "cancel_errors",
   CORRECTIONS = "corrections",
+  NEWS = "news",
 }
 
 // Connection errors by code
@@ -111,7 +112,7 @@ export abstract class AlpacaWebsocket
 {
   session: WebsocketSession;
   msgpack: MessagePack;
-  conn!: any;
+  conn!: WebSocket;
 
   constructor(options: WebsocketOptions) {
     super();

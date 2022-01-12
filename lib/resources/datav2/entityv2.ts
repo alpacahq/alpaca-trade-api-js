@@ -428,6 +428,7 @@ export interface NewsImage {
 }
 
 const news_mapping = {
+  id: "ID",
   author: "Author",
   created_at: "CreatedAt",
   updated_at: "UpdatedAt",
@@ -439,7 +440,21 @@ const news_mapping = {
   symbols: "Symbols",
 };
 
+export interface RawAlpacaNews {
+  T: string;
+  ID: number;
+  Author: string;
+  CreatedAt: string;
+  UpdatedAt: string;
+  Headline: string;
+  Summary: string;
+  Content: string;
+  Images: Array<NewsImage>;
+  URL: string;
+}
+
 export interface AlpacaNews {
+  ID: number;
   Author: string;
   CreatedAt: string;
   UpdatedAt: string;
@@ -532,9 +547,11 @@ function convertSnapshotData(key: string, data: any, isCrypto: boolean) {
   }
 }
 
-export function AlpacaNews(data: any): AlpacaNews {
+export function AlpacaNews(data: RawAlpacaNews): AlpacaNews {
   const mappedNews = aliasObjectKey(data, news_mapping);
-  mappedNews.Images = aliasObjectKey(mappedNews.Images, news_image_mapping);
+  mappedNews.Images.forEach((element: any) => {
+    return aliasObjectKey(element, news_image_mapping);
+  });
 
   return mappedNews as AlpacaNews;
 }
