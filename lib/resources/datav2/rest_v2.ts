@@ -71,10 +71,10 @@ function getQueryLimit(
   received: number
 ): number {
   let limit = 0;
-  if (pageLimit && pageLimit !== 0) {
+  if (pageLimit !== 0) {
     limit = pageLimit;
   }
-  if (totalLimit && totalLimit !== 0) {
+  if (totalLimit !== 0) {
     const remaining = totalLimit - received;
     if (remaining <= 0) {
       return -1;
@@ -83,7 +83,6 @@ function getQueryLimit(
       limit = remaining;
     }
   }
-
   return limit;
 }
 
@@ -99,15 +98,23 @@ export async function* getDataV2(
     ? Math.min(options.pageLimit, V2_MAX_LIMIT)
     : V2_MAX_LIMIT;
   delete options.pageLimit;
-  const totalLimit = options.limit ?? V2_MAX_LIMIT;
   while (true) {
-    const limit = getQueryLimit(totalLimit, pageLimit, received);
-    if (limit < 1) {
-      break;
+    let limit;
+    if (options.limit != null) {
+      limit = getQueryLimit(options.limit, pageLimit, received);
+      if (limit == null) {
+        break;
+      }
+    } else {
+      limit = pageLimit;
     }
 
-    options = { ...options, limit: limit, page_token: pageToken };
-    const resp = await dataV2HttpRequest(path, options, config);
+    const params = { ...options, limit: limit, page_token: pageToken };
+    const resp: AxiosResponse<any> = await dataV2HttpRequest(
+      path,
+      params,
+      config
+    );
     const items = resp.data[endpoint];
     for (const item of items) {
       yield item;
@@ -596,33 +603,37 @@ function getNewsParams(options: GetNewsParams): any {
   const query = {} as any;
   query.symbols =
     options.symbols?.length > 0 ? options.symbols.join(",") : null;
-  query.start = options.start ? options.start : null;
-  query.end = options.end ? options.end : null;
-  query.sort = options.sort ? options.sort : null;
-  query.includeContent = options.includeContent ? options.includeContent : null;
-  query.excludeContentless = options.excludeContentless
-    ? options.excludeContentless
-    : null;
+  query.start = options.start;
+  query.end = options.end;
+  query.sort = options.sort;
+  query.includeContent = options.includeContent;
+  query.excludeContentless = options.excludeContentless;
   return query;
 }
 
 export async function getNews(
   options: GetNewsParams,
   config: any
-): Promise<AlpacaNews[]> {
+): Promise<AlpacaNews[] | Error> {
+  if (options.totalLimit && options.totalLimit < 0) {
+    return new Error("negative total limit");
+  }
+  if (options.pageLimit && options.pageLimit < 0) {
+    return new Error("negative page limit");
+  }
+
   let pageToken: string | null = null;
   let received = 0;
   const pageLimit = options.pageLimit
     ? Math.min(options.pageLimit, V2_NEWS_MAX_LIMIT)
     : V2_NEWS_MAX_LIMIT;
-  const result: AlpacaNews[] = [];
-  const totalLimit = options.totalLimit
-    ? options.totalLimit
-    : V2_NEWS_MAX_LIMIT;
   delete options.pageLimit;
+  const totalLimit = options.totalLimit ?? 10;
+  const result: AlpacaNews[] = [];
   const params = getNewsParams(options);
+  let limit;
   for (;;) {
-    const limit = getQueryLimit(totalLimit, pageLimit, received);
+    limit = getQueryLimit(totalLimit, pageLimit, received);
     if (limit < 1) {
       break;
     }
@@ -632,7 +643,7 @@ export async function getNews(
       { ...params, limit: limit, page_token: pageToken },
       config
     );
-    resp.data.news.map((n: RawAlpacaNews) => result.push(AlpacaNews(n)));
+    resp.data.news.forEach((n: RawAlpacaNews) => result.push(AlpacaNews(n)));
     received += resp.data.news.length;
     pageToken = resp.data.next_page_token;
     if (!pageToken) {

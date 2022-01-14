@@ -57,6 +57,9 @@ export class AlpacaNewsCLient extends Websocket {
       `listening to streams:
         news: ${msg.news}`
     );
+    this.session.subscriptions = {
+      news: msg.news,
+    };
   }
 
   onNews(fn: (n: AlpacaNews) => void): void {
@@ -73,6 +76,8 @@ export class AlpacaNewsCLient extends Websocket {
           default:
             this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
         }
+      } else {
+        this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
       }
     });
   }
