@@ -61,7 +61,9 @@ export function dataV2HttpRequest(
       headers: headers,
     })
     .catch((err: any) => {
-      throw new Error(err.message);
+      throw new Error(
+        `code: ${err.response.status}, message: ${err.response.data.message}`
+      );
     });
 }
 
