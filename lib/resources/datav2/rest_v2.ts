@@ -616,12 +616,12 @@ function getNewsParams(options: GetNewsParams): any {
 export async function getNews(
   options: GetNewsParams,
   config: any
-): Promise<AlpacaNews[] | Error> {
+): Promise<AlpacaNews[]> {
   if (options.totalLimit && options.totalLimit < 0) {
-    return new Error("negative total limit");
+    throw new Error("negative total limit");
   }
   if (options.pageLimit && options.pageLimit < 0) {
-    return new Error("negative page limit");
+    throw new Error("negative page limit");
   }
 
   let pageToken: string | null = null;

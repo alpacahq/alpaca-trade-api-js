@@ -346,7 +346,14 @@ describe("crypto data", () => {
     });
     assertCryptoSnapshot(resp);
   });
+});
 
+describe("news API", () => {
+  let alpaca;
+
+  before(() => {
+    alpaca = new api(mock.getConfig());
+  });
   it("get news", async () => {
     const news = await alpaca.getNews({});
 
@@ -359,5 +366,11 @@ describe("crypto data", () => {
     assert.equal(news1.CreatedAt, "2021-04-03T15:35:21Z");
     assert.equal(news1.Images.length, 3);
     assert.equal(news1.Symbols.length, 3);
+  });
+
+  it("get news with wrong parameters", async () => {
+    await expect(
+      alpaca.getNews({ symbols: ["AAPL", "GE"], totalLimit: -1 })
+    ).to.eventually.be.rejectedWith("negative total limit");
   });
 });
