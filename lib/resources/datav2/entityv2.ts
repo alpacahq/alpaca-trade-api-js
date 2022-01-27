@@ -189,13 +189,13 @@ export interface RawLuld {
 
 const cancel_error_mapping_v2 = {
   S: "Symbol",
-	i: "ID",
-	x: "Exchange",
-	p: "Price",
-	s: "Size",
-	a: "CancelErrorAction",
-	z: "Tape",
-	t: "Timestamp",
+  i: "ID",
+  x: "Exchange",
+  p: "Price",
+  s: "Size",
+  a: "CancelErrorAction",
+  z: "Tape",
+  t: "Timestamp",
 };
 
 export interface AlpacaCancelError {
@@ -223,17 +223,17 @@ export interface RawCancelError {
 
 const correction_mapping_v2 = {
   S: "Symbol",
-	x: "Exchange",
-	oi: "OriginalID",
-	op: "OriginalPrice",
-	os: "OriginalSize",
-	oc: "OriginalConditions",
-	ci: "CorrectedID",
-	cp: "CorrectedPrice",
-	cs: "CorrectedSize",
-	cc: "CorrectedConditions",
-	z: "Tape",
-	t: "Timestamp",
+  x: "Exchange",
+  oi: "OriginalID",
+  op: "OriginalPrice",
+  os: "OriginalSize",
+  oc: "OriginalConditions",
+  ci: "CorrectedID",
+  cp: "CorrectedPrice",
+  cs: "CorrectedSize",
+  cc: "CorrectedConditions",
+  z: "Tape",
+  t: "Timestamp",
 };
 
 export interface AlpacaCorrection {
@@ -417,6 +417,55 @@ export interface CryptoSnapshot {
   PrevDailyBar: CryptoBar;
 }
 
+const news_image_mapping = {
+  size: "Size",
+  url: "URL",
+};
+
+export interface NewsImage {
+  Size: string;
+  URL: string;
+}
+
+const news_mapping = {
+  id: "ID",
+  author: "Author",
+  created_at: "CreatedAt",
+  updated_at: "UpdatedAt",
+  headline: "Headline",
+  summary: "Summary",
+  content: "Content",
+  images: "Images",
+  url: "URL",
+  symbols: "Symbols",
+};
+
+export interface RawAlpacaNews {
+  T: string;
+  ID: number;
+  Author: string;
+  CreatedAt: string;
+  UpdatedAt: string;
+  Headline: string;
+  Summary: string;
+  Content: string;
+  Images: Array<NewsImage>;
+  URL: string;
+}
+
+export interface AlpacaNews {
+  ID: number;
+  Author: string;
+  CreatedAt: string;
+  UpdatedAt: string;
+  Headline: string;
+  Summary: string;
+  Content: string;
+  Images: Array<NewsImage>;
+  URL: string;
+  Symbols: Array<string>;
+}
+
 export function AlpacaTradeV2(data: RawTrade): AlpacaTrade {
   return aliasObjectKey(data, trade_mapping_v2) as AlpacaTrade;
 }
@@ -496,4 +545,13 @@ function convertSnapshotData(key: string, data: any, isCrypto: boolean) {
     default:
       return data;
   }
+}
+
+export function AlpacaNews(data: RawAlpacaNews): AlpacaNews {
+  const mappedNews = aliasObjectKey(data, news_mapping);
+  mappedNews.Images.forEach((element: any) => {
+    return aliasObjectKey(element, news_image_mapping);
+  });
+
+  return mappedNews as AlpacaNews;
 }
