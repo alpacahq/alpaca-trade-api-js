@@ -345,6 +345,7 @@ const crypto_bar_mapping = {
 export interface CryptoBar {
   Symbol: string;
   Timestamp: string;
+  Exchange: string;
   Open: number;
   High: number;
   Low: number;
