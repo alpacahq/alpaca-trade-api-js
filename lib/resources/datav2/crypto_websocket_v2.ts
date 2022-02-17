@@ -24,6 +24,7 @@ interface CryptoSubscription {
   trades: Array<string>;
   quotes: Array<string>;
   bars: Array<string>;
+  updatedBars: Array<string>;
   dailyBars: Array<string>;
 }
 
@@ -38,6 +39,7 @@ export class AlpacaCryptoClient extends Websocket {
       trades: [],
       quotes: [],
       bars: [],
+      updatedBars: [],
       dailyBars: [],
     } as CryptoSubscription;
     super(options);
@@ -58,6 +60,11 @@ export class AlpacaCryptoClient extends Websocket {
     this.subscribe({ bars });
   }
 
+  subscribeForUpdatedBars(updatedBars: Array<string>): void {
+    this.session.subscriptions.updatedBars.push(...updatedBars);
+    this.subscribe({ updatedBars });
+  }
+
   subscribeForDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars.push(...dailyBars);
     this.subscribe({ dailyBars });
@@ -67,6 +74,7 @@ export class AlpacaCryptoClient extends Websocket {
     trades?: Array<string>;
     quotes?: Array<string>;
     bars?: Array<string>;
+    updatedBars?: Array<string>;
     dailyBars?: Array<string>;
   }): void {
     const subMsg = {
@@ -74,17 +82,20 @@ export class AlpacaCryptoClient extends Websocket {
       trades: symbols.trades ?? [],
       quotes: symbols.quotes ?? [],
       bars: symbols.bars ?? [],
+      updatedBars: symbols.updatedBars ?? [],
       dailyBars: symbols.dailyBars ?? [],
     };
     this.conn.send(this.msgpack.encode(subMsg));
   }
 
   subscribeAll(): void {
-    const { trades, quotes, bars, dailyBars } = this.session.subscriptions;
+    const { trades, quotes, bars, updatedBars, dailyBars } =
+      this.session.subscriptions;
     if (
       trades.length > 0 ||
       quotes.length > 0 ||
       bars.length > 0 ||
+      updatedBars.length > 0 ||
       dailyBars.length > 0
     ) {
       const msg = {
@@ -92,6 +103,7 @@ export class AlpacaCryptoClient extends Websocket {
         trades,
         quotes,
         bars,
+        updatedBars,
         dailyBars,
       };
       this.conn.send(this.msgpack.encode(msg));
@@ -121,6 +133,14 @@ export class AlpacaCryptoClient extends Websocket {
     this.unsubscribe({ bars });
   }
 
+  unsubscribeFromUpdatedBars(updatedBars: Array<string>): void {
+    this.session.subscriptions.updatedBars =
+      this.session.subscriptions.updatedBars.filter(
+        (updatedBar: string) => !updatedBars.includes(updatedBar)
+      );
+    this.unsubscribe({ updatedBars });
+  }
+
   unsubscriceFromDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars =
       this.session.subscriptions.dailyBars.filter(
@@ -133,6 +153,7 @@ export class AlpacaCryptoClient extends Websocket {
     trades?: Array<string>;
     quotes?: Array<string>;
     bars?: Array<string>;
+    updatedBars?: Array<string>;
     dailyBars?: Array<string>;
   }): void {
     const unsubMsg = {
@@ -140,6 +161,7 @@ export class AlpacaCryptoClient extends Websocket {
       trades: symbols.trades ?? [],
       quotes: symbols.quotes ?? [],
       bars: symbols.bars ?? [],
+      updatedBars: symbols.updatedBars ?? [],
       dailyBars: symbols.dailyBars ?? [],
     };
     this.conn.send(this.msgpack.encode(unsubMsg));
@@ -149,12 +171,14 @@ export class AlpacaCryptoClient extends Websocket {
     trades: Array<string>;
     quotes: Array<string>;
     bars: Array<string>;
+    updatedBars: Array<string>;
     dailyBars: Array<string>;
   }): void {
     this.session.subscriptions = {
       trades: msg.trades,
       quotes: msg.quotes,
       bars: msg.bars,
+      updatedBars: msg.updatedBars,
       dailyBars: msg.dailyBars,
     };
     this.log(
@@ -173,6 +197,10 @@ export class AlpacaCryptoClient extends Websocket {
 
   onCryptoBar(fn: (bar: CryptoBar) => void): void {
     this.on(EVENT.BARS, (bar: CryptoBar) => fn(bar));
+  }
+
+  onCryptoUpdatedBar(fn: (updatedBar: CryptoBar) => void): void {
+    this.on(EVENT.UPDATED_BARS, (updatedBar: CryptoBar) => fn(updatedBar));
   }
 
   onCryptoDailyBar(fn: (dailyBar: CryptoBar) => void): void {
@@ -199,6 +227,12 @@ export class AlpacaCryptoClient extends Websocket {
             break;
           case "b":
             this.emit(EVENT.BARS, AlpacaCryptoBar(element as RawCryptoBar));
+            break;
+          case "u":
+            this.emit(
+              EVENT.UPDATED_BARS,
+              AlpacaCryptoBar(element as RawCryptoBar)
+            );
             break;
           case "d":
             this.emit(
