@@ -166,7 +166,6 @@ export abstract class AlpacaWebsocket
     this.conn.binaryType = "nodebuffer";
     this.conn.once("open", () => this.authenticate());
     this.conn.on("message", (data: any) => {
-      console.log(this.msgpack.decode(data));
       this.handleMessage(this.msgpack.decode(data));
     });
     this.conn.on("error", (err: Error) => {
