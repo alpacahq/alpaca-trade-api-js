@@ -345,6 +345,7 @@ const crypto_bar_mapping = {
 export interface CryptoBar {
   Symbol: string;
   Timestamp: string;
+  Exchange: string;
   Open: number;
   High: number;
   Low: number;
@@ -357,6 +358,7 @@ export interface CryptoBar {
 export interface RawCryptoBar {
   T: string;
   S: string;
+  x: string;
   t: string;
   o: number;
   h: number;
@@ -438,6 +440,7 @@ const news_mapping = {
   images: "Images",
   url: "URL",
   symbols: "Symbols",
+  source: "Source",
 };
 
 export interface RawAlpacaNews {
@@ -451,6 +454,8 @@ export interface RawAlpacaNews {
   Content: string;
   Images: Array<NewsImage>;
   URL: string;
+  Symbols: Array<string>;
+  Source: string;
 }
 
 export interface AlpacaNews {
@@ -464,6 +469,7 @@ export interface AlpacaNews {
   Images: Array<NewsImage>;
   URL: string;
   Symbols: Array<string>;
+  Source: string;
 }
 
 export function AlpacaTradeV2(data: RawTrade): AlpacaTrade {

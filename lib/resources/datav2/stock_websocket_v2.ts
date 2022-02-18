@@ -35,6 +35,7 @@ interface StockWebSocketSession {
   trades: Array<string>;
   quotes: Array<string>;
   bars: Array<string>;
+  updatedBars: Array<string>;
   dailyBars: Array<string>;
   statuses: Array<string>;
   lulds: Array<string>;
@@ -53,6 +54,7 @@ export class AlpacaStocksClient extends Websocket {
       trades: [],
       quotes: [],
       bars: [],
+      updatedBars: [],
       dailyBars: [],
       statuses: [],
       lulds: [],
@@ -77,6 +79,11 @@ export class AlpacaStocksClient extends Websocket {
     this.subscribe({ bars });
   }
 
+  subscribeForUpdatedBars(updatedBars: Array<string>): void {
+    this.session.subscriptions.updatedBars.push(...updatedBars);
+    this.subscribe({ updatedBars });
+  }
+
   subscribeForDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars.push(...dailyBars);
     this.subscribe({ dailyBars });
@@ -95,6 +102,7 @@ export class AlpacaStocksClient extends Websocket {
     trades?: Array<string>;
     quotes?: Array<string>;
     bars?: Array<string>;
+    updatedBars?: Array<string>;
     dailyBars?: Array<string>;
     statuses?: Array<string>;
     lulds?: Array<string>;
@@ -104,6 +112,7 @@ export class AlpacaStocksClient extends Websocket {
       trades: symbols.trades ?? [],
       quotes: symbols.quotes ?? [],
       bars: symbols.bars ?? [],
+      updatedBars: symbols.updatedBars ?? [],
       dailyBars: symbols.dailyBars ?? [],
       statuses: symbols.statuses ?? [],
       lulds: symbols.lulds ?? [],
@@ -112,12 +121,13 @@ export class AlpacaStocksClient extends Websocket {
   }
 
   subscribeAll(): void {
-    const { trades, quotes, bars, dailyBars, statuses, lulds } =
+    const { trades, quotes, bars, updatedBars, dailyBars, statuses, lulds } =
       this.session.subscriptions;
     if (
       trades.length > 0 ||
       quotes.length > 0 ||
       bars.length > 0 ||
+      updatedBars.length > 0 ||
       dailyBars.length > 0 ||
       statuses.length > 0 ||
       lulds.level > 0
@@ -127,6 +137,7 @@ export class AlpacaStocksClient extends Websocket {
         trades,
         quotes,
         bars,
+        updatedBars,
         dailyBars,
         statuses,
         lulds,
@@ -158,6 +169,14 @@ export class AlpacaStocksClient extends Websocket {
     this.unsubscribe({ bars });
   }
 
+  unsubscribeFromUpdatedBars(updatedBars: Array<string>): void {
+    this.session.subscriptions.updatedBars =
+      this.session.subscriptions.updatedBars.filter(
+        (updatedBar: string) => !updatedBars.includes(updatedBar)
+      );
+    this.unsubscribe({ updatedBars });
+  }
+
   unsubscribeFromDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars =
       this.session.subscriptions.dailyBars.filter(
@@ -186,6 +205,7 @@ export class AlpacaStocksClient extends Websocket {
     trades?: Array<string>;
     quotes?: Array<string>;
     bars?: Array<string>;
+    updatedBars?: Array<string>;
     dailyBars?: Array<string>;
     statuses?: Array<string>;
     lulds?: Array<string>;
@@ -195,6 +215,7 @@ export class AlpacaStocksClient extends Websocket {
       trades: symbols.trades ?? [],
       quotes: symbols.quotes ?? [],
       bars: symbols.bars ?? [],
+      updatedBars: symbols.updatedBars ?? [],
       dailyBars: symbols.dailyBars ?? [],
       statuses: symbols.statuses ?? [],
       lulds: symbols.lulds ?? [],
@@ -206,6 +227,7 @@ export class AlpacaStocksClient extends Websocket {
     trades: Array<string>;
     quotes: Array<string>;
     bars: Array<string>;
+    updatedBars: Array<string>;
     dailyBars: Array<string>;
     statuses: Array<string>;
     lulds: Array<string>;
@@ -217,6 +239,7 @@ export class AlpacaStocksClient extends Websocket {
         trades: ${msg.trades},
         quotes: ${msg.quotes},
         bars: ${msg.bars},
+        updatedBars: ${msg.updatedBars},
         dailyBars: ${msg.dailyBars},
         statuses: ${msg.statuses},
         lulds: ${msg.lulds},
@@ -227,6 +250,7 @@ export class AlpacaStocksClient extends Websocket {
       trades: msg.trades,
       quotes: msg.quotes,
       bars: msg.bars,
+      updatedBars: msg.updatedBars,
       dailyBars: msg.dailyBars,
       statuses: msg.statuses,
       lulds: msg.lulds,
@@ -245,6 +269,10 @@ export class AlpacaStocksClient extends Websocket {
 
   onStockBar(fn: (bar: AlpacaBar) => void): void {
     this.on(EVENT.BARS, (bar: AlpacaBar) => fn(bar));
+  }
+
+  onStockUpdatedBar(fn: (updatedBar: AlpacaBar) => void): void {
+    this.on(EVENT.UPDATED_BARS, (updatedBar: AlpacaBar) => fn(updatedBar));
   }
 
   onStockDailyBar(fn: (dailyBar: AlpacaBar) => void): void {
@@ -303,6 +331,9 @@ export class AlpacaStocksClient extends Websocket {
               break;
             case "b":
               this.emit(EVENT.BARS, AlpacaBarV2(element as RawBar));
+              break;
+            case "u":
+              this.emit(EVENT.UPDATED_BARS, AlpacaBarV2(element as RawBar));
               break;
             case "d":
               this.emit(EVENT.DAILY_BARS, AlpacaBarV2(element as RawBar));

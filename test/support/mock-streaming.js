@@ -60,6 +60,19 @@ const status_AAPL = {
   z: "Tape",
 };
 
+const barUpdate_AAPL = {
+  T: "u",
+  S: "AAPL",
+  o: 100,
+  h: 101.2,
+  l: 98.67,
+  c: 101.3,
+  v: 2570,
+  t: "2021-03-05T16:00:30Z",
+  n: 1235,
+  vw: 100.123457,
+};
+
 class StreamingWsMock {
   constructor(port) {
     this.httpsServer = https.createServer({
@@ -92,6 +105,7 @@ class StreamingWsMock {
       trades: [],
       quotes: [],
       bars: [],
+      updatedBars: [],
       dailyBars: [],
       statuses: [],
       lulds: [],
@@ -135,6 +149,10 @@ class StreamingWsMock {
     this.subscriptions.trades = [...this.subscriptions.trades, ...msg.trades];
     this.subscriptions.quotes = [...this.subscriptions.quotes, ...msg.quotes];
     this.subscriptions.bars = [...this.subscriptions.bars, ...msg.bars];
+    this.subscriptions.updatedBars = [
+      ...this.subscriptions.updatedBars,
+      ...msg.updatedBars,
+    ];
     this.subscriptions.dailyBars = [
       ...this.subscriptions.dailyBars,
       ...msg.dailyBars,
@@ -160,6 +178,9 @@ class StreamingWsMock {
     );
     this.subscriptions.bars = this.subscriptions.bars.filter(
       (val) => msg.bars.indexOf(val) === -1
+    );
+    this.subscriptions.updatedBars = this.subscriptions.updatedBars.filter(
+      (val) => msg.updatedBars.indexOf(val) === -1
     );
     this.subscriptions.dailyBars = this.subscriptions.dailyBars.filter(
       (val) => msg.dailyBars.indexOf(val) === -1
@@ -196,6 +217,7 @@ class StreamingWsMock {
         trades: this.subscriptions.trades,
         quotes: this.subscriptions.quotes,
         bars: this.subscriptions.bars,
+        updatedBars: this.subscriptions.updatedBars,
         dailyBars: this.subscriptions.dailyBars,
         statuses: this.subscriptions.statuses,
         lulds: this.subscriptions.lulds,
@@ -217,6 +239,9 @@ class StreamingWsMock {
     }
     if (this.subscriptions.bars.length > 0) {
       socket.send(msgpack.encode([bar_aapl]));
+    }
+    if (this.subscriptions.updatedBars.length > 0) {
+      socket.send(msgpack.encode([barUpdate_AAPL]));
     }
   }
 

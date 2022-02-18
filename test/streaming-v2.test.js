@@ -90,6 +90,7 @@ describe("data_stream_v2", () => {
       trades: ["AAPL"],
       quotes: [],
       bars: ["GE"],
+      updatedBars: [],
       dailyBars: [],
       statuses: [],
       lulds: [],
@@ -111,6 +112,7 @@ describe("data_stream_v2", () => {
       trades: [],
       quotes: [],
       bars: [],
+      updatedBars: [],
       dailyBars: [],
       statuses: [],
       lulds: [],
@@ -221,6 +223,32 @@ describe("data_stream_v2", () => {
       data = s;
     });
     socket.subscribeForStatuses(["AAPL"]);
+
+    const res = await waitFor(() => {
+      return isEqual(data, parsed);
+    });
+    expect(res).to.be.true;
+  });
+
+  it("subscribe for barUpdate and parse it", async () => {
+    let data;
+    const parsed = {
+      T: "u",
+      Symbol: "AAPL",
+      OpenPrice: 100,
+      HighPrice: 101.2,
+      LowPrice: 98.67,
+      ClosePrice: 101.3,
+      Volume: 2570,
+      Timestamp: "2021-03-05T16:00:30Z",
+      TradeCount: 1235,
+      VWAP: 100.123457,
+    };
+
+    socket.onStockUpdatedBar((bu) => {
+      data = bu;
+    });
+    socket.subscribeForUpdatedBars(["AAPL"]);
 
     const res = await waitFor(() => {
       return isEqual(data, parsed);
