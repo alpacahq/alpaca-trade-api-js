@@ -684,6 +684,26 @@ export async function getCryptoSnapshot(
   return AlpacaCryptoSnapshot(resp.data);
 }
 
+export async function getCryptoSnapshots(
+  symbols: Array<string>,
+  options: { exchange: string },
+  config: any
+): Promise<Map<string, CryptoSnapshot>> {
+  const params = { ...options, symbols: symbols.join(",") };
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/crypto/snapshots`,
+    params,
+    config
+  );
+  const snapshots = resp.data.snapshots;
+  const result = new Map<string, CryptoSnapshot>();
+  for (const symbol in snapshots) {
+    const snapshot = snapshots[symbol];
+    result.set(symbol, AlpacaCryptoSnapshot(snapshot));
+  }
+  return result;
+}
+
 export enum Sort {
   ASC = "asc",
   DESC = "desc",
