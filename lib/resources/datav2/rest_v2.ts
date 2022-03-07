@@ -102,9 +102,9 @@ export async function* getDataV2(
   delete options.pageLimit;
   while (true) {
     let limit;
-    if (options.limit != null) {
+    if (options.limit != null || options.limit !== 0) {
       limit = getQueryLimit(options.limit, pageLimit, received);
-      if (limit == null) {
+      if (limit == -1) {
         break;
       }
     } else {
