@@ -79,6 +79,7 @@ function getQueryLimit(
   if (totalLimit !== 0) {
     const remaining = totalLimit - received;
     if (remaining <= 0) {
+      // this should never happen
       return -1;
     }
     if (limit == 0 || limit > remaining) {
@@ -100,7 +101,8 @@ export async function* getDataV2(
     ? Math.min(options.pageLimit, V2_MAX_LIMIT)
     : V2_MAX_LIMIT;
   delete options.pageLimit;
-  while (true) {
+  options.limit = options.limit ?? 0;
+  while (options.limit > received || options.limit === 0) {
     let limit;
     if (options.limit != null || options.limit !== 0) {
       limit = getQueryLimit(options.limit, pageLimit, received);
@@ -108,7 +110,7 @@ export async function* getDataV2(
         break;
       }
     } else {
-      limit = pageLimit;
+      limit = null;
     }
 
     const params = { ...options, limit: limit, page_token: pageToken };
