@@ -80,9 +80,8 @@ module.exports = function createDataV2Mock() {
         timeframe: joi.string().optional(),
         adjustment: joi.string().optional(),
       });
-
       let token = req.query.limit > 5 ? "token" : null;
-      if (req.query.limit === 4) {
+      if (!req.query.limit || req.query.limit === 4) {
         token = "token";
       }
       let response = {
@@ -93,7 +92,7 @@ module.exports = function createDataV2Mock() {
       if (req.query.page_token) {
         response.next_page_token = null;
       }
-      let limit = 3;
+      let limit = 5;
       if (req.query.limit) {
         limit = req.query.limit > 5 ? 5 : req.query.limit;
       }
