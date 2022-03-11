@@ -29,6 +29,28 @@ module.exports = function createCryptoDataMock() {
   });
 
   v1beta1.get(
+    "/crypto/:endpoint/latest",
+    apiMethod((req) => {
+      assertSchema(req.query, {
+        symbols: joi.string(),
+        exchange: joi.string(),
+      });
+
+      let response = {};
+      response[req.params.endpoint] = {};
+      response[req.params.endpoint]["BTCUSD"] =
+        latestDataBySymbol["BTCUSD"][req.params.endpoint][
+          req.params.endpoint.slice(0, -1) // remove plural form
+        ];
+      response[req.params.endpoint]["ETHUSD"] =
+        latestDataBySymbol["ETHUSD"][req.params.endpoint][
+          req.params.endpoint.slice(0, -1) // remove plural form
+        ];
+      return response;
+    })
+  );
+
+  v1beta1.get(
     "/crypto/:symbol/snapshot",
     apiMethod((req) => {
       if (req.params.symbol == null || req.query.exchange == null) {
@@ -137,7 +159,7 @@ const latestDataBySymbol = {
     },
     quotes: {
       symbol: "BTCUSD",
-      quotes: {
+      quote: {
         t: "2021-08-10T05:00:53.834Z",
         x: "CBSE",
         bp: 45499.94,
@@ -156,6 +178,44 @@ const latestDataBySymbol = {
         bx: "ERSX",
         bp: 43813.34,
         bs: 1.3855,
+      },
+    },
+  },
+  ETHUSD: {
+    trades: {
+      symbol: "ETHUSD",
+      trade: {
+        t: "2021-09-10T12:24:14.629Z",
+        x: "CBSE",
+        p: 46167.46,
+        s: 0.00215922,
+        tks: "B",
+        i: 210078241,
+      },
+    },
+    quotes: {
+      symbol: "ETHUSD",
+      quote: {
+        t: "2021-08-10T05:00:59.668Z",
+        x: "CBSE",
+        bp: 3102.35,
+        bs: 1.18895459,
+        ap: 3102.6,
+        as: 1,
+      },
+    },
+    bars: {
+      symbol: "ETHUSD",
+      bar: {
+        t: "2021-08-10T05:01:00Z",
+        x: "CBSE",
+        o: 3102.24,
+        h: 3106.23,
+        l: 3096.31,
+        c: 3105.92,
+        v: 146.76170455,
+        n: 238,
+        vw: 3101.9215354394,
       },
     },
   },

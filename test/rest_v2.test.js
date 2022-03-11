@@ -315,6 +315,17 @@ describe("crypto data", () => {
     assertCryptoTrade(resp, ["Symbol", ...cryptoTradeKeys]);
   });
 
+  it("get latest trades", async () => {
+    const resp = await alpaca.getLatestCryptoTrades(["BTCUSD", "ETHUSD"], {
+      exchange: "ERSX",
+    });
+
+    expect(resp.size).equal(2);
+    for (const symbol in resp) {
+      assertCryptoTrade(resp[symbol], cryptoTradeKeys);
+    }
+  });
+
   it("get quotes", async () => {
     const resp = alpaca.getCryptoQuotes("BTCUSD", {
       start: "2021-09-10",
