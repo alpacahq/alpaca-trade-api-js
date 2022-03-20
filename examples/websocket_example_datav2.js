@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * This examples shows how to use tha alpaca data v2 websocket to subscribe to events.
- * You should use the alpaca api's data_steam_v2, also add feed besides the other parameters.
+ * This examples shows how to use the Alpaca Data V2 websocket to subscribe to events.
+ * You should use the Alpaca API's `data_steam_v2`, also add feed besides the other parameters.
  * For subscribing (and unsubscribing) to trades, quotes and bars you should call
  * a function for each like below.
  */
