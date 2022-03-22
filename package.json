@@ -39,7 +39,7 @@
     "events": "^3.2.0",
     "just-extend": "^4.1.0",
     "lodash": "^4.17.19",
-    "minimist": "^0.2.1",
+    "minimist": "^1.2.6",
     "msgpack5": "^5.3.2",
     "nats": "^1.4.9",
     "urljoin": "^0.1.5",
