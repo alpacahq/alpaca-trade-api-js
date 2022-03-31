@@ -113,6 +113,7 @@ export interface RawBar {
 }
 
 const snapshot_mapping_v2 = {
+  symbol: "symbol",
   latestTrade: "LatestTrade",
   latestQuote: "LatestQuote",
   minuteBar: "MinuteBar",
@@ -121,6 +122,7 @@ const snapshot_mapping_v2 = {
 };
 
 export interface AlpacaSnapshot {
+  Symbol: string;
   LatestTrade: AlpacaTrade;
   LatestQuote: AlpacaQuote;
   MinuteBar: AlpacaBar;
@@ -529,7 +531,7 @@ export function AlpacaCryptoSnapshot(data: any): CryptoSnapshot {
 }
 
 function aliasObjectKey(data: any, mapping: any) {
-  return mapKeys(data, (value: any, key: any) => {
+  return mapKeys(data, (_value: any, key: any) => {
     return mapping.hasOwnProperty(key) ? mapping[key] : key;
   });
 }
