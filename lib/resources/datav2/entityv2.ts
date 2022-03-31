@@ -531,7 +531,7 @@ export function AlpacaCryptoSnapshot(data: any): CryptoSnapshot {
 }
 
 function aliasObjectKey(data: any, mapping: any) {
-  return mapKeys(data, (value: any, key: any) => {
+  return mapKeys(data, (_value: any, key: any) => {
     return mapping.hasOwnProperty(key) ? mapping[key] : key;
   });
 }
