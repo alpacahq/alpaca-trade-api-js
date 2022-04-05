@@ -421,6 +421,41 @@ export interface CryptoSnapshot {
   PrevDailyBar: CryptoBar;
 }
 
+const crypto_orderbook_entry_mapping = {
+  p: "Price",
+  s: "Size",
+};
+
+export interface CryptoOrderbookEntry {
+  Price: number;
+  Size: number;
+}
+
+const crypto_orderbook_mapping = {
+  S: "Symbol",
+  t: "Timestamp",
+  x: "Exchange",
+  b: "Bids",
+  a: "Asks",
+};
+
+export interface CryptoOrderbook {
+  Symbol: string;
+  Timestamp: string;
+  Exchange: string;
+  Bids: Array<CryptoOrderbookEntry>;
+  Asks: Array<CryptoOrderbookEntry>;
+}
+
+export interface RawCryptoOrderbook {
+  T: string;
+  S: string;
+  t: string;
+  x: string;
+  b: Array<CryptoOrderbookEntry>;
+  a: Array<CryptoOrderbookEntry>;
+}
+
 const news_image_mapping = {
   size: "Size",
   url: "URL",
@@ -528,6 +563,17 @@ export function AlpacaCryptoSnapshot(data: any): CryptoSnapshot {
   return mapValues(snapshot, (value: any, key: any) => {
     return convertSnapshotData(key, value, true);
   }) as CryptoSnapshot;
+}
+
+export function AlpacaCryptoOrderbook(data: RawCryptoOrderbook): CryptoOrderbook {
+  const mappedOrderbook = aliasObjectKey(data, crypto_orderbook_mapping);
+  mappedOrderbook.Bids.forEach((element: any, index: number) => {
+    mappedOrderbook.Bids[index] = aliasObjectKey(element, crypto_orderbook_entry_mapping);
+  });
+  mappedOrderbook.Asks.forEach((element: any, index: number) => {
+    mappedOrderbook.Asks[index] = aliasObjectKey(element, crypto_orderbook_entry_mapping);
+  });
+  return mappedOrderbook as CryptoOrderbook;
 }
 
 function aliasObjectKey(data: any, mapping: any) {
