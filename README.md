@@ -374,32 +374,34 @@ for await (let b of resp) {
 ```
 note: to get the date of response samples you could do this `console.log(new Date(resp['AAPL'][0].startEpochTime*1000))`
 
-#### Last trade
+#### Get the Latest trade
 
 ```ts
-lastTrade(
-  symbol: string)
-) => Promise<LastTradeObject>
+getLatestTrade(
+  symbol: string,
+  config: any
+) => Promise<AlpacaTrade>
 ```
 ###### example
 ```js
-this.alpaca.lastTrade('AAPL').then((response) => {
-          console.log(response)
-        })
+const trade = await this.alpaca.getLatestTrade('AAPL');
+
+console.log(trade);
 ```
 
-#### Last quote
+#### Get the Latest quote
 
 ```ts
-lastQuote(
-  symbol: string)
-) => Promise<LastQuoteObject>
+getLatestQuote(
+        symbol: string,
+        config: any
+) => Promise<AlpacaQuote>
 ```
 ###### example
 ```js
-this.alpaca.lastQuote('AAPL').then((response) => {
-          console.log(response)
-        })
+const quote = await this.alpaca.getLatestQuote('AAPL');
+
+console.log(quote);
 ```
 
 ### Websockets
