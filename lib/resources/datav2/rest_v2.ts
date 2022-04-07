@@ -30,7 +30,7 @@ export enum Adjustment {
   RAW = "raw",
   DIVIDEND = "dividend",
   SPLIT = "split",
-  BOTH = "both",
+  ALL = "all",
 }
 
 export enum TYPE {

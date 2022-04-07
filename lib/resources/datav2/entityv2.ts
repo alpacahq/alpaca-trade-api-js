@@ -563,3 +563,37 @@ export function AlpacaNews(data: RawAlpacaNews): AlpacaNews {
 
   return mappedNews as AlpacaNews;
 }
+
+export enum TimeFrameUnit {
+  MIN = "Min",
+  HOUR = "Hour",
+  DAY = "Day",
+  WEEK = "Week",
+  MONTH = "Month",
+}
+
+export function NewTimeframe(amount: number, unit: TimeFrameUnit): string {
+  if (amount <= 0) {
+    throw new Error("amount must be a positive integer value");
+  }
+  if (unit == TimeFrameUnit.MIN && amount > 59) {
+    throw new Error(
+      "minute timeframe can only be used with amount between 1-59"
+    );
+  }
+  if (unit == TimeFrameUnit.HOUR && amount > 23) {
+    throw new Error("hour timeframe can only be used with amounts 1-23");
+  }
+  if (
+    (unit == TimeFrameUnit.DAY || unit == TimeFrameUnit.WEEK) &&
+    amount != 1
+  ) {
+    throw new Error("day and week timeframes can only be used with amount 1");
+  }
+  if (unit == TimeFrameUnit.MONTH && ![1, 2, 3, 6, 12].includes(amount)) {
+    throw new Error(
+      "month timeframe can only be used with amount 1, 2, 3, 6 and 12"
+    );
+  }
+  return `${amount}${unit}`;
+}

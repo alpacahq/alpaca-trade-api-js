@@ -349,7 +349,7 @@ getBarsV2(
     limit: number,
     start: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
     end: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
-    timeframe: "1Min" | "1Hour" | "1Day"
+    timeframe: "1Min" | "1Hour" | "1Day" | "1Week" | "1Month"
   }
 ) => Promise<BarsObject>
 ```

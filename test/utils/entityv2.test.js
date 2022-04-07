@@ -1,6 +1,6 @@
 "use strict";
 
-const expect = require("chai").expect;
+const { expect, assert } = require("chai");
 const { isEqual } = require("lodash");
 const entityV2 = require("../../dist/resources/datav2/entityv2");
 
@@ -28,6 +28,58 @@ describe("test convert functions", () => {
   it("test aliasObjectKey for snapshot", () => {
     const got = entityV2.AlpacaSnapshotV2(data.snapshot);
     assertData(got, expected.snapshot);
+  });
+});
+
+describe("test timeframe", () => {
+  it("test valid day timeframe", () => {
+    const got = entityV2.NewTimeframe(1, entityV2.TimeFrameUnit.DAY);
+    expect(got).equal("1Day");
+  });
+
+  it("test invalid day timeframe", () => {
+    assert.throws(
+      () => {
+        entityV2.NewTimeframe(15, entityV2.TimeFrameUnit.DAY);
+      },
+      Error,
+      "day and week timeframes can only be used with amount 1"
+    );
+  });
+
+  it("test invalid minute timeframe", () => {
+    assert.throws(
+      () => {
+        entityV2.NewTimeframe(72, entityV2.TimeFrameUnit.MIN);
+      },
+      Error,
+      "minute timeframe can only be used with amount between 1-59"
+    );
+  });
+
+  it("test invalid amount in timeframe", () => {
+    assert.throws(
+      () => {
+        entityV2.NewTimeframe(0, entityV2.TimeFrameUnit.MIN);
+      },
+      Error,
+      "amount must be a positive integer value"
+    );
+  });
+
+  it("test valid month timeframe", () => {
+    const got = entityV2.NewTimeframe(3, entityV2.TimeFrameUnit.MONTH);
+    expect(got).equal("3Month");
+  });
+
+  it("test invalid month timeframe", () => {
+    assert.throws(
+      () => {
+        entityV2.NewTimeframe(11, entityV2.TimeFrameUnit.MONTH);
+      },
+      Error,
+      "month timeframe can only be used with amount 1, 2, 3, 6 and 12"
+    );
   });
 });
 
