@@ -29,6 +29,7 @@ export enum EVENT {
   LULDS = "lulds",
   CANCEL_ERRORS = "cancel_errors",
   CORRECTIONS = "corrections",
+  ORDERBOOKS = "orderbooks",
   NEWS = "news",
 }
 

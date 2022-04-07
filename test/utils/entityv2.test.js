@@ -29,6 +29,11 @@ describe("test convert functions", () => {
     const got = entityV2.AlpacaSnapshotV2(data.snapshot);
     assertData(got, expected.snapshot);
   });
+
+  it("test aliasObjectKey for crypto orderbooks", () => {
+    const got = entityV2.AlpacaCryptoOrderbook(data.cryptoOrderbook);
+    assertData(got, expected.cryptoOrderbook);
+  });
 });
 
 const data = {
@@ -105,6 +110,13 @@ const data = {
       v: 2088793,
     },
   },
+  cryptoOrderbook: {
+    S: 'BTCUSD',
+    x: 'ERSX',
+    t: "2022-04-06T14:19:40.984Z",
+    b: [ { p: 44066.1, s: 0 }, { p: 44063.4, s: 1.361635 } ],
+    a: []
+  },
 };
 
 const expected = {
@@ -180,5 +192,12 @@ const expected = {
       ClosePrice: 131.44,
       Volume: 2088793,
     },
+  },
+  cryptoOrderbook: {
+    Symbol: 'BTCUSD',
+    Exchange: 'ERSX',
+    Timestamp: "2022-04-06T14:19:40.984Z",
+    Bids: [ { Price: 44066.1, Size: 0 }, { Price: 44063.4, Size: 1.361635 } ],
+    Asks: []
   },
 };
