@@ -374,7 +374,7 @@ for await (let b of resp) {
 ```
 note: to get the date of response samples you could do this `console.log(new Date(resp['AAPL'][0].startEpochTime*1000))`
 
-#### Latest trade for single symbol
+#### Latest trade
 
 ```ts
 getLatestTrade(
