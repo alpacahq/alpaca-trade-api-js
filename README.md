@@ -291,48 +291,48 @@ module.exports = {
 
 #### Get All Watchlists
 ```js
-this.alpaca.getWatchlists().then((response) => {
-      console.log(response)
-    })
+alpaca.getWatchlists().then((response) => {
+  console.log(response)
+})
 ```
 
 #### Get Specific Watchlist
 ```js
  // xxxx.. are the watchlist id you get on creation or with get all
- this.alpaca.getWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
-      console.log(response)
-    })
+ alpaca.getWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
+   console.log(response)
+ })
 ```
 
 #### Add a Watchlist
 ```js
-this.alpaca.addWatchlist("myWatchList", []).then((response) => {
-      console.log(response)
-    })
+alpaca.addWatchlist("myWatchList", []).then((response) => {
+  console.log(response)
+})
 ```
 #### Add to Watchlist
 
 ```js
-this.alpaca.addToWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
+alpaca.addToWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
   console.log(response)
 })
 ```
 #### Update a Watchlist
 ```js
-this.alpaca.updateWatchlist("myWatchList", ["AAPL", "GOOG"]).then((response) => {
-      console.log(response)
-    })
+alpaca.updateWatchlist("myWatchList", ["AAPL", "GOOG"]).then((response) => {
+  console.log(response)
+})
 ```
 #### Delete a Watchlist
 ```js
-this.alpaca.deleteWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
-      console.log(response)
-    })
+alpaca.deleteWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
+  console.log(response)
+})
 ```
 
 #### Delete from Watchlist
 ```js
-this.alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
+alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
   console.log(response)
 })
 ```
@@ -355,7 +355,7 @@ getBarsV2(
 ```
 ###### example
 ```js
-let resp = this.alpaca.getBarsV2(
+let resp = alpaca.getBarsV2(
     "AAPL",
     {
         start: "2021-02-01",
@@ -374,7 +374,7 @@ for await (let b of resp) {
 ```
 note: to get the date of response samples you could do this `console.log(new Date(resp['AAPL'][0].startEpochTime*1000))`
 
-#### Get the Latest trade
+#### Latest trade
 
 ```ts
 getLatestTrade(
@@ -384,12 +384,12 @@ getLatestTrade(
 ```
 ###### example
 ```js
-const trade = await this.alpaca.getLatestTrade('AAPL');
+const trade = await alpaca.getLatestTrade('AAPL');
 
 console.log(trade);
 ```
 
-#### Get the Latest quote
+#### Latest quote
 
 ```ts
 getLatestQuote(
@@ -399,7 +399,7 @@ getLatestQuote(
 ```
 ###### example
 ```js
-const quote = await this.alpaca.getLatestQuote('AAPL');
+const quote = await alpaca.getLatestQuote('AAPL');
 
 console.log(quote);
 ```
