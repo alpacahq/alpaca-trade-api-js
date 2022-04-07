@@ -379,8 +379,15 @@ note: to get the date of response samples you could do this `console.log(new Dat
 ```ts
 getLatestTrade(
   symbol: string,
-  config: any?
+  config?: any
 ) => Promise<AlpacaTrade>
+```
+Or if you want to get the latest trades for multiple symbols
+```ts
+getLatestTrades(
+  symbols: Array<string>,
+  config?: any
+): Promise<Map<string, AlpacaTrade>>
 ```
 ###### example
 ```js
@@ -389,47 +396,25 @@ const trade = await alpaca.getLatestTrade('AAPL');
 console.log(trade);
 ```
 
-#### Latest Trade for multiple symbols
-```ts
-getLatestTrades(
-  symbols: Array<string>,
-  config: any?
-): Promise<Map<string, AlpacaTrade>>
-```
-##### example
-```js
-const trades = await alpaca.getLatestTrade(['AAPL', 'TSLA']);
-
-console.log(trades);
-```
-
 #### Latest quote
-
 ```ts
 getLatestQuote(
-        symbol: string,
-        config: any?
+  symbol: string,
+  config?: any
 ) => Promise<AlpacaQuote>
+```
+Or if you want to get the latest quotes for multiple symbols
+```ts
+getLatestQuotes(
+  symbols: Array<string>,
+  config?: any
+): Promise<Map<string, AlpacaQuote>>
 ```
 ###### example
 ```js
 const quote = await alpaca.getLatestQuote('AAPL');
 
 console.log(quote);
-```
-
-#### Latest Quote for multiple symbols
-```ts
-getLatestQuotes(
-        symbols: Array<string>,
-        config: any?
-): Promise<Map<string, AlpacaQuote>>
-```
-##### example
-```js
-const quotes = await alpaca.getLatestQuote(['AAPL', 'TSLA']);
-
-console.log(quotes);
 ```
 
 ### Websockets
