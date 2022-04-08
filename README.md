@@ -58,11 +58,11 @@ we have 2 types of websockets:
 - data websocket: get updates to data equities
 - account/trade websocket: get updates on your account
 
-please refer to this [example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/websocket_example_datav2.js) 
-code to see how to use the websockets. 
+please refer to this [example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/websocket_example_datav2.js)
+code to see how to use the websockets.
 
-##### Data WS 
-The Alapca websocket service now supports V2. Make sure you update your old sample code accordingly.<br> 
+##### Data WS
+The Alapca websocket service now supports V2. Make sure you update your old sample code accordingly.<br>
 You could use it even if you don't have a funded account. <br>
 
 
@@ -140,7 +140,7 @@ Calls `POST /orders` and creates a new order.
 ```ts
 createOrder({
   symbol: string, // any valid ticker symbol
-  qty: number, 
+  qty: number,
   notional: number, // qty or notional required, not both
   side: 'buy' | 'sell',
   type: 'market' | 'limit' | 'stop' | 'stop_limit' | 'trailing_stop',
@@ -291,48 +291,48 @@ module.exports = {
 
 #### Get All Watchlists
 ```js
-this.alpaca.getWatchlists().then((response) => {
-      console.log(response)
-    })
+alpaca.getWatchlists().then((response) => {
+  console.log(response)
+})
 ```
 
 #### Get Specific Watchlist
 ```js
  // xxxx.. are the watchlist id you get on creation or with get all
- this.alpaca.getWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
-      console.log(response)
-    })
+ alpaca.getWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
+   console.log(response)
+ })
 ```
 
 #### Add a Watchlist
 ```js
-this.alpaca.addWatchlist("myWatchList", []).then((response) => {
-      console.log(response)
-    })
+alpaca.addWatchlist("myWatchList", []).then((response) => {
+  console.log(response)
+})
 ```
 #### Add to Watchlist
 
 ```js
-this.alpaca.addToWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
+alpaca.addToWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
   console.log(response)
 })
 ```
 #### Update a Watchlist
 ```js
-this.alpaca.updateWatchlist("myWatchList", ["AAPL", "GOOG"]).then((response) => {
-      console.log(response)
-    })
+alpaca.updateWatchlist("myWatchList", ["AAPL", "GOOG"]).then((response) => {
+  console.log(response)
+})
 ```
 #### Delete a Watchlist
 ```js
-this.alpaca.deleteWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
-      console.log(response)
-    })
+alpaca.deleteWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
+  console.log(response)
+})
 ```
 
 #### Delete from Watchlist
 ```js
-this.alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
+alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
   console.log(response)
 })
 ```
@@ -344,7 +344,7 @@ this.alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").
 ```ts
 getBarsV2(
   symbol,
-  
+
   {
     limit: number,
     start: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
@@ -355,7 +355,7 @@ getBarsV2(
 ```
 ###### example
 ```js
-let resp = this.alpaca.getBarsV2(
+let resp = alpaca.getBarsV2(
     "AAPL",
     {
         start: "2021-02-01",
@@ -374,42 +374,57 @@ for await (let b of resp) {
 ```
 note: to get the date of response samples you could do this `console.log(new Date(resp['AAPL'][0].startEpochTime*1000))`
 
-#### Last trade
+#### Latest trade
 
 ```ts
-lastTrade(
-  symbol: string)
-) => Promise<LastTradeObject>
+getLatestTrade(
+  symbol: string,
+  config?: any
+) => Promise<AlpacaTrade>
+```
+Or if you want to get the latest trades for multiple symbols
+```ts
+getLatestTrades(
+  symbols: Array<string>,
+  config?: any
+): Promise<Map<string, AlpacaTrade>>
 ```
 ###### example
 ```js
-this.alpaca.lastTrade('AAPL').then((response) => {
-          console.log(response)
-        })
+const trade = await alpaca.getLatestTrade('AAPL');
+
+console.log(trade);
 ```
 
-#### Last quote
-
+#### Latest quote
 ```ts
-lastQuote(
-  symbol: string)
-) => Promise<LastQuoteObject>
+getLatestQuote(
+  symbol: string,
+  config?: any
+) => Promise<AlpacaQuote>
+```
+Or if you want to get the latest quotes for multiple symbols
+```ts
+getLatestQuotes(
+  symbols: Array<string>,
+  config?: any
+): Promise<Map<string, AlpacaQuote>>
 ```
 ###### example
 ```js
-this.alpaca.lastQuote('AAPL').then((response) => {
-          console.log(response)
-        })
+const quote = await alpaca.getLatestQuote('AAPL');
+
+console.log(quote);
 ```
 
 ### Websockets
-You can use data websocket with or without a funded account. 
+You can use data websocket with or without a funded account.
 #### Working with websocket
 * The websocket is created when you creating the Alpaca instance
 * `const websocket = alpaca.data_stream_v2`: Get the websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
-* `client.onConnect(function() {})`: all the following code will be executed after 
-  the user authentication. You can also subscribe and unsubscribe for data 
+* `client.onConnect(function() {})`: all the following code will be executed after
+  the user authentication. You can also subscribe and unsubscribe for data
   outside this function.
 * `websocket.subscribeForTrades(["symbol"])`: Subscribe for trades data for the
   given symbol(s). You can do the same with quotes, bars, dailyBars, statuses
@@ -427,4 +442,3 @@ You can use data websocket with or without a funded account.
   Working as the examples above.
 * `cryptoWebsocket.onDisconnect(function() {})` and `cryptoWebsocket.disconnect()`:
   Same as above.
-    
