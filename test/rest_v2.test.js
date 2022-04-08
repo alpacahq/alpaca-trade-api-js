@@ -121,7 +121,7 @@ describe("data v2 rest", () => {
       start: "2021-02-01",
       end: "2021-02-10",
       limit: 2,
-      timeframe: "1Day",
+      timeframe: alpaca.newTimeframe(1, alpaca.timeframeUnit.DAY),
       adjustment: alpaca.adjustment.RAW,
     });
     const bars = [];
