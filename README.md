@@ -339,18 +339,70 @@ alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then(
 
 ### Data API
 
-#### Get Bars
+#### Trdaes
+```ts
+getTradesV2(
+  symbol: string,
+  options: GetTradesParams,
+  config?: any,
+): AsyncGenerator<AlpacaTrade, void, unknown>;
+```
+```ts
+getMultiTradesV2(
+  symbols: Array<string>,
+  options: GetTradesParams,
+  config?: any,
+): Promise<Map<string, AlpacaTrade[]>>;
+```
+```ts
+getMultiTradesAsyncV2(
+  symbols: Array<string>,
+  options: GetTradesParams,
+  config?: any,
+): AsyncGenerator<AlpacaTrade, void, unknown>;
+```
+```ts
+getLatestTrade(
+  symbol: string,
+  config?: any,
+): Promise<AlpacaTrade>;
+```
+```ts
+getLatestTrades(
+  symbols: Array<string>,
+  config?: any,
+): Promise<Map<string, AlpacaTrade>>;
+```
+###### example
+```ts
+const trade = await alpaca.getLatestTrade('AAPL');
+console.log(trade);
+```
+```python
+{
+  Timestamp: '2022-04-14T13:54:24.907840256Z',
+  Exchange: 'P',
+  Price: 169.33,
+  Size: 100,
+  Conditions: [ '@' ],
+  ID: 12272,
+  Tape: 'C'
+}
+```
+
+
+##### Get bars
 
 ```ts
 getBarsV2(
   symbol,
-
   {
     limit: number,
     start: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
     end: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
     timeframe: "1Min" | "1Hour" | "1Day" | "1Week" | "1Month"
-  }
+  },
+  config?: any,
 ) => Promise<BarsObject>
 ```
 ###### example
@@ -364,7 +416,6 @@ let resp = alpaca.getBarsV2(
         timeframe: "1Day",
         adjustment: "all",
     },
-    alpaca.configuration
 );
 const bars = [];
 
@@ -372,7 +423,6 @@ for await (let b of resp) {
     console.log(b)
 }
 ```
-note: to get the date of response samples you could do this `console.log(new Date(resp['AAPL'][0].startEpochTime*1000))`
 
 #### Latest trade
 
