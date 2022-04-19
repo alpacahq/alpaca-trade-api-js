@@ -137,12 +137,27 @@ export async function* getMultiDataV2(
   options: any,
   config: any
 ): AsyncGenerator<{ symbol: string; data: any }, void, unknown> {
-  let pageToken = null;
-  while (true) {
+  let pageToken: string | null = null;
+  let received = 0;
+  const pageLimit = options.pageLimit
+    ? Math.min(options.pageLimit, V2_MAX_LIMIT)
+    : V2_MAX_LIMIT;
+  delete options.pageLimit;
+  options.limit = options.limit ?? 0;
+  while (options.limit > received || options.limit === 0) {
+    let limit;
+    if (options.limit !== 0) {
+      limit = getQueryLimit(options.limit, pageLimit, received);
+      if (limit == -1) {
+        break;
+      }
+    } else {
+      limit = null;
+    }
     const params: any = {
       ...options,
       symbols: symbols.join(","),
-      limit: options.page_limit,
+      limit: limit,
       page_token: pageToken,
     };
     const resp = await dataV2HttpRequest(
@@ -153,6 +168,7 @@ export async function* getMultiDataV2(
     const items = resp.data[endpoint];
     for (const symbol in items) {
       for (const data of items[symbol]) {
+        received++;
         yield { symbol: symbol, data: data };
       }
     }
