@@ -572,6 +572,7 @@ console.log(snapshot);
   }
 }
 ```
+More detailed examples of stock data endpoints can be found in this [file](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/marketdataV2.ts). 
 
 ##### News
 ```ts
@@ -580,7 +581,7 @@ console.log(snapshot);
    config?: any,
  ): Promise<AlpacaNews[]>;
 ```
-Details of the `options` parameter can be found here.
+Details of the `options` parameter can be found [here](https://github.com/alpacahq/alpaca-trade-api-js/blob/687e58c8ff03cc70b56fc57844d78ca7801e0f85/lib/resources/datav2/rest_v2.ts#L714).
 ##### Example
 ```ts
  const news = await alpaca.getNews({});
@@ -602,7 +603,7 @@ Details of the `options` parameter can be found here.
 }
 ```
 ### Data API - Crypto
-All the endpoints are similar to the stock API. 
+All the functions are similar to the stock ones. 
 #### Trades
 * `getCryptoTrades`
 * `getLatestCryptoTrade`
