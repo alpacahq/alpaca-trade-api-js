@@ -394,34 +394,34 @@ console.log(trade);
 #### Quotes
 ```ts
 getQuotesV2(
-  symbol: any,
+  symbol: string,
   options: any,
   config?: any,
 ): AsyncGenerator<AlpacaQuote, void, unknown>;
 ```
 ```ts
 getMultiQuotesV2(
-  symbols: any,
+  symbols: Array<string>,
   options: any,
   config?: any,
 ): Promise<Map<string, any[]>>;
 ```
 ```ts
 getMultiQuotesAsyncV2(
-  symbols: any,
+  symbols: Array<string>,
   options: any,
   config?: any,
 ): AsyncGenerator<AlpacaQuote, void, unknown>;
 ```
 ```ts
  getLatestQuote(
-   symbol: any,
+   symbol: string,
    config?: any,
 ): Promise<AlpacaQuote>;
 ```
 ```ts
 getLatestQuotes(
-   symbols: any,
+   symbols: Array<string>,
    config?: any,
 ): Promise<Map<string, AlpacaQuote>>;
 ```
@@ -467,33 +467,33 @@ console.log(trades);
 ##### Bars
 ```ts
  getBarsV2(
-   symbol: any,
+   symbol: string,
    options: any, 
    config?: any,
  ): AsyncGenerator<AlpacaBar, void, unknown>;
 ```
 ```ts
 getMultiBarsV2(
-  symbols: any,
+  symbols: Array<string>,
   options: any,
   config?: any,
 ): Promise<Map<string, any[]>>;
 ```
 ```ts
  getMultiBarsAsyncV2(symbols: any,
-   options: any,
+   options: Array<string>,
    config?: any,
  ): AsyncGenerator<AlpacaBar, void, unknown>;
 ```
 ```ts
  getLatestBar(
-  symbol: any,
+  symbol: string,
   config?: any,
 ): Promise<AlpacaBar>;
 ```
 ```ts
 getLatestBars(
-  symbols: any,
+  symbols: Array<string>,
   config?: any,
 ): Promise<Map<string, AlpacaBar>>;
 ```
@@ -501,13 +501,13 @@ getLatestBars(
 ##### Snapshots
 ```ts
 getSnapshot(
-  symbol: any,
+  symbol: string,
   config?: any,
 ): Promise<AlpacaSnapshot>;
 ```
 ```ts
 getSnapshots(
-  symbols: any,
+  symbols: Array<string>,
   config?: any,
 ): Promise<AlpacaSnapshot[]>;
 ```
