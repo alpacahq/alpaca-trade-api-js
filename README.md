@@ -395,21 +395,21 @@ console.log(trade);
 ```ts
 getQuotesV2(
   symbol: string,
-  options: any,
+  options: GetQuotesParams,
   config?: any,
 ): AsyncGenerator<AlpacaQuote, void, unknown>;
 ```
 ```ts
 getMultiQuotesV2(
   symbols: Array<string>,
-  options: any,
+  options: GetQuotesParams,
   config?: any,
 ): Promise<Map<string, any[]>>;
 ```
 ```ts
 getMultiQuotesAsyncV2(
   symbols: Array<string>,
-  options: any,
+  options: GetQuotesParams,
   config?: any,
 ): AsyncGenerator<AlpacaQuote, void, unknown>;
 ```
@@ -468,20 +468,21 @@ console.log(trades);
 ```ts
  getBarsV2(
    symbol: string,
-   options: any, 
+   options: GetBarsParams, 
    config?: any,
  ): AsyncGenerator<AlpacaBar, void, unknown>;
 ```
 ```ts
 getMultiBarsV2(
   symbols: Array<string>,
-  options: any,
+  options: GetBarsParams,
   config?: any,
 ): Promise<Map<string, any[]>>;
 ```
 ```ts
- getMultiBarsAsyncV2(symbols: any,
-   options: Array<string>,
+ getMultiBarsAsyncV2(
+   symbols: Array<string>,
+   options: GetBarsParams,
    config?: any,
  ): AsyncGenerator<AlpacaBar, void, unknown>;
 ```
@@ -577,7 +578,7 @@ More detailed examples of stock data endpoints can be found in this [file](https
 ##### News
 ```ts
  getNews(
-   options: any,
+   options: GetNewsParams,
    config?: any,
  ): Promise<AlpacaNews[]>;
 ```
