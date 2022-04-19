@@ -339,7 +339,7 @@ alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then(
 
 ### Data API
 
-#### Trdaes
+#### Trades
 ```ts
 getTradesV2(
   symbol: string,
@@ -373,11 +373,12 @@ getLatestTrades(
   config?: any,
 ): Promise<Map<string, AlpacaTrade>>;
 ```
-###### example
+##### Example
 ```ts
 const trade = await alpaca.getLatestTrade('AAPL');
 console.log(trade);
 ```
+###### Output:
 ```python
 {
   Timestamp: '2022-04-14T13:54:24.907840256Z',
@@ -390,82 +391,241 @@ console.log(trade);
 }
 ```
 
-
-##### Get bars
-
+#### Quotes
 ```ts
-getBarsV2(
-  symbol,
-  {
-    limit: number,
-    start: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
-    end: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
-    timeframe: "1Min" | "1Hour" | "1Day" | "1Week" | "1Month"
-  },
+getQuotesV2(
+  symbol: any,
+  options: any,
   config?: any,
-) => Promise<BarsObject>
+): AsyncGenerator<AlpacaQuote, void, unknown>;
 ```
-###### example
-```js
-let resp = alpaca.getBarsV2(
-    "AAPL",
+```ts
+getMultiQuotesV2(
+  symbols: any,
+  options: any,
+  config?: any,
+): Promise<Map<string, any[]>>;
+```
+```ts
+getMultiQuotesAsyncV2(
+  symbols: any,
+  options: any,
+  config?: any,
+): AsyncGenerator<AlpacaQuote, void, unknown>;
+```
+```ts
+ getLatestQuote(
+   symbol: any,
+   config?: any,
+): Promise<AlpacaQuote>;
+```
+```ts
+getLatestQuotes(
+   symbols: any,
+   config?: any,
+): Promise<Map<string, AlpacaQuote>>;
+```
+##### Example
+```ts
+const trades = await alpaca.getMultiTradesV2(["PFE", "SPY"], {
+  start: "2022-04-18T08:30:00Z",
+  end: "2022-04-18T08:31:00Z",
+  limit: 2,
+});
+console.log(trades);
+```
+###### Output:
+```ruby
+{
+  'PFE' => [
     {
-        start: "2021-02-01",
-        end: "2021-02-10",
-        limit: 2,
-        timeframe: "1Day",
-        adjustment: "all",
-    },
-);
-const bars = [];
-
-for await (let b of resp) {
-    console.log(b)
+      Timestamp: '2022-04-18T08:30:59.988642304Z',
+      Exchange: 'P',
+      Price: 53.25,
+      Size: 5,
+      Conditions: [Array],
+      ID: 52983525028174,
+      Tape: 'A',
+      Symbol: 'PFE'
+    }
+  ],
+  'SPY' => [
+    {
+      Timestamp: '2022-04-18T08:30:00.066013952Z',
+      Exchange: 'P',
+      Price: 436.39,
+      Size: 1,
+      Conditions: [Array],
+      ID: 52983525028949,
+      Tape: 'B',
+      Symbol: 'SPY'
+    }
+  ]
 }
 ```
 
-#### Latest trade
-
+##### Bars
 ```ts
-getLatestTrade(
-  symbol: string,
-  config?: any
-) => Promise<AlpacaTrade>
+ getBarsV2(
+   symbol: any,
+   options: any, 
+   config?: any,
+ ): AsyncGenerator<AlpacaBar, void, unknown>;
 ```
-Or if you want to get the latest trades for multiple symbols
 ```ts
-getLatestTrades(
-  symbols: Array<string>,
-  config?: any
-): Promise<Map<string, AlpacaTrade>>
+getMultiBarsV2(
+  symbols: any,
+  options: any,
+  config?: any,
+): Promise<Map<string, any[]>>;
 ```
-###### example
-```js
-const trade = await alpaca.getLatestTrade('AAPL');
-
-console.log(trade);
-```
-
-#### Latest quote
 ```ts
-getLatestQuote(
-  symbol: string,
-  config?: any
-) => Promise<AlpacaQuote>
+ getMultiBarsAsyncV2(symbols: any,
+   options: any,
+   config?: any,
+ ): AsyncGenerator<AlpacaBar, void, unknown>;
 ```
-Or if you want to get the latest quotes for multiple symbols
 ```ts
-getLatestQuotes(
-  symbols: Array<string>,
-  config?: any
-): Promise<Map<string, AlpacaQuote>>
+ getLatestBar(
+  symbol: any,
+  config?: any,
+): Promise<AlpacaBar>;
 ```
-###### example
-```js
-const quote = await alpaca.getLatestQuote('AAPL');
+```ts
+getLatestBars(
+  symbols: any,
+  config?: any,
+): Promise<Map<string, AlpacaBar>>;
+```
 
-console.log(quote);
+##### Snapshots
+```ts
+getSnapshot(
+  symbol: any,
+  config?: any,
+): Promise<AlpacaSnapshot>;
 ```
+```ts
+getSnapshots(
+  symbols: any,
+  config?: any,
+): Promise<AlpacaSnapshot[]>;
+```
+##### Example
+```ts
+const snapshot = await alpaca.getSnapshot("TSLA");
+console.log(snapshot);
+```
+###### Output:
+```python
+{
+  symbol: 'TSLA',
+  LatestTrade: {
+    Timestamp: '2022-04-19T10:09:23.844940801Z',
+    Exchange: 'Q',
+    Price: 1003,
+    Size: 501,
+    Conditions: [ '@', 'F', 'T' ],
+    ID: 1861,
+    Tape: 'C'
+  },
+  LatestQuote: {
+    Timestamp: '2022-04-19T10:10:09.139921353Z',
+    AskExchange: 'Q',
+    AskPrice: 1004.38,
+    AskSize: 1,
+    BidExchange: 'Q',
+    BidPrice: 1001,
+    BidSize: 3,
+    Conditions: [ 'R' ],
+    Tape: 'C'
+  },
+  MinuteBar: {
+    Timestamp: '2022-04-19T10:09:00Z',
+    OpenPrice: 1003,
+    HighPrice: 1003,
+    LowPrice: 1003,
+    ClosePrice: 1003,
+    Volume: 647,
+    TradeCount: 17,
+    VWAP: 1003.071345
+  },
+  DailyBar: {
+    Timestamp: '2022-04-18T04:00:00Z',
+    OpenPrice: 989.19,
+    HighPrice: 1014.92,
+    LowPrice: 973.41,
+    ClosePrice: 1004.29,
+    Volume: 17209682,
+    TradeCount: 543314,
+    VWAP: 997.42604
+  },
+  PrevDailyBar: {
+    Timestamp: '2022-04-14T04:00:00Z',
+    OpenPrice: 998.51,
+    HighPrice: 1012.7099,
+    LowPrice: 982.19,
+    ClosePrice: 985,
+    Volume: 19449944,
+    TradeCount: 579328,
+    VWAP: 991.712944
+  }
+}
+```
+
+##### News
+```ts
+ getNews(
+   options: any,
+   config?: any,
+ ): Promise<AlpacaNews[]>;
+```
+Details of the `options` parameter can be found here.
+##### Example
+```ts
+ const news = await alpaca.getNews({});
+ console.log(news[0]);
+```
+###### Output:
+```python
+{
+  ID: 26682466,
+  Headline: 'Plug Power Enters Agreement With Walmart Pursuant To Which The Co. Will Deliver Liquid Green Hydrogen To New And Existing Walmart Sites In The United States',
+  Author: 'Bill Haddad',
+  CreatedAt: '2022-04-19T10:09:38Z',
+  UpdatedAt: '2022-04-19T10:09:39Z',
+  Summary: '',
+  URL: 'https://www.benzinga.com/news/22/04/26682466/plug-power-enters-agreement-with-walmart-pursuant-to-which-the-co-will-deliver-liquid-green-hydrogen',
+  Images: [],
+  Symbols: [ 'PLUG', 'WMT' ],
+  Source: 'benzinga'
+}
+```
+### Data API - Crypto
+All the endpoints are similar to the stock API. 
+#### Trades
+* `getCryptoTrades`
+* `getLatestCryptoTrade`
+* `getLatestCryptoTrades`
+
+#### Quotes
+* `getCryptoQuotes`
+* `getLatestCryptoQuote`
+* `getLatestCryptoQuotes`
+
+#### Bars
+* `getCryptoBars`
+* `getLatestCryptoBar`
+* `getLatestCryptoBars`
+
+#### XBBOs
+* `getLatestCryptoXBBO`
+* `getLatestCryptoXBBOs`
+
+#### Snapshots
+* `getCryptoSnapshots`
+
+
 
 ### Websockets
 You can use data websocket with or without a funded account.
