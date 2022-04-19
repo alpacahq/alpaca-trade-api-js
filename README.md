@@ -631,25 +631,55 @@ All the functions are similar to the stock ones.
 ### Websockets
 You can use data websocket with or without a funded account.
 #### Working with websocket
+```ts
+const websocket = alpaca.data_stream_v2;
+websocket.onConnect(() => {
+  websocket.subscribeForTrades(["AAPL"]);
+});
+websocket.onStateChange((status) => { 
+  console.log("Status:", status);
+});
+websocket.onError((err) => {
+  console.log("Error:", err);
+});
+websocket.onStockTrade((trade) => {
+  console.log("Trade:", trade);
+});
+websocket.connect();
+```
+###### Output:
+```python
+Status: connecting
+Status: authenticating
+Status: connected
+Status: authenticated
+Trade:  {
+  T: 't',
+  Symbol: 'AAPL',
+  ID: 68,
+  Exchange: 'V',
+  Price: 165.02,
+  Size: 50,
+  Conditions: [ '@', 'T', 'I' ],
+  Tape: 'C',
+  Timestamp: 2022-04-19T12:50:29.214Z,
+  r: 2022-04-19T12:50:29.215Z
+}
+```
 * The websocket is created when you creating the Alpaca instance
 * `const websocket = alpaca.data_stream_v2`: Get the websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
-* `client.onConnect(function() {})`: all the following code will be executed after
+* `websocket.onConnect(() => {})`: all the following code will be executed after
   the user authentication. You can also subscribe and unsubscribe for data
   outside this function.
-* `websocket.subscribeForTrades(["symbol"])`: Subscribe for trades data for the
-  given symbol(s). You can do the same with quotes, bars, dailyBars, statuses
-  and lulds.
-* `websocket.onStockTrade(function(trade) {})`: Get the data and process it inside this function.
+* `websocket.subscribeForTrades(["AAPL"])`: Subscribe for trades data for the
+  given symbol(s). You can do the same with quotes, bars, dailyBars, updatedBars, statuses and lulds.
+* `websocket.onStockTrade((trade) => {})`: Get the data by subsribing for the trade data event 
+  in JS/TS and process it inside this function.
 * `websocket.unsubscribeFromTrades(["symbol"])`: Unsunscribe from symbol(s).
-* `websocket.onDisconnect(function() {})` and `websocket.disconnect()`: the function
-  inside the onDisconnect will run when you disconnect, then closes the connection
+* `websocket.onDisconnect(() => {})` and `websocket.disconnect()`: the function
+  inside the `onDisconnect` will run when you disconnect then closes the connection
   between the client and server.
 <br><br>
-* `const cryptoWebsocket = alpaca.crypto_stream_v2`: Get the crypto websocket client
-  instance.
-* `cryptoWebsocket.subscribeForTrades(["symbol"])`, `cryptoWebsocket.unsubscribeFromTrades(["symbol"])`,
-  `cryptoWebsocket.onCryptoTrade(function(cryptoTrade) {})`
-  Working as the examples above.
-* `cryptoWebsocket.onDisconnect(function() {})` and `cryptoWebsocket.disconnect()`:
-  Same as above.
+Websocket client for real-time crypto and news data work the same. For a detailed example please take a look
+at this [file](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/websocket_example_datav2.js).
