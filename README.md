@@ -735,8 +735,7 @@ Trade:  {
   Size: 50,
   Conditions: [ '@', 'T', 'I' ],
   Tape: 'C',
-  Timestamp: 2022-04-19T12:50:29.214Z,
-  r: 2022-04-19T12:50:29.215Z
+  Timestamp: 2022-04-19T12:50:29.214Z
 }
 ```
 * The websocket is created when you creating the Alpaca instance
