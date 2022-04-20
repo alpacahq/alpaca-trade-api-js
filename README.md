@@ -606,26 +606,98 @@ Details of the `options` parameter can be found [here](https://github.com/alpaca
 ### Data API - Crypto
 All the functions are similar to the stock ones. 
 #### Trades
-* `getCryptoTrades`
-* `getLatestCryptoTrade`
-* `getLatestCryptoTrades`
+* ```ts
+    getCryptoTrades(
+      symbol: string, 
+      options: GetCryptoTradesParams, 
+      config?: any,
+    ): AsyncGenerator<CryptoTrade, void, unknown>;
+  ```
+* ```ts
+    getLatestCryptoTrade(
+      symbol: string,
+      options: {exchange: string},
+      config?: any
+    ): Promise<CryptoTrade>;
+  ```
+* ```ts 
+    getLatestCryptoTrades(
+      symbols: Array<string>,
+      options: { exchange: string }, 
+      config?: any
+    ): Promise<Map<string, CryptoTrade>>;
+  ```
 
 #### Quotes
-* `getCryptoQuotes`
-* `getLatestCryptoQuote`
-* `getLatestCryptoQuotes`
+* ```ts
+    getCryptoQuotes(
+      symbol: string,
+      options: GetCryptoQuotesParams, 
+      config?: any,
+    ): AsyncGenerator<CryptoQuote, void, unknown>;
+  ```
+* ```ts
+    getLatestCryptoQuote(
+      symbol: string,
+      options: { exchange: string },
+      config?: any,
+    ): Promise<CryptoQuote>;
+  ```
+* ```ts
+   getLatestCryptoQuotes(
+    symbols: Array<string>,
+    options: { exchange: string },
+    config?: any,
+  ): Promise<Map<string, CryptoQuote>>;
+  ```
 
 #### Bars
-* `getCryptoBars`
-* `getLatestCryptoBar`
-* `getLatestCryptoBars`
+* ```ts 
+     getCryptoBars(
+      symbol: string,
+      options: GetCryptoBarsParams, 
+      config?: any,
+    ): AsyncGenerator<CryptoBar, void, unknown>;
+  ```
+* ```ts
+     getLatestCryptoBar(
+       symbol: string,
+       options: { exchange: string }, 
+       config?: any,
+     ): Promise<CryptoBar>;
+  ```
+* ```ts
+    getLatestCryptoBars(
+      symbols: Array<string>,
+      options: { exchange: string },
+      config?: any,
+    ): Promise<Map<string, CryptoBar>>;
+  ```
 
 #### XBBOs
-* `getLatestCryptoXBBO`
-* `getLatestCryptoXBBOs`
+* ```ts
+    getLatestCryptoXBBO(
+      symbol: string,
+      options: { exchanges?: Array<string> },
+      config?: any,
+    ): Promise<CryptoXBBO>;
+  ```
+* ```ts 
+    getLatestCryptoXBBOs(
+      symbols: Array<string>,
+      options: { exchanges?: Array<string> }, 
+      config?: any,
+    ): Promise<Map<string, CryptoXBBO>>;
+  ```
 
 #### Snapshots
-* `getCryptoSnapshots`
+* ```ts
+    getCryptoSnapshot(
+      symbol: string,
+      options:  { exchange: string },
+      config?: any,
+    ): Promise<CryptoSnapshot>;
+  ```
 
 
 
