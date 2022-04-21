@@ -498,6 +498,45 @@ getLatestBars(
   config?: any,
 ): Promise<Map<string, AlpacaBar>>;
 ```
+##### Example
+```ts
+const bars = alpaca.getBarsV2("AAPL", {
+  start: "2022-04-01",
+  end: "2022-04-02",
+  timeframe: alpaca.newTimeframe(30, alpaca.timeframeUnit.MIN),
+  limit: 2,
+});
+const got = [];
+for await (let b of bars) {
+  got.push(b);
+}
+console.log(got);
+```
+###### Output:
+```python
+[
+  {
+    Timestamp: '2022-04-01T08:00:00Z',
+    OpenPrice: 175.25,
+    HighPrice: 175.88,
+    LowPrice: 175.1,
+    ClosePrice: 175.35,
+    Volume: 30015,
+    TradeCount: 721,
+    VWAP: 175.357657
+  },
+  {
+    Timestamp: '2022-04-01T08:30:00Z',
+    OpenPrice: 175.32,
+    HighPrice: 175.37,
+    LowPrice: 175.26,
+    ClosePrice: 175.26,
+    Volume: 5929,
+    TradeCount: 123,
+    VWAP: 175.332243
+  }
+]
+```
 
 ##### Snapshots
 ```ts
