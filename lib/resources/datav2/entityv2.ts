@@ -603,9 +603,12 @@ function convertSnapshotData(key: string, data: any, isCrypto: boolean) {
 
 export function AlpacaNews(data: RawAlpacaNews): AlpacaNews {
   const mappedNews = aliasObjectKey(data, news_mapping);
-  mappedNews.Images.forEach((element: any) => {
-    return aliasObjectKey(element, news_image_mapping);
-  });
+
+  if (mappedNews.Images) {
+    mappedNews.Images.forEach((element: any) => {
+      return aliasObjectKey(element, news_image_mapping);
+    });
+  }
 
   return mappedNews as AlpacaNews;
 }

@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from "axios";
+import axios, {AxiosResponse} from "axios";
 import {
   AlpacaTradeV2,
   AlpacaBarV2,
@@ -100,12 +100,16 @@ export async function* getDataV2(
   const pageLimit = options.pageLimit
     ? Math.min(options.pageLimit, V2_MAX_LIMIT)
     : V2_MAX_LIMIT;
+
   delete options.pageLimit;
   options.limit = options.limit ?? 0;
+
   while (options.limit > received || options.limit === 0) {
     let limit;
+
     if (options.limit !== 0) {
       limit = getQueryLimit(options.limit, pageLimit, received);
+
       if (limit == -1) {
         break;
       }
@@ -113,18 +117,21 @@ export async function* getDataV2(
       limit = null;
     }
 
-    const params = { ...options, limit: limit, page_token: pageToken };
     const resp: AxiosResponse<any> = await dataV2HttpRequest(
       path,
-      params,
+      {...options, limit, page_token: pageToken},
       config
     );
-    const items = resp.data[endpoint];
+
+    const items = resp.data[endpoint] || [];
+
     for (const item of items) {
       yield item;
     }
+
     received += items.length;
     pageToken = resp.data.next_page_token;
+
     if (!pageToken) {
       break;
     }
@@ -304,7 +311,7 @@ export async function* getBars(
     config
   );
 
-  for await (const bar of bars) {
+  for await (const bar of bars || []) {
     yield AlpacaBarV2(bar);
   }
 }
