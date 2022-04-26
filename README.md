@@ -101,7 +101,7 @@ updateAccountConfigurations(AccountConfigurations) => Promise<AccountConfigurati
 
 #### Get Account Activities
 
-Calls `GET /account/activities` and returns account actvities.
+Calls `GET /account/activities` and returns account activities.
 
 ```ts
 getAccountActivities({
@@ -777,7 +777,7 @@ Trade:  {
   Timestamp: 2022-04-19T12:50:29.214Z
 }
 ```
-* The websocket is created when you creating the Alpaca instance
+* The websocket is created when you first create the Alpaca instance
 * `const websocket = alpaca.data_stream_v2`: Get the websocket client instance.
 * `websocket.connect()`: Connect to the Alpaca server using websocket.
 * `websocket.onConnect(() => {})`: all the following code will be executed after
@@ -785,9 +785,9 @@ Trade:  {
   outside this function.
 * `websocket.subscribeForTrades(["AAPL"])`: Subscribe for trades data for the
   given symbol(s). You can do the same with quotes, bars, dailyBars, updatedBars, statuses and lulds.
-* `websocket.onStockTrade((trade) => {})`: Get the data by subsribing for the trade data event 
+* `websocket.onStockTrade((trade) => {})`: Get the data by subscribing for the trade data event 
   in JS/TS and process it inside this function.
-* `websocket.unsubscribeFromTrades(["symbol"])`: Unsunscribe from symbol(s).
+* `websocket.unsubscribeFromTrades(["symbol"])`: Unsubscribe from symbol(s).
 * `websocket.onDisconnect(() => {})` and `websocket.disconnect()`: the function
   inside the `onDisconnect` will run when you disconnect then closes the connection
   between the client and server.
