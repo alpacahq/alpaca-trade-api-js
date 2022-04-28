@@ -2,7 +2,6 @@ import events from "events";
 import WebSocket from "ws";
 import { MessagePack } from "msgpack5";
 import msgpack5 from "msgpack5";
-import { callbackify } from "util";
 
 // Connection states. Each of these will also emit EVENT.STATE_CHANGE
 export enum STATE {
@@ -15,7 +14,7 @@ export enum STATE {
   WAITING_TO_RECONNECT = "waiting to reconnect",
 }
 
-// Stock client events
+// Client events
 export enum EVENT {
   CLIENT_ERROR = "client_error",
   STATE_CHANGE = "state_change",
@@ -24,9 +23,14 @@ export enum EVENT {
   TRADES = "stock_trades",
   QUOTES = "stock_quotes",
   BARS = "stock_bars",
+  UPDATED_BARS = "stock_updated_bars",
   DAILY_BARS = "stock_daily_bars",
   TRADING_STATUSES = "trading_statuses",
   LULDS = "lulds",
+  CANCEL_ERRORS = "cancel_errors",
+  CORRECTIONS = "corrections",
+  ORDERBOOKS = "orderbooks",
+  NEWS = "news",
 }
 
 // Connection errors by code
@@ -75,13 +79,17 @@ interface WebsocketSession {
   backoffIncrement: number;
   url: string;
   currentState: STATE;
+  pongTimeout?: NodeJS.Timeout;
+  pingInterval?: NodeJS.Timer;
+  pongWait: number;
+  isReconnected: boolean;
 }
 
 interface AlpacaBaseWebsocket {
   session: WebsocketSession;
   connect: () => void;
   onConnect: (fn: () => void) => void;
-  reconnecting: () => void;
+  reconnect: () => void;
   onError: (fn: (err: Error) => void) => void;
   onStateChange: (fn: () => void) => void;
   authenticate: () => void;
@@ -106,7 +114,7 @@ export abstract class AlpacaWebsocket
 {
   session: WebsocketSession;
   msgpack: MessagePack;
-  conn!: any;
+  conn!: WebSocket;
 
   constructor(options: WebsocketOptions) {
     super();
@@ -123,6 +131,8 @@ export abstract class AlpacaWebsocket
       backoffIncrement: 0.5,
       url: options.url,
       currentState: STATE.WAITING_TO_CONNECT,
+      isReconnected: false,
+      pongWait: 5000,
     };
 
     if (this.session.apiKey.length === 0) {
@@ -141,9 +151,10 @@ export abstract class AlpacaWebsocket
     });
   }
 
-  connect() {
+  connect(): void {
     this.emit(STATE.CONNECTING);
     this.session.currentState = STATE.CONNECTING;
+    this.resetSession();
     this.conn = new WebSocket(this.session.url, {
       perMessageDeflate: {
         serverNoContextTakeover: false,
@@ -162,30 +173,39 @@ export abstract class AlpacaWebsocket
       this.emit(EVENT.CLIENT_ERROR, err.message);
       this.disconnect();
     });
-    this.conn.once("close", () => {
+    this.conn.on("close", (code: any, msg: any) => {
+      this.log(`connection closed with code: ${code} and message: ${msg}`);
       if (this.session.reconnect) {
-        this.reconnecting();
+        this.reconnect();
       }
     });
+    this.conn.on("pong", () => {
+      if (this.session.pongTimeout) {
+        clearTimeout(this.session.pongTimeout);
+      }
+    });
+    this.session.pingInterval = setInterval(() => {
+      this.ping();
+    }, 10000);
   }
 
   onConnect(fn: () => void): void {
     this.on(STATE.AUTHENTICATED, () => {
-      fn();
-      //if reconnected the user should subcribe to its symbols again
-      this.subscribeAll();
+      if (this.session.isReconnected) {
+        //if reconnected the user should subscribe to its symbols again
+        this.subscribeAll();
+      } else {
+        fn();
+      }
     });
   }
 
-  reconnecting(): void {
+  reconnect(): void {
+    this.log("Reconnecting...");
+    this.session.isReconnected = true;
     const { backoff, backoffIncrement, maxReconnectTimeout } = this.session;
     let reconnectTimeout = this.session.reconnectTimeout;
-    if (
-      backoff &&
-      reconnectTimeout &&
-      backoffIncrement &&
-      maxReconnectTimeout
-    ) {
+    if (backoff) {
       setTimeout(() => {
         reconnectTimeout += backoffIncrement;
         if (reconnectTimeout > maxReconnectTimeout) {
@@ -195,6 +215,14 @@ export abstract class AlpacaWebsocket
       }, reconnectTimeout * 1000);
       this.emit(STATE.WAITING_TO_RECONNECT, reconnectTimeout);
     }
+  }
+
+  ping(): void {
+    this.conn.ping();
+    this.session.pongTimeout = setTimeout(() => {
+      this.log("no pong received from server, terminating...");
+      this.conn.terminate();
+    }, this.session.pongWait);
   }
 
   authenticate(): void {
@@ -213,6 +241,12 @@ export abstract class AlpacaWebsocket
     this.session.currentState = STATE.DISCONNECTED;
     this.conn.close();
     this.session.reconnect = false;
+    if (this.session.pongTimeout) {
+      clearTimeout(this.session.pongTimeout);
+    }
+    if (this.session.pingInterval) {
+      clearInterval(this.session.pingInterval);
+    }
   }
 
   onDisconnect(fn: () => void): void {
@@ -260,6 +294,20 @@ export abstract class AlpacaWebsocket
 
   getSubscriptions(): void {
     return this.session.subscriptions;
+  }
+
+  resetSession(): void {
+    this.session.reconnect = true;
+    this.session.backoff = true;
+    this.session.reconnectTimeout = 0;
+    this.session.maxReconnectTimeout = 30;
+    this.session.backoffIncrement = 0.5;
+    if (this.session.pongTimeout) {
+      clearTimeout(this.session.pongTimeout);
+    }
+    if (this.session.pingInterval) {
+      clearInterval(this.session.pingInterval);
+    }
   }
 
   abstract dataHandler(data: unknown): void;

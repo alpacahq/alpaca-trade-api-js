@@ -75,18 +75,24 @@ module.exports = function createDataV2Mock() {
       assertSchema(req.query, {
         start: joi.string().isoDate(),
         end: joi.string().isoDate(),
-        limit: joi.number().integer().min(0).max(10000).optional(),
+        limit: joi.number().positive().min(1).max(10000).optional(),
         page_token: joi.string().optional(),
         timeframe: joi.string().optional(),
         adjustment: joi.string().optional(),
       });
-
+      let token = req.query.limit > 5 ? "token" : null;
+      if (!req.query.limit || req.query.limit === 4) {
+        token = "token";
+      }
       let response = {
         [req.params.endpoint]: [],
         symbol: req.params.symbol,
-        next_page_token: req.query.limit > 5 ? "token" : null,
+        next_page_token: token,
       };
-      let limit = 3;
+      if (req.query.page_token) {
+        response.next_page_token = null;
+      }
+      let limit = 5;
       if (req.query.limit) {
         limit = req.query.limit > 5 ? 5 : req.query.limit;
       }
@@ -133,7 +139,7 @@ module.exports = function createDataV2Mock() {
         start: joi.string().isoDate(),
         end: joi.string().isoDate().optional(),
         feed: joi.string().optional(),
-        limit: joi.number().integer().min(0).max(10000).optional(),
+        limit: joi.number().positive().min(1).max(10000).optional(),
         page_token: joi.string().optional(),
         timeframe: joi.string().optional(),
         adjustment: joi.string().optional(),

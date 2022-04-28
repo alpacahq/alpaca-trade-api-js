@@ -1,9 +1,13 @@
 {
   "name": "@alpacahq/alpaca-trade-api",
-  "version": "2.9.0",
+  "version": "2.14.0",
   "description": "Javascript library for the Alpaca Trade API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=14.x",
+    "npm": ">=6"
+  },
   "scripts": {
     "pretest": "npx tsc",
     "test": "mocha --timeout 4s test/init.js 'test/**/*.test.js'",
@@ -35,11 +39,9 @@
     "events": "^3.2.0",
     "just-extend": "^4.1.0",
     "lodash": "^4.17.19",
-    "minimist": "^0.2.1",
+    "minimist": "^1.2.6",
     "msgpack5": "^5.3.2",
     "nats": "^1.4.9",
-    "request": "^2.88.2",
-    "request-promise": "^4.2.6",
     "urljoin": "^0.1.5",
     "ws": "^7.4.3"
   },
@@ -48,13 +50,14 @@
     "@types/msgpack5": "^3.4.2",
     "@types/ws": "^8.2.0",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "@typescript-eslint/parser": "^5.20.0",
     "body-parser": "^1.19.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "eslint": "^7.0.0",
     "express": "^4.17.1",
     "joi": "^14.3.1",
-    "mocha": "^5.2.0",
+    "mocha": "^9.2.2",
     "sinon": "^6.3.5",
     "typescript": "^4.4.3"
   }

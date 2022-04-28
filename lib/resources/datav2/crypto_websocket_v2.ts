@@ -2,12 +2,15 @@ import {
   AlpacaCryptoBar,
   AlpacaCryptoQuote,
   AlpacaCryptoTrade,
+  AlpacaCryptoOrderbook,
   CryptoBar,
   CryptoQuote,
   CryptoTrade,
+  CryptoOrderbook,
   RawCryptoTrade,
   RawCryptoQuote,
   RawCryptoBar,
+  RawCryptoOrderbook,
 } from "./entityv2";
 import {
   AlpacaWebsocket as Websocket,
@@ -24,7 +27,9 @@ interface CryptoSubscription {
   trades: Array<string>;
   quotes: Array<string>;
   bars: Array<string>;
+  updatedBars: Array<string>;
   dailyBars: Array<string>;
+  orderbooks: Array<string>;
 }
 
 export class AlpacaCryptoClient extends Websocket {
@@ -38,7 +43,9 @@ export class AlpacaCryptoClient extends Websocket {
       trades: [],
       quotes: [],
       bars: [],
+      updatedBars: [],
       dailyBars: [],
+      orderbooks: [],
     } as CryptoSubscription;
     super(options);
   }
@@ -58,41 +65,60 @@ export class AlpacaCryptoClient extends Websocket {
     this.subscribe({ bars });
   }
 
+  subscribeForUpdatedBars(updatedBars: Array<string>): void {
+    this.session.subscriptions.updatedBars.push(...updatedBars);
+    this.subscribe({ updatedBars });
+  }
+
   subscribeForDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars.push(...dailyBars);
     this.subscribe({ dailyBars });
+  }
+
+  subscribeForOrderbooks(orderbooks: Array<string>): void {
+    this.session.subscriptions.orderbooks.push(...orderbooks);
+    this.subscribe({ orderbooks });
   }
 
   subscribe(symbols: {
     trades?: Array<string>;
     quotes?: Array<string>;
     bars?: Array<string>;
+    updatedBars?: Array<string>;
     dailyBars?: Array<string>;
+    orderbooks?: Array<string>;
   }): void {
     const subMsg = {
       action: "subscribe",
       trades: symbols.trades ?? [],
       quotes: symbols.quotes ?? [],
       bars: symbols.bars ?? [],
+      updatedBars: symbols.updatedBars ?? [],
       dailyBars: symbols.dailyBars ?? [],
+      orderbooks: symbols.orderbooks ?? [],
     };
     this.conn.send(this.msgpack.encode(subMsg));
   }
 
   subscribeAll(): void {
-    const { trades, quotes, bars, dailyBars } = this.session.subscriptions;
+    const { trades, quotes, bars, updatedBars, dailyBars, orderbooks } =
+      this.session.subscriptions;
     if (
       trades.length > 0 ||
       quotes.length > 0 ||
       bars.length > 0 ||
-      dailyBars.length > 0
+      updatedBars.length > 0 ||
+      dailyBars.length > 0 ||
+      orderbooks.length > 0
     ) {
       const msg = {
         action: "subscribe",
         trades,
         quotes,
         bars,
+        updatedBars,
         dailyBars,
+        orderbooks,
       };
       this.conn.send(this.msgpack.encode(msg));
     }
@@ -121,6 +147,14 @@ export class AlpacaCryptoClient extends Websocket {
     this.unsubscribe({ bars });
   }
 
+  unsubscribeFromUpdatedBars(updatedBars: Array<string>): void {
+    this.session.subscriptions.updatedBars =
+      this.session.subscriptions.updatedBars.filter(
+        (updatedBar: string) => !updatedBars.includes(updatedBar)
+      );
+    this.unsubscribe({ updatedBars });
+  }
+
   unsubscriceFromDailyBars(dailyBars: Array<string>): void {
     this.session.subscriptions.dailyBars =
       this.session.subscriptions.dailyBars.filter(
@@ -129,18 +163,30 @@ export class AlpacaCryptoClient extends Websocket {
     this.unsubscribe({ dailyBars });
   }
 
+  unsubscribeFromOrderbooks(orderbooks: Array<string>): void {
+    this.session.subscriptions.orderbooks =
+      this.session.subscriptions.orderbooks.filter(
+        (orderbook: string) => !orderbooks.includes(orderbook)
+      );
+    this.unsubscribe({ orderbooks });
+  }
+
   unsubscribe(symbols: {
     trades?: Array<string>;
     quotes?: Array<string>;
     bars?: Array<string>;
+    updatedBars?: Array<string>;
     dailyBars?: Array<string>;
+    orderbooks?: Array<string>;
   }): void {
     const unsubMsg = {
       action: "unsubscribe",
       trades: symbols.trades ?? [],
       quotes: symbols.quotes ?? [],
       bars: symbols.bars ?? [],
+      updatedBars: symbols.updatedBars ?? [],
       dailyBars: symbols.dailyBars ?? [],
+      orderbooks: symbols.orderbooks ?? [],
     };
     this.conn.send(this.msgpack.encode(unsubMsg));
   }
@@ -149,13 +195,17 @@ export class AlpacaCryptoClient extends Websocket {
     trades: Array<string>;
     quotes: Array<string>;
     bars: Array<string>;
+    updatedBars: Array<string>;
     dailyBars: Array<string>;
+    orderbooks: Array<string>;
   }): void {
     this.session.subscriptions = {
       trades: msg.trades,
       quotes: msg.quotes,
       bars: msg.bars,
+      updatedBars: msg.updatedBars,
       dailyBars: msg.dailyBars,
+      orderbooks: msg.orderbooks,
     };
     this.log(
       `listening to streams:
@@ -175,14 +225,22 @@ export class AlpacaCryptoClient extends Websocket {
     this.on(EVENT.BARS, (bar: CryptoBar) => fn(bar));
   }
 
+  onCryptoUpdatedBar(fn: (updatedBar: CryptoBar) => void): void {
+    this.on(EVENT.UPDATED_BARS, (updatedBar: CryptoBar) => fn(updatedBar));
+  }
+
   onCryptoDailyBar(fn: (dailyBar: CryptoBar) => void): void {
     this.on(EVENT.DAILY_BARS, (dailyBar: CryptoBar) => fn(dailyBar));
   }
 
+  onCryptoOrderbook(fn: (orderbook: CryptoOrderbook) => void): void {
+    this.on(EVENT.ORDERBOOKS, (orderbook: CryptoOrderbook) => fn(orderbook));
+  }
+
   dataHandler(
-    data: Array<RawCryptoTrade | RawCryptoQuote | RawCryptoBar>
+    data: Array<RawCryptoTrade | RawCryptoQuote | RawCryptoBar | RawCryptoOrderbook>
   ): void {
-    data.forEach((element: RawCryptoTrade | RawCryptoQuote | RawCryptoBar) => {
+    data.forEach((element: RawCryptoTrade | RawCryptoQuote | RawCryptoBar | RawCryptoOrderbook) => {
       if ("T" in element) {
         switch (element.T) {
           case "t":
@@ -200,10 +258,22 @@ export class AlpacaCryptoClient extends Websocket {
           case "b":
             this.emit(EVENT.BARS, AlpacaCryptoBar(element as RawCryptoBar));
             break;
+          case "u":
+            this.emit(
+              EVENT.UPDATED_BARS,
+              AlpacaCryptoBar(element as RawCryptoBar)
+            );
+            break;
           case "d":
             this.emit(
               EVENT.DAILY_BARS,
               AlpacaCryptoBar(element as RawCryptoBar)
+            );
+            break;
+          case "o":
+            this.emit(
+              EVENT.ORDERBOOKS,
+              AlpacaCryptoOrderbook(element as RawCryptoOrderbook)
             );
             break;
           default:

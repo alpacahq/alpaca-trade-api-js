@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es6",
     "module": "commonjs",
     "declaration": true,
     "outDir": "./dist",
@@ -12,7 +12,8 @@
     "noImplicitAny": true,
     "strictNullChecks": true,
     "alwaysStrict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node"]
   },
   "include": ["./lib/**/*.ts", "./lib/**/*.js"],
   "exclude": ["./dist/**/*"]

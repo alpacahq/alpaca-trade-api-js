@@ -1,9 +1,9 @@
-import axios, { AxiosResponse } from "axios";
+import axios, {AxiosResponse} from "axios";
 import {
   AlpacaTradeV2,
   AlpacaBarV2,
   AlpacaQuoteV2,
-  AlpacaSnaphotV2,
+  AlpacaSnapshotV2,
   AlpacaCryptoTrade,
   AlpacaCryptoQuote,
   AlpacaCryptoBar,
@@ -12,20 +12,25 @@ import {
   CryptoQuote,
   CryptoTrade,
   CryptoBar,
+  CryptoSnapshot,
   AlpacaSnapshot,
-  AlapacaQuote,
+  AlpacaQuote,
   AlpacaTrade,
   AlpacaBar,
+  AlpacaCryptoSnapshot,
+  AlpacaNews,
+  RawAlpacaNews,
 } from "./entityv2";
 
 // Number of data points to return.
 const V2_MAX_LIMIT = 10000;
+const V2_NEWS_MAX_LIMIT = 50;
 
 export enum Adjustment {
   RAW = "raw",
   DIVIDEND = "dividend",
   SPLIT = "split",
-  BOTH = "both",
+  ALL = "all",
 }
 
 export enum TYPE {
@@ -50,15 +55,38 @@ export function dataV2HttpRequest(
   } else {
     headers["Authorization"] = "Bearer " + oauth;
   }
-  const resp = axios
+  return axios
     .get(`${dataBaseUrl}${url}`, {
       params: queryParams,
       headers: headers,
     })
     .catch((err: any) => {
-      throw new Error(err.message);
+      throw new Error(
+        `code: ${err.response.status}, message: ${err.response.data.message}`
+      );
     });
-  return resp;
+}
+
+function getQueryLimit(
+  totalLimit: number,
+  pageLimit: number,
+  received: number
+): number {
+  let limit = 0;
+  if (pageLimit !== 0) {
+    limit = pageLimit;
+  }
+  if (totalLimit !== 0) {
+    const remaining = totalLimit - received;
+    if (remaining <= 0) {
+      // this should never happen
+      return -1;
+    }
+    if (limit == 0 || limit > remaining) {
+      limit = remaining;
+    }
+  }
+  return limit;
 }
 
 export async function* getDataV2(
@@ -68,27 +96,42 @@ export async function* getDataV2(
   config: any
 ): AsyncGenerator<any, void, unknown> {
   let pageToken: string | null = null;
-  let totalItems = 0;
-  const limit = options.limit;
-  while (true) {
-    let actualLimit: number | null = null;
-    if (limit) {
-      actualLimit = Math.min(limit - totalItems, V2_MAX_LIMIT);
-      if (actualLimit < 1) {
+  let received = 0;
+  const pageLimit = options.pageLimit
+    ? Math.min(options.pageLimit, V2_MAX_LIMIT)
+    : V2_MAX_LIMIT;
+
+  delete options.pageLimit;
+  options.limit = options.limit ?? 0;
+
+  while (options.limit > received || options.limit === 0) {
+    let limit;
+
+    if (options.limit !== 0) {
+      limit = getQueryLimit(options.limit, pageLimit, received);
+
+      if (limit == -1) {
         break;
       }
+    } else {
+      limit = null;
     }
-    Object.assign(options, {
-      limit: actualLimit,
-      page_token: pageToken,
-    });
-    const resp = await dataV2HttpRequest(`${path}`, options, config);
-    const items = resp.data[endpoint];
+
+    const resp: AxiosResponse<any> = await dataV2HttpRequest(
+      path,
+      {...options, limit, page_token: pageToken},
+      config
+    );
+
+    const items = resp.data[endpoint] || [];
+
     for (const item of items) {
       yield item;
     }
-    totalItems += items.length;
+
+    received += items.length;
     pageToken = resp.data.next_page_token;
+
     if (!pageToken) {
       break;
     }
@@ -100,23 +143,30 @@ export async function* getMultiDataV2(
   endpoint: string,
   options: any,
   config: any
-): AsyncGenerator<
-  {
-    symbol: string;
-    data: any;
-  },
-  void,
-  unknown
-> {
-  let pageToken = null;
-  while (true) {
+): AsyncGenerator<{ symbol: string; data: any }, void, unknown> {
+  let pageToken: string | null = null;
+  let received = 0;
+  const pageLimit = options.pageLimit
+    ? Math.min(options.pageLimit, V2_MAX_LIMIT)
+    : V2_MAX_LIMIT;
+  delete options.pageLimit;
+  options.limit = options.limit ?? 0;
+  while (options.limit > received || options.limit === 0) {
+    let limit;
+    if (options.limit !== 0) {
+      limit = getQueryLimit(options.limit, pageLimit, received);
+      if (limit == -1) {
+        break;
+      }
+    } else {
+      limit = null;
+    }
     const params: any = {
       ...options,
       symbols: symbols.join(","),
-      limit: options.page_limit,
+      limit: limit,
       page_token: pageToken,
     };
-
     const resp = await dataV2HttpRequest(
       `/v2/stocks/${endpoint}`,
       params,
@@ -125,6 +175,7 @@ export async function* getMultiDataV2(
     const items = resp.data[endpoint];
     for (const symbol in items) {
       for (const data of items[symbol]) {
+        received++;
         yield { symbol: symbol, data: data };
       }
     }
@@ -186,7 +237,7 @@ export async function* getMultiTradesAsync(
   }
 }
 
-export interface GetQoutesParams {
+export interface GetQuotesParams {
   start: string;
   end?: string;
   page_limit?: number;
@@ -197,9 +248,9 @@ export interface GetQoutesParams {
 
 export async function* getQuotes(
   symbol: string,
-  options: GetQoutesParams,
+  options: GetQuotesParams,
   config: any
-): AsyncGenerator<AlapacaQuote, void, unknown> {
+): AsyncGenerator<AlpacaQuote, void, unknown> {
   const quotes = getDataV2(
     TYPE.QUOTES,
     `/v2/stocks/${symbol}/${TYPE.QUOTES}`,
@@ -213,7 +264,7 @@ export async function* getQuotes(
 
 export async function getMultiQuotes(
   symbols: Array<string>,
-  options: GetQoutesParams,
+  options: GetQuotesParams,
   config: any
 ): Promise<Map<string, any[]>> {
   const multiQuotes = getMultiQuotesAsync(symbols, options, config);
@@ -227,9 +278,9 @@ export async function getMultiQuotes(
 
 export async function* getMultiQuotesAsync(
   symbols: Array<string>,
-  options: GetQoutesParams,
+  options: GetQuotesParams,
   config: any
-): AsyncGenerator<AlapacaQuote, void, unknown> {
+): AsyncGenerator<AlpacaQuote, void, unknown> {
   const multiQuotes = getMultiDataV2(symbols, TYPE.QUOTES, options, config);
   for await (const q of multiQuotes) {
     q.data = { ...q.data, S: q.symbol };
@@ -260,7 +311,7 @@ export async function* getBars(
     config
   );
 
-  for await (const bar of bars) {
+  for await (const bar of bars || []) {
     yield AlpacaBarV2(bar);
   }
 }
@@ -326,7 +377,7 @@ export async function getLatestTrades(
 export async function getLatestQuote(
   symbol: string,
   config: any
-): Promise<AlapacaQuote> {
+): Promise<AlpacaQuote> {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${symbol}/quotes/latest`,
     {},
@@ -338,14 +389,14 @@ export async function getLatestQuote(
 export async function getLatestQuotes(
   symbols: Array<string>,
   config: any
-): Promise<Map<string, AlapacaQuote>> {
+): Promise<Map<string, AlpacaQuote>> {
   const resp = await dataV2HttpRequest(
     `/v2/stocks/${TYPE.QUOTES}/latest`,
     { symbols: symbols.join(",") },
     config
   );
   const multiLatestQuotes = resp.data.quotes;
-  const multiLatestQuotesResp = new Map<string, AlapacaQuote>();
+  const multiLatestQuotesResp = new Map<string, AlpacaQuote>();
   for (const symbol in multiLatestQuotes) {
     multiLatestQuotesResp.set(
       symbol,
@@ -397,7 +448,7 @@ export async function getSnapshot(
     config
   );
 
-  return AlpacaSnaphotV2(resp.data);
+  return AlpacaSnapshotV2(resp.data);
 }
 
 export async function getSnapshots(
@@ -409,16 +460,11 @@ export async function getSnapshots(
     {},
     config
   );
-
   const result = Object.entries(resp.data as Map<string, any>).map(
     ([key, val]) => {
-      return AlpacaSnaphotV2({
-        symbol: key,
-        ...val,
-      });
+      return AlpacaSnapshotV2({ symbol: key, ...val });
     }
   );
-
   return result;
 }
 
@@ -495,6 +541,45 @@ export async function* getCryptoBars(
   }
 }
 
+export async function getLatestCryptoBar(
+  symbol: string,
+  options: { exchange: string },
+  config: any
+): Promise<CryptoBar> {
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/crypto/${symbol}/bars/latest`,
+    options,
+    config
+  );
+
+  return AlpacaCryptoBar({
+    S: resp.data.symbol,
+    ...resp.data.bar,
+  });
+}
+
+export async function getLatestCryptoBars(
+  symbols: Array<string>,
+  options: { exchange: string },
+  config: any
+): Promise<Map<string, CryptoBar>> {
+  const params = { ...options, symbols: symbols.join(",") };
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/crypto/bars/latest`,
+    params,
+    config
+  );
+
+  const multiLatestCryptoBars = resp.data.bars;
+  const result = new Map<string, CryptoBar>();
+  for (const symbol in multiLatestCryptoBars) {
+    const bar = multiLatestCryptoBars[symbol];
+    result.set(symbol, AlpacaCryptoBar(bar));
+  }
+
+  return result;
+}
+
 export async function getLatestCryptoTrade(
   symbol: string,
   options: { exchange: string },
@@ -509,6 +594,28 @@ export async function getLatestCryptoTrade(
     S: resp.data.symbol,
     ...resp.data.trade,
   });
+}
+
+export async function getLatestCryptoTrades(
+  symbols: Array<string>,
+  options: { exchange: string },
+  config: any
+): Promise<Map<string, CryptoTrade>> {
+  const params = { ...options, symbols: symbols.join(",") };
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/crypto/trades/latest`,
+    params,
+    config
+  );
+
+  const multiLatestCryptoTrades = resp.data.trades;
+  const result = new Map<string, CryptoTrade>();
+  for (const symbol in multiLatestCryptoTrades) {
+    const trade = multiLatestCryptoTrades[symbol];
+    result.set(symbol, AlpacaCryptoTrade(trade));
+  }
+
+  return result;
 }
 
 export async function getLatestCryptoQuote(
@@ -527,6 +634,28 @@ export async function getLatestCryptoQuote(
   });
 }
 
+export async function getLatestCryptoQuotes(
+  symbols: Array<string>,
+  options: { exchange: string },
+  config: any
+): Promise<Map<string, CryptoQuote>> {
+  const params = { ...options, symbols: symbols.join(",") };
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/crypto/quotes/latest`,
+    params,
+    config
+  );
+
+  const multiLatestCryptoQuotes = resp.data.quotes;
+  const result = new Map<string, CryptoQuote>();
+  for (const symbol in multiLatestCryptoQuotes) {
+    const quote = multiLatestCryptoQuotes[symbol];
+    result.set(symbol, AlpacaCryptoQuote(quote));
+  }
+
+  return result;
+}
+
 export async function getLatestCryptoXBBO(
   symbol: string,
   options: { exchanges?: Array<string> },
@@ -539,4 +668,142 @@ export async function getLatestCryptoXBBO(
     config
   );
   return AlpacaCryptoXBBO({ S: resp.data.symbol, ...resp.data.xbbo });
+}
+
+export async function getLatestCryptoXBBOs(
+  symbols: Array<string>,
+  options: { exchanges?: Array<string> },
+  config: any
+): Promise<Map<string, CryptoXBBO>> {
+  const params = {
+    exchanges: options.exchanges?.join(","),
+    symbols: symbols.join(","),
+  };
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/crypto/xbbos/latest`,
+    params,
+    config
+  );
+  const result = new Map<string, CryptoXBBO>();
+
+  const multiLatestCryptoXBBOs = resp.data.xbbos;
+  for (const symbol in multiLatestCryptoXBBOs) {
+    const xbbo = multiLatestCryptoXBBOs[symbol];
+    result.set(symbol, AlpacaCryptoXBBO(xbbo));
+  }
+
+  return result;
+}
+
+export async function getCryptoSnapshot(
+  symbol: string,
+  options: { exchange: string },
+  config: any
+): Promise<CryptoSnapshot> {
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/crypto/${symbol}/snapshot`,
+    options,
+    config
+  );
+
+  return AlpacaCryptoSnapshot(resp.data);
+}
+
+export async function getCryptoSnapshots(
+  symbols: Array<string>,
+  options: { exchange: string },
+  config: any
+): Promise<Map<string, CryptoSnapshot>> {
+  const params = { ...options, symbols: symbols.join(",") };
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/crypto/snapshots`,
+    params,
+    config
+  );
+  const snapshots = resp.data.snapshots;
+  const result = new Map<string, CryptoSnapshot>();
+  for (const symbol in snapshots) {
+    const snapshot = snapshots[symbol];
+    result.set(symbol, AlpacaCryptoSnapshot(snapshot));
+  }
+  return result;
+}
+
+export enum Sort {
+  ASC = "asc",
+  DESC = "desc",
+}
+
+export interface GetNewsParams {
+  // Symbols filters the news to the related symbols.
+  // If empty or nil, all articles will be returned.
+  symbols: Array<string>;
+  // Start is the inclusive beginning of the interval
+  start?: string;
+  // End is the inclusive end of the interval
+  end?: string;
+  // Sort sets the sort order of the results. Sorting will be done by the UpdatedAt field.
+  sort?: Sort;
+  // IncludeContent tells the server to include the article content in the response.
+  includeContent?: boolean;
+  // ExcludeContentless tells the server to exclude articles that has no content.
+  excludeContentless?: boolean;
+  // TotalLimit is the limit of the total number of the returned news.
+  totalLimit?: number;
+  // PageLimit is the pagination size. If empty, the default page size will be used.
+  pageLimit?: number;
+}
+
+function getNewsParams(options: GetNewsParams): any {
+  const query = {} as any;
+  query.symbols =
+    options.symbols?.length > 0 ? options.symbols.join(",") : null;
+  query.start = options.start;
+  query.end = options.end;
+  query.sort = options.sort;
+  query.includeContent = options.includeContent;
+  query.excludeContentless = options.excludeContentless;
+  return query;
+}
+
+export async function getNews(
+  options: GetNewsParams,
+  config: any
+): Promise<AlpacaNews[]> {
+  if (options.totalLimit && options.totalLimit < 0) {
+    throw new Error("negative total limit");
+  }
+  if (options.pageLimit && options.pageLimit < 0) {
+    throw new Error("negative page limit");
+  }
+
+  let pageToken: string | null = null;
+  let received = 0;
+  const pageLimit = options.pageLimit
+    ? Math.min(options.pageLimit, V2_NEWS_MAX_LIMIT)
+    : V2_NEWS_MAX_LIMIT;
+  delete options.pageLimit;
+  const totalLimit = options.totalLimit ?? 10;
+  const result: AlpacaNews[] = [];
+  const params = getNewsParams(options);
+  let limit;
+  for (;;) {
+    limit = getQueryLimit(totalLimit, pageLimit, received);
+    if (limit < 1) {
+      break;
+    }
+
+    const resp: AxiosResponse<any> = await dataV2HttpRequest(
+      "/v1beta1/news",
+      { ...params, limit: limit, page_token: pageToken },
+      config
+    );
+    resp.data.news.forEach((n: RawAlpacaNews) => result.push(AlpacaNews(n)));
+    received += resp.data.news.length;
+    pageToken = resp.data.next_page_token;
+    if (!pageToken) {
+      break;
+    }
+  }
+  return result;
 }

@@ -1,6 +1,6 @@
 "use strict";
 
-const { expect } = require("chai");
+const { expect, assert } = require("chai");
 const api = require("../dist/alpaca-trade-api");
 const mock = require("./support/mock-server");
 
@@ -14,9 +14,16 @@ const tradeKeys = [
   "Tape",
 ];
 
-function assertTrade(trade, keys = tradeKeys) {
-  expect(trade).to.have.all.keys(keys);
-}
+const quoteKeys = [
+  "BidExchange",
+  "BidPrice",
+  "BidSize",
+  "AskExchange",
+  "AskPrice",
+  "AskSize",
+  "Timestamp",
+  "Conditions",
+];
 
 const barKeys = [
   "OpenPrice",
@@ -29,23 +36,16 @@ const barKeys = [
   "VWAP",
 ];
 
-function assertBar(bar, keys = barKeys) {
-  expect(bar).to.have.all.keys(keys);
+function assertTrade(trade, keys = tradeKeys) {
+  expect(trade).to.have.all.keys(keys);
 }
-
-const quoteKeys = [
-  "BidExchange",
-  "BidPrice",
-  "BidSize",
-  "AskExchange",
-  "AskPrice",
-  "AskSize",
-  "Timestamp",
-  "Conditions",
-];
 
 function assertQuote(quote, keys = quoteKeys) {
   expect(quote).to.have.all.keys(keys);
+}
+
+function assertBar(bar, keys = barKeys) {
+  expect(bar).to.have.all.keys(keys);
 }
 
 function assertSnapshot(snapshot) {
@@ -112,7 +112,7 @@ describe("data v2 rest", () => {
       quotes.push(q);
     }
 
-    expect(quotes.length).equal(3);
+    expect(quotes.length).equal(10);
     assertQuote(quotes[0]);
   });
 
@@ -121,7 +121,7 @@ describe("data v2 rest", () => {
       start: "2021-02-01",
       end: "2021-02-10",
       limit: 2,
-      timeframe: "1Day",
+      timeframe: alpaca.newTimeframe(1, alpaca.timeframeUnit.DAY),
       adjustment: alpaca.adjustment.RAW,
     });
     const bars = [];
@@ -229,28 +229,46 @@ describe("data v2 rest", () => {
   });
 });
 
-function assertCryptoQuote(quote) {
-  expect(quote).to.have.all.keys([
-    "Symbol",
-    "Timestamp",
-    "Exchange",
-    "BidPrice",
-    "BidSize",
-    "AskPrice",
-    "AskSize",
-  ]);
+const cryptoTradeKeys = [
+  "Timestamp",
+  "Exchange",
+  "Price",
+  "Size",
+  "TakerSide",
+  "ID",
+];
+
+const cryptoQuoteKeys = [
+  "Timestamp",
+  "Exchange",
+  "BidPrice",
+  "BidSize",
+  "AskPrice",
+  "AskSize",
+];
+
+const cryptoBarKeys = [
+  "Timestamp",
+  "Exchange",
+  "Open",
+  "High",
+  "Low",
+  "Close",
+  "Volume",
+  "VWAP",
+  "TradeCount",
+];
+
+function assertCryptoTrade(trade, keys = cryptoTradeKeys) {
+  expect(trade).to.have.all.keys(keys);
 }
 
-function assertCryptoTrade(trade) {
-  expect(trade).to.have.all.keys([
-    "Symbol",
-    "Timestamp",
-    "Exchanhge",
-    "Price",
-    "Size",
-    "TakerSide",
-    "Id",
-  ]);
+function assertCryptoQuote(quote, keys = cryptoQuoteKeys) {
+  expect(quote).to.have.all.keys(keys);
+}
+
+function assertCryptoBar(bar, keys = cryptoBarKeys) {
+  expect(bar).to.have.all.keys(keys);
 }
 
 function assertCryptoXBBO(xbbo) {
@@ -266,11 +284,46 @@ function assertCryptoXBBO(xbbo) {
   ]);
 }
 
+function assertCryptoSnapshot(snapshot) {
+  expect(snapshot).to.have.all.keys([
+    "symbol",
+    "LatestTrade",
+    "LatestQuote",
+    "MinuteBar",
+    "DailyBar",
+    "PrevDailyBar",
+  ]);
+  assertCryptoTrade(snapshot.LatestTrade);
+  assertCryptoQuote(snapshot.LatestQuote);
+  assertCryptoBar(snapshot.MinuteBar);
+  assertCryptoBar(snapshot.DailyBar);
+  assertCryptoBar(snapshot.PrevDailyBar);
+}
+
 describe("crypto data", () => {
   let alpaca;
 
   before(() => {
     alpaca = new api(mock.getConfig());
+  });
+
+  it("get latest trade", async () => {
+    const resp = await alpaca.getLatestCryptoTrade("BTCUSD", {
+      exchange: "ERSX",
+    });
+
+    assertCryptoTrade(resp, ["Symbol", ...cryptoTradeKeys]);
+  });
+
+  it("get latest trades", async () => {
+    const resp = await alpaca.getLatestCryptoTrades(["BTCUSD", "ETHUSD"], {
+      exchange: "ERSX",
+    });
+
+    expect(resp.size).equal(2);
+    for (const symbol in resp) {
+      assertCryptoTrade(resp[symbol], cryptoTradeKeys);
+    }
   });
 
   it("get quotes", async () => {
@@ -285,17 +338,9 @@ describe("crypto data", () => {
 
     for await (let q of resp) {
       quotes.push(q);
-      assertCryptoQuote(q);
+      assertCryptoQuote(q, ["Symbol", ...cryptoQuoteKeys]);
     }
     expect(quotes.length).equal(3);
-  });
-
-  it("get latest trade", async () => {
-    const resp = await alpaca.getLatestCryptoTrade("BTCUSD", {
-      exchange: "ERSX",
-    });
-
-    assertCryptoTrade(resp);
   });
 
   it("get latest xbbo", async () => {
@@ -304,5 +349,39 @@ describe("crypto data", () => {
     });
 
     assertCryptoXBBO(resp);
+  });
+
+  it("get snapshot for one symbol", async () => {
+    const resp = await alpaca.getCryptoSnapshot("BTCUSD", {
+      exchange: "ERSX",
+    });
+    assertCryptoSnapshot(resp);
+  });
+});
+
+describe("news API", () => {
+  let alpaca;
+
+  before(() => {
+    alpaca = new api(mock.getConfig());
+  });
+  it("get news", async () => {
+    const news = await alpaca.getNews({});
+
+    expect(news.length).equal(2);
+    const news1 = news[0];
+
+    assert.equal(news1.ID, 20472678);
+    assert.equal(news1.Headline, "CEO John Krafcik Leaves Waymo");
+    assert.equal(news1.Author, "Bibhu Pattnaik");
+    assert.equal(news1.CreatedAt, "2021-04-03T15:35:21Z");
+    assert.equal(news1.Images.length, 3);
+    assert.equal(news1.Symbols.length, 3);
+  });
+
+  it("get news with wrong parameters", async () => {
+    await expect(
+      alpaca.getNews({ symbols: ["AAPL", "GE"], totalLimit: -1 })
+    ).to.eventually.be.rejectedWith("negative total limit");
   });
 });
