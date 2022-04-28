@@ -10,7 +10,7 @@ grep '"version"' $VER_FILE
 
 read -r -p "Please enter a new version number to bump to: " VERSION
 
-echo -e "Updating init.py to $VERSION\n"
+echo -e "Updating $VER_FILE to $VERSION\n"
 
 sed -i -e "s/\"version\": .*/\"version\": \"$VERSION\",/" $VER_FILE
 
