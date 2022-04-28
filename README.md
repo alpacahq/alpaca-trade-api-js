@@ -274,6 +274,14 @@ Calls `GET /calendar` and returns the market calendar.
 getCalendar({ start: Date, end: Date }) => Promise<Calendar[]>
 ```
 
+### Clock API
+
+Calls `GET /clock` and returns the market clock.
+
+```ts
+getClock() => Promise<Clock>
+```
+
 ### Watchlist API
 available methods for you to use:
 
