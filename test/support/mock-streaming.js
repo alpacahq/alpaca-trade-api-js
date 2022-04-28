@@ -1,6 +1,7 @@
 "use strict";
 
 const WebSocket = require("ws");
+const msgpack = require("msgpack5")();
 const https = require("https");
 const Fs = require("fs");
 
@@ -9,7 +10,7 @@ const client = {
   secret: "secret1",
 };
 
-const trade_apple = {
+const trade_appl = {
   T: "t",
   i: 1532,
   S: "AAPL",
@@ -21,7 +22,7 @@ const trade_apple = {
   z: "C",
 };
 
-const quote_apple = {
+const quote_appl = {
   T: "q",
   S: "AAPL",
   bx: "Z",
@@ -35,6 +36,19 @@ const quote_apple = {
   z: "C",
 };
 
+const bar_aapl = {
+  T: "b",
+  S: "AAPL",
+  o: 127.82,
+  h: 128.32,
+  l: 126.32,
+  c: 126.9,
+  v: 72015712,
+  t: "2021-05-25T04:00:00Z",
+  vw: 127.07392,
+  n: 462915,
+};
+
 const status_AAPL = {
   T: "s",
   S: "AAPL",
@@ -44,6 +58,19 @@ const status_AAPL = {
   rm: "ReasonMessage",
   t: "Timestamp",
   z: "Tape",
+};
+
+const barUpdate_AAPL = {
+  T: "u",
+  S: "AAPL",
+  o: 100,
+  h: 101.2,
+  l: 98.67,
+  c: 101.3,
+  v: 2570,
+  t: "2021-03-05T16:00:30Z",
+  n: 1235,
+  vw: 100.123457,
 };
 
 class StreamingWsMock {
@@ -61,12 +88,15 @@ class StreamingWsMock {
       },
     });
     this.conn.on("connection", (socket) => {
-      socket.send(JSON.stringify([{ T: "success", msg: "connected" }]));
+      socket.send(msgpack.encode([{ T: "success", msg: "connected" }]));
       this.conn.emit("open");
       socket.on("message", (msg) => {
         this.messageHandler(msg, socket);
       });
       socket.on("error", (err) => console.log(err));
+    });
+    this.conn.on("ping", (data) => {
+      this.conn.pong(data);
     });
 
     this.httpsServer.listen(port);
@@ -75,19 +105,22 @@ class StreamingWsMock {
       trades: [],
       quotes: [],
       bars: [],
+      updatedBars: [],
       dailyBars: [],
       statuses: [],
       lulds: [],
+      cancelErrors: [],
+      corrections: [],
     };
   }
 
   messageHandler(msg, socket) {
-    const message = JSON.parse(msg);
+    const message = msgpack.decode(msg);
     const action = message.action ?? null;
 
     if (!action) {
       socket.send(
-        JSON.stringify([
+        msgpack.encode([
           {
             T: "error",
             code: 400,
@@ -116,6 +149,10 @@ class StreamingWsMock {
     this.subscriptions.trades = [...this.subscriptions.trades, ...msg.trades];
     this.subscriptions.quotes = [...this.subscriptions.quotes, ...msg.quotes];
     this.subscriptions.bars = [...this.subscriptions.bars, ...msg.bars];
+    this.subscriptions.updatedBars = [
+      ...this.subscriptions.updatedBars,
+      ...msg.updatedBars,
+    ];
     this.subscriptions.dailyBars = [
       ...this.subscriptions.dailyBars,
       ...msg.dailyBars,
@@ -124,11 +161,8 @@ class StreamingWsMock {
       ...this.subscriptions.statuses,
       ...msg.statuses,
     ];
-    this.subscriptions.lulds = [
-      ...this.subscriptions.lulds,
-      ...msg.lulds,
-    ]
-    socket.send(JSON.stringify(this.createSubMsg()));
+    this.subscriptions.lulds = [...this.subscriptions.lulds, ...msg.lulds];
+    socket.send(msgpack.encode(this.createSubMsg()));
     this.streamData(socket);
   }
 
@@ -145,6 +179,9 @@ class StreamingWsMock {
     this.subscriptions.bars = this.subscriptions.bars.filter(
       (val) => msg.bars.indexOf(val) === -1
     );
+    this.subscriptions.updatedBars = this.subscriptions.updatedBars.filter(
+      (val) => msg.updatedBars.indexOf(val) === -1
+    );
     this.subscriptions.dailyBars = this.subscriptions.dailyBars.filter(
       (val) => msg.dailyBars.indexOf(val) === -1
     );
@@ -154,13 +191,13 @@ class StreamingWsMock {
     this.subscriptions.lulds = this.subscriptions.lulds.filter(
       (val) => msg.lulds.indexof(val) === -1
     );
-    socket.send(JSON.stringify(this.createSubMsg()));
+    socket.send(msgpack.encode(this.createSubMsg()));
   }
 
   checkSubMsgSyntax(msg) {
     if (!msg.trades || !msg.quotes || !msg.bars) {
       socket.send(
-        JSON.stringify([
+        msgpack.encode([
           {
             T: "error",
             code: 400,
@@ -180,29 +217,38 @@ class StreamingWsMock {
         trades: this.subscriptions.trades,
         quotes: this.subscriptions.quotes,
         bars: this.subscriptions.bars,
+        updatedBars: this.subscriptions.updatedBars,
         dailyBars: this.subscriptions.dailyBars,
         statuses: this.subscriptions.statuses,
         lulds: this.subscriptions.lulds,
+        cancelErrors: this.subscriptions.trades, // Subscribed automatically.
+        corrections: this.subscriptions.trades, // Subscribed automatically.
       },
     ];
   }
 
   streamData(socket) {
     if (this.subscriptions.trades.length > 0) {
-      socket.send(JSON.stringify([trade_apple]));
+      socket.send(msgpack.encode([trade_appl]));
     }
     if (this.subscriptions.quotes.length > 0) {
-      socket.send(JSON.stringify([quote_apple]));
+      socket.send(msgpack.encode([quote_appl]));
     }
     if (this.subscriptions.statuses.length > 0) {
-      socket.send(JSON.stringify([status_AAPL]));
+      socket.send(msgpack.encode([status_AAPL]));
+    }
+    if (this.subscriptions.bars.length > 0) {
+      socket.send(msgpack.encode([bar_aapl]));
+    }
+    if (this.subscriptions.updatedBars.length > 0) {
+      socket.send(msgpack.encode([barUpdate_AAPL]));
     }
   }
 
   authenticate(message, socket) {
     if (message.key === client.key && message.secret === client.secret) {
       socket.send(
-        JSON.stringify([
+        msgpack.encode([
           {
             T: "success",
             msg: "authenticated",
@@ -211,7 +257,7 @@ class StreamingWsMock {
       );
     } else {
       socket.send(
-        JSON.stringify([
+        msgpack.encode([
           {
             T: "error",
             code: 402,

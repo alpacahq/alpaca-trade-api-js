@@ -1,8 +1,8 @@
 "use strict";
 
-const expect = require("chai").expect;
+const { expect, assert } = require("chai");
 const { isEqual } = require("lodash");
-const entytyV2 = require("../../lib/resources/datav2/entityv2");
+const entityV2 = require("../../dist/resources/datav2/entityv2");
 
 function assertData(got, expected) {
   expect(got).have.all.keys(Object.keys(expected));
@@ -11,23 +11,80 @@ function assertData(got, expected) {
 
 describe("test convert functions", () => {
   it("test aliasObjectKey for trades", () => {
-    const got = entytyV2.AlpacaTradeV2(data.trade);
+    const got = entityV2.AlpacaTradeV2(data.trade);
     assertData(got, expected.trade);
   });
 
   it("test aliasObjectKey for quotes", () => {
-    const got = entytyV2.AlpacaQuoteV2(data.quote);
+    const got = entityV2.AlpacaQuoteV2(data.quote);
     assertData(got, expected.quote);
   });
 
   it("test aliasObjectKey for bars", () => {
-    const got = entytyV2.AlpacaBarV2(data.bar);
+    const got = entityV2.AlpacaBarV2(data.bar);
     assertData(got, expected.bar);
   });
 
   it("test aliasObjectKey for snapshot", () => {
-    const got = entytyV2.AlpacaSnaphotV2(data.snapshot);
+    const got = entityV2.AlpacaSnapshotV2(data.snapshot);
     assertData(got, expected.snapshot);
+  });
+
+  it("test aliasObjectKey for crypto orderbooks", () => {
+    const got = entityV2.AlpacaCryptoOrderbook(data.cryptoOrderbook);
+    assertData(got, expected.cryptoOrderbook);
+  });
+});
+
+describe("test timeframe", () => {
+  it("test valid day timeframe", () => {
+    const got = entityV2.NewTimeframe(1, entityV2.TimeFrameUnit.DAY);
+    expect(got).equal("1Day");
+  });
+
+  it("test invalid day timeframe", () => {
+    assert.throws(
+      () => {
+        entityV2.NewTimeframe(15, entityV2.TimeFrameUnit.DAY);
+      },
+      Error,
+      "day and week timeframes can only be used with amount 1"
+    );
+  });
+
+  it("test invalid minute timeframe", () => {
+    assert.throws(
+      () => {
+        entityV2.NewTimeframe(72, entityV2.TimeFrameUnit.MIN);
+      },
+      Error,
+      "minute timeframe can only be used with amount between 1-59"
+    );
+  });
+
+  it("test invalid amount in timeframe", () => {
+    assert.throws(
+      () => {
+        entityV2.NewTimeframe(0, entityV2.TimeFrameUnit.MIN);
+      },
+      Error,
+      "amount must be a positive integer value"
+    );
+  });
+
+  it("test valid month timeframe", () => {
+    const got = entityV2.NewTimeframe(3, entityV2.TimeFrameUnit.MONTH);
+    expect(got).equal("3Month");
+  });
+
+  it("test invalid month timeframe", () => {
+    assert.throws(
+      () => {
+        entityV2.NewTimeframe(11, entityV2.TimeFrameUnit.MONTH);
+      },
+      Error,
+      "month timeframe can only be used with amount 1, 2, 3, 6 and 12"
+    );
   });
 });
 
@@ -105,6 +162,13 @@ const data = {
       v: 2088793,
     },
   },
+  cryptoOrderbook: {
+    S: 'BTCUSD',
+    x: 'ERSX',
+    t: "2022-04-06T14:19:40.984Z",
+    b: [ { p: 44066.1, s: 0 }, { p: 44063.4, s: 1.361635 } ],
+    a: []
+  },
 };
 
 const expected = {
@@ -125,7 +189,7 @@ const expected = {
     BidExchange: "P",
     BidPrice: 136.56,
     BidSize: 2,
-    Condition: ["R"],
+    Conditions: ["R"],
   },
   bar: {
     Timestamp: "2021-02-08T00:00:00Z",
@@ -154,7 +218,7 @@ const expected = {
       BidExchange: "V",
       BidPrice: 0,
       BidSize: 0,
-      Condition: ["R"],
+      Conditions: ["R"],
     },
     MinuteBar: {
       Timestamp: "2021-05-03T19:59:00Z",
@@ -180,5 +244,12 @@ const expected = {
       ClosePrice: 131.44,
       Volume: 2088793,
     },
+  },
+  cryptoOrderbook: {
+    Symbol: 'BTCUSD',
+    Exchange: 'ERSX',
+    Timestamp: "2022-04-06T14:19:40.984Z",
+    Bids: [ { Price: 44066.1, Size: 0 }, { Price: 44063.4, Size: 1.361635 } ],
+    Asks: []
   },
 };
