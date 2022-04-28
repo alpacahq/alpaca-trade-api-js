@@ -9,6 +9,7 @@
     "npm": ">=6"
   },
   "scripts": {
+    "prepublishOnly": "tsc",
     "pretest": "npx tsc",
     "test": "mocha --timeout 4s test/init.js 'test/**/*.test.js'",
     "tsc:w": "tsc -w",

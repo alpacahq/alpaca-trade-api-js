@@ -1,12 +1,9 @@
 name: Publish package to NPM
 
-on: [ push ]
-
-#uncomment after test
-#on:
-#  push:
-#    tags:
-#      - '*'
+on:
+  push:
+    tags:
+      - '*'
 
 jobs:
   tests-ci:
@@ -37,7 +34,6 @@ jobs:
           node-version: 14
           registry-url: https://registry.npmjs.org/
       - run: npm install
-      # remove dry run before live
-      - run: npm publish --access public --dry-run
+      - run: npm publish --access public
         env:
-          NODE_AUTH_TOKEN-TYPO: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{secrets.NPM_KEY}}
