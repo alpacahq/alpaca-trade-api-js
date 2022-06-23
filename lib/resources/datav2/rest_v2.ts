@@ -1,4 +1,4 @@
-import axios, {AxiosResponse} from "axios";
+import axios, { AxiosResponse } from "axios";
 import {
   AlpacaTradeV2,
   AlpacaBarV2,
@@ -119,7 +119,7 @@ export async function* getDataV2(
 
     const resp: AxiosResponse<any> = await dataV2HttpRequest(
       path,
-      {...options, limit, page_token: pageToken},
+      { ...options, limit, page_token: pageToken },
       config
     );
 
@@ -192,6 +192,7 @@ export interface GetTradesParams {
   page_limit?: number;
   limit?: number;
   feed?: string;
+  asof?: string;
   page_token?: string;
 }
 
@@ -243,6 +244,7 @@ export interface GetQuotesParams {
   page_limit?: number;
   limit?: number;
   feed?: string;
+  asof?: string;
   page_token?: string;
 }
 
@@ -296,6 +298,7 @@ export interface GetBarsParams {
   page_limit?: number;
   limit?: number;
   feed?: string;
+  asof?: string;
   page_token?: string;
 }
 
