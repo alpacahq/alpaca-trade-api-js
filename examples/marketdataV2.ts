@@ -5,6 +5,11 @@
  */
 
 import Alpaca from "@alpacahq/alpaca-trade-api";
+import {
+  AlpacaQuote,
+  AlpacaTrade,
+  AlpacaBar,
+} from "@alpacahq/alpaca-trade-api/dist/resources/datav2/entityv2";
 import * as _ from "lodash";
 import moment from "moment";
 
@@ -23,37 +28,37 @@ import moment from "moment";
   const end = "2022-03-10T23:59:59Z";
   let symbol = "TMF";
   const trades = alpaca.getTradesV2(symbol, { start, end });
-  let data = [];
+  const tradeData: AlpacaTrade[] = [];
   // Due to the pagination setup in the actual API, the SDK returns async generators
   // for functions like getTradesV2. If you want to get results out of the generator
   // it is recommend you use a for await loop like below.
   for await (const t of trades) {
-    data.push(t);
+    tradeData.push(t);
   }
   console.log("Trades for TMF");
-  console.table(data.slice(0, 5));
+  console.table(tradeData.slice(0, 5));
 
   // Do the same for quotes as well but set a limit
   symbol = "IBM";
   let quotes = alpaca.getQuotesV2(symbol, { start, end, limit: 5 });
-  data = [];
+  let quoteData: AlpacaQuote[] = [];
   for await (const q of quotes) {
-    data.push(q);
+    quoteData.push(q);
   }
   console.log("Quotes for IBM");
-  console.table(data);
+  console.table(quoteData);
 
   // Did your order fill within the bid/ask spread?
   // Find the fill price and exact fill time
   quotes = alpaca.getQuotesV2(symbol, { start, end });
-  data = [];
+  quoteData = [];
   for await (const q of quotes) {
-    data.push(q);
+    quoteData.push(q);
   }
   const filledPrice = 125.7;
   const filledTime = "2022-03-10T14:34:24.04372096Z";
 
-  const q = data.filter((q) => q.Timestamp === filledTime)[0];
+  const q = quoteData.filter((q) => q.Timestamp === filledTime)[0];
   const filledWithinSpread =
     q.BidPrice <= filledPrice && filledPrice <= q.AskPrice;
   console.log(
@@ -77,7 +82,7 @@ import moment from "moment";
     adjustment: "all",
   });
 
-  const barsData = [];
+  let barsData: AlpacaBar[] = [];
   for await (const b of bars) {
     barsData.push(b);
   }
@@ -101,8 +106,24 @@ import moment from "moment";
       spread: s.LatestQuote.BidPrice - s.LatestQuote.AskPrice,
       todaysGain: s.DailyBar.ClosePrice / s.DailyBar.OpenPrice - 1,
     };
-    toDisplay[s.Symbol] = values;
+    toDisplay[(s as any).symbol] = values;
   }
   console.log("Spreads and gains");
   console.table(toDisplay);
+
+  // Get bars for Facebook
+  const FBBars = alpaca.getBarsV2("META", {
+    start: "2022-06-02",
+    end: "2022-06-22",
+    timeframe: "1Day",
+    asof: "2022-06-10",
+  });
+  barsData = [];
+
+  for await (const b of FBBars) {
+    barsData.push(b);
+  }
+
+  console.log("META bars");
+  console.table(barsData);
 })();
