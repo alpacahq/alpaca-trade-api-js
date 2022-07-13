@@ -2,4 +2,5 @@
 test/
 lib/
 .circleci/
+tools/
 .env.example
