@@ -1,5 +1,5 @@
-import mapKeys from "lodash/mapKeys";
-import mapValues from "lodash/mapValues";
+import mapKeys = require("lodash/mapKeys")
+import mapValues = require("lodash/mapValues")
 
 const trade_mapping_v2 = {
   S: "Symbol",

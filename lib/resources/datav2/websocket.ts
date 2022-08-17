@@ -1,7 +1,12 @@
-import events from "events";
-import WebSocket from "ws";
+// import events from "events";
+// import WebSocket from "ws";
 import { MessagePack } from "msgpack5";
-import msgpack5 from "msgpack5";
+// import msgpack5 from "msgpack5";
+
+import events = require("events")
+import WebSocket = require("ws")
+import msgpack5 = require("msgpack5")
+
 
 // Connection states. Each of these will also emit EVENT.STATE_CHANGE
 export enum STATE {
