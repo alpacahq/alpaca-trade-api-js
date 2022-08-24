@@ -23,7 +23,6 @@ import {
   AlpacaNews,
   RawAlpacaNews,
 } from "./entityv2";
-const { renameObjects } = require( "../../utils/renameobjects.js");
 
 // Number of data points to return.
 const V2_MAX_LIMIT = 10000;
@@ -494,7 +493,7 @@ export async function getCryptoTrades(
   const result = new Map<string, CryptoTrade>();
   for (const symbol in cryptoTrades) {
     let cryptoTrade = cryptoTrades[symbol];
-    renameObjects(cryptoTrade, AlpacaCryptoTrade)
+    cryptoTrade = cryptoTrade.map(AlpacaCryptoTrade)
     result.set(symbol, cryptoTrade);
   }
   return result;
@@ -520,7 +519,7 @@ export async function getCryptoQuotes(
   const result = new Map<string, CryptoQuote>();
   for (const symbol in cryptoQuotes) {
     let cryptoQuote = cryptoQuotes[symbol];
-    renameObjects(cryptoQuote, AlpacaCryptoQuote)
+    cryptoQuote = cryptoQuote.map(AlpacaCryptoQuote)
     result.set(symbol, cryptoQuote);
   }
   return result;
@@ -547,7 +546,7 @@ export async function getCryptoBars(
   const result = new Map<string, CryptoBar>();
   for (const symbol in cryptoBars) {
     let cryptoBar = cryptoBars[symbol];
-    renameObjects(cryptoBar, AlpacaCryptoBar)
+    cryptoBar = cryptoBar.map(AlpacaCryptoBar)
     result.set(symbol, cryptoBar);
   }
   return result;
