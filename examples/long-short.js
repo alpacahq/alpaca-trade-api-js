@@ -16,7 +16,7 @@ class LongShort {
       usePolygon: USE_POLYGON
     })
 
-    let stocks = ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP', 'SPLK', 'BA', 'AMZN', 'SUI', 'SUN', 'TSLA', 'CGC', 'SPWR', 'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'RTN', 'ATVI', 'GS', 'BAC', 'MS', 'TWLO', 'QCOM']
+    let stocks = ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP', 'SPLK', 'BA', 'AMZN', 'SUI', 'SUN', 'TSLA', 'MU', 'SPWR', 'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'NVDA', 'ATVI', 'GS', 'BAC', 'MS', 'TWLO', 'QCOM']
     this.stockList = stocks.map(item => ({ name: item, pc: 0 }))
 
     this.long = []
@@ -379,13 +379,15 @@ class LongShort {
             const close = resp.results[0].c;
             resolve(close);
           } else{
-            const resp = await this.alpaca.getBars('minute',
-                stock,
-                { limit: 1 })
-            resolve(resp[stock][0].closePrice);
+            const resp = await this.alpaca.getBarsV2(stock, {
+              timeframe: '1Min',
+              limit: 1,
+            })
+            const bars = await generatorToArray(resp);
+            resolve(bars[0].ClosePrice);
           }
         } catch (err) {
-          log(err.message)
+          log(`Encountered error ${err.message} for ${JSON.stringify(stock)}.`)
         }
       })
     }))
@@ -406,7 +408,7 @@ class LongShort {
           qty: quantity,
           side,
           type: 'market',
-          time_in_force: 'day'
+          time_in_force: 'day',
         })
         log(`Market order of | ${quantity} ${stock} ${side} | completed.`)
         resolve(true)
@@ -467,17 +469,18 @@ class LongShort {
             const last_close = resp.results[l - 1].c;
             const first_open = resp.results[0].o;
             stock.pc = (last_close - first_open) / first_open;
-          } else{
-            const resp = await this.alpaca.getBars('minute',
-                stock.name,
-                { limit: limit })
-            const l = resp[stock.name].length
-            const last_close = resp[stock.name][l- 1].closePrice;
-            const first_open = resp[stock.name][0].openPrice;
+          } else {
+            const resp = await this.alpaca.getBarsV2(stock.name, {
+              timeframe: '1Min',
+              limit: limit,
+            })
+            const bars = await generatorToArray(resp);
+            const last_close = bars[bars.length - 1].ClosePrice;
+            const first_open = bars[0].OpenPrice;
             stock.pc = (last_close - first_open) / first_open;
           }
         } catch (err) {
-          log(err.message)
+          log(`Encountered error ${err.message} for ${JSON.stringify(stock)}.`)
         }
         resolve()
       })
@@ -496,6 +499,15 @@ class LongShort {
 
 function log (text) {
   console.log(text)
+}
+
+// Helper function used to turn the result of getBarsV2 into an array.
+async function generatorToArray(resp) {
+  let result = []
+  for await (let x of resp) {
+    result.push(x)
+  }
+  return result
 }
 
 // Run the LongShort class
