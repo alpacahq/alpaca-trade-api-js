@@ -231,7 +231,6 @@ describe("data v2 rest", () => {
 
 const cryptoTradeKeys = [
   "Timestamp",
-  "Exchange",
   "Price",
   "Size",
   "TakerSide",
@@ -240,7 +239,6 @@ const cryptoTradeKeys = [
 
 const cryptoQuoteKeys = [
   "Timestamp",
-  "Exchange",
   "BidPrice",
   "BidSize",
   "AskPrice",
@@ -249,7 +247,6 @@ const cryptoQuoteKeys = [
 
 const cryptoBarKeys = [
   "Timestamp",
-  "Exchange",
   "Open",
   "High",
   "Low",
@@ -286,7 +283,6 @@ function assertCryptoXBBO(xbbo) {
 
 function assertCryptoSnapshot(snapshot) {
   expect(snapshot).to.have.all.keys([
-    "symbol",
     "LatestTrade",
     "LatestQuote",
     "MinuteBar",
@@ -307,38 +303,25 @@ describe("crypto data", () => {
     alpaca = new api(mock.getConfig());
   });
 
-  it("get latest trade", async () => {
-    const resp = await alpaca.getLatestCryptoTrade("BTCUSD", {
-      exchange: "ERSX",
-    });
-
-    assertCryptoTrade(resp, ["Symbol", ...cryptoTradeKeys]);
-  });
-
   it("get latest trades", async () => {
-    const resp = await alpaca.getLatestCryptoTrades(["BTCUSD", "ETHUSD"], {
-      exchange: "ERSX",
-    });
+    const symbol = 'BTC/USD'
+    let resp = await alpaca.getLatestCryptoTrades([symbol]);
 
-    expect(resp.size).equal(2);
-    for (const symbol in resp) {
-      assertCryptoTrade(resp[symbol], cryptoTradeKeys);
-    }
+    assertCryptoTrade(resp.get(symbol), [...cryptoTradeKeys]);
   });
 
   it("get quotes", async () => {
-    const resp = alpaca.getCryptoQuotes("BTCUSD", {
-      start: "2021-09-10",
-      end: "2021-09-11",
+    const symbol = "BTC/USD"
+    const resp = await alpaca.getCryptoQuotes([symbol], {
+      start: new Date("2021-09-10"),
+      end: new Date("2021-09-12"),
       limit: 3,
-      exchanges: ["CBSE"],
     });
 
-    const quotes = [];
+    const quotes = resp.get(symbol);
 
-    for await (let q of resp) {
-      quotes.push(q);
-      assertCryptoQuote(q, ["Symbol", ...cryptoQuoteKeys]);
+    for (let q of quotes) {
+      assertCryptoQuote(q, [...cryptoQuoteKeys]);
     }
     expect(quotes.length).equal(3);
   });
@@ -352,10 +335,9 @@ describe("crypto data", () => {
   });
 
   it("get snapshot for one symbol", async () => {
-    const resp = await alpaca.getCryptoSnapshot("BTCUSD", {
-      exchange: "ERSX",
-    });
-    assertCryptoSnapshot(resp);
+    const symbol = "BTC/USD"
+    const resp = await alpaca.getCryptoSnapshots([symbol]);
+    assertCryptoSnapshot(resp.get(symbol));
   });
 });
 

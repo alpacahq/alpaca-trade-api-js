@@ -7,6 +7,7 @@ import {
   AlpacaCryptoTrade,
   AlpacaCryptoQuote,
   AlpacaCryptoBar,
+  AlpacaCryptoOrderbook,
   AlpacaCryptoXBBO,
   CryptoXBBO,
   CryptoQuote,
@@ -18,6 +19,7 @@ import {
   AlpacaTrade,
   AlpacaBar,
   AlpacaCryptoSnapshot,
+  CryptoOrderbook,
   AlpacaNews,
   RawAlpacaNews,
 } from "./entityv2";
@@ -476,23 +478,25 @@ export interface GetCryptoTradesParams {
   end?: string;
   limit?: number;
   page_limit?: number;
-  exchanges?: Array<string>;
+  symbols?: string;
 }
 
-export async function* getCryptoTrades(
-  symbol: string,
+export async function getCryptoTrades(
+  symbols: Array<string>,
   options: GetCryptoTradesParams,
   config: any
-): AsyncGenerator<CryptoTrade, void, unknown> {
-  const cryptoTrades = getDataV2(
-    TYPE.TRADES,
-    `/v1beta1/crypto/${symbol}/trades`,
-    options,
-    config
-  );
-  for await (const t of cryptoTrades) {
-    yield AlpacaCryptoTrade({ S: symbol, ...t });
+): Promise<Map<string, CryptoTrade>> {
+  const endpoint = "/v1beta2/crypto/trades"
+  options.symbols = symbols.join(",");
+  const resp = await dataV2HttpRequest(endpoint, options, config);
+  const cryptoTrades = resp.data.trades;
+  const result = new Map<string, CryptoTrade>();
+  for (const symbol in cryptoTrades) {
+    let cryptoTrade = cryptoTrades[symbol];
+    cryptoTrade = cryptoTrade.map(AlpacaCryptoTrade)
+    result.set(symbol, cryptoTrade);
   }
+  return result;
 }
 
 export interface GetCryptoQuotesParams {
@@ -500,23 +504,25 @@ export interface GetCryptoQuotesParams {
   end?: string;
   limit?: number;
   page_limit?: number;
-  exchanges?: Array<string>;
+  symbols?: string;
 }
 
-export async function* getCryptoQuotes(
-  symbol: string,
+export async function getCryptoQuotes(
+  symbols: Array<string>,
   options: GetCryptoQuotesParams,
   config: any
-): AsyncGenerator<CryptoQuote, void, unknown> {
-  const cryptoQuotes = getDataV2(
-    TYPE.QUOTES,
-    `/v1beta1/crypto/${symbol}/quotes`,
-    options,
-    config
-  );
-  for await (const q of cryptoQuotes) {
-    yield AlpacaCryptoQuote({ S: symbol, ...q });
+): Promise<Map<string, CryptoQuote>> {
+  const endpoint = "/v1beta2/crypto/quotes"
+  options.symbols = symbols.join(",");
+  const resp = await dataV2HttpRequest(endpoint, options, config);
+  const cryptoQuotes = resp.data.quotes;
+  const result = new Map<string, CryptoQuote>();
+  for (const symbol in cryptoQuotes) {
+    let cryptoQuote = cryptoQuotes[symbol];
+    cryptoQuote = cryptoQuote.map(AlpacaCryptoQuote)
+    result.set(symbol, cryptoQuote);
   }
+  return result;
 }
 
 export interface GetCryptoBarsParams {
@@ -525,137 +531,72 @@ export interface GetCryptoBarsParams {
   timeframe: string;
   limit?: number;
   page_limit?: number;
-  exchanges?: Array<string>;
+  symbols?: string;
 }
 
-export async function* getCryptoBars(
-  symbol: string,
+export async function getCryptoBars(
+  symbols: Array<string>,
   options: GetCryptoBarsParams,
   config: any
-): AsyncGenerator<CryptoBar, void, unknown> {
-  const cryptoBars = getDataV2(
-    TYPE.BARS,
-    `/v1beta1/crypto/${symbol}/bars`,
-    options,
-    config
-  );
-  for await (const b of cryptoBars) {
-    yield AlpacaCryptoBar({ S: symbol, ...b });
+): Promise<Map<string, CryptoBar>> {
+  const endpoint = "/v1beta2/crypto/bars"
+  options.symbols = symbols.join(",");
+  const resp = await dataV2HttpRequest(endpoint, options, config);
+  const cryptoBars = resp.data.bars;
+  const result = new Map<string, CryptoBar>();
+  for (const symbol in cryptoBars) {
+    let cryptoBar = cryptoBars[symbol];
+    cryptoBar = cryptoBar.map(AlpacaCryptoBar)
+    result.set(symbol, cryptoBar);
   }
-}
-
-export async function getLatestCryptoBar(
-  symbol: string,
-  options: { exchange: string },
-  config: any
-): Promise<CryptoBar> {
-  const resp = await dataV2HttpRequest(
-    `/v1beta1/crypto/${symbol}/bars/latest`,
-    options,
-    config
-  );
-
-  return AlpacaCryptoBar({
-    S: resp.data.symbol,
-    ...resp.data.bar,
-  });
+  return result;
 }
 
 export async function getLatestCryptoBars(
   symbols: Array<string>,
-  options: { exchange: string },
   config: any
 ): Promise<Map<string, CryptoBar>> {
-  const params = { ...options, symbols: symbols.join(",") };
-  const resp = await dataV2HttpRequest(
-    `/v1beta1/crypto/bars/latest`,
-    params,
-    config
-  );
-
-  const multiLatestCryptoBars = resp.data.bars;
+  const params = { symbols: symbols.join(",") };
+  const endpoint = "/v1beta2/crypto/latest/bars"
+  const resp = await dataV2HttpRequest(endpoint, params, config);
+  const cryptoBars = resp.data.bars;
   const result = new Map<string, CryptoBar>();
-  for (const symbol in multiLatestCryptoBars) {
-    const bar = multiLatestCryptoBars[symbol];
-    result.set(symbol, AlpacaCryptoBar(bar));
+  for (const symbol in cryptoBars) {
+    const cryptoBar = cryptoBars[symbol];
+    result.set(symbol, AlpacaCryptoBar(cryptoBar));
   }
-
   return result;
-}
-
-export async function getLatestCryptoTrade(
-  symbol: string,
-  options: { exchange: string },
-  config: any
-): Promise<CryptoTrade> {
-  const resp = await dataV2HttpRequest(
-    `/v1beta1/crypto/${symbol}/trades/latest`,
-    options,
-    config
-  );
-  return AlpacaCryptoTrade({
-    S: resp.data.symbol,
-    ...resp.data.trade,
-  });
 }
 
 export async function getLatestCryptoTrades(
   symbols: Array<string>,
-  options: { exchange: string },
   config: any
 ): Promise<Map<string, CryptoTrade>> {
-  const params = { ...options, symbols: symbols.join(",") };
-  const resp = await dataV2HttpRequest(
-    `/v1beta1/crypto/trades/latest`,
-    params,
-    config
-  );
-
-  const multiLatestCryptoTrades = resp.data.trades;
+  const params = { symbols: symbols.join(",") };
+  const endpoint = "/v1beta2/crypto/latest/trades"
+  const resp = await dataV2HttpRequest(endpoint, params, config);
+  const cryptoTrades = resp.data.trades;
   const result = new Map<string, CryptoTrade>();
-  for (const symbol in multiLatestCryptoTrades) {
-    const trade = multiLatestCryptoTrades[symbol];
-    result.set(symbol, AlpacaCryptoTrade(trade));
+  for (const symbol in cryptoTrades) {
+    const cryptoTrade = cryptoTrades[symbol];
+    result.set(symbol, AlpacaCryptoTrade(cryptoTrade));
   }
-
   return result;
-}
-
-export async function getLatestCryptoQuote(
-  symbol: string,
-  options: { exchange: string },
-  config: any
-): Promise<CryptoQuote> {
-  const resp = await dataV2HttpRequest(
-    `/v1beta1/crypto/${symbol}/quotes/latest`,
-    options,
-    config
-  );
-  return AlpacaCryptoQuote({
-    S: resp.data.symbol,
-    ...resp.data.quote,
-  });
 }
 
 export async function getLatestCryptoQuotes(
   symbols: Array<string>,
-  options: { exchange: string },
   config: any
 ): Promise<Map<string, CryptoQuote>> {
-  const params = { ...options, symbols: symbols.join(",") };
-  const resp = await dataV2HttpRequest(
-    `/v1beta1/crypto/quotes/latest`,
-    params,
-    config
-  );
-
-  const multiLatestCryptoQuotes = resp.data.quotes;
+  const params = { symbols: symbols.join(",") };
+  const endpoint = "/v1beta2/crypto/latest/quotes"
+  const resp = await dataV2HttpRequest(endpoint, params, config);
+  const cryptoQuotes = resp.data.quotes;
   const result = new Map<string, CryptoQuote>();
-  for (const symbol in multiLatestCryptoQuotes) {
-    const quote = multiLatestCryptoQuotes[symbol];
-    result.set(symbol, AlpacaCryptoQuote(quote));
+  for (const symbol in cryptoQuotes) {
+    const cryptoQuote = cryptoQuotes[symbol];
+    result.set(symbol, AlpacaCryptoQuote(cryptoQuote));
   }
-
   return result;
 }
 
@@ -698,36 +639,34 @@ export async function getLatestCryptoXBBOs(
   return result;
 }
 
-export async function getCryptoSnapshot(
-  symbol: string,
-  options: { exchange: string },
-  config: any
-): Promise<CryptoSnapshot> {
-  const resp = await dataV2HttpRequest(
-    `/v1beta1/crypto/${symbol}/snapshot`,
-    options,
-    config
-  );
-
-  return AlpacaCryptoSnapshot(resp.data);
-}
-
 export async function getCryptoSnapshots(
   symbols: Array<string>,
-  options: { exchange: string },
   config: any
 ): Promise<Map<string, CryptoSnapshot>> {
-  const params = { ...options, symbols: symbols.join(",") };
-  const resp = await dataV2HttpRequest(
-    `/v1beta1/crypto/snapshots`,
-    params,
-    config
-  );
+  const params = { symbols: symbols.join(",") };
+  const endpoint = "/v1beta2/crypto/snapshots"
+  const resp = await dataV2HttpRequest(endpoint, params, config);
   const snapshots = resp.data.snapshots;
   const result = new Map<string, CryptoSnapshot>();
   for (const symbol in snapshots) {
     const snapshot = snapshots[symbol];
     result.set(symbol, AlpacaCryptoSnapshot(snapshot));
+  }
+  return result;
+}
+
+export async function getLatestCryptoOrderbooks(
+  symbols: Array<string>,
+  config: any
+): Promise<Map<string, CryptoOrderbook>> {
+  const params = { symbols: symbols.join(",") };
+  const endpoint = "/v1beta2/crypto/latest/orderbooks"
+  const resp = await dataV2HttpRequest(endpoint, params, config);
+  const orderbooks = resp.data.orderbooks;
+  const result = new Map<string, CryptoOrderbook>();
+  for (const symbol in orderbooks) {
+    const orderbook = orderbooks[symbol];
+    result.set(symbol, AlpacaCryptoOrderbook(orderbook));
   }
   return result;
 }

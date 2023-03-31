@@ -34,7 +34,7 @@ interface CryptoSubscription {
 
 export class AlpacaCryptoClient extends Websocket {
   constructor(options: CrypotoWebsocketOptions) {
-    const url = options.url.replace("https", "wss") + "/v1beta1/crypto";
+    const url = options.url.replace("https", "wss") + "/v1beta2/crypto";
     const exchanges = Array.isArray(options.exchanges)
       ? options.exchanges.join(",")
       : options.exchanges;
