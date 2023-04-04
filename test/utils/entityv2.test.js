@@ -163,11 +163,12 @@ const data = {
     },
   },
   cryptoOrderbook: {
-    S: 'BTCUSD',
-    x: 'ERSX',
     t: "2022-04-06T14:19:40.984Z",
-    b: [ { p: 44066.1, s: 0 }, { p: 44063.4, s: 1.361635 } ],
-    a: []
+    b: [
+      { p: 44066.1, s: 0 },
+      { p: 44063.4, s: 1.361635 },
+    ],
+    a: [],
   },
 };
 
@@ -246,10 +247,11 @@ const expected = {
     },
   },
   cryptoOrderbook: {
-    Symbol: 'BTCUSD',
-    Exchange: 'ERSX',
     Timestamp: "2022-04-06T14:19:40.984Z",
-    Bids: [ { Price: 44066.1, Size: 0 }, { Price: 44063.4, Size: 1.361635 } ],
-    Asks: []
+    Bids: [
+      { Price: 44066.1, Size: 0 },
+      { Price: 44063.4, Size: 1.361635 },
+    ],
+    Asks: [],
   },
 };

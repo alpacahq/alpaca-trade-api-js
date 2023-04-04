@@ -19,10 +19,6 @@ import {
   WebsocketOptions,
 } from "./websocket";
 
-interface CrypotoWebsocketOptions extends WebsocketOptions {
-  exchanges?: string | Array<string>;
-}
-
 interface CryptoSubscription {
   trades: Array<string>;
   quotes: Array<string>;
@@ -32,13 +28,25 @@ interface CryptoSubscription {
   orderbooks: Array<string>;
 }
 
+type RawCryptoData = RawCryptoTrade | RawCryptoQuote | RawCryptoBar | RawCryptoOrderbook;
+
+type EventTypeMapValue = {
+  event: string;
+  parse: (data: RawCryptoData) => any;
+};
+
+const eventTypeMap = new Map<string, EventTypeMapValue>([
+  ["t", { event: EVENT.TRADES, parse: AlpacaCryptoTrade } as EventTypeMapValue],
+  ["q", { event: EVENT.QUOTES, parse: AlpacaCryptoQuote } as EventTypeMapValue],
+  ["b", { event: EVENT.BARS, parse: AlpacaCryptoBar } as EventTypeMapValue],
+  ["u", { event: EVENT.UPDATED_BARS, parse: AlpacaCryptoBar } as EventTypeMapValue],
+  ["d", { event: EVENT.DAILY_BARS, parse: AlpacaCryptoBar } as EventTypeMapValue],
+  ["o", { event: EVENT.ORDERBOOKS, parse: AlpacaCryptoOrderbook } as EventTypeMapValue],
+]);
+
 export class AlpacaCryptoClient extends Websocket {
-  constructor(options: CrypotoWebsocketOptions) {
-    const url = options.url.replace("https", "wss") + "/v1beta1/crypto";
-    const exchanges = Array.isArray(options.exchanges)
-      ? options.exchanges.join(",")
-      : options.exchanges;
-    options.url = `${url}?exchanges=${exchanges}`;
+  constructor(options: WebsocketOptions) {
+    options.url = options.url.replace("https", "wss") + "/v1beta3/crypto/us";
     options.subscriptions = {
       trades: [],
       quotes: [],
@@ -125,18 +133,16 @@ export class AlpacaCryptoClient extends Websocket {
   }
 
   unsubscribeFromTrades(trades: Array<string>): void {
-    this.session.subscriptions.trades =
-      this.session.subscriptions.trades.filter(
-        (trade: string) => !trades.includes(trade)
-      );
+    this.session.subscriptions.trades = this.session.subscriptions.trades.filter(
+      (trade: string) => !trades.includes(trade)
+    );
     this.unsubscribe({ trades });
   }
 
   unsubscribeFromQuotes(quotes: Array<string>): void {
-    this.session.subscriptions.quotes =
-      this.session.subscriptions.quotes.filter(
-        (quote: string) => !quotes.includes(quote)
-      );
+    this.session.subscriptions.quotes = this.session.subscriptions.quotes.filter(
+      (quote: string) => !quotes.includes(quote)
+    );
     this.unsubscribe({ quotes });
   }
 
@@ -156,18 +162,16 @@ export class AlpacaCryptoClient extends Websocket {
   }
 
   unsubscriceFromDailyBars(dailyBars: Array<string>): void {
-    this.session.subscriptions.dailyBars =
-      this.session.subscriptions.dailyBars.filter(
-        (dailyBar: string) => !dailyBars.includes(dailyBar)
-      );
+    this.session.subscriptions.dailyBars = this.session.subscriptions.dailyBars.filter(
+      (dailyBar: string) => !dailyBars.includes(dailyBar)
+    );
     this.unsubscribe({ dailyBars });
   }
 
   unsubscribeFromOrderbooks(orderbooks: Array<string>): void {
-    this.session.subscriptions.orderbooks =
-      this.session.subscriptions.orderbooks.filter(
-        (orderbook: string) => !orderbooks.includes(orderbook)
-      );
+    this.session.subscriptions.orderbooks = this.session.subscriptions.orderbooks.filter(
+      (orderbook: string) => !orderbooks.includes(orderbook)
+    );
     this.unsubscribe({ orderbooks });
   }
 
@@ -237,47 +241,14 @@ export class AlpacaCryptoClient extends Websocket {
     this.on(EVENT.ORDERBOOKS, (orderbook: CryptoOrderbook) => fn(orderbook));
   }
 
-  dataHandler(
-    data: Array<RawCryptoTrade | RawCryptoQuote | RawCryptoBar | RawCryptoOrderbook>
-  ): void {
-    data.forEach((element: RawCryptoTrade | RawCryptoQuote | RawCryptoBar | RawCryptoOrderbook) => {
+  dataHandler(data: Array<RawCryptoData>): void {
+    data.forEach((element: RawCryptoData) => {
       if ("T" in element) {
-        switch (element.T) {
-          case "t":
-            this.emit(
-              EVENT.TRADES,
-              AlpacaCryptoTrade(element as RawCryptoTrade)
-            );
-            break;
-          case "q":
-            this.emit(
-              EVENT.QUOTES,
-              AlpacaCryptoQuote(element as RawCryptoQuote)
-            );
-            break;
-          case "b":
-            this.emit(EVENT.BARS, AlpacaCryptoBar(element as RawCryptoBar));
-            break;
-          case "u":
-            this.emit(
-              EVENT.UPDATED_BARS,
-              AlpacaCryptoBar(element as RawCryptoBar)
-            );
-            break;
-          case "d":
-            this.emit(
-              EVENT.DAILY_BARS,
-              AlpacaCryptoBar(element as RawCryptoBar)
-            );
-            break;
-          case "o":
-            this.emit(
-              EVENT.ORDERBOOKS,
-              AlpacaCryptoOrderbook(element as RawCryptoOrderbook)
-            );
-            break;
-          default:
-            this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
+        const eventType = eventTypeMap.get(element.T);
+        if (eventType) {
+          this.emit(eventType.event, eventType.parse(element));
+        } else {
+          this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
         }
       }
     });
