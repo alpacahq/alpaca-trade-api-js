@@ -231,7 +231,7 @@ export abstract class AlpacaWebsocket
       key: this.session.apiKey,
       secret: this.session.secretKey,
     };
-    this.conn.send(this.msgpack.encode(authMsg));
+    this.conn.send(this.msgpack.encode(authMsg).toString("base64"));
     this.emit(STATE.AUTHENTICATING);
     this.session.currentState = STATE.AUTHENTICATING;
   }

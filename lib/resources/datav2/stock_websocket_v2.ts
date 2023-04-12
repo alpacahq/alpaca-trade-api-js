@@ -117,7 +117,7 @@ export class AlpacaStocksClient extends Websocket {
       statuses: symbols.statuses ?? [],
       lulds: symbols.lulds ?? [],
     };
-    this.conn.send(this.msgpack.encode(subMsg));
+    this.conn.send(this.msgpack.encode(subMsg).toString("base64"));
   }
 
   subscribeAll(): void {
@@ -142,7 +142,7 @@ export class AlpacaStocksClient extends Websocket {
         statuses,
         lulds,
       };
-      this.conn.send(this.msgpack.encode(msg));
+      this.conn.send(this.msgpack.encode(msg).toString("base64"));
     }
   }
 
@@ -220,7 +220,7 @@ export class AlpacaStocksClient extends Websocket {
       statuses: symbols.statuses ?? [],
       lulds: symbols.lulds ?? [],
     };
-    this.conn.send(this.msgpack.encode(unsubMsg));
+    this.conn.send(this.msgpack.encode(unsubMsg).toString("base64"));
   }
 
   updateSubscriptions(msg: {

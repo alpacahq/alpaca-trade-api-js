@@ -21,8 +21,8 @@ npm install --save @alpacahq/alpaca-trade-api
 
 ## Runtime Dependencies
 
-- Node.js v14.x or newer
-- npm version 6 and above
+- Node.js v18.x or newer
+- npm version 8 and above
 
 
 ## Usage

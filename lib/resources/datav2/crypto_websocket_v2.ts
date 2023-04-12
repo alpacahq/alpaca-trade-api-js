@@ -97,7 +97,8 @@ export class AlpacaCryptoClient extends Websocket {
       dailyBars: symbols.dailyBars ?? [],
       orderbooks: symbols.orderbooks ?? [],
     };
-    this.conn.send(this.msgpack.encode(subMsg));
+
+    this.conn.send(this.msgpack.encode(subMsg).toString("base64"));
   }
 
   subscribeAll(): void {
@@ -120,7 +121,7 @@ export class AlpacaCryptoClient extends Websocket {
         dailyBars,
         orderbooks,
       };
-      this.conn.send(this.msgpack.encode(msg));
+      this.conn.send(this.msgpack.encode(msg).toString("base64"));
     }
   }
 
@@ -188,7 +189,7 @@ export class AlpacaCryptoClient extends Websocket {
       dailyBars: symbols.dailyBars ?? [],
       orderbooks: symbols.orderbooks ?? [],
     };
-    this.conn.send(this.msgpack.encode(unsubMsg));
+    this.conn.send(this.msgpack.encode(unsubMsg).toString("base64"));
   }
 
   updateSubscriptions(msg: {
@@ -238,48 +239,58 @@ export class AlpacaCryptoClient extends Websocket {
   }
 
   dataHandler(
-    data: Array<RawCryptoTrade | RawCryptoQuote | RawCryptoBar | RawCryptoOrderbook>
+    data: Array<
+      RawCryptoTrade | RawCryptoQuote | RawCryptoBar | RawCryptoOrderbook
+    >
   ): void {
-    data.forEach((element: RawCryptoTrade | RawCryptoQuote | RawCryptoBar | RawCryptoOrderbook) => {
-      if ("T" in element) {
-        switch (element.T) {
-          case "t":
-            this.emit(
-              EVENT.TRADES,
-              AlpacaCryptoTrade(element as RawCryptoTrade)
-            );
-            break;
-          case "q":
-            this.emit(
-              EVENT.QUOTES,
-              AlpacaCryptoQuote(element as RawCryptoQuote)
-            );
-            break;
-          case "b":
-            this.emit(EVENT.BARS, AlpacaCryptoBar(element as RawCryptoBar));
-            break;
-          case "u":
-            this.emit(
-              EVENT.UPDATED_BARS,
-              AlpacaCryptoBar(element as RawCryptoBar)
-            );
-            break;
-          case "d":
-            this.emit(
-              EVENT.DAILY_BARS,
-              AlpacaCryptoBar(element as RawCryptoBar)
-            );
-            break;
-          case "o":
-            this.emit(
-              EVENT.ORDERBOOKS,
-              AlpacaCryptoOrderbook(element as RawCryptoOrderbook)
-            );
-            break;
-          default:
-            this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
+    data.forEach(
+      (
+        element:
+          | RawCryptoTrade
+          | RawCryptoQuote
+          | RawCryptoBar
+          | RawCryptoOrderbook
+      ) => {
+        if ("T" in element) {
+          switch (element.T) {
+            case "t":
+              this.emit(
+                EVENT.TRADES,
+                AlpacaCryptoTrade(element as RawCryptoTrade)
+              );
+              break;
+            case "q":
+              this.emit(
+                EVENT.QUOTES,
+                AlpacaCryptoQuote(element as RawCryptoQuote)
+              );
+              break;
+            case "b":
+              this.emit(EVENT.BARS, AlpacaCryptoBar(element as RawCryptoBar));
+              break;
+            case "u":
+              this.emit(
+                EVENT.UPDATED_BARS,
+                AlpacaCryptoBar(element as RawCryptoBar)
+              );
+              break;
+            case "d":
+              this.emit(
+                EVENT.DAILY_BARS,
+                AlpacaCryptoBar(element as RawCryptoBar)
+              );
+              break;
+            case "o":
+              this.emit(
+                EVENT.ORDERBOOKS,
+                AlpacaCryptoOrderbook(element as RawCryptoOrderbook)
+              );
+              break;
+            default:
+              this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
+          }
         }
       }
-    });
+    );
   }
 }
