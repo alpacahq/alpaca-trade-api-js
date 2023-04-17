@@ -280,9 +280,7 @@ const crypto_trade_mapping = {
 };
 
 export interface CryptoTrade {
-  Symbol: string;
   Timestamp: string;
-  Exchange: string;
   Price: number;
   Size: number;
   TakerSide: string;
@@ -291,9 +289,7 @@ export interface CryptoTrade {
 
 export interface RawCryptoTrade {
   T: string;
-  S: string;
   t: string;
-  x: string;
   p: number;
   s: number;
   tks: string;
@@ -301,9 +297,7 @@ export interface RawCryptoTrade {
 }
 
 const crypto_quote_mapping = {
-  S: "Symbol",
   t: "Timestamp",
-  x: "Exchange",
   bp: "BidPrice",
   bs: "BidSize",
   ap: "AskPrice",
@@ -311,9 +305,7 @@ const crypto_quote_mapping = {
 };
 
 export interface CryptoQuote {
-  Symbol: string;
   Timestamp: string;
-  Exchange: string;
   BidPrice: number;
   BidSize: number;
   AskPrice: number;
@@ -322,9 +314,7 @@ export interface CryptoQuote {
 
 export interface RawCryptoQuote {
   T: string;
-  S: string;
   t: string;
-  x: string;
   bp: number;
   bs: number;
   ap: number;
@@ -332,9 +322,7 @@ export interface RawCryptoQuote {
 }
 
 const crypto_bar_mapping = {
-  S: "Symbol",
   t: "Timestamp",
-  x: "Exchange",
   o: "Open",
   h: "High",
   l: "Low",
@@ -345,9 +333,7 @@ const crypto_bar_mapping = {
 };
 
 export interface CryptoBar {
-  Symbol: string;
   Timestamp: string;
-  Exchange: string;
   Open: number;
   High: number;
   Low: number;
@@ -359,8 +345,6 @@ export interface CryptoBar {
 
 export interface RawCryptoBar {
   T: string;
-  S: string;
-  x: string;
   t: string;
   o: number;
   h: number;
@@ -369,40 +353,6 @@ export interface RawCryptoBar {
   v: number;
   vw: number;
   n: number;
-}
-
-const crypto_xbbo_mapping = {
-  S: "Symbol",
-  t: "Timestamp",
-  ap: "AskPrice",
-  as: "AskSize",
-  ax: "AskExchange",
-  bp: "BidPrice",
-  bs: "BidSize",
-  bx: "BidExchange",
-};
-
-export interface CryptoXBBO {
-  Symbol: string;
-  Timestamp: string;
-  BidExchange: string;
-  BidPrice: number;
-  BidSize: number;
-  AskExchange: string;
-  AskPrice: number;
-  AskSize: number;
-}
-
-export interface RawCryptoXBBO {
-  T: string;
-  S: string;
-  t: string;
-  bx: string;
-  bp: number;
-  bs: number;
-  ax: string;
-  ap: number;
-  as: number;
 }
 
 const crypto_snapshot_mapping = {
@@ -432,26 +382,20 @@ export interface CryptoOrderbookEntry {
 }
 
 const crypto_orderbook_mapping = {
-  S: "Symbol",
   t: "Timestamp",
-  x: "Exchange",
   b: "Bids",
   a: "Asks",
 };
 
 export interface CryptoOrderbook {
-  Symbol: string;
   Timestamp: string;
-  Exchange: string;
   Bids: Array<CryptoOrderbookEntry>;
   Asks: Array<CryptoOrderbookEntry>;
 }
 
 export interface RawCryptoOrderbook {
   T: string;
-  S: string;
   t: string;
-  x: string;
   b: Array<CryptoOrderbookEntry>;
   a: Array<CryptoOrderbookEntry>;
 }
@@ -566,24 +510,22 @@ export function AlpacaCryptoSnapshot(data: any): CryptoSnapshot {
 }
 
 export function AlpacaCryptoOrderbook(data: RawCryptoOrderbook): CryptoOrderbook {
-  const mappedOrderbook = aliasObjectKey(data, crypto_orderbook_mapping);
-  mappedOrderbook.Bids.forEach((element: any, index: number) => {
-    mappedOrderbook.Bids[index] = aliasObjectKey(element, crypto_orderbook_entry_mapping);
-  });
-  mappedOrderbook.Asks.forEach((element: any, index: number) => {
-    mappedOrderbook.Asks[index] = aliasObjectKey(element, crypto_orderbook_entry_mapping);
-  });
-  return mappedOrderbook as CryptoOrderbook;
+  const mapFn = (entries: any[]) =>
+    entries.map<any>((entry) => aliasObjectKey(entry, crypto_orderbook_entry_mapping));
+
+  const orderbook = aliasObjectKey(data, crypto_orderbook_mapping) as CryptoOrderbook;
+
+  return {
+    ...orderbook,
+    Bids: mapFn(orderbook.Bids),
+    Asks: mapFn(orderbook.Asks),
+  };
 }
 
 function aliasObjectKey(data: any, mapping: any) {
   return mapKeys(data, (_value: any, key: any) => {
     return mapping.hasOwnProperty(key) ? mapping[key] : key;
   });
-}
-
-export function AlpacaCryptoXBBO(data: RawCryptoXBBO): CryptoXBBO {
-  return aliasObjectKey(data, crypto_xbbo_mapping) as CryptoXBBO;
 }
 
 function convertSnapshotData(key: string, data: any, isCrypto: boolean) {
@@ -626,23 +568,16 @@ export function NewTimeframe(amount: number, unit: TimeFrameUnit): string {
     throw new Error("amount must be a positive integer value");
   }
   if (unit == TimeFrameUnit.MIN && amount > 59) {
-    throw new Error(
-      "minute timeframe can only be used with amount between 1-59"
-    );
+    throw new Error("minute timeframe can only be used with amount between 1-59");
   }
   if (unit == TimeFrameUnit.HOUR && amount > 23) {
     throw new Error("hour timeframe can only be used with amounts 1-23");
   }
-  if (
-    (unit == TimeFrameUnit.DAY || unit == TimeFrameUnit.WEEK) &&
-    amount != 1
-  ) {
+  if ((unit == TimeFrameUnit.DAY || unit == TimeFrameUnit.WEEK) && amount != 1) {
     throw new Error("day and week timeframes can only be used with amount 1");
   }
   if (unit == TimeFrameUnit.MONTH && ![1, 2, 3, 6, 12].includes(amount)) {
-    throw new Error(
-      "month timeframe can only be used with amount 1, 2, 3, 6 and 12"
-    );
+    throw new Error("month timeframe can only be used with amount 1, 2, 3, 6 and 12");
   }
   return `${amount}${unit}`;
 }
