@@ -57,7 +57,12 @@ module.exports = function createV1Beta3DataMock() {
   v1beta3.get(
     "/crypto/us/:endpoint",
     apiMethod((req) => {
+      if (req.query.exchanges) {
+        throw apiError(400, "Unexpected query parameter(s): exchanges");
+      }
+
       assertSchema(req.query, {
+        symbols: joi.string(),
         start: joi.string().isoDate(),
         end: joi.string().isoDate().optional(),
         limit: joi.number().integer().min(0).max(10000).optional(),
@@ -67,17 +72,17 @@ module.exports = function createV1Beta3DataMock() {
       });
 
       let response = {
-        symbol: req.params.symbol,
         next_page_token: req.query.limit > 5 ? "token" : null,
       };
-      response[req.params.endpoint] = [];
+      response[req.params.endpoint] = {};
+      response[req.params.endpoint][req.query.symbols] = [];
       let limit = 3;
       if (req.query.limit) {
         limit = req.query.limit > 5 ? 5 : req.query.limit;
       }
       for (let i = 0; i < limit; i++) {
-        response[req.params.endpoint].push(
-          dataBySymbol[req.params.symbol][req.params.endpoint]
+        response[req.params.endpoint][req.query.symbols].push(
+          dataBySymbol[req.query.symbols][req.params.endpoint]
         );
       }
       return response;
@@ -97,6 +102,18 @@ const dataBySymbol = {
       tks: "S",
     },
     bars: {},
+  },
+  "ETH/USD": {
+    bars: {
+      t: "2021-08-10T05:01:00Z",
+      o: 3102.24,
+      h: 3106.23,
+      l: 3096.31,
+      c: 3105.92,
+      v: 146.76170455,
+      n: 238,
+      vw: 3101.9215354394,
+    },
   },
 };
 

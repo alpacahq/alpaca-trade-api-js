@@ -62,16 +62,14 @@ export function dataV2HttpRequest(
     })
     .catch((err: any) => {
       throw new Error(
-        `code: ${err.response.status}, message: ${err.response.data.message}`
+        `code: ${err.response?.status || err.statusCOode}, message: ${
+          err.response?.data.message
+        }`
       );
     });
 }
 
-function getQueryLimit(
-  totalLimit: number,
-  pageLimit: number,
-  received: number
-): number {
+function getQueryLimit(totalLimit: number, pageLimit: number, received: number): number {
   let limit = 0;
   if (pageLimit !== 0) {
     limit = pageLimit;
@@ -316,12 +314,7 @@ export async function* getBars(
   options: GetBarsParams,
   config: any
 ): AsyncGenerator<AlpacaBar, void, unknown> {
-  const bars = getDataV2(
-    TYPE.BARS,
-    `/v2/stocks/${symbol}/${TYPE.BARS}`,
-    options,
-    config
-  );
+  const bars = getDataV2(TYPE.BARS, `/v2/stocks/${symbol}/${TYPE.BARS}`, options, config);
 
   for await (const bar of bars || []) {
     yield AlpacaBarV2(bar);
@@ -347,28 +340,15 @@ export async function* getMultiBarsAsync(
   options: GetBarsParams,
   config: any
 ): AsyncGenerator<AlpacaBar, void, unknown> {
-  const multiBars = getMultiDataV2(
-    symbols,
-    "/v2/stocks/",
-    TYPE.BARS,
-    options,
-    config
-  );
+  const multiBars = getMultiDataV2(symbols, "/v2/stocks/", TYPE.BARS, options, config);
   for await (const b of multiBars) {
     b.data = { ...b.data, S: b.symbol };
     yield AlpacaBarV2(b.data);
   }
 }
 
-export async function getLatestTrade(
-  symbol: string,
-  config: any
-): Promise<AlpacaTrade> {
-  const resp = await dataV2HttpRequest(
-    `/v2/stocks/${symbol}/trades/latest`,
-    {},
-    config
-  );
+export async function getLatestTrade(symbol: string, config: any): Promise<AlpacaTrade> {
+  const resp = await dataV2HttpRequest(`/v2/stocks/${symbol}/trades/latest`, {}, config);
   return AlpacaTradeV2(resp.data.trade);
 }
 
@@ -392,15 +372,8 @@ export async function getLatestTrades(
   return multiLatestTradesResp;
 }
 
-export async function getLatestQuote(
-  symbol: string,
-  config: any
-): Promise<AlpacaQuote> {
-  const resp = await dataV2HttpRequest(
-    `/v2/stocks/${symbol}/quotes/latest`,
-    {},
-    config
-  );
+export async function getLatestQuote(symbol: string, config: any): Promise<AlpacaQuote> {
+  const resp = await dataV2HttpRequest(`/v2/stocks/${symbol}/quotes/latest`, {}, config);
   return AlpacaQuoteV2(resp.data.quote);
 }
 
@@ -424,15 +397,8 @@ export async function getLatestQuotes(
   return multiLatestQuotesResp;
 }
 
-export async function getLatestBar(
-  symbol: string,
-  config: any
-): Promise<AlpacaBar> {
-  const resp = await dataV2HttpRequest(
-    `/v2/stocks/${symbol}/bars/latest`,
-    {},
-    config
-  );
+export async function getLatestBar(symbol: string, config: any): Promise<AlpacaBar> {
+  const resp = await dataV2HttpRequest(`/v2/stocks/${symbol}/bars/latest`, {}, config);
   return AlpacaBarV2(resp.data.bar);
 }
 
@@ -456,15 +422,8 @@ export async function getLatestBars(
   return multiLatestBarsResp;
 }
 
-export async function getSnapshot(
-  symbol: string,
-  config: any
-): Promise<AlpacaSnapshot> {
-  const resp = await dataV2HttpRequest(
-    `/v2/stocks/${symbol}/snapshot`,
-    {},
-    config
-  );
+export async function getSnapshot(symbol: string, config: any): Promise<AlpacaSnapshot> {
+  const resp = await dataV2HttpRequest(`/v2/stocks/${symbol}/snapshot`, {}, config);
 
   return AlpacaSnapshotV2(resp.data);
 }
@@ -478,11 +437,9 @@ export async function getSnapshots(
     {},
     config
   );
-  const result = Object.entries(resp.data as Map<string, any>).map(
-    ([key, val]) => {
-      return AlpacaSnapshotV2({ symbol: key, ...val });
-    }
-  );
+  const result = Object.entries(resp.data as Map<string, any>).map(([key, val]) => {
+    return AlpacaSnapshotV2({ symbol: key, ...val });
+  });
   return result;
 }
 
@@ -491,7 +448,6 @@ export interface GetCryptoTradesParams {
   end?: string;
   limit?: number;
   page_limit?: number;
-  exchanges?: Array<string>;
 }
 
 export async function getCryptoTrades(
@@ -509,18 +465,18 @@ export async function getCryptoTrades(
   const trades = new Map<string, Array<any>>();
   for await (const t of cryptoTrades) {
     const items = trades.get(t.symbol) || new Array<any>();
-    trades.set(t.symbol, [...items, t.data]);
+    trades.set(t.symbol, [...items, AlpacaCryptoTrade(t.data)]);
   }
+
   return trades;
 }
 
 export interface GetCryptoBarsParams {
-  start: string;
+  start?: string;
   end?: string;
   timeframe: string;
   limit?: number;
   page_limit?: number;
-  exchanges?: Array<string>;
 }
 
 export async function getCryptoBars(
@@ -538,7 +494,7 @@ export async function getCryptoBars(
   const bars = new Map<string, Array<any>>();
   for await (const t of cryptoBars) {
     const items = bars.get(t.symbol) || new Array<any>();
-    bars.set(t.symbol, [...items, t.data]);
+    bars.set(t.symbol, [...items, AlpacaCryptoBar(t.data)]);
   }
   return bars;
 }
@@ -548,11 +504,7 @@ export async function getLatestCryptoBars(
   config: any
 ): Promise<Map<string, CryptoBar>> {
   const params = { symbols: symbols.join(",") };
-  const resp = await dataV2HttpRequest(
-    `/v1beta3/crypto/us/latest/bars`,
-    params,
-    config
-  );
+  const resp = await dataV2HttpRequest(`/v1beta3/crypto/us/latest/bars`, params, config);
 
   const multiLatestCryptoBars = resp.data.bars;
   const result = new Map<string, CryptoBar>();
@@ -611,11 +563,7 @@ export async function getCryptoSnapshots(
   config: any
 ): Promise<Map<string, CryptoSnapshot>> {
   const params = { symbols: symbols.join(",") };
-  const resp = await dataV2HttpRequest(
-    `/v1beta3/crypto/us/snapshots`,
-    params,
-    config
-  );
+  const resp = await dataV2HttpRequest(`/v1beta3/crypto/us/snapshots`, params, config);
   const snapshots = resp.data.snapshots;
   const result = new Map<string, CryptoSnapshot>();
   for (const symbol in snapshots) {
@@ -671,8 +619,7 @@ export interface GetNewsParams {
 
 function getNewsParams(options: GetNewsParams): any {
   const query = {} as any;
-  query.symbols =
-    options.symbols?.length > 0 ? options.symbols.join(",") : null;
+  query.symbols = options.symbols?.length > 0 ? options.symbols.join(",") : null;
   query.start = options.start;
   query.end = options.end;
   query.sort = options.sort;

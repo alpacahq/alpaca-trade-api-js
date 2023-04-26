@@ -4,15 +4,7 @@ const { expect, assert } = require("chai");
 const api = require("../dist/alpaca-trade-api");
 const mock = require("./support/mock-server");
 
-const tradeKeys = [
-  "ID",
-  "Exchange",
-  "Price",
-  "Size",
-  "Timestamp",
-  "Conditions",
-  "Tape",
-];
+const tradeKeys = ["ID", "Exchange", "Price", "Size", "Timestamp", "Conditions", "Tape"];
 
 const quoteKeys = [
   "BidExchange",
@@ -210,10 +202,7 @@ describe("data v2 rest", () => {
   });
 
   it("get multi latest trades", async () => {
-    const resp = await alpaca.getLatestTrades(
-      ["AAPL", "FB"],
-      alpaca.configuration
-    );
+    const resp = await alpaca.getLatestTrades(["AAPL", "FB"], alpaca.configuration);
 
     expect(resp.size).equal(2);
     for (const [s, t] of resp) {
@@ -231,13 +220,7 @@ describe("data v2 rest", () => {
 
 const cryptoTradeKeys = ["Timestamp", "Price", "Size", "TakerSide", "ID"];
 
-const cryptoQuoteKeys = [
-  "Timestamp",
-  "BidPrice",
-  "BidSize",
-  "AskPrice",
-  "AskSize",
-];
+const cryptoQuoteKeys = ["Timestamp", "BidPrice", "BidSize", "AskPrice", "AskSize"];
 
 const cryptoBarKeys = [
   "Timestamp",
@@ -297,6 +280,30 @@ describe("crypto data", () => {
     for (const symbol in resp) {
       assertCryptoTrade(resp[symbol]);
     }
+  });
+
+  it("get crypto bars", async () => {
+    const resp = await alpaca.getCryptoBars(["ETH/USD"], {
+      timeframe: "1D",
+      start: "2021-08-10",
+      limit: 1,
+    });
+
+    expect(resp.size).equal(1);
+    assertCryptoBar(resp.get("ETH/USD")[0]);
+  });
+
+  it("get crypto bars with exchanges", async () => {
+    await expect(
+      alpaca.getCryptoBars(["DOGE/USD"], {
+        start: "2023-04-27",
+        limit: 1,
+        timeframe: "1D",
+        exchanges: ["BNCU"],
+      })
+    ).to.eventually.be.rejectedWith(
+      "code: 400, message: Unexpected query parameter(s): exchanges"
+    );
   });
 
   it("get snapshots", async () => {
