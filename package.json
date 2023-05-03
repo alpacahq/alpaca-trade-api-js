@@ -34,7 +34,6 @@
   },
   "homepage": "https://alpaca.markets/",
   "dependencies": {
-    "@types/node": "^16.9.6",
     "axios": "^0.21.1",
     "dotenv": "^6.2.0",
     "events": "^3.2.0",
@@ -49,6 +48,7 @@
   "devDependencies": {
     "@types/lodash": "^4.14.173",
     "@types/msgpack5": "^3.4.2",
+    "@types/node": "^16.18.25",
     "@types/ws": "^8.2.0",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^5.20.0",

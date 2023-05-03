@@ -14,7 +14,6 @@ describe("alpaca-trade-api", function () {
         keyId: "test_id",
         secretKey: "test_secret",
         oauth: "",
-        exchanges: "ERSX",
         feed: "iex",
         verbose: false,
       };
