@@ -62,7 +62,7 @@ export function dataV2HttpRequest(
     })
     .catch((err: any) => {
       throw new Error(
-        `code: ${err.response?.status || err.statusCOode}, message: ${
+        `code: ${err.response?.status || err.statusCode}, message: ${
           err.response?.data.message
         }`
       );
