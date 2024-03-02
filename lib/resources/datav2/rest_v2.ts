@@ -483,7 +483,7 @@ export async function getCryptoBars(
   symbols: string[],
   options: GetCryptoBarsParams,
   config: any
-): Promise<Map<string, any[]>> {
+): Promise<Map<string, CryptoBar[]>> {
   const cryptoBars = getMultiDataV2(
     symbols,
     "/v1beta3/crypto/us/",
