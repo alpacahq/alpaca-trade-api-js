@@ -135,13 +135,6 @@ export abstract class AlpacaWebsocket
       pongWait: 5000,
     };
 
-    if (this.session.apiKey.length === 0) {
-      throw new Error(ERROR.MISSING_API_KEY);
-    }
-    if (this.session.secretKey.length === 0) {
-      throw new Error(ERROR.MISSING_SECERT_KEY);
-    }
-
     // Register internal event handlers
     // Log and emit every state change
     Object.values(STATE).forEach((s) => {
@@ -154,6 +147,13 @@ export abstract class AlpacaWebsocket
   connect(): void {
     this.emit(STATE.CONNECTING);
     this.session.currentState = STATE.CONNECTING;
+    // Check the credentials
+    if (this.session.apiKey.length === 0) {
+      throw new Error(ERROR.MISSING_API_KEY);
+    }
+    if (this.session.secretKey.length === 0) {
+      throw new Error(ERROR.MISSING_SECERT_KEY);
+    }
     this.resetSession();
     this.conn = new WebSocket(this.session.url, {
       perMessageDeflate: {
