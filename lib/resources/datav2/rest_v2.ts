@@ -269,7 +269,7 @@ export async function getMultiQuotes(
   symbols: Array<string>,
   options: GetQuotesParams,
   config: any
-): Promise<Map<string, any[]>> {
+): Promise<Map<string, AlpacaQuote[]>> {
   const multiQuotes = getMultiQuotesAsync(symbols, options, config);
   const quotes = new Map<string, Array<any>>();
   for await (const q of multiQuotes) {
@@ -325,7 +325,7 @@ export async function getMultiBars(
   symbols: Array<string>,
   options: GetBarsParams,
   config: any
-): Promise<Map<string, any[]>> {
+): Promise<Map<string, AlpacaBar[]>> {
   const multiBars = getMultiBarsAsync(symbols, options, config);
   const bars = new Map<string, Array<any>>();
   for await (const b of multiBars) {
@@ -454,7 +454,7 @@ export async function getCryptoTrades(
   symbols: string[],
   options: GetCryptoTradesParams,
   config: any
-): Promise<Map<string, any[]>> {
+): Promise<Map<string, CryptoTrade[]>> {
   const cryptoTrades = getMultiDataV2(
     symbols,
     "/v1beta3/crypto/us/",
