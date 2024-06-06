@@ -211,11 +211,11 @@ export async function getMultiTrades(
   symbols: Array<string>,
   options: GetTradesParams,
   config: any
-): Promise<Map<string, any[]>> {
+): Promise<Map<string, AlpacaTrade[]>> {
   const multiTrades = getMultiTradesAsync(symbols, options, config);
-  const trades = new Map<string, Array<any>>();
+  const trades = new Map<string, Array<AlpacaTrade>>();
   for await (const t of multiTrades) {
-    const items = trades.get(t.Symbol) || new Array<any>();
+    const items = trades.get(t.Symbol) || new Array<AlpacaTrade>();
     trades.set(t.Symbol, [...items, t]);
   }
   return trades;
@@ -269,11 +269,11 @@ export async function getMultiQuotes(
   symbols: Array<string>,
   options: GetQuotesParams,
   config: any
-): Promise<Map<string, any[]>> {
+): Promise<Map<string, AlpacaQuote[]>> {
   const multiQuotes = getMultiQuotesAsync(symbols, options, config);
-  const quotes = new Map<string, Array<any>>();
+  const quotes = new Map<string, Array<AlpacaQuote>>();
   for await (const q of multiQuotes) {
-    const items = quotes.get(q.Symbol) || new Array<any>();
+    const items = quotes.get(q.Symbol) || new Array<AlpacaQuote>();
     quotes.set(q.Symbol, [...items, q]);
   }
   return quotes;
@@ -325,11 +325,11 @@ export async function getMultiBars(
   symbols: Array<string>,
   options: GetBarsParams,
   config: any
-): Promise<Map<string, any[]>> {
+): Promise<Map<string, AlpacaBar[]>> {
   const multiBars = getMultiBarsAsync(symbols, options, config);
-  const bars = new Map<string, Array<any>>();
+  const bars = new Map<string, Array<AlpacaBar>>();
   for await (const b of multiBars) {
-    const items = bars.get(b.Symbol) || new Array<any>();
+    const items = bars.get(b.Symbol) || new Array<AlpacaBar>();
     bars.set(b.Symbol, [...items, b]);
   }
   return bars;
@@ -454,7 +454,7 @@ export async function getCryptoTrades(
   symbols: string[],
   options: GetCryptoTradesParams,
   config: any
-): Promise<Map<string, any[]>> {
+): Promise<Map<string, CryptoTrade[]>> {
   const cryptoTrades = getMultiDataV2(
     symbols,
     "/v1beta3/crypto/us/",
@@ -462,9 +462,9 @@ export async function getCryptoTrades(
     options,
     config
   );
-  const trades = new Map<string, Array<any>>();
+  const trades = new Map<string, Array<CryptoTrade>>();
   for await (const t of cryptoTrades) {
-    const items = trades.get(t.symbol) || new Array<any>();
+    const items = trades.get(t.symbol) || new Array<CryptoTrade>();
     trades.set(t.symbol, [...items, AlpacaCryptoTrade(t.data)]);
   }
 
