@@ -483,7 +483,7 @@ export async function getCryptoBars(
   symbols: string[],
   options: GetCryptoBarsParams,
   config: any
-): Promise<Map<string, any[]>> {
+): Promise<Map<string, CryptoBar[]>> {
   const cryptoBars = getMultiDataV2(
     symbols,
     "/v1beta3/crypto/us/",
@@ -491,9 +491,9 @@ export async function getCryptoBars(
     options,
     config
   );
-  const bars = new Map<string, Array<any>>();
+  const bars = new Map<string, Array<CryptoBar>>();
   for await (const t of cryptoBars) {
-    const items = bars.get(t.symbol) || new Array<any>();
+    const items = bars.get(t.symbol) || new Array<CryptoBar>();
     bars.set(t.symbol, [...items, AlpacaCryptoBar(t.data)]);
   }
   return bars;
