@@ -54,7 +54,7 @@ function assertSnapshot(snapshot) {
   assertQuote(snapshot.LatestQuote);
 }
 
-describe("data v2 rest", () => {
+describe("stock API", () => {
   let alpaca;
 
   before(() => {
@@ -266,7 +266,7 @@ function assertCryptoOrderbook(orderbook, keys = cryptoOrderbookKeys) {
   expect(orderbook).to.have.all.keys(keys);
 }
 
-describe("crypto data", () => {
+describe("crypto API", () => {
   let alpaca;
 
   before(() => {
@@ -344,5 +344,41 @@ describe("news API", () => {
     await expect(
       alpaca.getNews({ symbols: ["AAPL", "GE"], totalLimit: -1 })
     ).to.eventually.be.rejectedWith("negative total limit");
+  });
+});
+
+describe("options API", () => {
+  let alpaca;
+
+  before(() => {
+    alpaca = new api(mock.getConfig());
+  });
+
+  it("get bars", async () => {
+    const bars = await alpaca.getOptionBars(["AAPL240419P00140000"], {
+      start: "2024-01-18",
+      timeframe: "1D",
+    });
+
+    expect(bars.size).equal(1);
+    const applBar = bars.get("AAPL240419P00140000")[0];
+    assert.equal(applBar.Timestamp, "2024-01-18T05:00:00Z");
+    assert.equal(applBar.Open, "0.38");
+    assert.equal(applBar.High, "0.38");
+    assert.equal(applBar.Low, "0.34");
+    assert.equal(applBar.Close, "0.34");
+  });
+
+  it("option chain", async () => {
+    const snapshots = await alpaca.getOptionChain("AAPL");
+
+    console.log(snapshots);
+    expect(snapshots.length).equal(1);
+    console.log(snapshots);
+    const snapshot = snapshots[0];
+    assert.equal(snapshot.Greeks.delta, 0.7521304109871954);
+    assert.equal(snapshot.Greeks.gamma, 0.06241426404871288);
+    assert.equal(snapshot.LatestQuote.Timestamp, "2024-04-22T19:59:59.992734208Z");
+    assert.equal(snapshot.LatestTrade.Timestamp, "2024-04-22T19:57:32.589554432Z");
   });
 });

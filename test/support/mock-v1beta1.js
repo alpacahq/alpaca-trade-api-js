@@ -7,7 +7,7 @@ const { apiMethod, assertSchema } = require("./assertions");
 const { assert } = require("console");
 
 /**
- * This server mocks http methods from the alpaca crypto data api
+ * This server mocks http methods from the alpaca crypto and option data api
  * and returns 200 if the requests are formed correctly.
  *
  * This only exports a router, the actual server is created by mock-server.js
@@ -21,7 +21,7 @@ module.exports = function createV1Beta1DataMock() {
     apiMethod((req) => {
       assertSchema(req.query, {
         symbols: joi.string(),
-        strat: joi.string().isoDate().optional(),
+        start: joi.string().isoDate().optional(),
         end: joi.string().isoDate().optional(),
         limit: joi.number().integer().min(0).max(50).optional(),
         page_token: joi.string().optional(),
@@ -33,6 +33,50 @@ module.exports = function createV1Beta1DataMock() {
       let resp = { news: [], next_page_token: null };
 
       news.forEach((n) => resp.news.push(n));
+      return resp;
+    })
+  );
+
+  v1beta1.get(
+    "/options/bars",
+    apiMethod((req) => {
+      assertSchema(req.query, {
+        symbols: joi.string(),
+        start: joi.string().isoDate().optional(),
+        end: joi.string().isoDate().optional(),
+        timeframe: joi.string(),
+        limit: joi.number().integer().optional(),
+        page_token: joi.string().optional(),
+      });
+
+      let resp = {
+        bars: { AAPL240419P00140000: [options.bars["AAPL240419P00140000"]] },
+        next_page_token: null,
+      };
+      return resp;
+    })
+  );
+
+  v1beta1.get(
+    "/options/snapshots/:underlying_symbol",
+    apiMethod((req) => {
+      assertSchema(req.query, {
+        feed: joi.string().optional(),
+        type: joi.string().optional(),
+        pageLimit: joi.number().integer().optional(),
+        limit: joi.number().integer().optional(),
+        strike_price_gte: joi.number().optional(),
+        strike_price_lte: joi.number().optional(),
+        expiration_date: joi.string().optional(),
+        expiration_date_gte: joi.string().optional(),
+        expiration_date_lte: joi.string().optional(),
+        root_symbol: joi.string().optional(),
+        page_token: joi.string().optional(),
+      });
+      let resp = {
+        snapshots: { AAPL240426C00162500: options.snapshots["AAPL240426C00162500"] },
+        next_page_token: null,
+      };
       return resp;
     })
   );
@@ -105,3 +149,47 @@ const news = [
     ],
   },
 ];
+
+const options = {
+  bars: {
+    AAPL240419P00140000: {
+      t: "2024-01-18T05:00:00Z",
+      o: 0.38,
+      h: 0.38,
+      l: 0.34,
+      c: 0.34,
+      v: 12,
+      n: 7,
+      vw: 0.3525,
+    },
+  },
+  snapshots: {
+    AAPL240426C00162500: {
+      greeks: {
+        delta: 0.7521304109871954,
+        gamma: 0.06241426404871288,
+        rho: 0.009910739032549095,
+        theta: -0.2847623059595503,
+        vega: 0.047540520834498785,
+      },
+      impliedVolatility: 0.3372405712050441,
+      latestQuote: {
+        ap: 4.3,
+        as: 91,
+        ax: "B",
+        bp: 4.15,
+        bs: 16,
+        bx: "C",
+        c: "A",
+        t: "2024-04-22T19:59:59.992734208Z",
+      },
+      latestTrade: {
+        c: "I",
+        p: 4.1,
+        s: 1,
+        t: "2024-04-22T19:57:32.589554432Z",
+        x: "A",
+      },
+    },
+  },
+};

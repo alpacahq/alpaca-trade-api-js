@@ -453,6 +453,132 @@ export interface AlpacaNews {
   Source: string;
 }
 
+const option_bar_mapping = {
+  S: "Symbol",
+  o: "Open",
+  h: "High",
+  l: "Low",
+  c: "Close",
+  v: "Volume",
+  t: "Timestamp",
+  vw: "VWAP",
+  n: "TradeCount",
+};
+
+export interface AlpacaOptionBar {
+  Symbol?: string;
+  Open: number;
+  High: number;
+  Low: number;
+  Close: number;
+  Volume: number;
+  Timestamp: string;
+  VWAP: number;
+  TradeCount: number;
+}
+
+export interface RawOptionBar {
+  T: string;
+  S: string;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+  t: string;
+  vw: number;
+  n: number;
+}
+
+const option_tarde_mapping = {
+  S: "Symbol",
+  x: "Exchange",
+  p: "Price",
+  s: "Size",
+  t: "Timestamp",
+  c: "Condition",
+};
+
+export interface AlpacaOptionTrade {
+  Symbol?: string;
+  Exchange: string;
+  Price: number;
+  Size: number;
+  Timestamp: string;
+  Condition: string;
+}
+
+export interface RawOptionTrade {
+  T: string;
+  S: string;
+  x: string;
+  p: number;
+  s: number;
+  t: string;
+  c: string;
+}
+
+const option_quote_mapping = {
+  S: "Symbol",
+  bx: "BidExchange",
+  bp: "BidPrice",
+  bs: "BidSize",
+  ax: "AskExchange",
+  ap: "AskPrice",
+  as: "AskSize",
+  t: "Timestamp",
+  c: "Conditions",
+  z: "Tape",
+};
+
+export interface AlpacaOptionQuote {
+  Symbol?: string;
+  BidExchange: string;
+  BidPrice: number;
+  BidSize: number;
+  AskExchange: string;
+  AskPrice: number;
+  AskSize: number;
+  Timestamp: string;
+  Condition: string;
+}
+
+export interface RawOptionQuote {
+  T: string;
+  S: string;
+  bx: string;
+  bp: number;
+  bs: number;
+  ax: string;
+  ap: number;
+  as: number;
+  c: string;
+}
+
+export interface Greeks {
+  Delta: number;
+  Gamma: number;
+  Theta: number;
+  Vega: number;
+  Rho: number;
+}
+
+const option_snapshot_mapping = {
+  symbol: "symbol",
+  latestTrade: "LatestTrade",
+  latestQuote: "LatestQuote",
+  impliedVolatility: "ImpliedVolatility",
+  greeks: "Greeks",
+};
+
+export interface AlpacaOptionSnapshot {
+  Symbol: string;
+  LatestTrade: AlpacaTrade;
+  LatestQuote: AlpacaQuote;
+  ImpliedVOlatility: number;
+  Greeks: Greeks;
+}
+
 export function AlpacaTradeV2(data: RawTrade): AlpacaTrade {
   return aliasObjectKey(data, trade_mapping_v2) as AlpacaTrade;
 }
@@ -522,9 +648,29 @@ export function AlpacaCryptoOrderbook(data: RawCryptoOrderbook): CryptoOrderbook
   };
 }
 
+export function AlpacaOptionBarV1Beta1(data: RawOptionBar): AlpacaOptionBar {
+  return aliasObjectKey(data, option_bar_mapping) as AlpacaOptionBar;
+}
+
+export function AlpacaOptionTradeV1Beta1(data: RawOptionTrade): AlpacaOptionTrade {
+  return aliasObjectKey(data, option_tarde_mapping) as AlpacaOptionTrade;
+}
+
+export function AlpacaOptionQuoteV1Beta1(data: RawOptionQuote): AlpacaOptionQuote {
+  return aliasObjectKey(data, option_quote_mapping) as AlpacaOptionQuote;
+}
+
+export function AlpacaOptionSnapshotV1Beta1(data: any): AlpacaOptionSnapshot {
+  const snapshot = aliasObjectKey(data, option_snapshot_mapping);
+
+  return mapValues(snapshot, (value: any, key: any) => {
+    return convertOptionSnapshotData(key, value);
+  }) as AlpacaOptionSnapshot;
+}
+
 function aliasObjectKey(data: any, mapping: any) {
   return mapKeys(data, (_value: any, key: any) => {
-    return mapping.hasOwnProperty(key) ? mapping[key] : key;
+    return Object.hasOwn(mapping, key) ? mapping[key] : key;
   });
 }
 
@@ -538,6 +684,17 @@ function convertSnapshotData(key: string, data: any, isCrypto: boolean) {
     case "DailyBar":
     case "PrevDailyBar":
       return isCrypto ? AlpacaCryptoBar(data) : AlpacaBarV2(data);
+    default:
+      return data;
+  }
+}
+
+function convertOptionSnapshotData(key: string, data: any) {
+  switch (key) {
+    case "LatestTrade":
+      return AlpacaOptionTradeV1Beta1(data);
+    case "LatestQuote":
+      return AlpacaOptionQuoteV1Beta1(data);
     default:
       return data;
   }
