@@ -28,11 +28,16 @@ import {
   AlpacaOptionQuoteV1Beta1,
   AlpacaOptionSnapshot,
   AlpacaOptionSnapshotV1Beta1,
+  CorporateActions,
+  convertCorporateActions,
+  getCorporateActionsSize,
+  mergeCorporateActions,
 } from "./entityv2";
 
 // Number of data points to return.
 const V2_MAX_LIMIT = 10000;
 const V2_NEWS_MAX_LIMIT = 50;
+const CORP_ACTION_MAX_LIMIT = 1000;
 
 export enum Adjustment {
   RAW = "raw",
@@ -854,5 +859,64 @@ export async function getOptionChain(
       return AlpacaOptionSnapshotV1Beta1({ Symbol: key, ...val });
     }
   );
+  return result;
+}
+
+export interface GetCorporateActionParams {
+  types?: Array<string>;
+  start: string;
+  end: string;
+  pageLimit?: number;
+  totalLimit?: number;
+  page_token: string;
+  sort: Sort;
+}
+
+export async function getCorporateActions(
+  symbols: Array<string>,
+  options: GetCorporateActionParams,
+  config: any
+): Promise<CorporateActions | undefined> {
+  const resp = getMultiDataV2(symbols, `/v1beta1/corporate-actions`, "", options, config);
+
+  if (options.totalLimit && options.totalLimit < 0) {
+    throw new Error("negative total limit");
+  }
+  if (options.pageLimit && options.pageLimit < 0) {
+    throw new Error("negative page limit");
+  }
+
+  let pageToken: string | null = null;
+  let received = 0;
+  const pageLimit = options?.pageLimit
+    ? Math.min(options.pageLimit, CORP_ACTION_MAX_LIMIT)
+    : CORP_ACTION_MAX_LIMIT;
+  delete options?.pageLimit;
+  const totalLimit = options?.totalLimit ?? V2_MAX_LIMIT;
+  delete options.totalLimit;
+  let result = {} as CorporateActions;
+  const types = options?.types?.join(",");
+  const params = { ...options, symbols, types };
+  let limit;
+  for (;;) {
+    limit = getQueryLimit(totalLimit, pageLimit, received);
+    if (limit < 1) {
+      break;
+    }
+
+    const resp: AxiosResponse<any> = await dataV2HttpRequest(
+      `/v1beta1/corporate-actions`,
+      { ...params, limit: limit, page_token: pageToken },
+      config
+    );
+    const cas = convertCorporateActions(resp.data.corporate_actions);
+    result = mergeCorporateActions(result, cas);
+    received += getCorporateActionsSize(cas);
+
+    pageToken = resp.data.next_page_token;
+    if (!pageToken) {
+      break;
+    }
+  }
   return result;
 }

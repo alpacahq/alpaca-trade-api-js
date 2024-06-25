@@ -372,9 +372,7 @@ describe("options API", () => {
   it("option chain", async () => {
     const snapshots = await alpaca.getOptionChain("AAPL");
 
-    console.log(snapshots);
     expect(snapshots.length).equal(1);
-    console.log(snapshots);
     const snapshot = snapshots[0];
     assert.equal(snapshot.Greeks.delta, 0.7521304109871954);
     assert.equal(snapshot.Greeks.gamma, 0.06241426404871288);

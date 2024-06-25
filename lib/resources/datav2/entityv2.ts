@@ -738,3 +738,379 @@ export function NewTimeframe(amount: number, unit: TimeFrameUnit): string {
   }
   return `${amount}${unit}`;
 }
+
+export interface CorporateActions {
+  CashDividends: Array<CashDividend>;
+  ReverseSplits: Array<ReverseSplit>;
+  ForwardSplits: Array<ForwardSplit>;
+  UnitSplits: Array<UnitSplit>;
+  CashMergers: Array<CashMerger>;
+  StockMergers: Array<StockMerger>;
+  StockAndCashMerger: Array<StockAndCashMerger>;
+  StockDividends: Array<StockDividends>;
+  Redemptions: Array<Redemption>;
+  SpinOffs: Array<SpinOff>;
+  NameChanges: Array<NameChange>;
+  WorthlessRemovals: Array<WorthlessRemoval>;
+  RightsDistributions: Array<RightsDistribution>;
+}
+
+const cash_dividend_mapping = {
+  ex_date: "ExDate",
+  foreign: "Foreign",
+  payable_date: "PayableDate",
+  process_date: "ProcessDate",
+  rate: "Rate",
+  record_date: "RecordDate",
+  special: "Special",
+  symbol: "Symbol",
+};
+
+export interface CashDividend {
+  ExDate: string;
+  Foreign: boolean;
+  PayableDate: string;
+  ProcessDate: string;
+  Rate: number;
+  RecordDate: string;
+  Special: boolean;
+  Symbol: string;
+}
+
+const reverse_split_mapping = {
+  ex_date: "ExDate",
+  new_rate: "NewRate",
+  old_rate: "OldRate",
+  payable_date: "PayableDate",
+  process_date: "ProcessDate",
+  record_date: "RecordDate",
+  symbol: "Symbol",
+};
+
+export interface ReverseSplit {
+  ExDate: string;
+  NewRate: number;
+  OldRate: number;
+  PayableDate: string;
+  ProcessDate: string;
+  RecordDate: string;
+  Symbol: string;
+}
+
+const forward_split_mapping = {
+  due_bill_redemption_date: "DueBillRedemptionDate",
+  ex_date: "ExDate",
+  new_rate: "NewRate",
+  old_rate: "OldRate",
+  payable_date: "PayableDate",
+  process_date: "ProcessDate",
+  record_date: "RecordDate",
+  symbol: "Symbol",
+};
+
+export interface ForwardSplit {
+  DueBillRedemptionDate: string;
+  ExDate: string;
+  NewRate: number;
+  OldRate: number;
+  PayableDate: string;
+  ProcessDate: string;
+  RecordDate: string;
+  Symbol: string;
+}
+
+const unit_split_mapping = {
+  alternate_rate: "AlternateRate",
+  alternate_symbol: "AlternateSymbol",
+  effective_date: "EffectiveDate",
+  new_rate: "NewRate",
+  new_symbol: "NewSymbol",
+  old_rate: "OldRate",
+  old_symbol: "OldSymbol",
+  process_date: "ProcessDate",
+};
+
+export interface UnitSplit {
+  AlternateRate: number;
+  AlternateSymbol: string;
+  EffectiveDate: string;
+  NewRate: number;
+  NewSymbol: string;
+  OldRate: number;
+  OldSymbol: string;
+  ProcessDate: string;
+}
+
+const cash_merger_mapping = {
+  acquiree_symbol: "AcquireeSymbol",
+  acquirer_symbol: "AcquirerSymbol",
+  effective_date: "EffectiveDate",
+  process_date: "ProcessDate",
+  rate: "Rate",
+};
+
+export interface CashMerger {
+  AcquireeSymbol: string;
+  AcquirerSymbol: string;
+  EffectiveDate: string;
+  ProcessDate: string;
+  Rate: number;
+}
+
+const stock_merger_mapping = {
+  acquiree_rate: "AcquireeRate",
+  acquiree_symbol: "AcquireeSymbol",
+  acquirer_rate: "AcquirerRate",
+  acquirer_symbol: "AcquirerSymbol",
+  effective_date: "EffectiveDate",
+  payable_date: "PayableDate",
+  process_date: "ProcessDate",
+};
+
+export interface StockMerger {
+  AcquireeRate: number;
+  AcquireeSymbol: string;
+  AcquirerRate: number;
+  AcquirerSymbol: string;
+  EffectiveDate: string;
+  PayableDate: string;
+  ProcessDate: string;
+}
+
+const stock_and_cash_merger_mapping = {
+  stock_merger_mapping,
+  cash_rate: "CashRate",
+};
+export interface StockAndCashMerger extends StockMerger {
+  CashRate: number;
+}
+
+const stock_dividends_mapping = {
+  ex_date: "ExDate",
+  payable_date: "PayableDate",
+  process_date: "ProcessDate",
+  rate: "Rate",
+  record_date: "RecordDate",
+  symbol: "Symbol",
+};
+
+export interface StockDividends {
+  ExDate: string;
+  PayableDate: string;
+  ProcessDate: string;
+  Rate: number;
+  RecordDate: string;
+  Symbol: string;
+}
+
+const redemption_mapping = {
+  payable_date: "PayableDate",
+  process_date: "ProcessDate",
+  rate: "Rate",
+  symbol: "Symbol",
+};
+
+export interface Redemption {
+  PayableDate: string;
+  ProcessDate: string;
+  Rate: number;
+  Symbol: string;
+}
+
+const spin_off_mapping = {
+  ex_date: "ExDate",
+  new_rate: "NewRate",
+  new_symbol: "NewSymbol",
+  process_date: "ProcessDate",
+  record_date: "RecordDate",
+  source_rate: "Rate",
+  source_symbol: "SourceSymbol",
+};
+
+export interface SpinOff {
+  ExDate: string;
+  NewRate: number;
+  NewSymbol: string;
+  ProcessDate: string;
+  RecordDate: string;
+  Rate: number;
+  SourceSymbol: string;
+}
+
+const name_change_mapping = {
+  new_symbol: "NewSymbol",
+  old_symbol: "OldSymbol",
+  process_date: "ProcessDate",
+};
+
+export interface NameChange {
+  NewSymbol: string;
+  OldSymbol: string;
+  ProcessDate: string;
+}
+
+const worthless_removal_mapping = {
+  symbol: "Symbol",
+  process_date: "ProcessDate",
+};
+
+export interface WorthlessRemoval {
+  Symbol: string;
+  ProcessDate: string;
+}
+
+const rights_distribution_mapping = {
+  source_symbol: "SourceSymbol",
+  new_symbol: "NewSymbol",
+  rate: "Rate",
+  process_date: "ProcessDate",
+  ex_date: "ExDate",
+  payable_date: "PayableDate",
+  record_date: "RecordDate",
+  expiration_date: "ExpirationDate",
+};
+
+export interface RightsDistribution {
+  SourceSymbol: string;
+  NewSymbol: string;
+  Rate: number;
+  ProcessDate: string;
+  ExDate: string;
+  PayableDate: string;
+  RecordDate: string;
+  ExpirationDate: string;
+}
+
+export function convertCorporateActions(data: any): CorporateActions {
+  let cas = {} as CorporateActions;
+  if (data.cash_dividends?.length > 0) {
+    cas.CashDividends = cas.CashDividends ? cas.CashDividends : Array<CashDividend>();
+    data.cash_dividends.forEach((cd: any) => {
+      cas.CashDividends.push(aliasObjectKey(cd, cash_dividend_mapping) as CashDividend);
+    });
+  }
+  if (data.reverse_splits?.length > 0) {
+    cas.ReverseSplits = cas.ReverseSplits ? cas.ReverseSplits : Array<ReverseSplit>();
+    data.reverse_splits.forEach((rs: any) => {
+      cas.ReverseSplits.push(aliasObjectKey(rs, reverse_split_mapping) as ReverseSplit);
+    });
+  }
+  if (data.forward_splits?.length > 0) {
+    cas.ForwardSplits = cas.ForwardSplits ? cas.ForwardSplits : Array<ForwardSplit>();
+    data.forward_splits.forEach((fs: any) => {
+      cas.ForwardSplits.push(aliasObjectKey(fs, forward_split_mapping) as ForwardSplit);
+    });
+  }
+  if (data.unit_splits?.length > 0) {
+    cas.UnitSplits = cas.UnitSplits ? cas.UnitSplits : Array<UnitSplit>();
+    data.unit_splits.forEach((fs: any) => {
+      cas.UnitSplits.push(aliasObjectKey(fs, unit_split_mapping) as UnitSplit);
+    });
+  }
+  if (data.cash_mergers?.length > 0) {
+    cas.CashMergers = cas.CashMergers ? cas.CashMergers : Array<CashMerger>();
+    data.cash_mergers.forEach((cm: any) => {
+      cas.CashMergers.push(aliasObjectKey(cm, cash_merger_mapping) as CashMerger);
+    });
+  }
+  if (data.stock_mergers?.length > 0) {
+    cas.StockMergers = cas.StockMergers ? cas.StockMergers : Array<StockMerger>();
+    data.stock_mergers.forEach((sm: any) => {
+      cas.StockMergers.push(aliasObjectKey(sm, stock_merger_mapping) as StockMerger);
+    });
+  }
+  if (data.stock_and_cash_mergers?.length > 0) {
+    cas.StockAndCashMerger = cas.StockAndCashMerger
+      ? cas.StockAndCashMerger
+      : Array<StockAndCashMerger>();
+    data.stock_and_cash_mergers.forEach((scm: any) => {
+      cas.StockAndCashMerger.push(
+        aliasObjectKey(scm, stock_and_cash_merger_mapping) as StockAndCashMerger
+      );
+    });
+  }
+  if (data.stock_dividends?.length > 0) {
+    cas.StockDividends = cas.StockDividends
+      ? cas.StockDividends
+      : Array<StockDividends>();
+    data.stock_dividends.forEach((sd: any) => {
+      cas.StockDividends.push(
+        aliasObjectKey(sd, stock_dividends_mapping) as StockDividends
+      );
+    });
+  }
+  if (data.redemptions?.length > 0) {
+    cas.Redemptions = cas.Redemptions ? cas.Redemptions : Array<Redemption>();
+    data.redemptions.forEach((r: any) => {
+      cas.Redemptions.push(aliasObjectKey(r, redemption_mapping) as Redemption);
+    });
+  }
+  if (data.spin_offs?.length > 0) {
+    cas.SpinOffs = cas.SpinOffs ? cas.SpinOffs : Array<SpinOff>();
+    data.spin_offs.forEach((so: any) => {
+      cas.SpinOffs.push(aliasObjectKey(so, spin_off_mapping) as SpinOff);
+    });
+  }
+  if (data.name_changes?.length > 0) {
+    cas.NameChanges = cas.NameChanges ? cas.NameChanges : Array<NameChange>();
+    data.name_changes.forEach((nc: any) => {
+      cas.NameChanges.push(aliasObjectKey(nc, name_change_mapping) as NameChange);
+    });
+  }
+  if (data.worthless_removals?.length > 0) {
+    cas.WorthlessRemovals = cas.WorthlessRemovals
+      ? cas.WorthlessRemovals
+      : Array<WorthlessRemoval>();
+    data.worthless_removals.forEach((wr: any) => {
+      cas.WorthlessRemovals.push(
+        aliasObjectKey(wr, worthless_removal_mapping) as WorthlessRemoval
+      );
+    });
+  }
+  if (data.rights_distributions?.length > 0) {
+    cas.RightsDistributions = cas.RightsDistributions
+      ? cas.RightsDistributions
+      : Array<RightsDistribution>();
+    data.rights_distributions.forEach((rd: any) => {
+      cas.RightsDistributions.push(
+        aliasObjectKey(rd, rights_distribution_mapping) as RightsDistribution
+      );
+    });
+  }
+  return cas;
+}
+
+export function getCorporateActionsSize(cas: CorporateActions): number {
+  let sum = 0;
+  for (const key in cas) {
+    sum += cas[key as keyof CorporateActions]
+      ? cas[key as keyof CorporateActions].length
+      : 0;
+  }
+  return sum;
+}
+
+export function mergeCorporateActions(
+  ca1: CorporateActions,
+  ca2: CorporateActions
+): CorporateActions {
+  return {
+    CashDividends: (ca1.CashDividends || []).concat(ca2.CashDividends || []),
+    ReverseSplits: (ca1.ReverseSplits || []).concat(ca2.ReverseSplits || []),
+    ForwardSplits: (ca1.ForwardSplits || []).concat(ca2.ForwardSplits || []),
+    UnitSplits: (ca1.UnitSplits || []).concat(ca2.UnitSplits || []),
+    CashMergers: (ca1.CashMergers || []).concat(ca2.CashMergers || []),
+    StockMergers: (ca1.StockMergers || []).concat(ca2.StockMergers || []),
+    StockAndCashMerger: (ca1.StockAndCashMerger || []).concat(
+      ca2.StockAndCashMerger || []
+    ),
+    StockDividends: (ca1.StockDividends || []).concat(ca2.StockDividends || []),
+    Redemptions: (ca1.Redemptions || []).concat(ca2.Redemptions || []),
+    SpinOffs: (ca1.SpinOffs || []).concat(ca2.SpinOffs || []),
+    NameChanges: (ca1.NameChanges || []).concat(ca2.NameChanges || []),
+    WorthlessRemovals: (ca1.WorthlessRemovals || []).concat(ca2.WorthlessRemovals || []),
+    RightsDistributions: (ca1.RightsDistributions || []).concat(
+      ca2.RightsDistributions || []
+    ),
+  };
+}
