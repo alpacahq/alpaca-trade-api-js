@@ -636,8 +636,8 @@ function getNewsParams(options: GetNewsParams): any {
   query.start = options.start;
   query.end = options.end;
   query.sort = options.sort;
-  query.includeContent = options.includeContent;
-  query.excludeContentless = options.excludeContentless;
+  query.include_content = options.includeContent;
+  query.exclude_contentless = options.excludeContentless;
   return query;
 }
 
