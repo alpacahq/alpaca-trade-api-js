@@ -15,6 +15,7 @@ describe("alpaca-trade-api", function () {
         secretKey: "test_secret",
         oauth: "",
         feed: "iex",
+        optionFeed: "opra",
         verbose: false,
       };
       const alpaca = new Alpaca(testConfig);

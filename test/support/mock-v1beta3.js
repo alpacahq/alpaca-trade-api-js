@@ -39,7 +39,6 @@ module.exports = function createV1Beta3DataMock() {
         latestDataBySymbol["BTC/USD"][req.params.endpoint];
       response[req.params.endpoint]["ETH/USD"] =
         latestDataBySymbol["ETH/USD"][req.params.endpoint];
-      console.log(response);
       return response;
     })
   );

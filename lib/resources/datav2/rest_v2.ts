@@ -20,11 +20,24 @@ import {
   AlpacaCryptoSnapshot,
   AlpacaNews,
   RawAlpacaNews,
+  AlpacaOptionBar,
+  AlpacaOptionBarV1Beta1,
+  AlpacaOptionTrade,
+  AlpacaOptionTradeV1Beta1,
+  AlpacaOptionQuote,
+  AlpacaOptionQuoteV1Beta1,
+  AlpacaOptionSnapshot,
+  AlpacaOptionSnapshotV1Beta1,
+  CorporateActions,
+  convertCorporateActions,
+  getCorporateActionsSize,
+  mergeCorporateActions,
 } from "./entityv2";
 
 // Number of data points to return.
 const V2_MAX_LIMIT = 10000;
 const V2_NEWS_MAX_LIMIT = 50;
+const CORP_ACTION_MAX_LIMIT = 1000;
 
 export enum Adjustment {
   RAW = "raw",
@@ -184,7 +197,7 @@ export async function* getMultiDataV2(
 export interface GetTradesParams {
   start: string;
   end?: string;
-  page_limit?: number;
+  pageLimit?: number;
   limit?: number;
   feed?: string;
   asof?: string;
@@ -242,7 +255,7 @@ export async function* getMultiTradesAsync(
 export interface GetQuotesParams {
   start: string;
   end?: string;
-  page_limit?: number;
+  pageLimit?: number;
   limit?: number;
   feed?: string;
   asof?: string;
@@ -302,7 +315,7 @@ export interface GetBarsParams {
   adjustment?: Adjustment;
   start: string;
   end?: string;
-  page_limit?: number;
+  pageLimit?: number;
   limit?: number;
   feed?: string;
   asof?: string;
@@ -447,7 +460,7 @@ export interface GetCryptoTradesParams {
   start: string;
   end?: string;
   limit?: number;
-  page_limit?: number;
+  pageLimit?: number;
 }
 
 export async function getCryptoTrades(
@@ -476,7 +489,7 @@ export interface GetCryptoBarsParams {
   end?: string;
   timeframe: string;
   limit?: number;
-  page_limit?: number;
+  pageLimit?: number;
 }
 
 export async function getCryptoBars(
@@ -641,10 +654,10 @@ export async function getNews(
 
   let pageToken: string | null = null;
   let received = 0;
-  const pageLimit = options.pageLimit
+  const pageLimit = options?.pageLimit
     ? Math.min(options.pageLimit, V2_NEWS_MAX_LIMIT)
     : V2_NEWS_MAX_LIMIT;
-  delete options.pageLimit;
+  delete options?.pageLimit;
   const totalLimit = options.totalLimit ?? 10;
   const result: AlpacaNews[] = [];
   const params = getNewsParams(options);
@@ -662,6 +675,244 @@ export async function getNews(
     );
     resp.data.news.forEach((n: RawAlpacaNews) => result.push(AlpacaNews(n)));
     received += resp.data.news.length;
+    pageToken = resp.data.next_page_token;
+    if (!pageToken) {
+      break;
+    }
+  }
+  return result;
+}
+
+export interface GetOptionBarsParams {
+  timeframe: string;
+  start: string;
+  end?: string;
+  pageLimit?: number;
+  limit?: number;
+  feed?: string;
+  page_token?: string;
+}
+
+export async function getMultiOptionBars(
+  symbols: Array<string>,
+  options: GetOptionBarsParams,
+  config: any
+): Promise<Map<string, AlpacaOptionBar[]>> {
+  const multiBars = getMultiOptionBarsAsync(symbols, options, config);
+  const bars = new Map<string, Array<AlpacaOptionBar>>();
+  for await (const b of multiBars) {
+    // symbol will always have a value
+    let symbol = b.Symbol ? b.Symbol : "";
+    delete b.Symbol;
+    const items = bars.get(symbol) || new Array<AlpacaOptionBar>();
+    bars.set(symbol, [...items, b]);
+  }
+  return bars;
+}
+
+export async function* getMultiOptionBarsAsync(
+  symbols: Array<string>,
+  options: GetOptionBarsParams,
+  config: any
+): AsyncGenerator<AlpacaOptionBar, void, unknown> {
+  const multiBars = getMultiDataV2(
+    symbols,
+    "/v1beta1/options/",
+    TYPE.BARS,
+    options,
+    config
+  );
+  for await (const b of multiBars) {
+    b.data = { ...b.data, S: b.symbol };
+    yield AlpacaOptionBarV1Beta1(b.data);
+  }
+}
+
+export interface GetOptionTradesParams {
+  start: string;
+  end?: string;
+  pageLimit?: number;
+  limit?: number;
+  feed?: string;
+  page_token?: string;
+}
+
+export async function getMultiOptionTrades(
+  symbols: Array<string>,
+  options: GetOptionTradesParams,
+  config: any
+): Promise<Map<string, AlpacaOptionTrade[]>> {
+  const multiTrades = getMultiOptionTradesAsync(symbols, options, config);
+  const trades = new Map<string, Array<AlpacaOptionTrade>>();
+  for await (const t of multiTrades) {
+    // symbol will always have a value
+    let symbol = t.Symbol ? t.Symbol : "";
+    delete t.Symbol;
+    const items = trades.get(symbol) || new Array<AlpacaOptionTrade>();
+    trades.set(symbol, [...items, t]);
+  }
+  return trades;
+}
+
+export async function* getMultiOptionTradesAsync(
+  symbols: Array<string>,
+  options: GetOptionTradesParams,
+  config: any
+): AsyncGenerator<AlpacaOptionTrade, void, unknown> {
+  const multiBars = getMultiDataV2(
+    symbols,
+    "/v1beta1/options/",
+    TYPE.TRADES,
+    options,
+    config
+  );
+  for await (const b of multiBars) {
+    b.data = { ...b.data, S: b.symbol };
+    yield AlpacaOptionTradeV1Beta1(b.data);
+  }
+}
+
+export async function getLatestOptionTrades(
+  symbols: Array<string>,
+  config: any
+): Promise<Map<string, AlpacaOptionTrade>> {
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/options/${TYPE.TRADES}/latest`,
+    { symbols: symbols.join(",") },
+    config
+  );
+  const multiLatestTrades = resp.data.trades;
+  const multiLatestTradesResp = new Map<string, AlpacaOptionTrade>();
+  for (const symbol in multiLatestTrades) {
+    multiLatestTradesResp.set(
+      symbol,
+      AlpacaOptionTradeV1Beta1({ ...multiLatestTrades[symbol] })
+    );
+  }
+  return multiLatestTradesResp;
+}
+
+export async function getLatestOptionQuotes(
+  symbols: Array<string>,
+  config: any
+): Promise<Map<string, AlpacaOptionQuote>> {
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/options/${TYPE.QUOTES}/latest`,
+    { symbols: symbols.join(",") },
+    config
+  );
+  const multiLatestQuotes = resp.data.quotes;
+  const multiLatestQuotesResp = new Map<string, AlpacaOptionQuote>();
+  for (const symbol in multiLatestQuotes) {
+    multiLatestQuotesResp.set(
+      symbol,
+      AlpacaOptionQuoteV1Beta1({ ...multiLatestQuotes[symbol] })
+    );
+  }
+  return multiLatestQuotesResp;
+}
+
+export async function getOptionSnapshots(
+  symbols: Array<string>,
+  config: any
+): Promise<AlpacaOptionSnapshot[]> {
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/options/snapshots?symbols=${symbols.join(",")}`,
+    {},
+    config
+  );
+  const result = Object.entries(resp.data.snapshots as Map<string, any>).map(
+    ([key, val]) => {
+      return AlpacaOptionSnapshotV1Beta1({ Symbol: key, ...val });
+    }
+  );
+  return result;
+}
+
+export interface GetOptionChainParams {
+  feed?: string;
+  type?: string;
+  pageLimit?: number;
+  limit?: number;
+  strike_price_gte?: number;
+  strike_price_lte?: number;
+  expiration_date?: string;
+  expiration_date_gte?: string;
+  expiration_date_lte?: string;
+  root_symbol?: string;
+  page_token?: string;
+}
+
+export async function getOptionChain(
+  underlyingSymbol: string,
+  options: GetOptionChainParams,
+  config: any
+): Promise<AlpacaOptionSnapshot[]> {
+  const resp = await dataV2HttpRequest(
+    `/v1beta1/options/snapshots/${underlyingSymbol}`,
+    options,
+    config
+  );
+
+  const result = Object.entries(resp.data.snapshots as Map<string, any>).map(
+    ([key, val]) => {
+      return AlpacaOptionSnapshotV1Beta1({ Symbol: key, ...val });
+    }
+  );
+  return result;
+}
+
+export interface GetCorporateActionParams {
+  types?: Array<string>;
+  start: string;
+  end: string;
+  pageLimit?: number;
+  totalLimit?: number;
+  page_token: string;
+  sort: Sort;
+}
+
+export async function getCorporateActions(
+  symbols: Array<string>,
+  options: GetCorporateActionParams,
+  config: any
+): Promise<CorporateActions | undefined> {
+  const resp = getMultiDataV2(symbols, `/v1beta1/corporate-actions`, "", options, config);
+
+  if (options.totalLimit && options.totalLimit < 0) {
+    throw new Error("negative total limit");
+  }
+  if (options.pageLimit && options.pageLimit < 0) {
+    throw new Error("negative page limit");
+  }
+
+  let pageToken: string | null = null;
+  let received = 0;
+  const pageLimit = options?.pageLimit
+    ? Math.min(options.pageLimit, CORP_ACTION_MAX_LIMIT)
+    : CORP_ACTION_MAX_LIMIT;
+  delete options?.pageLimit;
+  const totalLimit = options?.totalLimit ?? V2_MAX_LIMIT;
+  delete options.totalLimit;
+  let result = {} as CorporateActions;
+  const types = options?.types?.join(",");
+  const params = { ...options, symbols, types };
+  let limit;
+  for (;;) {
+    limit = getQueryLimit(totalLimit, pageLimit, received);
+    if (limit < 1) {
+      break;
+    }
+
+    const resp: AxiosResponse<any> = await dataV2HttpRequest(
+      `/v1beta1/corporate-actions`,
+      { ...params, limit: limit, page_token: pageToken },
+      config
+    );
+    const cas = convertCorporateActions(resp.data.corporate_actions);
+    result = mergeCorporateActions(result, cas);
+    received += getCorporateActionsSize(cas);
+
     pageToken = resp.data.next_page_token;
     if (!pageToken) {
       break;
