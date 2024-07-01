@@ -164,15 +164,11 @@ export async function* getMultiDataV2(
   delete options.pageLimit;
   options.limit = options.limit ?? 0;
   while (options.limit > received || options.limit === 0) {
-    let limit;
-    if (options.limit !== 0) {
-      limit = getQueryLimit(options.limit, pageLimit, received);
-      if (limit == -1) {
-        break;
-      }
-    } else {
-      limit = null;
+    const limit = getQueryLimit(options.limit, pageLimit, received);
+    if (limit == -1) {
+      break;
     }
+
     const params: any = {
       ...options,
       symbols: symbols.join(","),
