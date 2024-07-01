@@ -202,6 +202,7 @@ export interface GetTradesParams {
   feed?: string;
   asof?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function* getTrades(
@@ -260,6 +261,7 @@ export interface GetQuotesParams {
   feed?: string;
   asof?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function* getQuotes(
@@ -320,6 +322,7 @@ export interface GetBarsParams {
   feed?: string;
   asof?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function* getBars(
@@ -461,6 +464,7 @@ export interface GetCryptoTradesParams {
   end?: string;
   limit?: number;
   pageLimit?: number;
+  sort?: Sort;
 }
 
 export async function getCryptoTrades(
@@ -484,12 +488,42 @@ export async function getCryptoTrades(
   return trades;
 }
 
+export interface GetCryptoQuotesParams {
+  start: string;
+  end?: string;
+  limit?: number;
+  pageLimit?: number;
+  sort?: Sort;
+}
+
+export async function getCryptoQuotes(
+  symbols: string[],
+  options: GetCryptoQuotesParams,
+  config: any
+): Promise<Map<string, CryptoQuote[]>> {
+  const cryptoQuotes = getMultiDataV2(
+    symbols,
+    "/v1beta3/crypto/us/",
+    TYPE.QUOTES,
+    options,
+    config
+  );
+  const quotes = new Map<string, Array<CryptoQuote>>();
+  for await (const t of cryptoQuotes) {
+    const items = quotes.get(t.symbol) || new Array<CryptoQuote>();
+    quotes.set(t.symbol, [...items, AlpacaCryptoQuote(t.data)]);
+  }
+
+  return quotes;
+}
+
 export interface GetCryptoBarsParams {
   start?: string;
   end?: string;
   timeframe: string;
   limit?: number;
   pageLimit?: number;
+  sort?: Sort;
 }
 
 export async function getCryptoBars(
@@ -691,6 +725,7 @@ export interface GetOptionBarsParams {
   limit?: number;
   feed?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function getMultiOptionBars(
@@ -735,6 +770,7 @@ export interface GetOptionTradesParams {
   limit?: number;
   feed?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function getMultiOptionTrades(

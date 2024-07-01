@@ -318,6 +318,19 @@ describe("crypto API", () => {
     assertCryptoOrderbook(resp.get("BTC/USD"));
     assertCryptoOrderbook(resp.get("ETH/USD"));
   });
+
+  it("get historical quotes", async () => {
+    const resp = await alpaca.getCryptoQuotes(["BTC/USD"], { start: "2024-06-25" });
+    expect(resp.size).equal(1);
+
+    const quote = resp.get("BTC/USD");
+    const q = quote[0];
+    assert.equal(q.AskPrice, 60849.5);
+    assert.equal(q.AskSize, 0.56);
+    assert.equal(q.BidPrice, 60772.395);
+    assert.equal(q.BidSize, 0.5549);
+    assert.equal(q.Timestamp, "2024-06-27T00:01:28.222959058Z");
+  });
 });
 
 describe("news API", () => {
