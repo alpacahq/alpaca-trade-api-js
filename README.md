@@ -412,7 +412,7 @@ getMultiQuotesV2(
   symbols: Array<string>,
   options: GetQuotesParams,
   config?: any,
-): Promise<Map<string, any[]>>;
+): Promise<Map<string, AlpacaQuote[]>>;
 ```
 ```ts
 getMultiQuotesAsyncV2(
@@ -485,7 +485,7 @@ getMultiBarsV2(
   symbols: Array<string>,
   options: GetBarsParams,
   config?: any,
-): Promise<Map<string, any[]>>;
+): Promise<Map<string, AlpacaBar[]>>;
 ```
 ```ts
  getMultiBarsAsyncV2(
@@ -655,7 +655,7 @@ All the functions are similar to the stock ones.
 #### Trades
 * ```ts
     getCryptoTrades(
-      symbol: string, 
+      symbols: Array<string>, 
       options: GetCryptoTradesParams, 
       config?: any,
     ): AsyncGenerator<CryptoTrade, void, unknown>;
@@ -685,16 +685,10 @@ All the functions are similar to the stock ones.
 #### Bars
 * ```ts 
      getCryptoBars(
-      symbol: string,
+      symbols: Array<string>,
       options: GetCryptoBarsParams, 
       config?: any,
     ): AsyncGenerator<CryptoBar, void, unknown>;
-  ```
-* ```ts
-     getLatestCryptoBar(
-       symbol: string,
-       config?: any,
-     ): Promise<CryptoBar>;
   ```
 * ```ts
     getLatestCryptoBars(
@@ -705,8 +699,8 @@ All the functions are similar to the stock ones.
 
 #### Snapshots
 * ```ts
-    getCryptoSnapshot(
-      symbol: string,
+    getCryptoSnapshots(
+      symbol: Array<string>,
       config?: any,
     ): Promise<CryptoSnapshot>;
   ```
