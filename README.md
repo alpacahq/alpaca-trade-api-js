@@ -660,17 +660,9 @@ All the functions are similar to the stock ones.
       config?: any,
     ): AsyncGenerator<CryptoTrade, void, unknown>;
   ```
-* ```ts
-    getLatestCryptoTrade(
-      symbol: string,
-      options: {exchange: string},
-      config?: any
-    ): Promise<CryptoTrade>;
-  ```
 * ```ts 
     getLatestCryptoTrades(
       symbols: Array<string>,
-      options: { exchange: string }, 
       config?: any
     ): Promise<Map<string, CryptoTrade>>;
   ```
@@ -678,22 +670,14 @@ All the functions are similar to the stock ones.
 #### Quotes
 * ```ts
     getCryptoQuotes(
-      symbol: string,
+      symbols: Array<string>,
       options: GetCryptoQuotesParams, 
       config?: any,
     ): AsyncGenerator<CryptoQuote, void, unknown>;
   ```
 * ```ts
-    getLatestCryptoQuote(
-      symbol: string,
-      options: { exchange: string },
-      config?: any,
-    ): Promise<CryptoQuote>;
-  ```
-* ```ts
    getLatestCryptoQuotes(
     symbols: Array<string>,
-    options: { exchange: string },
     config?: any,
   ): Promise<Map<string, CryptoQuote>>;
   ```
@@ -709,39 +693,20 @@ All the functions are similar to the stock ones.
 * ```ts
      getLatestCryptoBar(
        symbol: string,
-       options: { exchange: string }, 
        config?: any,
      ): Promise<CryptoBar>;
   ```
 * ```ts
     getLatestCryptoBars(
       symbols: Array<string>,
-      options: { exchange: string },
       config?: any,
     ): Promise<Map<string, CryptoBar>>;
-  ```
-
-#### XBBOs
-* ```ts
-    getLatestCryptoXBBO(
-      symbol: string,
-      options: { exchanges?: Array<string> },
-      config?: any,
-    ): Promise<CryptoXBBO>;
-  ```
-* ```ts 
-    getLatestCryptoXBBOs(
-      symbols: Array<string>,
-      options: { exchanges?: Array<string> }, 
-      config?: any,
-    ): Promise<Map<string, CryptoXBBO>>;
   ```
 
 #### Snapshots
 * ```ts
     getCryptoSnapshot(
       symbol: string,
-      options:  { exchange: string },
       config?: any,
     ): Promise<CryptoSnapshot>;
   ```
