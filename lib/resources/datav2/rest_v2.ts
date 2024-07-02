@@ -195,7 +195,7 @@ export async function* getMultiDataV2(
 }
 
 export interface GetTradesParams {
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
@@ -254,7 +254,7 @@ export async function* getMultiTradesAsync(
 }
 
 export interface GetQuotesParams {
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
@@ -315,7 +315,7 @@ export async function* getMultiQuotesAsync(
 export interface GetBarsParams {
   timeframe: string;
   adjustment?: Adjustment;
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
@@ -460,7 +460,7 @@ export async function getSnapshots(
 }
 
 export interface GetCryptoTradesParams {
-  start: string;
+  start?: string;
   end?: string;
   limit?: number;
   pageLimit?: number;
@@ -489,7 +489,7 @@ export async function getCryptoTrades(
 }
 
 export interface GetCryptoQuotesParams {
-  start: string;
+  start?: string;
   end?: string;
   limit?: number;
   pageLimit?: number;
@@ -719,7 +719,7 @@ export async function getNews(
 
 export interface GetOptionBarsParams {
   timeframe: string;
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
@@ -764,7 +764,7 @@ export async function* getMultiOptionBarsAsync(
 }
 
 export interface GetOptionTradesParams {
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
@@ -900,12 +900,12 @@ export async function getOptionChain(
 
 export interface GetCorporateActionParams {
   types?: Array<string>;
-  start: string;
-  end: string;
+  start?: string;
+  end?: string;
   pageLimit?: number;
   totalLimit?: number;
-  page_token: string;
-  sort: Sort;
+  page_token?: string;
+  sort?: Sort;
 }
 
 export async function getCorporateActions(
