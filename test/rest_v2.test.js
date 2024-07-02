@@ -320,7 +320,10 @@ describe("crypto API", () => {
   });
 
   it("get historical quotes", async () => {
-    const resp = await alpaca.getCryptoQuotes(["BTC/USD"], { start: "2024-06-25" });
+    const resp = await alpaca.getCryptoQuotes(["BTC/USD"], {
+      start: "2024-06-25",
+      limit: 1,
+    });
     expect(resp.size).equal(1);
 
     const quote = resp.get("BTC/USD");
