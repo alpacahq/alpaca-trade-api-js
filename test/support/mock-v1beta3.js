@@ -101,6 +101,13 @@ const dataBySymbol = {
       tks: "S",
     },
     bars: {},
+    quotes: {
+      ap: 60849.5,
+      as: 0.56,
+      bp: 60772.395,
+      bs: 0.5549,
+      t: "2024-06-27T00:01:28.222959058Z",
+    },
   },
   "ETH/USD": {
     bars: {

@@ -195,13 +195,14 @@ export async function* getMultiDataV2(
 }
 
 export interface GetTradesParams {
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
   feed?: string;
   asof?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function* getTrades(
@@ -253,13 +254,14 @@ export async function* getMultiTradesAsync(
 }
 
 export interface GetQuotesParams {
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
   feed?: string;
   asof?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function* getQuotes(
@@ -313,13 +315,14 @@ export async function* getMultiQuotesAsync(
 export interface GetBarsParams {
   timeframe: string;
   adjustment?: Adjustment;
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
   feed?: string;
   asof?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function* getBars(
@@ -457,10 +460,11 @@ export async function getSnapshots(
 }
 
 export interface GetCryptoTradesParams {
-  start: string;
+  start?: string;
   end?: string;
   limit?: number;
   pageLimit?: number;
+  sort?: Sort;
 }
 
 export async function getCryptoTrades(
@@ -484,12 +488,42 @@ export async function getCryptoTrades(
   return trades;
 }
 
+export interface GetCryptoQuotesParams {
+  start?: string;
+  end?: string;
+  limit?: number;
+  pageLimit?: number;
+  sort?: Sort;
+}
+
+export async function getCryptoQuotes(
+  symbols: string[],
+  options: GetCryptoQuotesParams,
+  config: any
+): Promise<Map<string, CryptoQuote[]>> {
+  const cryptoQuotes = getMultiDataV2(
+    symbols,
+    "/v1beta3/crypto/us/",
+    TYPE.QUOTES,
+    options,
+    config
+  );
+  const quotes = new Map<string, Array<CryptoQuote>>();
+  for await (const t of cryptoQuotes) {
+    const items = quotes.get(t.symbol) || new Array<CryptoQuote>();
+    quotes.set(t.symbol, [...items, AlpacaCryptoQuote(t.data)]);
+  }
+
+  return quotes;
+}
+
 export interface GetCryptoBarsParams {
   start?: string;
   end?: string;
   timeframe: string;
   limit?: number;
   pageLimit?: number;
+  sort?: Sort;
 }
 
 export async function getCryptoBars(
@@ -685,12 +719,13 @@ export async function getNews(
 
 export interface GetOptionBarsParams {
   timeframe: string;
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
   feed?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function getMultiOptionBars(
@@ -729,12 +764,13 @@ export async function* getMultiOptionBarsAsync(
 }
 
 export interface GetOptionTradesParams {
-  start: string;
+  start?: string;
   end?: string;
   pageLimit?: number;
   limit?: number;
   feed?: string;
   page_token?: string;
+  sort?: Sort;
 }
 
 export async function getMultiOptionTrades(
@@ -864,12 +900,12 @@ export async function getOptionChain(
 
 export interface GetCorporateActionParams {
   types?: Array<string>;
-  start: string;
-  end: string;
+  start?: string;
+  end?: string;
   pageLimit?: number;
   totalLimit?: number;
-  page_token: string;
-  sort: Sort;
+  page_token?: string;
+  sort?: Sort;
 }
 
 export async function getCorporateActions(
