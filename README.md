@@ -21,7 +21,7 @@ npm install --save @alpacahq/alpaca-trade-api
 
 ## Runtime Dependencies
 
-- Node.js v14.x or newer
+- Node.js v16.9 or newer
 - npm version 6 and above
 
 
@@ -345,7 +345,7 @@ alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then(
 })
 ```
 
-### Data API
+### Data API - Stocks
 
 #### Trades
 ```ts
@@ -412,7 +412,7 @@ getMultiQuotesV2(
   symbols: Array<string>,
   options: GetQuotesParams,
   config?: any,
-): Promise<Map<string, any[]>>;
+): Promise<Map<string, AlpacaQuote[]>>;
 ```
 ```ts
 getMultiQuotesAsyncV2(
@@ -485,7 +485,7 @@ getMultiBarsV2(
   symbols: Array<string>,
   options: GetBarsParams,
   config?: any,
-): Promise<Map<string, any[]>>;
+): Promise<Map<string, AlpacaBar[]>>;
 ```
 ```ts
  getMultiBarsAsyncV2(
@@ -655,22 +655,14 @@ All the functions are similar to the stock ones.
 #### Trades
 * ```ts
     getCryptoTrades(
-      symbol: string, 
+      symbols: Array<string>, 
       options: GetCryptoTradesParams, 
       config?: any,
     ): AsyncGenerator<CryptoTrade, void, unknown>;
   ```
-* ```ts
-    getLatestCryptoTrade(
-      symbol: string,
-      options: {exchange: string},
-      config?: any
-    ): Promise<CryptoTrade>;
-  ```
 * ```ts 
     getLatestCryptoTrades(
       symbols: Array<string>,
-      options: { exchange: string }, 
       config?: any
     ): Promise<Map<string, CryptoTrade>>;
   ```
@@ -678,22 +670,14 @@ All the functions are similar to the stock ones.
 #### Quotes
 * ```ts
     getCryptoQuotes(
-      symbol: string,
+      symbols: Array<string>,
       options: GetCryptoQuotesParams, 
       config?: any,
     ): AsyncGenerator<CryptoQuote, void, unknown>;
   ```
 * ```ts
-    getLatestCryptoQuote(
-      symbol: string,
-      options: { exchange: string },
-      config?: any,
-    ): Promise<CryptoQuote>;
-  ```
-* ```ts
    getLatestCryptoQuotes(
     symbols: Array<string>,
-    options: { exchange: string },
     config?: any,
   ): Promise<Map<string, CryptoQuote>>;
   ```
@@ -701,52 +685,79 @@ All the functions are similar to the stock ones.
 #### Bars
 * ```ts 
      getCryptoBars(
-      symbol: string,
+      symbols: Array<string>,
       options: GetCryptoBarsParams, 
       config?: any,
     ): AsyncGenerator<CryptoBar, void, unknown>;
   ```
 * ```ts
-     getLatestCryptoBar(
-       symbol: string,
-       options: { exchange: string }, 
-       config?: any,
-     ): Promise<CryptoBar>;
-  ```
-* ```ts
     getLatestCryptoBars(
       symbols: Array<string>,
-      options: { exchange: string },
       config?: any,
     ): Promise<Map<string, CryptoBar>>;
   ```
 
-#### XBBOs
-* ```ts
-    getLatestCryptoXBBO(
-      symbol: string,
-      options: { exchanges?: Array<string> },
-      config?: any,
-    ): Promise<CryptoXBBO>;
-  ```
-* ```ts 
-    getLatestCryptoXBBOs(
-      symbols: Array<string>,
-      options: { exchanges?: Array<string> }, 
-      config?: any,
-    ): Promise<Map<string, CryptoXBBO>>;
-  ```
-
 #### Snapshots
 * ```ts
-    getCryptoSnapshot(
-      symbol: string,
-      options:  { exchange: string },
+    getCryptoSnapshots(
+      symbol: Array<string>,
       config?: any,
     ): Promise<CryptoSnapshot>;
   ```
+  
+### Data API - Options
+#### Bars
+* ```ts
+    getOptionBars(
+      symbols: Array<stirng>,
+      options: GetOptionBarsParams,
+      config?: any,
+    ): Promise<Map<string, AlpacaOptionBar[]>>;
+  ```
+#### Trades
+* ```ts
+    getOptionTrades(
+      symbols: Array<stirng>,
+      options: GetOptionTradesParams,
+      config = any,
+    ): Promise<Map<string, AlpacaOptionTrade[]>>;
+  ```
+* ```ts
+    getOptionLatestTrades(
+      symbols: Array<stirng>,
+      config = any,
+    ): Promise<Map<string, AlpacaOptionTrade>>;
+  ```
+#### Quotes
+* ```ts
+   getOptionLatestQuotes(
+     symbols: Array<stirng>,
+     config = any,
+   ): Promise<Map<string, AlpacaOptionQuote>>;
+  ```
+#### Snapshots
+* ```ts
+    getOptionSnapshots(
+      symbols: Array<stirng>,
+      config = any,
+    ): Promise<AlpacaOptionSnapshot[]>;
+  ```
+* ```ts
+    getOptionChain(
+      underlyingSymbols: string,
+      options: GetOptionChainParams,
+      config = any,
+    ): Promise<AlpacaOptionSnapshot[]>;
+  ```
 
-
+### Data API - Corporate Actions
+* ```ts
+    getCorporateActions(
+      symbols: Array<stirng>,
+      options: GetCorporateActionParams,
+      config = any
+    ): Promise<CorporateActions | undefined>; 
+  ```
 
 ### Websockets
 You can use data websocket with or without a funded account.
