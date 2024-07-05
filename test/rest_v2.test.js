@@ -386,7 +386,7 @@ describe("options API", () => {
   });
 
   it("option chain", async () => {
-    const snapshots = await alpaca.getOptionChain("AAPL");
+    const snapshots = await alpaca.getOptionChain("AAPL", {});
 
     expect(snapshots.length).equal(1);
     const snapshot = snapshots[0];
