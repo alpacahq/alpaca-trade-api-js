@@ -476,7 +476,7 @@ console.log(trades);
 ```ts
  getBarsV2(
    symbol: string,
-   options: GetBarsParams, 
+   options: GetBarsParams,
    config?: any,
  ): AsyncGenerator<AlpacaBar, void, unknown>;
 ```
@@ -620,7 +620,7 @@ console.log(snapshot);
   }
 }
 ```
-More detailed examples of stock data endpoints can be found in this [file](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/marketdataV2.ts). 
+More detailed examples of stock data endpoints can be found in this [file](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/marketdataV2.ts).
 
 ##### News
 ```ts
@@ -651,16 +651,16 @@ Details of the `options` parameter can be found [here](https://github.com/alpaca
 }
 ```
 ### Data API - Crypto
-All the functions are similar to the stock ones. 
+All the functions are similar to the stock ones.
 #### Trades
 * ```ts
     getCryptoTrades(
-      symbols: Array<string>, 
-      options: GetCryptoTradesParams, 
+      symbols: Array<string>,
+      options: GetCryptoTradesParams,
       config?: any,
     ): AsyncGenerator<CryptoTrade, void, unknown>;
   ```
-* ```ts 
+* ```ts
     getLatestCryptoTrades(
       symbols: Array<string>,
       config?: any
@@ -671,7 +671,7 @@ All the functions are similar to the stock ones.
 * ```ts
     getCryptoQuotes(
       symbols: Array<string>,
-      options: GetCryptoQuotesParams, 
+      options: GetCryptoQuotesParams,
       config?: any,
     ): AsyncGenerator<CryptoQuote, void, unknown>;
   ```
@@ -683,10 +683,10 @@ All the functions are similar to the stock ones.
   ```
 
 #### Bars
-* ```ts 
+* ```ts
      getCryptoBars(
       symbols: Array<string>,
-      options: GetCryptoBarsParams, 
+      options: GetCryptoBarsParams,
       config?: any,
     ): AsyncGenerator<CryptoBar, void, unknown>;
   ```
@@ -704,12 +704,12 @@ All the functions are similar to the stock ones.
       config?: any,
     ): Promise<CryptoSnapshot>;
   ```
-  
+
 ### Data API - Options
 #### Bars
 * ```ts
     getOptionBars(
-      symbols: Array<stirng>,
+      symbols: Array<string>,
       options: GetOptionBarsParams,
       config?: any,
     ): Promise<Map<string, AlpacaOptionBar[]>>;
@@ -717,28 +717,28 @@ All the functions are similar to the stock ones.
 #### Trades
 * ```ts
     getOptionTrades(
-      symbols: Array<stirng>,
+      symbols: Array<string>,
       options: GetOptionTradesParams,
       config = any,
     ): Promise<Map<string, AlpacaOptionTrade[]>>;
   ```
 * ```ts
     getOptionLatestTrades(
-      symbols: Array<stirng>,
+      symbols: Array<string>,
       config = any,
     ): Promise<Map<string, AlpacaOptionTrade>>;
   ```
 #### Quotes
 * ```ts
    getOptionLatestQuotes(
-     symbols: Array<stirng>,
+     symbols: Array<string>,
      config = any,
    ): Promise<Map<string, AlpacaOptionQuote>>;
   ```
 #### Snapshots
 * ```ts
     getOptionSnapshots(
-      symbols: Array<stirng>,
+      symbols: Array<string>,
       config = any,
     ): Promise<AlpacaOptionSnapshot[]>;
   ```
@@ -753,10 +753,10 @@ All the functions are similar to the stock ones.
 ### Data API - Corporate Actions
 * ```ts
     getCorporateActions(
-      symbols: Array<stirng>,
+      symbols: Array<string>,
       options: GetCorporateActionParams,
       config = any
-    ): Promise<CorporateActions | undefined>; 
+    ): Promise<CorporateActions | undefined>;
   ```
 
 ### Websockets
@@ -767,7 +767,7 @@ const websocket = alpaca.data_stream_v2;
 websocket.onConnect(() => {
   websocket.subscribeForTrades(["AAPL"]);
 });
-websocket.onStateChange((status) => { 
+websocket.onStateChange((status) => {
   console.log("Status:", status);
 });
 websocket.onError((err) => {
@@ -804,7 +804,7 @@ Trade:  {
   outside this function.
 * `websocket.subscribeForTrades(["AAPL"])`: Subscribe for trades data for the
   given symbol(s). You can do the same with quotes, bars, dailyBars, updatedBars, statuses and lulds.
-* `websocket.onStockTrade((trade) => {})`: Get the data by subscribing for the trade data event 
+* `websocket.onStockTrade((trade) => {})`: Get the data by subscribing for the trade data event
   in JS/TS and process it inside this function.
 * `websocket.unsubscribeFromTrades(["symbol"])`: Unsubscribe from symbol(s).
 * `websocket.onDisconnect(() => {})` and `websocket.disconnect()`: the function
