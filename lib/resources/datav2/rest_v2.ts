@@ -37,7 +37,7 @@ import {
 // Number of data points to return.
 const V2_MAX_LIMIT = 10000;
 const V2_NEWS_MAX_LIMIT = 50;
-const CORP_ACTION_MAX_LIMIT = 1000;
+const V1_BETA1_MAX_LIMIT = 1000;
 
 export enum Adjustment {
   RAW = "raw",
@@ -50,6 +50,7 @@ export enum TYPE {
   TRADES = "trades",
   QUOTES = "quotes",
   BARS = "bars",
+  SNAPSHOTS = "snapshots",
 }
 
 export function dataV2HttpRequest(
@@ -865,7 +866,7 @@ export interface GetOptionChainParams {
   feed?: string;
   type?: string;
   pageLimit?: number;
-  limit?: number;
+  totalLimit?: number;
   strike_price_gte?: number;
   strike_price_lte?: number;
   expiration_date?: string;
@@ -880,17 +881,46 @@ export async function getOptionChain(
   options: GetOptionChainParams,
   config: any
 ): Promise<AlpacaOptionSnapshot[]> {
-  const resp = await dataV2HttpRequest(
-    `/v1beta1/options/snapshots/${underlyingSymbol}`,
-    options,
-    config
-  );
-
-  const result = Object.entries(resp.data.snapshots as Map<string, any>).map(
-    ([key, val]) => {
-      return AlpacaOptionSnapshotV1Beta1({ Symbol: key, ...val });
+  if (options.totalLimit && options.totalLimit < 0) {
+    throw new Error("negative total limit");
+  }
+  if (options.pageLimit && options.pageLimit < 0) {
+    throw new Error("negative page limit");
+  }
+  let pageToken: string | null = null;
+  let received = 0;
+  const pageLimit = options?.pageLimit
+    ? Math.min(options.pageLimit, V1_BETA1_MAX_LIMIT)
+    : V1_BETA1_MAX_LIMIT;
+  delete options.pageLimit;
+  const totalLimit = options?.totalLimit ?? 10000;
+  delete options.totalLimit;
+  const result = [] as AlpacaOptionSnapshot[];
+  let limit;
+  for (;;) {
+    limit = getQueryLimit(totalLimit, pageLimit, received);
+    if (limit < 1) {
+      break;
     }
-  );
+    const resp = await dataV2HttpRequest(
+      `/v1beta1/options/snapshots/${underlyingSymbol}`,
+      { ...options, limit: limit, page_token: pageToken },
+      config
+    );
+
+    const res = Object.entries(resp.data.snapshots as Map<string, any>).map(
+      ([key, val]) => {
+        return AlpacaOptionSnapshotV1Beta1({ Symbol: key, ...val });
+      }
+    );
+    received = received + res.length;
+    result.push(...res);
+
+    pageToken = resp.data.next_page_token;
+    if (!pageToken) {
+      break;
+    }
+  }
   return result;
 }
 
@@ -909,8 +939,6 @@ export async function getCorporateActions(
   options: GetCorporateActionParams,
   config: any
 ): Promise<CorporateActions | undefined> {
-  const resp = getMultiDataV2(symbols, `/v1beta1/corporate-actions`, "", options, config);
-
   if (options.totalLimit && options.totalLimit < 0) {
     throw new Error("negative total limit");
   }
@@ -921,8 +949,8 @@ export async function getCorporateActions(
   let pageToken: string | null = null;
   let received = 0;
   const pageLimit = options?.pageLimit
-    ? Math.min(options.pageLimit, CORP_ACTION_MAX_LIMIT)
-    : CORP_ACTION_MAX_LIMIT;
+    ? Math.min(options.pageLimit, V1_BETA1_MAX_LIMIT)
+    : V1_BETA1_MAX_LIMIT;
   delete options?.pageLimit;
   const totalLimit = options?.totalLimit ?? V2_MAX_LIMIT;
   delete options.totalLimit;
