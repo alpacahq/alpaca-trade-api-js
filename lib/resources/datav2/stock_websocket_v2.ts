@@ -194,7 +194,7 @@ export class AlpacaStocksClient extends Websocket {
   }
 
   unsubscribeFromLulds(lulds: Array<string>): void {
-    this.session.subscriptions.statuses =
+    this.session.subscriptions.lulds =
       this.session.subscriptions.lulds.filter(
         (luld: string) => !lulds.includes(luld)
       );
