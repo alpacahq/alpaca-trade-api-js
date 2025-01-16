@@ -187,6 +187,9 @@ export abstract class AlpacaWebsocket
     this.session.pingInterval = setInterval(() => {
       this.ping();
     }, 10000);
+    this.on(STATE.WAITING_TO_RECONNECT, (ts) => {
+      this.log(`backoff: ${ts}`);
+    });
   }
 
   onConnect(fn: () => void): void {
@@ -211,9 +214,9 @@ export abstract class AlpacaWebsocket
         if (reconnectTimeout > maxReconnectTimeout) {
           reconnectTimeout = maxReconnectTimeout;
         }
+        this.emit(STATE.WAITING_TO_RECONNECT, reconnectTimeout);
         this.connect();
       }, reconnectTimeout * 1000);
-      this.emit(STATE.WAITING_TO_RECONNECT, reconnectTimeout);
     }
   }
 

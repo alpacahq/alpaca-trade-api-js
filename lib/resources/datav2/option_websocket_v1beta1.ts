@@ -52,15 +52,7 @@ export class AlpacaOptionClient extends Websocket {
   }
 
   subscribeAll(): void {
-    const { trades, quotes } = this.session.subscriptions;
-    if (trades.length > 0 || quotes.length > 0) {
-      const msg = {
-        action: "subscribe",
-        trades,
-        quotes,
-      };
-      this.conn.send(this.msgpack.encode(msg));
-    }
+    this.subscribe(this.session.subscriptions);
   }
 
   unsubscribeFromTrades(trades: Array<string>): void {

@@ -45,10 +45,7 @@ interface StockWebSocketSession {
 export class AlpacaStocksClient extends Websocket {
   constructor(options: StockWebsocketOptions) {
     const url: string =
-      "wss" +
-      options.url.substr(options.url.indexOf(":")) +
-      "/v2/" +
-      options.feed;
+      "wss" + options.url.substr(options.url.indexOf(":")) + "/v2/" + options.feed;
     options.url = url;
     options.subscriptions = {
       trades: [],
@@ -121,44 +118,20 @@ export class AlpacaStocksClient extends Websocket {
   }
 
   subscribeAll(): void {
-    const { trades, quotes, bars, updatedBars, dailyBars, statuses, lulds } =
-      this.session.subscriptions;
-    if (
-      trades.length > 0 ||
-      quotes.length > 0 ||
-      bars.length > 0 ||
-      updatedBars.length > 0 ||
-      dailyBars.length > 0 ||
-      statuses.length > 0 ||
-      lulds.level > 0
-    ) {
-      const msg = {
-        action: "subscribe",
-        trades,
-        quotes,
-        bars,
-        updatedBars,
-        dailyBars,
-        statuses,
-        lulds,
-      };
-      this.conn.send(this.msgpack.encode(msg));
-    }
+    this.subscribe(this.session.subscriptions);
   }
 
   unsubscribeFromTrades(trades: Array<string>): void {
-    this.session.subscriptions.trades =
-      this.session.subscriptions.trades.filter(
-        (trade: string) => !trades.includes(trade)
-      );
+    this.session.subscriptions.trades = this.session.subscriptions.trades.filter(
+      (trade: string) => !trades.includes(trade)
+    );
     this.unsubscribe({ trades });
   }
 
   unsubscribeFromQuotes(quotes: Array<string>): void {
-    this.session.subscriptions.quotes =
-      this.session.subscriptions.quotes.filter(
-        (quote: string) => !quotes.includes(quote)
-      );
+    this.session.subscriptions.quotes = this.session.subscriptions.quotes.filter(
+      (quote: string) => !quotes.includes(quote)
+    );
     this.unsubscribe({ quotes });
   }
 
@@ -178,26 +151,23 @@ export class AlpacaStocksClient extends Websocket {
   }
 
   unsubscribeFromDailyBars(dailyBars: Array<string>): void {
-    this.session.subscriptions.dailyBars =
-      this.session.subscriptions.dailyBars.filter(
-        (dailyBar: string) => !dailyBars.includes(dailyBar)
-      );
+    this.session.subscriptions.dailyBars = this.session.subscriptions.dailyBars.filter(
+      (dailyBar: string) => !dailyBars.includes(dailyBar)
+    );
     this.unsubscribe({ dailyBars });
   }
 
   unsubscribeFromStatuses(statuses: Array<string>): void {
-    this.session.subscriptions.statuses =
-      this.session.subscriptions.statuses.filter(
-        (status: string) => !statuses.includes(status)
-      );
+    this.session.subscriptions.statuses = this.session.subscriptions.statuses.filter(
+      (status: string) => !statuses.includes(status)
+    );
     this.unsubscribe({ statuses });
   }
 
   unsubscribeFromLulds(lulds: Array<string>): void {
-    this.session.subscriptions.lulds =
-      this.session.subscriptions.lulds.filter(
-        (luld: string) => !lulds.includes(luld)
-      );
+    this.session.subscriptions.lulds = this.session.subscriptions.lulds.filter(
+      (luld: string) => !lulds.includes(luld)
+    );
     this.unsubscribe({ lulds });
   }
 
@@ -288,26 +258,16 @@ export class AlpacaStocksClient extends Websocket {
   }
 
   onCancelErrors(fn: (cancelError: AlpacaCancelError) => void): void {
-    this.on(EVENT.CANCEL_ERRORS, (cancelError: AlpacaCancelError) =>
-      fn(cancelError)
-    );
+    this.on(EVENT.CANCEL_ERRORS, (cancelError: AlpacaCancelError) => fn(cancelError));
   }
 
   onCorrections(fn: (correction: AlpacaCorrection) => void): void {
-    this.on(EVENT.CORRECTIONS, (correction: AlpacaCorrection) =>
-      fn(correction)
-    );
+    this.on(EVENT.CORRECTIONS, (correction: AlpacaCorrection) => fn(correction));
   }
 
   dataHandler(
     data: Array<
-      | RawTrade
-      | RawQuote
-      | RawBar
-      | RawStatus
-      | RawLuld
-      | RawCancelError
-      | RawCorrection
+      RawTrade | RawQuote | RawBar | RawStatus | RawLuld | RawCancelError | RawCorrection
     >
   ): void {
     data.forEach(
@@ -339,10 +299,7 @@ export class AlpacaStocksClient extends Websocket {
               this.emit(EVENT.DAILY_BARS, AlpacaBarV2(element as RawBar));
               break;
             case "s":
-              this.emit(
-                EVENT.TRADING_STATUSES,
-                AlpacaStatusV2(element as RawStatus)
-              );
+              this.emit(EVENT.TRADING_STATUSES, AlpacaStatusV2(element as RawStatus));
               break;
             case "l":
               this.emit(EVENT.LULDS, AlpacaLuldV2(element as RawLuld));
@@ -354,10 +311,7 @@ export class AlpacaStocksClient extends Websocket {
               );
               break;
             case "c":
-              this.emit(
-                EVENT.CORRECTIONS,
-                AlpacaCorrectionV2(element as RawCorrection)
-              );
+              this.emit(EVENT.CORRECTIONS, AlpacaCorrectionV2(element as RawCorrection));
               break;
             default:
               this.emit(EVENT.CLIENT_ERROR, ERROR.UNEXPECTED_MESSAGE);
