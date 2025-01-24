@@ -185,7 +185,7 @@ Calls `GET /orders:by_client_order_id` and returns an order by `client_order_id`
 You can set `client_order_id` upon order creation to more easily keep track of your orders.
 
 ```ts
-getOrderByClientOrderId(string) => Promise<Order>
+getOrderByClientId(string) => Promise<Order>
 ```
 
 #### Update Order by ID
