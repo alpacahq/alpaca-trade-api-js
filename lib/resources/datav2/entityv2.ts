@@ -575,7 +575,7 @@ export interface AlpacaOptionSnapshot {
   Symbol: string;
   LatestTrade: AlpacaTrade;
   LatestQuote: AlpacaQuote;
-  ImpliedVOlatility: number;
+  ImpliedVolatility: number;
   Greeks: Greeks;
 }
 
