@@ -75,11 +75,15 @@ export function dataV2HttpRequest(
       headers: headers,
     })
     .catch((err: any) => {
-      throw new Error(
-        `code: ${err.response?.status || err.statusCode}, message: ${
-          err.response?.data.message
-        }`
-      );
+      if (err.response) {
+        throw new Error(
+          `code: ${err.response.status}, message: ${
+            err.response.data?.message
+          }`
+        );
+      }
+
+      throw new err;
     });
 }
 
