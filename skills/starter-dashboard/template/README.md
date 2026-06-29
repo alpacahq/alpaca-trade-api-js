@@ -18,7 +18,7 @@ credentials from the Alpaca dashboard before running the app.
 
 ## What This App Demonstrates
 
-- A single `Alpaca` client from `@alpacahq/alpaca-ts-alpha`.
+- A single `Alpaca` client from `@alpacahq/alpaca-trade-api`.
 - Trading API reads for account, positions, assets, and orders.
 - Market Data API reads for latest price and historical daily bars.
 - REST-only server rendering and server actions; no WebSocket or SSE route.

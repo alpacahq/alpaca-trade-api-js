@@ -61,7 +61,7 @@ npx skills add alpacahq/alpaca-trade-api-js
 ```
 
 The skill lives at
-[`skills/alpaca-ts-alpha-sdk/SKILL.md`](./skills/alpaca-ts-alpha-sdk/SKILL.md).
+[`skills/alpaca-trade-api-sdk/SKILL.md`](./skills/alpaca-trade-api-sdk/SKILL.md).
 
 
 ## Quick start: the `Alpaca` client

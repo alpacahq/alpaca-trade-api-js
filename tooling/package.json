@@ -1,9 +1,9 @@
 {
-  "name": "alpaca-ts-alpha-tooling",
+  "name": "alpaca-trade-api-tooling",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Reproducible OpenAPI regeneration pipeline for @alpacahq/alpaca-ts-alpha (Trading + Market Data).",
+  "description": "Reproducible OpenAPI regeneration pipeline for @alpacahq/alpaca-trade-api (Trading + Market Data).",
   "engines": {
     "node": ">=20"
   },

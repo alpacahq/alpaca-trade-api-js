@@ -1,6 +1,6 @@
 # OpenAPI Regeneration Tooling
 
-This package regenerates the `@alpacahq/alpaca-ts-alpha` REST clients/models from
+This package regenerates the `@alpacahq/alpaca-trade-api` REST clients/models from
 Alpaca's OpenAPI specs **reproducibly** and **regeneration-safely**. It is a
 private, standalone package (not part of the published SDK) with its own
 dependencies and tests.

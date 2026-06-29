@@ -1,4 +1,4 @@
-import { TimeFrame } from "@alpacahq/alpaca-ts-alpha";
+import { TimeFrame } from "@alpacahq/alpaca-trade-api";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";

@@ -1,16 +1,16 @@
 ---
-name: alpaca-ts-alpha-sdk
+name: alpaca-trade-api-sdk
 description: >-
-  Integrate and build on the @alpacahq/alpaca-ts-alpha TypeScript SDK for the
+  Integrate and build on the @alpacahq/alpaca-trade-api TypeScript SDK for the
   Alpaca Trading and Market Data APIs (the unified Alpaca client, ergonomic
   order builders, normalized market-data shapes, pagination, typed errors,
   resilience, and real-time streaming). Use when writing or reviewing code that
-  imports @alpacahq/alpaca-ts-alpha, places orders, fetches bars/trades/quotes,
+  imports @alpacahq/alpaca-trade-api, places orders, fetches bars/trades/quotes,
   opens market-data or trading WebSocket streams, or builds a trading bot,
   backtester, or market-data backend on top of this SDK.
 ---
 
-# Building on @alpacahq/alpaca-ts-alpha
+# Building on @alpacahq/alpaca-trade-api
 
 This is a **map, not the territory.** It gives you the mental model, the idioms
 agents most often get wrong, and where to look — it deliberately omits the full
@@ -23,7 +23,7 @@ README or the source.
 ## Where the source of truth lives
 
 Paths are relative to the package root — the repo root when developing here, or
-`node_modules/@alpacahq/alpaca-ts-alpha/` when installed (`src/` ships in the
+`node_modules/@alpacahq/alpaca-trade-api/` when installed (`src/` ships in the
 published tarball).
 
 | You need… | Read / search |
@@ -60,7 +60,7 @@ generated method is always there. You never have to choose between them.
 ## Setup essentials
 
 ```ts
-import { Alpaca } from "@alpacahq/alpaca-ts-alpha";
+import { Alpaca } from "@alpacahq/alpaca-trade-api";
 
 const alpaca = new Alpaca({
   keyId: process.env.APCA_API_KEY_ID,
@@ -111,7 +111,7 @@ const alpaca = new Alpaca({
   (`maxRetries > 0` to enable; non-idempotent POSTs are never auto-retried),
   `rateLimit` (the `Alpaca` client enables a safe ~200/min default; raw `Api`
   classes do not), and `userAgent` are all top-level client options.
-- **REST-only builds:** import from `@alpacahq/alpaca-ts-alpha/rest` to keep
+- **REST-only builds:** import from `@alpacahq/alpaca-trade-api/rest` to keep
   `ws`/`@msgpack/msgpack` out of the module graph. Stream factories and
   `submitAndWait` throw from this entrypoint — import the root package for
   streams. On edge/browser runtimes (Cloudflare Workers/`workerd`, Vercel Edge,
@@ -143,7 +143,7 @@ state over the trading-updates stream.
 ## Discovering anything programmatically
 
 ```ts
-import { findCapabilities, findErgonomic } from "@alpacahq/alpaca-ts-alpha";
+import { findCapabilities, findErgonomic } from "@alpacahq/alpaca-trade-api";
 
 findCapabilities("getAccount"); // generated: which Api / accessor hosts it
 findErgonomic("market");        // ergonomic: is there a helper, and where
@@ -155,7 +155,7 @@ live?" instead of guessing.
 
 ## Testing integrations
 
-`@alpacahq/alpaca-ts-alpha/testing` is a network-free harness: `createMockAlpaca([...])`
+`@alpacahq/alpaca-trade-api/testing` is a network-free harness: `createMockAlpaca([...])`
 returns a ready client backed by canned responses matched by method + path; use
 it so unit tests never hit Alpaca.
 

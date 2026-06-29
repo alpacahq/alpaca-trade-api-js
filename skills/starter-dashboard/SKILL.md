@@ -1,13 +1,13 @@
 ---
 name: starter-dashboard
-description: Scaffold a local Next.js Alpaca dashboard using the published @alpacahq/alpaca-ts-alpha SDK for paper Trading API and Market Data API workflows. Use when the user asks for starter-dashboard, a starter Alpaca dashboard, a local Trading API demo, a Market Data API dashboard, or a greenfield Next.js Alpaca SDK prototype.
+description: Scaffold a local Next.js Alpaca dashboard using the published @alpacahq/alpaca-trade-api SDK for paper Trading API and Market Data API workflows. Use when the user asks for starter-dashboard, a starter Alpaca dashboard, a local Trading API demo, a Market Data API dashboard, or a greenfield Next.js Alpaca SDK prototype.
 user_invocable: true
 ---
 
 # Alpaca Starter Dashboard
 
 Create a local Next.js dashboard for Alpaca paper trading and market data demos.
-The generated app uses the published `@alpacahq/alpaca-ts-alpha` package and calls
+The generated app uses the published `@alpacahq/alpaca-trade-api` package and calls
 the Trading API and Market Data API directly through the SDK.
 
 ## Workflow

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Alpaca, ApiError, RateLimitError } from "@alpacahq/alpaca-ts-alpha";
+import { Alpaca, ApiError, RateLimitError } from "@alpacahq/alpaca-trade-api";
 
 let cached: Alpaca | undefined;
 
