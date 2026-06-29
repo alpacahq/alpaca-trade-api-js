@@ -104,7 +104,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm run typecheck:examples",
     "typecheck:examples": "tsc --noEmit -p tsconfig.examples.json",
     "test": "vitest run",
     "lint": "biome lint .",
