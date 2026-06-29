@@ -16,7 +16,7 @@ function jsonFetch(body: unknown): trading.FetchAPI {
         })) as unknown as trading.FetchAPI;
 }
 
-describe('@alpacahq/alpaca-ts-alpha/rest entrypoint', () => {
+describe('@alpacahq/alpaca-trade-api/rest entrypoint', () => {
     it('performs REST calls normally', async () => {
         const alpaca = new Alpaca({
             ...CREDS,
@@ -28,7 +28,7 @@ describe('@alpacahq/alpaca-ts-alpha/rest entrypoint', () => {
 
     it('throws a helpful error when a stream factory is used (streaming not loaded)', () => {
         const alpaca = new Alpaca({ ...CREDS });
-        expect(() => alpaca.trading.stream()).toThrow(/@alpacahq\/alpaca-ts-alpha\/rest/);
-        expect(() => alpaca.marketData.stockStream()).toThrow(/streaming is unavailable|@alpacahq\/alpaca-ts-alpha\/rest/i);
+        expect(() => alpaca.trading.stream()).toThrow(/@alpacahq\/alpaca-trade-api\/rest/);
+        expect(() => alpaca.marketData.stockStream()).toThrow(/streaming is unavailable|@alpacahq\/alpaca-trade-api\/rest/i);
     });
 });

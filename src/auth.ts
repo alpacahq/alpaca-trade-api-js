@@ -16,7 +16,7 @@
  *
  * @example
  * ```ts
- * import { trading, auth } from "@alpacahq/alpaca-ts-alpha";
+ * import { trading, auth } from "@alpacahq/alpaca-trade-api";
  *
  * // Preferred: keyId/secret are accepted directly by Configuration.
  * const config = new trading.Configuration({ keyId, secret });

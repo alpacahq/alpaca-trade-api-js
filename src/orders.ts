@@ -21,7 +21,7 @@
  *
  * @example
  * ```ts
- * import { orders } from "@alpacahq/alpaca-ts-alpha";
+ * import { orders } from "@alpacahq/alpaca-trade-api";
  *
  * const req = orders.buildLimitOrder({ symbol: "AAPL", qty: 10, side: "buy", limitPrice: 150 });
  * await tradingOrdersApi.postOrder({ postOrderRequest: req });

@@ -4,8 +4,8 @@
  * `@msgpack/msgpack` runtime dependencies).
  *
  * The `streaming` module registers its implementation here as a side effect of
- * being loaded. The main `@alpacahq/alpaca-ts-alpha` entrypoint re-exports `streaming`, so it
- * is always loaded there and the stream factories work. The `@alpacahq/alpaca-ts-alpha/rest`
+ * being loaded. The main `@alpacahq/alpaca-trade-api` entrypoint re-exports `streaming`, so it
+ * is always loaded there and the stream factories work. The `@alpacahq/alpaca-trade-api/rest`
  * entrypoint never loads `streaming`, so {@link getStreaming} throws a clear
  * error if a stream factory is used from it - and `ws`/msgpack stay out of the
  * REST-only module graph.
@@ -36,13 +36,13 @@ export function provideStreaming(streaming: StreamingImpl): void {
 
 /**
  * Returns the registered streaming implementation, or throws if `streaming`
- * was never loaded (e.g. when using the `@alpacahq/alpaca-ts-alpha/rest` entrypoint).
+ * was never loaded (e.g. when using the `@alpacahq/alpaca-trade-api/rest` entrypoint).
  */
 export function getStreaming(): StreamingImpl {
     if (impl === undefined) {
         throw new Error(
-            "Real-time streaming is unavailable from the '@alpacahq/alpaca-ts-alpha/rest' entrypoint. " +
-            "Import from '@alpacahq/alpaca-ts-alpha' to use stream factories (stockStream, stream, submitAndWait, ...).",
+            "Real-time streaming is unavailable from the '@alpacahq/alpaca-trade-api/rest' entrypoint. " +
+            "Import from '@alpacahq/alpaca-trade-api' to use stream factories (stockStream, stream, submitAndWait, ...).",
         );
     }
     return impl;

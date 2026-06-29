@@ -1,7 +1,7 @@
 /**
- * REST-only entrypoint (`@alpacahq/alpaca-ts-alpha/rest`).
+ * REST-only entrypoint (`@alpacahq/alpaca-trade-api/rest`).
  *
- * Identical to the main `@alpacahq/alpaca-ts-alpha` entrypoint EXCEPT it does not export (or
+ * Identical to the main `@alpacahq/alpaca-trade-api` entrypoint EXCEPT it does not export (or
  * load) the `streaming` namespace. Importing from here keeps the `ws` and
  * `@msgpack/msgpack` runtime dependencies out of your module graph - useful for
  * REST-only services, serverless/edge bundles, and faster cold starts.
@@ -10,7 +10,7 @@
  * methods (and pagination, order builders, `getLatestPrice`, `closeAllPositions`)
  * work unchanged. The stream factories (`stockStream`, `stream`, ...) and
  * `submitAndWait` exist but throw if called, since `streaming` is not loaded
- * here; import from `@alpacahq/alpaca-ts-alpha` if you need real-time streams.
+ * here; import from `@alpacahq/alpaca-trade-api` if you need real-time streams.
  */
 export * as trading from './trading';
 export * as marketData from './market-data';

@@ -8,7 +8,7 @@
  *
  * @example
  * ```ts
- * import { marketData, pagination } from "@alpacahq/alpaca-ts-alpha";
+ * import { marketData, pagination } from "@alpacahq/alpaca-trade-api";
  *
  * const stocks = new marketData.StockApi(config);
  * for await (const trade of pagination.paginate(async (pageToken) => {

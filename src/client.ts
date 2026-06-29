@@ -18,7 +18,7 @@
  *
  * @example
  * ```ts
- * import { Alpaca } from "@alpacahq/alpaca-ts-alpha";
+ * import { Alpaca } from "@alpacahq/alpaca-trade-api";
  *
  * const alpaca = new Alpaca({ keyId, secret, paper: true });
  *

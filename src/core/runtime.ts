@@ -36,8 +36,11 @@ export type { RateLimitInfo } from "../errors";
 /**
  * Default User-Agent sent on every request so Alpaca can attribute SDK traffic.
  * Override via `Configuration.userAgent` (set to "" to disable).
+ *
+ * Keep the version in sync with `package.json` on each release (there is no
+ * build-time injection; this is a hand-maintained constant).
  */
-export const USER_AGENT = "@alpacahq/alpaca-ts-alpha/0.0.0";
+export const USER_AGENT = "@alpacahq/alpaca-trade-api/4.0.0-alpha.0";
 
 /**
  * Default per-request timeout in ms, applied when `timeoutMs` is not configured.

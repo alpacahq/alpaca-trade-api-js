@@ -23,7 +23,7 @@
  *
  * @example
  * ```ts
- * import { Alpaca, marketDataShapes, TimeFrame } from "@alpacahq/alpaca-ts-alpha";
+ * import { Alpaca, marketDataShapes, TimeFrame } from "@alpacahq/alpaca-trade-api";
  *
  * const alpaca = new Alpaca({ keyId, secret });
  *
