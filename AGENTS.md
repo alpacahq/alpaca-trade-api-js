@@ -1,11 +1,11 @@
 # AGENTS.md
 
-Instructions for AI agents and contributors working in the `@alpacahq/alpaca-ts-alpha`
+Instructions for AI agents and contributors working in the `@alpacahq/alpaca-trade-api`
 package.
 
 ## Overview
 
-`@alpacahq/alpaca-ts-alpha` is a TypeScript SDK for the Alpaca **Trading API**
+`@alpacahq/alpaca-trade-api` is a TypeScript SDK for the Alpaca **Trading API**
 and **Market Data API**. The REST clients/models are generated with OpenAPI
 Generator via the **reproducible pipeline in `tooling/`** (`npm run generate`);
 they stay a faithful snapshot of Alpaca's OpenAPI spec, and every convenience is
@@ -87,10 +87,17 @@ Releases and `CHANGELOG.md` are managed with [Changesets](https://github.com/cha
 Changelog entries are **human-authored**, decoupled from commit messages — every
 user-facing change ships with a changeset file describing it and its semver bump.
 
+**This `ts-alpha` branch is the `4.0` alpha line.** It is a near-full rewrite of
+the published `@alpacahq/alpaca-trade-api` package and is currently in Changesets
+**prerelease mode** (`.changeset/pre.json`, tag `alpha`). While in pre mode,
+`changeset version` produces `4.0.0-alpha.N` versions and `changeset publish`
+publishes them under the **`alpha`** npm dist-tag. The default (`latest`) tag
+still serves the current stable `3.x` SDK on the default branch.
+
 ```bash
 npm run changeset          # add a changeset: pick patch/minor/major + write the summary
-npm run changeset:version  # consume changesets -> bump version + update CHANGELOG.md
-npm run release            # build, then `changeset publish` (npm publish + git tag)
+npm run changeset:version  # consume changesets -> bump version (alpha.N) + update CHANGELOG.md
+npm run release            # build, then `changeset publish` (publishes to the `alpha` dist-tag)
 ```
 
 Workflow:
@@ -99,22 +106,28 @@ Workflow:
    write a one-line, user-facing summary. Commit the generated `.changeset/*.md`
    file alongside the code change. Internal-only changes (CI, tooling, refactors
    with no consumer impact) need no changeset.
-2. **At release time**: run `npm run changeset:version`. This applies all pending
-   changesets, bumps `version` in `package.json`, regenerates `CHANGELOG.md` with
-   GitHub PR/commit links (via `@changesets/changelog-github`), and deletes the
-   consumed changeset files. Review and commit the result.
-3. **Publish**: run `npm run release` to build and publish to npm, then push the
-   commit and the tag (`git push --follow-tags`).
+2. **Cut an alpha**: trigger the **"Publish alpha pre-release to NPM"** GitHub
+   Actions workflow (`.github/workflows/alpha-release.yaml`, `workflow_dispatch`)
+   on `ts-alpha`. It runs `changeset version` (bumps to the next `4.0.0-alpha.N`,
+   updates `CHANGELOG.md`, pushes the bump back to the branch), builds, then
+   `changeset publish` to the `alpha` dist-tag. Users opt in with
+   `npm install @alpacahq/alpaca-trade-api@alpha`.
+3. **Local dry run**: `npm run changeset:version` then inspect the computed version
+   and `CHANGELOG.md` before discarding (the workflow is the source of truth for
+   real publishes).
 
 Notes:
 
-- `@changesets/changelog-github` (configured in `.changeset/config.json`) needs a
-  `GITHUB_TOKEN` env var when running `changeset:version` so it can resolve
-  PR/commit/author links — e.g. `GITHUB_TOKEN=… npm run changeset:version`.
+- `@changesets/changelog-github` (configured in `.changeset/config.json`, repo
+  `alpacahq/alpaca-trade-api-js`, `baseBranch: ts-alpha`) needs a `GITHUB_TOKEN`
+  env var when running `changeset:version` so it can resolve PR/commit/author
+  links — e.g. `GITHUB_TOKEN=… npm run changeset:version`. The release workflow
+  provides this automatically.
 - `access` is `public` in `.changeset/config.json` (the package is scoped
   `@alpacahq/*`).
-- The existing `v0.1.0`–`v0.2.0` releases predate this setup and are intentionally
-  **not** backfilled; the changelog starts from the next release.
+- **Exiting alpha for the stable `4.0.0`**: run `npx changeset pre exit`, commit
+  the removal of `.changeset/pre.json`, then publish via the normal (non-prerelease)
+  flow so the release lands on the `latest` dist-tag.
 
 ## Assisted regeneration (agent helping a human run `npm run generate`)
 
