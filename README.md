@@ -1,10 +1,16 @@
-# @alpacahq/alpaca-ts-alpha
+# @alpacahq/alpaca-trade-api
 
 A single Node.js TypeScript SDK for the Alpaca **Trading API** and **Market Data
 API**. Both APIs live under their own namespace (`trading` / `marketData`) in one
 package, fronted by a unified `Alpaca` client with typed errors, resilience
 (retry / timeout / rate limiting), pagination helpers, ergonomic order builders,
 and real-time streaming.
+
+> **Alpha pre-release.** This is a preview of the next major version. Install it explicitly with the `alpha` dist-tag:
+> ```bash
+> npm install @alpacahq/alpaca-trade-api@alpha
+> ```
+> The default (`latest`) tag still installs the current stable 3.x SDK.
 
 ## Requirements
 
@@ -40,7 +46,7 @@ Legend: ✅ supported · ❌ not supported.
 ## Install
 
 ```bash
-npm install @alpacahq/alpaca-ts-alpha
+npm install @alpacahq/alpaca-trade-api
 ```
 
 ## Install the agent skill
@@ -51,7 +57,7 @@ model, idioms, and where to look. Install it with the open `skills` CLI — it
 auto-detects your agent (Claude Code, Cursor, Codex, …) and installs there:
 
 ```bash
-npx skills add alpacahq/alpaca-ts-alpha
+npx skills add alpacahq/alpaca-trade-api-js
 ```
 
 The skill lives at
@@ -66,7 +72,7 @@ pass credentials once and reach everything through the `.trading` and
 `.marketData` namespaces. Sub-APIs are created lazily and memoized.
 
 ```ts
-import { Alpaca } from "@alpacahq/alpaca-ts-alpha";
+import { Alpaca } from "@alpacahq/alpaca-trade-api";
 
 const alpaca = new Alpaca({
   keyId: process.env.APCA_API_KEY_ID,
@@ -94,7 +100,7 @@ default trading-updates stream endpoint; market data always uses
 if you prefer to construct `Api` classes yourself:
 
 ```ts
-import { trading, marketData } from "@alpacahq/alpaca-ts-alpha";
+import { trading, marketData } from "@alpacahq/alpaca-trade-api";
 
 const orders = new trading.OrdersApi(new trading.Configuration({ keyId, secret }));
 const stocks = new marketData.StockApi(new marketData.Configuration({ keyId, secret }));
@@ -185,7 +191,7 @@ const alpaca = new Alpaca({ accessToken });
 > try. To compute credentials lazily (e.g. from a vault), use the helper:
 >
 > ```ts
-> import { trading, auth } from "@alpacahq/alpaca-ts-alpha";
+> import { trading, auth } from "@alpacahq/alpaca-trade-api";
 > const config = new trading.Configuration({ apiKey: auth.apiKeyAuth({ keyId, secret }) });
 > ```
 
@@ -232,7 +238,7 @@ const alpaca = new Alpaca({
   // default; pass a config to tune or `false` to disable). See below.
   rateLimit: { maxRequests: 200, intervalMs: 60_000, maxConcurrent: 16 },
 
-  userAgent: "my-app/1.0", // default `@alpacahq/alpaca-ts-alpha/<version>`; "" disables
+  userAgent: "my-app/1.0", // default `@alpacahq/alpaca-trade-api/<version>`; "" disables
 });
 ```
 
@@ -293,7 +299,7 @@ envelope; the raw `Response` stays on `.response`. Branch on the status-specific
 subclasses instead of magic numbers:
 
 ```ts
-import { RateLimitError, NotFoundError, ApiError } from "@alpacahq/alpaca-ts-alpha";
+import { RateLimitError, NotFoundError, ApiError } from "@alpacahq/alpaca-trade-api";
 
 try {
   await alpaca.trading.orders.getOrderByOrderID({ orderId });
@@ -441,7 +447,7 @@ loss). Parse or format with the `values` helpers; for exact arithmetic keep the
 string and feed a decimal library (`big.js`/`decimal.js`, not bundled).
 
 ```ts
-import { values } from "@alpacahq/alpaca-ts-alpha";
+import { values } from "@alpacahq/alpaca-trade-api";
 
 values.toNumber(account.buyingPower);          // number | undefined
 values.toNumberOr(account.cash, 0);            // number with fallback
@@ -453,7 +459,7 @@ like `"1minute"` (which the API rejects); the facade bar methods require the
 branded `TimeFrameString` these return:
 
 ```ts
-import { TimeFrame, TimeFrameUnit, timeFrame } from "@alpacahq/alpaca-ts-alpha";
+import { TimeFrame, TimeFrameUnit, timeFrame } from "@alpacahq/alpaca-trade-api";
 
 timeFrame(15, TimeFrameUnit.Minute); // "15Min"
 TimeFrame.Day;                       // preset "1Day"
@@ -482,7 +488,7 @@ The `Alpaca` client exposes normalized accessors (auto-paginated, keyed by
 symbol) alongside the raw `collect*`/`iterate*` ones:
 
 ```ts
-import { Alpaca, marketDataShapes, TimeFrame } from "@alpacahq/alpaca-ts-alpha";
+import { Alpaca, marketDataShapes, TimeFrame } from "@alpacahq/alpaca-trade-api";
 
 const alpaca = new Alpaca({ keyId, secret });
 
@@ -513,7 +519,7 @@ endpoint, normalize a raw response yourself with the pure mappers:
 Reshape a `Bar[]` into the forms plotting libraries expect:
 
 ```ts
-import { toCandles, toCandlestickSeries, toLineSeries } from "@alpacahq/alpaca-ts-alpha";
+import { toCandles, toCandlestickSeries, toLineSeries } from "@alpacahq/alpaca-trade-api";
 
 toCandles(history.AAPL);              // { time[], open[], high[], low[], close[], volume[] }
 toCandles(history.AAPL, { time: "seconds" }); // unix seconds instead of epoch ms
@@ -523,7 +529,7 @@ toLineSeries(history.AAPL, "close");  // [{ time, value }]
 
 These live in the `marketDataShapes` namespace too and are re-exported at the top
 level. Everything here is REST-only (no `ws`/`msgpack`), so it is available from
-the `@alpacahq/alpaca-ts-alpha/rest` entrypoint as well.
+the `@alpacahq/alpaca-trade-api/rest` entrypoint as well.
 
 ### Data feeds & the free-tier 15-minute delay
 
@@ -584,7 +590,7 @@ underlying `Api` class and common methods; `findCapabilities(name)` answers
 "where does this method live?":
 
 ```ts
-import { capabilities, findCapabilities } from "@alpacahq/alpaca-ts-alpha";
+import { capabilities, findCapabilities } from "@alpacahq/alpaca-trade-api";
 
 findCapabilities("getAccount");
 // [{ accessor: "trading.account", api: "AccountsApi", group: "trading", ... }]
@@ -595,7 +601,7 @@ with a matching `findErgonomic(name)` lookup — so "is there a helper for this,
 and where?" is answerable the same way:
 
 ```ts
-import { ergonomicCapabilities, findErgonomic } from "@alpacahq/alpaca-ts-alpha";
+import { ergonomicCapabilities, findErgonomic } from "@alpacahq/alpaca-trade-api";
 
 findErgonomic("market");
 // [{ accessor: "trading.orders", kind: "orderBuilder", wraps: "OrdersApi.postOrder", ... }]
@@ -613,7 +619,7 @@ Built-in middleware for logging and metrics, layered on the transport's
 (never alter the request), so they compose with retries and with each other.
 
 ```ts
-import { Alpaca, middleware } from "@alpacahq/alpaca-ts-alpha";
+import { Alpaca, middleware } from "@alpacahq/alpaca-trade-api";
 
 const alpaca = new Alpaca({
   keyId,
@@ -642,23 +648,23 @@ and [`@msgpack/msgpack`](https://github.com/msgpack/msgpack-javascript). At
 runtime the `Alpaca` facade only constructs them when you actually open a stream,
 but the **root entrypoint's module graph statically includes them** (it
 re-exports the `streaming` namespace), so a bundler resolving
-`@alpacahq/alpaca-ts-alpha` will see `ws` / `@msgpack/msgpack` / `node:events`.
+`@alpacahq/alpaca-trade-api` will see `ws` / `@msgpack/msgpack` / `node:events`.
 If you only use REST — or you target an edge/browser runtime where `ws` cannot
-run — import from the [`@alpacahq/alpaca-ts-alpha/rest`](#rest-only-entrypoint)
+run — import from the [`@alpacahq/alpaca-trade-api/rest`](#rest-only-entrypoint)
 subpath (or rely on the automatic edge resolution described in
 [Module formats](#module-formats-esm--cjs)) and they are never pulled in.
 
 ## REST-only entrypoint
 
-If you never open a stream, import from `@alpacahq/alpaca-ts-alpha/rest` to keep the `ws` /
+If you never open a stream, import from `@alpacahq/alpaca-trade-api/rest` to keep the `ws` /
 `@msgpack/msgpack` dependencies out of your module graph (smaller bundles,
 faster cold starts). It re-exports everything except the `streaming` namespace.
 The `Alpaca` facade is the same class, so all REST methods work unchanged; the
 stream factories (`stockStream`, `stream`, ...) and `submitAndWait` throw if
-called from this entrypoint — import from `@alpacahq/alpaca-ts-alpha` when you need streams.
+called from this entrypoint — import from `@alpacahq/alpaca-trade-api` when you need streams.
 
 ```ts
-import { Alpaca } from "@alpacahq/alpaca-ts-alpha/rest";
+import { Alpaca } from "@alpacahq/alpaca-trade-api/rest";
 ```
 
 On edge and browser runtimes you usually don't need to reach for this subpath
@@ -667,12 +673,12 @@ explicitly — the root entrypoint resolves here automatically (see
 
 ## Testing your integration
 
-`@alpacahq/alpaca-ts-alpha/testing` provides a network-free harness so your unit tests don't
+`@alpacahq/alpaca-trade-api/testing` provides a network-free harness so your unit tests don't
 hit Alpaca. `mockFetch` answers canned responses by method + path; `createMockAlpaca`
 wires one into a ready `Alpaca` client (dummy credentials, rate limiting off).
 
 ```ts
-import { createMockAlpaca } from "@alpacahq/alpaca-ts-alpha/testing";
+import { createMockAlpaca } from "@alpacahq/alpaca-trade-api/testing";
 
 const alpaca = createMockAlpaca([
   { method: "GET", path: "/v2/account", body: { account_number: "PA42", status: "ACTIVE" } },
@@ -698,10 +704,10 @@ The package ships both native ESM (`dist/index.mjs`) and CommonJS
 declarations and `sideEffects: false` for tree-shaking.
 
 ```ts
-import { Alpaca } from "@alpacahq/alpaca-ts-alpha";       // ESM
+import { Alpaca } from "@alpacahq/alpaca-trade-api";       // ESM
 ```
 ```js
-const { Alpaca } = require("@alpacahq/alpaca-ts-alpha");  // CJS
+const { Alpaca } = require("@alpacahq/alpaca-trade-api");  // CJS
 ```
 
 > Dual-package caveat: don't load the SDK through *both* `import` and `require`
@@ -714,9 +720,9 @@ The streaming clients depend on `ws` and `node:events`, which don't run on edge
 runtimes (Cloudflare Workers / `workerd`, Vercel Edge, Deno) or in the browser.
 To keep the root import working there, the package `exports` map declares
 `workerd`, `worker`, `edge-light`, `deno`, and `browser` conditions that resolve
-`@alpacahq/alpaca-ts-alpha` to the streaming-free
+`@alpacahq/alpaca-trade-api` to the streaming-free
 [REST-only build](#rest-only-entrypoint) automatically — so a plain
-`import { Alpaca } from "@alpacahq/alpaca-ts-alpha"` builds and runs on those
+`import { Alpaca } from "@alpacahq/alpaca-trade-api"` builds and runs on those
 targets without the `Class extends value [object Module]` failure that comes
 from a bundler trying to load `ws` / `node:events` on a runtime that lacks them.
 
