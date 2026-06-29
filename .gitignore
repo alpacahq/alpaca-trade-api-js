@@ -1,8 +1,42 @@
-.vscode/
-.idea/
-npm-debug.log*
+# Dependencies
 node_modules/
+.pnp
+.pnp.*
+
+# Build output — produced by `npm run build` (and on publish via the `prepare`
+# script). Not committed; consumers get `dist/` from the published tarball.
 dist/
-.npm
+*.tsbuildinfo
+
+# Packaging artifacts (`npm pack` / `npm publish --dry-run`)
+*.tgz
+
+# Test & coverage artifacts
+coverage/
+.vitest/
+.nyc_output/
+
+# Caches
+.cache/
+.npm/
+.eslintcache
+
+# Secrets / local environment — the examples read APCA_API_KEY_ID / APCA_API_SECRET_KEY.
+# Never commit real credentials; commit a `.env.example` instead.
 .env
-temp.js
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+*.iml

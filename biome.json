@@ -1,0 +1,63 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "src/**/*.ts",
+      "test/**/*.ts",
+      "examples/**/*.ts",
+      "skills/**/*.ts",
+      "scripts/**/*.ts",
+      "!src/trading/apis",
+      "!src/trading/models",
+      "!src/trading/index.ts",
+      "!src/market-data/apis",
+      "!src/market-data/models",
+      "!src/market-data/index.ts"
+    ]
+  },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": { "noAssignInExpressions": "off" }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/core/runtime.ts", "src/trading/runtime.ts", "src/market-data/runtime.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noControlCharactersInRegex": "off",
+            "noConfusingVoidType": "off",
+            "useIterableCallbackReturn": "off",
+            "useIsArray": "off",
+            "noShadowRestrictedNames": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off",
+            "useTemplate": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["test/**/*.ts", "examples/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off",
+            "useIterableCallbackReturn": "off"
+          },
+          "style": { "noNonNullAssertion": "off" },
+          "complexity": { "noBannedTypes": "off" }
+        }
+      }
+    }
+  ]
+}

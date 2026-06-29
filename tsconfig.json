@@ -1,21 +1,24 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "es2020",
+    "lib": ["es2020", "dom", "dom.iterable"],
     "module": "commonjs",
-    "declaration": true,
-    "outDir": "./dist",
-    "allowJs": true,
-    "checkJs": false,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "rootDir": "src",
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "alwaysStrict": true,
     "skipLibCheck": true,
-    "types": ["node"],
-    "lib": ["ES2022.Object"],
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "declaration": true,
+    "emitDeclarationOnly": false,
+    "noEmit": true
   },
-  "include": ["./lib/**/*.ts", "./lib/**/*.js"],
-  "exclude": ["./dist/**/*"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }

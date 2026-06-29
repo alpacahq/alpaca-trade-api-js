@@ -1,0 +1,8 @@
+[
+  { "op": "add", "path": "/components/schemas/Account/x-ts-passthrough", "value": true },
+  { "op": "add", "path": "/components/schemas/Order/x-ts-passthrough", "value": true },
+  { "op": "add", "path": "/components/schemas/AccountConfigurations/x-ts-passthrough", "value": true },
+  { "op": "add", "path": "/components/schemas/OptionContract/x-ts-passthrough", "value": true },
+  { "op": "add", "path": "/paths/~1v2~1account~1activities/get/responses/200/content/application~1json/schema/items/x-ts-passthrough", "value": true },
+  { "op": "add", "path": "/paths/~1v2~1corporate_actions~1announcements/get/responses/200/content/application~1json/schema/items/x-ts-passthrough", "value": true }
+]
