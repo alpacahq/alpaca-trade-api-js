@@ -11,6 +11,10 @@ and real-time streaming.
 > npm install @alpacahq/alpaca-trade-api@alpha
 > ```
 > The default (`latest`) tag still installs the current stable 3.x SDK.
+>
+> **Upgrading from 3.x?** See the [Migration guide](./MIGRATION.md) — it maps
+> every endpoint old → new, explains the ergonomic layer, and ships a
+> [codemod](./codemods/alpaca-v3-to-v4.js) that automates most of the work.
 
 ## Requirements
 
@@ -46,8 +50,11 @@ Legend: ✅ supported · ❌ not supported.
 ## Install
 
 ```bash
-npm install @alpacahq/alpaca-trade-api
+npm install @alpacahq/alpaca-trade-api@alpha
 ```
+
+Migrating from the stable `3.x` release? Follow the
+[Migration guide](./MIGRATION.md).
 
 ## Install the agent skill
 
