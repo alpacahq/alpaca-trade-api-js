@@ -1,5 +1,0 @@
-.git*
-test/
-lib/
-.circleci/
-.env.example
