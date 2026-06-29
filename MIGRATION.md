@@ -198,7 +198,8 @@ const alpaca = new Alpaca({
 | `secretKey` | **`secret`** | renamed (env `APCA_API_SECRET_KEY`) |
 | `oauth` | `accessToken` | env renamed `APCA_API_OAUTH` → `APCA_API_OAUTH_TOKEN`; OAuth clients are REST-only (no streaming) |
 | `paper` | `paper` | **default flipped to `true`**. Pass `paper: false` for live. |
-| `baseUrl` / `dataBaseUrl` / `dataStreamUrl` | derived from `paper`/`sandbox` | override per-request via `initOverrides` or `headers`/middleware; you rarely set base URLs now |
+| `baseUrl` / `dataBaseUrl` | derived from `paper`/`sandbox` | override per-request via `initOverrides` or `headers`/middleware; you rarely set base URLs now |
+| `dataStreamUrl` | `stockStream({ url })` etc. | per-stream `url` override (any stream, market-data included) for proxy/gateway routing |
 | `apiVersion` | _(removed)_ | endpoints are versioned in the spec |
 | `feed` (ctor) | per-call `feed` / `stockStream({ feed })` | the feed is no longer global state on the client |
 | `optionFeed` (ctor) | `optionStream({ feed })` / per-call | as above |
@@ -805,6 +806,25 @@ alpaca.crypto_stream_v1beta3 → alpaca.marketData.cryptoStream()
 alpaca.news_stream           → alpaca.marketData.newsStream()
 alpaca.option_stream         → alpaca.marketData.optionStream({ feed: "indicative" })
 ```
+
+> Crypto and news streams are **production-only** (no sandbox endpoint). The
+> client's `sandbox` flag is not applied to them, and `cryptoStream({ sandbox: true })`
+> / `newsStream({ sandbox: true })` throw — pass an explicit `url` to override.
+
+### New streaming capabilities in 4.x
+
+These are additive — existing 3.x-style code keeps working — but worth adopting:
+
+- **Awaitable auth.** `await stream.whenAuthenticated()` resolves with a typed
+  `StreamAuthResult` (`{ status, authenticated, code?, message }`); failures use
+  a `STREAM_AUTH_STATUS` (`server_rejected` with the server code, `closed`,
+  `timeout`). `waitForAuthentication(timeoutMs?)` returns a `boolean`.
+- **Reconnect lifecycle.** `onReconnecting((attempt) => …)` (1-based) and
+  `onReconnected(() => …)` (after re-auth + re-subscribe), distinct from the
+  first `onConnect`.
+- **Custom `url`** on any stream and a **`callbackExecutor`** option to offload
+  listener work; a throwing listener is logged and can't break the stream.
+- **Subscription validation.** Blank/non-string symbols throw at the call site.
 
 ### Trade updates (account stream)
 

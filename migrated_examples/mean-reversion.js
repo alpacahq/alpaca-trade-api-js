@@ -4,10 +4,12 @@ const PAPER = true;
 
 class MeanReversion {
   constructor(API_KEY, API_SECRET, PAPER){
-    this.Alpaca = require('@alpacahq/alpaca-trade-api');
-    this.alpaca = new this.Alpaca({
-      keyId: API_KEY, 
-      secretKey: API_SECRET, 
+    const { Alpaca, timeFrame, TimeFrameUnit } = require('@alpacahq/alpaca-trade-api');
+    this.timeFrame = timeFrame;
+    this.TimeFrameUnit = TimeFrameUnit;
+    this.alpaca = new Alpaca({
+      keyId: API_KEY,
+      secret: API_SECRET,
       paper: PAPER
     });
     this.runningAverage = 0;
@@ -20,14 +22,14 @@ class MeanReversion {
   async run(){
     // First, cancel any existing orders so they don't impact our buying power.
     var orders;
-    await this.alpaca.getOrders({
-      status:'all', 
+    await this.alpaca.trading.orders.getAllOrders({
+      status:'all',
       direction:'asc'
     }).then((resp) => {
       orders = resp;
     }).catch((err) => {console.log(err.error);});
     orders.forEach(async (order) => {
-      this.alpaca.cancelOrder(order.id).catch((err) => {console.log(err.error);});
+      this.alpaca.trading.orders.deleteOrderByOrderID({ orderId: order.id }).catch((err) => {console.log(err.error);});
     });
 
     // Wait for market to open.
@@ -40,10 +42,16 @@ class MeanReversion {
     // Get the running average of prices of the last 20 minutes, waiting until we have 20 bars from market open.
     var promBars = new Promise((resolve, reject) => {
       var barChecker = setInterval(async () => {
-        await this.alpaca.getCalendar(Date.now()).then(async (resp) => {
-          var marketOpen = resp[0].open;
-          await this.alpaca.getBars('minute', this.stock, {start: marketOpen}).then((resp) => {
-            var bars = resp[this.stock];
+        var today = new Date();
+        await this.alpaca.trading.calendar.legacyCalendar({ start: today, end: today }).then(async (resp) => {
+          // resp[0].date is today's session date as a real Date object in 4.x.
+          var marketOpen = resp[0].date;
+          // getStockBarsFor returns a plain Bar[] (already paginated), not an
+          // async generator / symbol-keyed object.
+          await this.alpaca.marketData.getStockBarsFor(this.stock, {
+            timeframe: this.timeFrame(1, this.TimeFrameUnit.Minute),
+            start: marketOpen,
+          }).then((bars) => {
             if(bars.length >= 20) {
               clearInterval(barChecker);
               resolve();
@@ -59,14 +67,15 @@ class MeanReversion {
     var spin = setInterval(async () => {
 
       // Clear the last order so that we only have 1 hanging order.
-      if(this.lastOrder != null) await this.alpaca.cancelOrder(this.lastOrder.id).catch((err) => {console.log(err.error);});
+      if(this.lastOrder != null) await this.alpaca.trading.orders.deleteOrderByOrderID({ orderId: this.lastOrder.id }).catch((err) => {console.log(err.error);});
 
       // Figure out when the market will close so we can prepare to sell beforehand.
       var closingTime;
       var currTime;
-      await this.alpaca.getClock().then((resp) =>{
-        closingTime = new Date(resp.next_close.substring(0, resp.next_close.length - 6));
-        currTime = new Date(resp.timestamp.substring(0, resp.timestamp.length - 6));
+      await this.alpaca.trading.clock.legacyClock().then((resp) =>{
+        // nextClose and timestamp are already real Date objects in 4.x.
+        closingTime = resp.nextClose;
+        currTime = resp.timestamp;
       }).catch((err) => {console.log(err.error);});
       this.timeToClose = closingTime - currTime;
 
@@ -74,7 +83,7 @@ class MeanReversion {
         // Close all positions when 15 minutes til market close.
         console.log("Market closing soon.  Closing positions.");
         try{
-          await this.alpaca.getPosition(this.stock).then(async (resp) => {
+          await this.alpaca.trading.positions.getOpenPosition({ symbolOrAssetId: this.stock }).then(async (resp) => {
             var positionQuantity = resp.qty;
             var promOrder = this.submitMarketOrder(positionQuantity, this.stock, "sell");
             await promOrder;
@@ -99,16 +108,16 @@ class MeanReversion {
     var prom = new Promise((resolve, reject) => {
       var isOpen = false;
       var marketChecker = setInterval(async ()=>{
-        await this.alpaca.getClock().then(async (resp) => {
-          isOpen = resp.is_open;
+        await this.alpaca.trading.clock.legacyClock().then(async (resp) => {
+          isOpen = resp.isOpen;
           if(isOpen) {
             clearInterval(marketChecker);
             resolve();
           } else {
             var openTime, currTime;
-            await this.alpaca.getClock().then((resp) =>{
-              openTime = new Date(resp.next_open.substring(0, resp.next_close.length - 6));
-              currTime = new Date(resp.timestamp.substring(0, resp.timestamp.length - 6));
+            await this.alpaca.trading.clock.legacyClock().then((resp) =>{
+              openTime = resp.nextOpen;
+              currTime = resp.timestamp;
             }).then(() => {
               this.timeToClose = Math.floor((openTime - currTime) / 1000 / 60);
             }).catch((err) => {console.log(err.error);});
@@ -127,24 +136,27 @@ class MeanReversion {
 
     // Get our position, if any.
     try{
-      await this.alpaca.getPosition(this.stock).then((resp) => {
+      await this.alpaca.trading.positions.getOpenPosition({ symbolOrAssetId: this.stock }).then((resp) => {
         positionQuantity = resp.qty;
-        positionValue = resp.market_value;
+        positionValue = resp.marketValue;
       });
     } catch (err){/*console.log(err.error);*/}
 
     // Get the new updated price and running average.
     var bars;
-    await this.alpaca.getBars('minute', this.stock,{limit: 20}).then((resp) => {
-      bars = resp[this.stock];
+    await this.alpaca.marketData.getStockBarsFor(this.stock, {
+      timeframe: this.timeFrame(1, this.TimeFrameUnit.Minute),
+      limit: 20,
+    }).then((resp) => {
+      bars = resp;
     }).catch((err) => {console.log(err.error);});
-    var currPrice = bars[bars.length - 1].closePrice;
+    var currPrice = bars[bars.length - 1].close;
     this.runningAverage = 0;
     bars.forEach((bar) => {
-      this.runningAverage += bar.closePrice;
+      this.runningAverage += bar.close;
     })
     this.runningAverage /= 20;
-  
+
     if(currPrice > this.runningAverage){
       // Sell our position if the price is above the running average, if any.
       if(positionQuantity > 0){
@@ -157,9 +169,9 @@ class MeanReversion {
       // Determine optimal amount of shares based on portfolio and market data.
       var portfolioValue;
       var buyingPower;
-      await this.alpaca.getAccount().then((resp) => {
-        portfolioValue = resp.portfolio_value;
-        buyingPower = resp.buying_power;
+      await this.alpaca.trading.account.getAccount().then((resp) => {
+        portfolioValue = resp.portfolioValue;
+        buyingPower = resp.buyingPower;
       }).catch((err) => {console.log(err.error);});
       var portfolioShare = (this.runningAverage - currPrice) / currPrice * 200;
       var targetPositionValue = portfolioValue * portfolioShare;
@@ -167,7 +179,7 @@ class MeanReversion {
 
       // Add to our position, constrained by our buying power; or, sell down to optimal amount of shares.
       if(amountToAdd > 0){
-        if(amountToAdd > buyingPower) amountToAdd = buyingPower; 
+        if(amountToAdd > buyingPower) amountToAdd = buyingPower;
         var qtyToBuy = Math.floor(amountToAdd / currPrice);
         await this.submitLimitOrder(qtyToBuy, this.stock, currPrice, 'buy');
       }
@@ -183,13 +195,12 @@ class MeanReversion {
   // Submit a limit order if quantity is above 0.
   async submitLimitOrder(quantity, stock, price, side){
     if(quantity > 0){
-      await this.alpaca.createOrder({
-        symbol: stock, 
-        qty: quantity, 
-        side: side, 
-        type: 'limit', 
-        time_in_force: 'day', 
-        limit_price: price
+      await this.alpaca.trading.orders.limit({
+        symbol: stock,
+        qty: quantity,
+        side: side,
+        timeInForce: 'day',
+        limitPrice: price
       }).then((resp) => {
         this.lastOrder = resp;
         console.log("Limit order of |" + quantity + " " + stock + " " + side + "| sent.");
@@ -205,12 +216,10 @@ class MeanReversion {
   // Submit a market order if quantity is above 0.
   async submitMarketOrder(quantity, stock, side){
     if(quantity > 0){
-      await this.alpaca.createOrder({
-        symbol: stock, 
-        qty: quantity, 
-        side: side, 
-        type: 'market', 
-        time_in_force: 'day'
+      await this.alpaca.trading.orders.market({
+        symbol: stock,
+        qty: quantity,
+        side: side
       }).then((resp) => {
         this.lastOrder = resp;
         console.log("Market order of |" + quantity + " " + stock + " " + side + "| completed.");

@@ -258,7 +258,7 @@ describe('CryptoDataStream / NewsStream URLs', () => {
         expect(urls[1]).toBe('wss://stream.data.alpaca.markets/v1beta1/news');
     });
 
-    it('uses the market-data sandbox host when sandbox is set', () => {
+    it('uses the market-data sandbox host for stock when sandbox is set', () => {
         const urls: string[] = [];
         const factory = (url: string) => {
             urls.push(url);
@@ -266,9 +266,25 @@ describe('CryptoDataStream / NewsStream URLs', () => {
         };
         expect(streaming.MARKET_DATA_STREAM_SANDBOX_HOST).toBe('wss://stream.data.sandbox.alpaca.markets');
         new streaming.StockDataStream({ credentials: CREDS, feed: 'iex', sandbox: true, pingIntervalMs: 0, wsFactory: factory }).connect();
-        new streaming.CryptoDataStream({ credentials: CREDS, sandbox: true, pingIntervalMs: 0, wsFactory: factory }).connect();
         expect(urls[0]).toBe('wss://stream.data.sandbox.alpaca.markets/v2/iex');
-        expect(urls[1]).toBe('wss://stream.data.sandbox.alpaca.markets/v1beta3/crypto/us');
+    });
+
+    it('rejects sandbox for production-only crypto and news streams', () => {
+        expect(() => new streaming.CryptoDataStream({ credentials: CREDS, sandbox: true })).toThrow(/sandbox/i);
+        expect(() => new streaming.NewsStream({ credentials: CREDS, sandbox: true })).toThrow(/sandbox/i);
+    });
+
+    it('honors an explicit url override on every market-data stream (bypassing the sandbox guard)', () => {
+        const urls: string[] = [];
+        const factory = (url: string) => {
+            urls.push(url);
+            return new FakeSocket();
+        };
+        const url = 'wss://proxy.internal/data';
+        new streaming.StockDataStream({ credentials: CREDS, url, pingIntervalMs: 0, wsFactory: factory }).connect();
+        new streaming.CryptoDataStream({ credentials: CREDS, url, sandbox: true, pingIntervalMs: 0, wsFactory: factory }).connect();
+        new streaming.NewsStream({ credentials: CREDS, url, sandbox: true, pingIntervalMs: 0, wsFactory: factory }).connect();
+        expect(urls).toEqual([url, url, url]);
     });
 });
 
@@ -875,5 +891,193 @@ describe('TradingStream lifecycle', () => {
             },
         }).connect();
         expect(seenUrl).toBe('wss://paper-api.alpaca.markets/stream');
+    });
+});
+
+describe('awaitable authentication outcome', () => {
+    it('resolves whenAuthenticated() with a success result', async () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        stream.connect();
+        const pending = stream.whenAuthenticated();
+        authenticateMd(sock);
+
+        const result = await pending;
+        expect(result.status).toBe(streaming.STREAM_AUTH_STATUS.AUTHENTICATED);
+        expect(result.authenticated).toBe(true);
+        await expect(stream.waitForAuthentication()).resolves.toBe(true);
+    });
+
+    it('resolves with a server-rejected result (including the code) on auth failure', async () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            reconnect: false,
+            wsFactory: () => sock,
+        });
+        stream.onError(() => {});
+        stream.connect();
+        sock.emitEvent('open');
+        sock.emitEvent('message', mpEncode([{ T: 'error', code: 402, msg: 'auth failed' }]));
+
+        const result = await stream.whenAuthenticated();
+        expect(result.status).toBe(streaming.STREAM_AUTH_STATUS.SERVER_REJECTED);
+        expect(result.authenticated).toBe(false);
+        expect(result.code).toBe(402);
+        expect(result.message).toBe('auth failed');
+    });
+
+    it('resolves with a closed result when disconnected before auth', async () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            reconnect: false,
+            wsFactory: () => sock,
+        });
+        stream.connect();
+        sock.emitEvent('open');
+        stream.disconnect();
+
+        const result = await stream.whenAuthenticated();
+        expect(result.status).toBe(streaming.STREAM_AUTH_STATUS.CLOSED);
+        expect(result.authenticated).toBe(false);
+    });
+
+    it('waitForAuthentication(timeoutMs) resolves false on timeout without settling the real outcome', async () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        stream.connect();
+        sock.emitEvent('open'); // never authenticates
+
+        const timedOut = await stream.waitForAuthenticationResult(20);
+        expect(timedOut.status).toBe(streaming.STREAM_AUTH_STATUS.TIMEOUT);
+        expect(timedOut.authenticated).toBe(false);
+
+        // The underlying outcome is still pending: a later auth resolves it.
+        authenticateMd(sock);
+        const real = await stream.whenAuthenticated();
+        expect(real.status).toBe(streaming.STREAM_AUTH_STATUS.AUTHENTICATED);
+    });
+});
+
+describe('reconnect lifecycle events', () => {
+    it('emits reconnecting(attempt) then reconnected after re-auth', () => {
+        vi.useFakeTimers();
+        const sockets: FakeSocket[] = [];
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            backoff: false,
+            reconnectJitter: 0,
+            wsFactory: trackingFactory(sockets),
+        });
+        const attempts: number[] = [];
+        let reconnected = 0;
+        stream.onReconnecting((a) => attempts.push(a));
+        stream.onReconnected(() => reconnected++);
+
+        stream.connect();
+        authenticateMd(sockets[0]);
+
+        // Drop and let the reconnect timer fire.
+        sockets[0].emitEvent('close');
+        expect(attempts).toEqual([]); // not emitted until the timer fires
+        vi.advanceTimersByTime(1000);
+        expect(attempts).toEqual([1]);
+        expect(sockets).toHaveLength(2);
+
+        // Reconnected only after the new connection re-authenticates.
+        expect(reconnected).toBe(0);
+        authenticateMd(sockets[1]);
+        expect(reconnected).toBe(1);
+    });
+
+    it('does not emit reconnected on the first (non-reconnect) auth', () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        let reconnected = 0;
+        stream.onReconnected(() => reconnected++);
+        stream.connect();
+        authenticateMd(sock);
+        expect(reconnected).toBe(0);
+    });
+});
+
+describe('listener exception isolation & executor offload', () => {
+    it('a throwing listener does not break dispatch to other listeners or the protocol', () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        const seen: string[] = [];
+        stream.onTrade(() => {
+            throw new Error('listener boom');
+        });
+        stream.onTrade((t) => seen.push(t.symbol));
+        stream.connect();
+        authenticateMd(sock);
+
+        const ts = new Date('2026-01-02T15:04:05Z');
+        expect(() =>
+            sock.emitEvent('message', mpEncode([{ T: 't', S: 'AAPL', i: 1, p: 1, s: 1, t: ts }])),
+        ).not.toThrow();
+        // The non-throwing listener still ran.
+        expect(seen).toEqual(['AAPL']);
+        // The stream is still healthy and processing frames.
+        expect(stream.getState()).toBe(streaming.STATE.AUTHENTICATED);
+    });
+
+    it('routes callbacks through a supplied callbackExecutor', () => {
+        const sock = new FakeSocket();
+        const tasks: Array<() => void> = [];
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            // Queue callbacks instead of running them synchronously.
+            callbackExecutor: (task) => tasks.push(task),
+            wsFactory: () => sock,
+        });
+        const seen: string[] = [];
+        stream.onTrade((t) => seen.push(t.symbol));
+        stream.connect();
+        authenticateMd(sock);
+
+        const ts = new Date('2026-01-02T15:04:05Z');
+        sock.emitEvent('message', mpEncode([{ T: 't', S: 'AAPL', i: 1, p: 1, s: 1, t: ts }]));
+        // Nothing ran yet - the executor queued the work.
+        expect(seen).toEqual([]);
+        tasks.forEach((t) => t());
+        expect(seen).toEqual(['AAPL']);
+    });
+});
+
+describe('subscription symbol validation', () => {
+    it('rejects blank or non-string symbols', () => {
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => new FakeSocket(),
+        });
+        expect(() => stream.subscribeForTrades([''])).toThrow(/non-empty/i);
+        expect(() => stream.subscribeForTrades(['  '])).toThrow(/non-empty/i);
+        expect(() => stream.subscribeForQuotes([undefined as any])).toThrow(/non-empty/i);
+        // A valid symbol is accepted.
+        expect(() => stream.subscribeForTrades(['AAPL'])).not.toThrow();
     });
 });

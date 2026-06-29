@@ -3,9 +3,10 @@
  *
  * Demonstrates: the `Alpaca` facade, reading the account (with the `values`
  * money helpers), a market-data lookup, the ergonomic order builders
- * (`orders.limit`), the trade-updates stream, `submitAndWait` (place an order
- * and block until it reaches a terminal state), and typed-error handling
- * branching on the `ApiError` subclasses.
+ * (`orders.limit`), the trade-updates stream (with the awaitable auth handshake
+ * and reconnect-lifecycle listeners), `submitAndWait` (place an order and block
+ * until it reaches a terminal state), and typed-error handling branching on the
+ * `ApiError` subclasses.
  *
  * Run:
  *   APCA_API_KEY_ID=... APCA_API_SECRET_KEY=... npx tsx examples/trading-bot.ts
@@ -46,8 +47,20 @@ async function main(): Promise<void> {
     const updates = alpaca.trading.stream();
     updates.onTradeUpdate((u) => console.log(`trade update: ${u.event} ${u.order.symbol} -> ${u.order.status}`));
     updates.onError((msg) => console.error("stream error:", msg));
+    // Observe the reconnect lifecycle (auto-reconnect with backoff is built in).
+    updates.onReconnecting((attempt) => console.warn(`stream reconnecting (attempt ${attempt})`));
+    updates.onReconnected(() => console.info("stream reconnected; subscriptions restored"));
     updates.onConnect(() => updates.subscribeTradeUpdates());
     updates.connect();
+
+    // Await the authentication handshake (typed result; never throws). Bail out
+    // early on bad credentials instead of placing orders against a dead stream.
+    const auth = await updates.waitForAuthenticationResult(10_000);
+    if (!auth.authenticated) {
+        console.error(`trade-updates stream auth ${auth.status}: ${auth.message}${auth.code ? ` (code ${auth.code})` : ""}`);
+        updates.disconnect();
+        process.exit(1);
+    }
 
     // Ergonomic order builder: a limit buy well below the market rests without
     // filling. The typed `orders.limit` builder requires `limitPrice` at compile

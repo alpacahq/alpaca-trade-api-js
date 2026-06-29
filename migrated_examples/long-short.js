@@ -1,7 +1,6 @@
-const Alpaca = require('@alpacahq/alpaca-trade-api')
+const { Alpaca, timeFrame, TimeFrameUnit } = require('@alpacahq/alpaca-trade-api')
 const API_KEY = 'YOUR_API_KEY_HERE';
 const API_SECRET = 'YOUR_API_SECRET_HERE';
-const USE_POLYGON = false;  // by default we use the Alpaca data stream but you can change that
 
 const MINUTE = 60000
 const SideType = { BUY: 'buy', SELL: 'sell' }
@@ -11,9 +10,8 @@ class LongShort {
   constructor ({ keyId, secretKey, paper = true, bucketPct = 0.25 }) {
     this.alpaca = new Alpaca({
       keyId: keyId,
-      secretKey: secretKey,
-      paper: paper,
-      usePolygon: USE_POLYGON
+      secret: secretKey,
+      paper: paper
     })
 
     let stocks = ['DOMO', 'TLRY', 'SQ', 'MRO', 'AAPL', 'GM', 'SNAP', 'SHOP', 'SPLK', 'BA', 'AMZN', 'SUI', 'SUN', 'TSLA', 'MU', 'SPWR', 'NIO', 'CAT', 'MSFT', 'PANW', 'OKTA', 'TWTR', 'TM', 'NVDA', 'ATVI', 'GS', 'BAC', 'MS', 'TWLO', 'QCOM']
@@ -45,9 +43,10 @@ class LongShort {
     var spin = setInterval(async () => {
       // Figure out when the market will close so we can prepare to sell beforehand.
       try {
-        let clock = await this.alpaca.getClock()
-        let closingTime = new Date(clock.next_close.substring(0, clock.next_close.length - 6))
-        let currTime = new Date(clock.timestamp.substring(0, clock.timestamp.length - 6))
+        let clock = await this.alpaca.trading.clock.legacyClock()
+        // nextClose and timestamp are already real Date objects in 4.x.
+        let closingTime = clock.nextClose
+        let currTime = clock.timestamp
         this.timeToClose = Math.abs(closingTime - currTime)
       } catch (err) {
         log(err.error)
@@ -60,7 +59,7 @@ class LongShort {
         log('Market closing soon. Closing positions.')
 
         try {
-          let positions = await this.alpaca.getPositions()
+          let positions = await this.alpaca.trading.positions.getAllOpenPositions()
 
           await Promise.all(positions.map(position => this.submitOrder({
             quantity: Math.abs(position.qty),
@@ -90,12 +89,12 @@ class LongShort {
     return new Promise(resolve => {
       const check = async () => {
         try {
-          let clock = await this.alpaca.getClock()
-          if (clock.is_open) {
+          let clock = await this.alpaca.trading.clock.legacyClock()
+          if (clock.isOpen) {
             resolve()
           } else {
-            let openTime = new Date(clock.next_open.substring(0, clock.next_close.length - 6))
-            let currTime = new Date(clock.timestamp.substring(0, clock.timestamp.length - 6))
+            let openTime = clock.nextOpen
+            let currTime = clock.timestamp
             this.timeToClose = Math.floor((openTime - currTime) / 1000 / 60)
             log(`${this.timeToClose} minutes til next market open.`)
             setTimeout(check, MINUTE)
@@ -111,7 +110,7 @@ class LongShort {
   async cancelExistingOrders () {
     let orders
     try {
-      orders = await this.alpaca.getOrders({
+      orders = await this.alpaca.trading.orders.getAllOrders({
         status: 'open',
         direction: 'desc'
       })
@@ -122,7 +121,7 @@ class LongShort {
     return Promise.all(orders.map(order => {
       return new Promise(async (resolve) => {
         try {
-          await this.alpaca.cancelOrder(order.id)
+          await this.alpaca.trading.orders.deleteOrderByOrderID({ orderId: order.id })
         } catch (err) {
           log(err.error)
         }
@@ -145,7 +144,7 @@ class LongShort {
     // Adjust position quantities if needed.
     let positions
     try {
-      positions = await this.alpaca.getPositions()
+      positions = await this.alpaca.trading.positions.getAllOpenPositions()
     } catch (err) {
       log(err.error)
     }
@@ -332,8 +331,8 @@ class LongShort {
     // Determine amount to long/short based on total stock price of each bucket.
     // Employs 130-30 Strategy
     try {
-      let result = await this.alpaca.getAccount()
-      let equity = result.equity
+      let result = await this.alpaca.trading.account.getAccount()
+      let equity = Number(result.equity)
       this.shortAmount = 0.30 * equity
       this.longAmount = Number(this.shortAmount) + Number(equity)
     } catch (err) {
@@ -362,30 +361,9 @@ class LongShort {
     return Promise.all(stocks.map(stock => {
       return new Promise(async (resolve) => {
         try {
-          // polygon and alpaca have different responses to keep backwards
-          // compatibility, so we handle it a bit differently
-          if (this.alpaca.configuration.usePolygon) {
-            const now = new Date().getTime();
-            const resp = await this.alpaca.getHistoricAggregatesV2(stock,
-                1,
-                'minute',
-                // 60000 : minutes and in milliseconds
-                // 1+1: limit + 1, this will return exactly 1 sample
-                (now - (1+1) * 60000),
-                now,
-                {
-                  unadjusted: false,
-                });
-            const close = resp.results[0].c;
-            resolve(close);
-          } else{
-            const resp = await this.alpaca.getBarsV2(stock, {
-              timeframe: '1Min',
-              limit: 1,
-            })
-            const bars = await generatorToArray(resp);
-            resolve(bars[0].ClosePrice);
-          }
+          // getLatestPrice returns the latest trade price as a plain number.
+          const price = await this.alpaca.marketData.getLatestPrice(stock)
+          resolve(price)
         } catch (err) {
           log(`Encountered error ${err.message} for ${JSON.stringify(stock)}.`)
         }
@@ -403,12 +381,10 @@ class LongShort {
       }
 
       try {
-        await this.alpaca.createOrder({
+        await this.alpaca.trading.orders.market({
           symbol: stock,
           qty: quantity,
           side,
-          type: 'market',
-          time_in_force: 'day',
         })
         log(`Market order of | ${quantity} ${stock} ${side} | completed.`)
         resolve(true)
@@ -451,32 +427,15 @@ class LongShort {
     return Promise.all(this.stockList.map(stock => {
       return new Promise(async (resolve) => {
         try {
-          // polygon and alpaca have different responses to keep backwards
-          // compatibility, so we handle it a bit differently
-          if (this.alpaca.configuration.usePolygon) {
-            const now = new Date().getTime();
-            const resp = await this.alpaca.getHistoricAggregatesV2(stock.name,
-                1,
-                'minute',
-                // 60000 : minutes and in milliseconds
-                // 1+1: limit + 1, this will return exactly limit samples
-                (now - (limit+1) * 60000),
-                now,
-                {
-                  unadjusted: false,
-                });
-            const l = resp.results.length;
-            const last_close = resp.results[l - 1].c;
-            const first_open = resp.results[0].o;
-            stock.pc = (last_close - first_open) / first_open;
-          } else {
-            const resp = await this.alpaca.getBarsV2(stock.name, {
-              timeframe: '1Min',
-              limit: limit,
-            })
-            const bars = await generatorToArray(resp);
-            const last_close = bars[bars.length - 1].ClosePrice;
-            const first_open = bars[0].OpenPrice;
+          // getStockBarsFor returns a plain Bar[] with the canonical Bar shape
+          // (open/high/low/close/volume), not an async generator.
+          const bars = await this.alpaca.marketData.getStockBarsFor(stock.name, {
+            timeframe: timeFrame(1, TimeFrameUnit.Minute),
+            limit: limit,
+          })
+          if (bars.length > 0) {
+            const last_close = bars[bars.length - 1].close;
+            const first_open = bars[0].open;
             stock.pc = (last_close - first_open) / first_open;
           }
         } catch (err) {
@@ -499,15 +458,6 @@ class LongShort {
 
 function log (text) {
   console.log(text)
-}
-
-// Helper function used to turn the result of getBarsV2 into an array.
-async function generatorToArray(resp) {
-  let result = []
-  for await (let x of resp) {
-    result.push(x)
-  }
-  return result
 }
 
 // Run the LongShort class

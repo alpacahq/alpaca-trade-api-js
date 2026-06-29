@@ -1,12 +1,15 @@
 "use strict";
 
 /**
- * This example shows how to use the Alpaca Data V2 websocket to subscribe to events.
- * The socket is available under the `data_steam_v2` property on an Alpaca instance.
- * There are separate functions for subscribing (and unsubscribing) to trades, quotes and bars as seen below.
+ * This example shows how to use the Alpaca market-data websocket to subscribe
+ * to events. In 4.x the stream is created by a factory method
+ * (`alpaca.marketData.stockStream({ feed })`) instead of a pre-built property,
+ * and the feed is passed per-stream rather than on the client constructor.
+ * There are separate functions for subscribing (and unsubscribing) to trades,
+ * quotes and bars as seen below.
  */
 
-const Alpaca = require("@alpacahq/alpaca-trade-api");
+const { Alpaca } = require("@alpacahq/alpaca-trade-api");
 const API_KEY = "<YOUR_API_KEY>";
 const API_SECRET = "<YOUR_API_SECRET>";
 
@@ -14,11 +17,11 @@ class DataStream {
   constructor({ apiKey, secretKey, feed }) {
     this.alpaca = new Alpaca({
       keyId: apiKey,
-      secretKey,
-      feed,
+      secret: secretKey,
+      paper: true,
     });
 
-    const socket = this.alpaca.data_stream_v2;
+    const socket = this.alpaca.marketData.stockStream({ feed });
 
     socket.onConnect(function () {
       console.log("Connected");
@@ -32,19 +35,19 @@ class DataStream {
       console.log(err);
     });
 
-    socket.onStockTrade((trade) => {
+    socket.onTrade((trade) => {
       console.log(trade);
     });
 
-    socket.onStockQuote((quote) => {
+    socket.onQuote((quote) => {
       console.log(quote);
     });
 
-    socket.onStockBar((bar) => {
+    socket.onBar((bar) => {
       console.log(bar);
     });
 
-    socket.onStatuses((s) => {
+    socket.onStatus((s) => {
       console.log(s);
     });
 
@@ -69,5 +72,4 @@ let stream = new DataStream({
   apiKey: API_KEY,
   secretKey: API_SECRET,
   feed: "sip",
-  paper: true,
 });

@@ -764,11 +764,14 @@ export class MarketDataClient {
         return new (getStreaming().StockDataStream)({ sandbox: this.sandbox, ...options, credentials: this.credentials });
     }
 
-    /** Open a real-time crypto data stream. */
+    /**
+     * Open a real-time crypto data stream. Crypto streaming is production-only
+     * (no sandbox endpoint), so the client's `sandbox` flag is not applied here.
+     */
     cryptoStream(
         options: Omit<streaming.CryptoDataStreamOptions, "credentials"> = {},
     ): streaming.CryptoDataStream {
-        return new (getStreaming().CryptoDataStream)({ sandbox: this.sandbox, ...options, credentials: this.credentials });
+        return new (getStreaming().CryptoDataStream)({ ...options, credentials: this.credentials });
     }
 
     /** Open a real-time options data stream. */
@@ -778,11 +781,14 @@ export class MarketDataClient {
         return new (getStreaming().OptionDataStream)({ sandbox: this.sandbox, ...options, credentials: this.credentials });
     }
 
-    /** Open a real-time news stream. */
+    /**
+     * Open a real-time news stream. News streaming is production-only (no
+     * sandbox endpoint), so the client's `sandbox` flag is not applied here.
+     */
     newsStream(
         options: Omit<streaming.MarketDataStreamOptions, "credentials"> = {},
     ): streaming.NewsStream {
-        return new (getStreaming().NewsStream)({ sandbox: this.sandbox, ...options, credentials: this.credentials });
+        return new (getStreaming().NewsStream)({ ...options, credentials: this.credentials });
     }
 
     // --- Workflow helpers --------------------------------------------------

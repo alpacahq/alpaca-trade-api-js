@@ -78,10 +78,10 @@ export class TradingStream extends AlpacaWebSocket {
                 }
                 break;
             case "listening":
-                this.emit(EVENT.SUBSCRIPTION, frame.data?.streams ?? []);
+                this.safeEmit(EVENT.SUBSCRIPTION, frame.data?.streams ?? []);
                 break;
             case "trade_updates":
-                this.emit(
+                this.safeEmit(
                     EVENT.TRADE_UPDATE,
                     mapTradeUpdate(frame.data ?? {}),
                 );

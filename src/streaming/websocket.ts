@@ -32,6 +32,9 @@ export enum EVENT {
     CLIENT_ERROR = "error",
     AUTHORIZED = "authorized",
     SUBSCRIPTION = "subscription",
+    // Reconnect lifecycle
+    RECONNECTING = "reconnecting",
+    RECONNECTED = "reconnected",
     // Market-data channels
     TRADE = "trade",
     QUOTE = "quote",
@@ -68,6 +71,63 @@ export type Codec = "msgpack" | "json";
 
 /** Sentinel for {@link AlpacaWebSocketOptions.maxReconnectAttempts}: retry forever. */
 export const UNLIMITED_RECONNECT_ATTEMPTS = -1;
+
+/** Outcome categories for a stream's first authentication attempt. */
+export enum STREAM_AUTH_STATUS {
+    /** The stream authenticated successfully. */
+    AUTHENTICATED = "authenticated",
+    /** The server rejected the credentials or the authentication request. */
+    SERVER_REJECTED = "server_rejected",
+    /** The stream closed (or was disconnected) before authentication completed. */
+    CLOSED = "closed",
+    /** A caller's {@link AlpacaWebSocket.waitForAuthentication} wait timed out. */
+    TIMEOUT = "timeout",
+    /** Authentication failed before completing for some other reason. */
+    FAILED = "failed",
+}
+
+/**
+ * Typed result of a stream's first authentication attempt.
+ *
+ * Mirrors the awaitable auth handshake outcome: inspect {@link authenticated}
+ * for a simple success check, or {@link status} / {@link code} / {@link message}
+ * for diagnostics (e.g. a server rejection code).
+ */
+export interface StreamAuthResult {
+    /** Outcome category. */
+    status: STREAM_AUTH_STATUS;
+    /** `true` only when {@link status} is {@link STREAM_AUTH_STATUS.AUTHENTICATED}. */
+    authenticated: boolean;
+    /** Server error code, when the server rejected the request. */
+    code?: number;
+    /** Human-readable detail. */
+    message: string;
+}
+
+/** Builders for the typed auth-result outcomes. */
+const authResult = {
+    authenticated: (): StreamAuthResult => ({
+        status: STREAM_AUTH_STATUS.AUTHENTICATED,
+        authenticated: true,
+        message: "authenticated",
+    }),
+    serverRejected: (code: number | undefined, message: string): StreamAuthResult => ({
+        status: STREAM_AUTH_STATUS.SERVER_REJECTED,
+        authenticated: false,
+        code,
+        message,
+    }),
+    closed: (reason: string): StreamAuthResult => ({
+        status: STREAM_AUTH_STATUS.CLOSED,
+        authenticated: false,
+        message: reason,
+    }),
+    timeout: (ms: number): StreamAuthResult => ({
+        status: STREAM_AUTH_STATUS.TIMEOUT,
+        authenticated: false,
+        message: `authentication wait timed out after ${ms}ms`,
+    }),
+} as const;
 
 /** The minimal socket surface this client relies on (satisfied by `ws`). */
 export interface WebSocketLike {
@@ -119,6 +179,14 @@ export interface AlpacaWebSocketOptions {
     verbose?: boolean;
     /** Inject a socket factory (testing). Defaults to the `ws` package. */
     wsFactory?: WebSocketFactory;
+    /**
+     * Runs each listener callback. Defaults to invoking it synchronously on the
+     * socket's message thread. Supply an executor (e.g. `(task) => setImmediate(task)`
+     * or a queue) to offload listener work; regardless of the executor, a
+     * callback that throws is caught and logged so it can never break the
+     * stream's protocol, re-subscription, or reconnect handling.
+     */
+    callbackExecutor?: (task: () => void) => void;
 }
 
 export abstract class AlpacaWebSocket extends EventEmitter {
@@ -137,10 +205,16 @@ export abstract class AlpacaWebSocket extends EventEmitter {
     private readonly pongWaitMs: number;
     private readonly verbose: boolean;
     private readonly wsFactory: WebSocketFactory;
+    private readonly callbackExecutor: (task: () => void) => void;
 
     protected conn?: WebSocketLike;
     protected authenticated = false;
     protected isReconnected = false;
+
+    /** Resolves with the outcome of the first authentication attempt. */
+    private readonly authResultPromise: Promise<StreamAuthResult>;
+    private resolveAuthResult!: (result: StreamAuthResult) => void;
+    private authSettled = false;
 
     private state: STATE = STATE.DISCONNECTED;
     private manualClose = false;
@@ -172,6 +246,10 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         this.pongWaitMs = options.pongWaitMs ?? 5000;
         this.verbose = options.verbose ?? false;
         this.wsFactory = options.wsFactory ?? defaultWebSocketFactory;
+        this.callbackExecutor = options.callbackExecutor ?? ((task) => task());
+        this.authResultPromise = new Promise<StreamAuthResult>((resolve) => {
+            this.resolveAuthResult = resolve;
+        });
     }
 
     /** Opens the connection. Safe to call again after a disconnect. */
@@ -188,7 +266,7 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         socket.on("open", () => this.handleOpen());
         socket.on("message", (data: unknown) => this.handleRawMessage(data));
         socket.on("error", (err: unknown) =>
-            this.emit(EVENT.CLIENT_ERROR, err instanceof Error ? err.message : String(err)),
+            this.safeEmit(EVENT.CLIENT_ERROR, err instanceof Error ? err.message : String(err)),
         );
         socket.on("close", () => this.handleClose());
         socket.on("pong", () => this.clearPongTimeout());
@@ -204,6 +282,8 @@ export abstract class AlpacaWebSocket extends EventEmitter {
             this.reconnectTimer = undefined;
         }
         this.authenticated = false;
+        // A close before we ever authenticated resolves the auth outcome.
+        this.settleAuthResult(authResult.closed("disconnected before authentication"));
         const conn = this.conn;
         this.conn = undefined;
         conn?.close();
@@ -234,6 +314,62 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         return this.on(EVENT.STATE_CHANGE, fn);
     }
 
+    /** Fires just before each automatic reconnect attempt (`attempt` is 1-based). */
+    onReconnecting(fn: (attempt: number) => void): this {
+        return this.on(EVENT.RECONNECTING, fn);
+    }
+
+    /** Fires after a reconnect attempt re-authenticates and restores subscriptions. */
+    onReconnected(fn: () => void): this {
+        return this.on(EVENT.RECONNECTED, fn);
+    }
+
+    // --- Awaitable authentication outcome -----------------------------------
+
+    /**
+     * Resolves with the outcome of the stream's first authentication attempt.
+     *
+     * Never rejects: a failure resolves with a {@link StreamAuthResult} whose
+     * {@link StreamAuthResult.authenticated} is `false` and whose
+     * {@link StreamAuthResult.status} explains why (server rejection, closed
+     * before auth, ...). The result reflects the first attempt only and is not
+     * affected by later reconnects.
+     */
+    whenAuthenticated(): Promise<StreamAuthResult> {
+        return this.authResultPromise;
+    }
+
+    /**
+     * Like {@link whenAuthenticated}, but resolves with a
+     * {@link STREAM_AUTH_STATUS.TIMEOUT} result if the outcome has not arrived
+     * within `timeoutMs`. The timeout is caller-side only - it does not settle
+     * the underlying outcome, so other waiters keep waiting for the real result.
+     */
+    async waitForAuthenticationResult(timeoutMs?: number): Promise<StreamAuthResult> {
+        if (timeoutMs == null) {
+            return this.authResultPromise;
+        }
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeout = new Promise<StreamAuthResult>((resolve) => {
+            timer = setTimeout(() => resolve(authResult.timeout(timeoutMs)), timeoutMs);
+        });
+        try {
+            return await Promise.race([this.authResultPromise, timeout]);
+        } finally {
+            if (timer) {
+                clearTimeout(timer);
+            }
+        }
+    }
+
+    /**
+     * Resolves `true` once the stream authenticates, or `false` on failure,
+     * close-before-auth, or (when `timeoutMs` is given) timeout.
+     */
+    waitForAuthentication(timeoutMs?: number): Promise<boolean> {
+        return this.waitForAuthenticationResult(timeoutMs).then((r) => r.authenticated);
+    }
+
     // --- Hooks implemented by subclasses ------------------------------------
 
     /** Send the protocol-specific authentication frame. */
@@ -261,13 +397,21 @@ export abstract class AlpacaWebSocket extends EventEmitter {
 
     /** Called by subclasses when the server confirms authentication. */
     protected onAuthenticated(): void {
+        const wasReconnected = this.isReconnected;
         this.authenticated = true;
         // A successful auth means the connection is healthy again: reset the
         // backoff so a later drop starts from the initial delay.
         this.reconnectAttempts = 0;
         this.setState(STATE.AUTHENTICATED);
         this.resubscribe();
-        this.emit(EVENT.AUTHORIZED);
+        this.safeEmit(EVENT.AUTHORIZED);
+        this.settleAuthResult(authResult.authenticated());
+        // Distinguish a reconnect's auth (subscriptions restored) from the
+        // first connect, mirroring the Java client's onReconnected callback.
+        if (wasReconnected) {
+            this.isReconnected = false;
+            this.safeEmit(EVENT.RECONNECTED);
+        }
     }
 
     /**
@@ -276,15 +420,55 @@ export abstract class AlpacaWebSocket extends EventEmitter {
      * forever). Subclasses call this from their protocol-specific auth-failure
      * paths.
      */
-    protected failAuthentication(message: string): void {
-        this.emit(EVENT.CLIENT_ERROR, message);
+    protected failAuthentication(message: string, code?: number): void {
+        this.settleAuthResult(authResult.serverRejected(code, message));
+        this.safeEmit(EVENT.CLIENT_ERROR, message);
         this.disconnect();
+    }
+
+    /** Settles the first-auth outcome promise (idempotent - only the first call wins). */
+    private settleAuthResult(result: StreamAuthResult): void {
+        if (this.authSettled) {
+            return;
+        }
+        this.authSettled = true;
+        this.resolveAuthResult(result);
+    }
+
+    /**
+     * Dispatches an event to its listeners through the configured executor,
+     * isolating each callback so a throwing handler is logged rather than
+     * allowed to disrupt protocol state, re-subscription, or reconnects.
+     *
+     * Uses {@link rawListeners} so `once` listeners still fire exactly once and
+     * the missing-`error`-listener case never throws (matching the Java client,
+     * which logs instead of crashing).
+     */
+    protected safeEmit(event: string, ...args: unknown[]): void {
+        const handlers = this.rawListeners(event) as Array<
+            ((...a: unknown[]) => void) & { listener?: (...a: unknown[]) => void }
+        >;
+        for (const handler of handlers) {
+            // A `once` wrapper exposes the original via `.listener`; remove it
+            // up front so it cannot fire again, then call the original.
+            if (typeof handler.listener === "function") {
+                this.removeListener(event, handler);
+            }
+            const fn = handler.listener ?? handler;
+            this.callbackExecutor(() => {
+                try {
+                    fn(...args);
+                } catch (err) {
+                    this.log(`stream listener for "${event}" threw:`, err);
+                }
+            });
+        }
     }
 
     protected setState(state: STATE): void {
         this.state = state;
-        this.emit(state);
-        this.emit(EVENT.STATE_CHANGE, state);
+        this.safeEmit(state);
+        this.safeEmit(EVENT.STATE_CHANGE, state);
     }
 
     protected log(...args: unknown[]): void {
@@ -304,7 +488,7 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         try {
             decoded = this.decode(raw);
         } catch (err) {
-            this.emit(
+            this.safeEmit(
                 EVENT.CLIENT_ERROR,
                 `failed to decode message: ${(err as Error).message}`,
             );
@@ -333,6 +517,9 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         this.setState(STATE.DISCONNECTED);
         if (this.shouldReconnect()) {
             this.scheduleReconnect();
+        } else {
+            // No reconnect will follow: the first-auth outcome is now terminal.
+            this.settleAuthResult(authResult.closed("connection closed before authentication"));
         }
     }
 
@@ -352,8 +539,12 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         this.setState(STATE.WAITING_TO_RECONNECT);
         const delayMs = this.reconnectDelayMs(this.reconnectAttempts);
         this.reconnectAttempts += 1;
-        this.log(`reconnecting in ${delayMs}ms (attempt ${this.reconnectAttempts})`);
-        this.reconnectTimer = setTimeout(() => this.connect(), delayMs);
+        const attempt = this.reconnectAttempts;
+        this.log(`reconnecting in ${delayMs}ms (attempt ${attempt})`);
+        this.reconnectTimer = setTimeout(() => {
+            this.safeEmit(EVENT.RECONNECTING, attempt);
+            this.connect();
+        }, delayMs);
     }
 
     /**

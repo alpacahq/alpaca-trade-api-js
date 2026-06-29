@@ -140,6 +140,21 @@ stocks.connect();
 `submitAndWait` workflow helper places an order and resolves on its terminal
 state over the trading-updates stream.
 
+Every stream also exposes (parity with the Java client):
+
+- **Awaitable auth:** `await stream.whenAuthenticated()` →
+  `StreamAuthResult { status, authenticated, code?, message }` (never rejects);
+  `waitForAuthentication(timeoutMs?)` → `boolean`. `status` is a
+  `STREAM_AUTH_STATUS` (`authenticated`/`server_rejected`/`closed`/`timeout`).
+- **Reconnect lifecycle:** `onReconnecting((attempt) => …)` (1-based) and
+  `onReconnected(() => …)`, distinct from the first `onConnect`.
+- **Overrides:** a per-stream `url` (proxy/gateway routing on any stream,
+  market-data included) and a `callbackExecutor` to offload + isolate listeners
+  (a throwing listener is logged, never breaks the stream).
+- **Gotchas:** crypto & news streams are **production-only** — `sandbox: true`
+  throws (the client `sandbox` flag isn't applied to them); pass `url` to
+  override. Subscribing with blank/non-string symbols throws at the call site.
+
 ## Discovering anything programmatically
 
 ```ts

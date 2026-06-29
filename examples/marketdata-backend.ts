@@ -6,10 +6,11 @@
  * - GET /bars?symbol=AAPL  Historical bars as canonical `Bar`s (REST, auto-paginated).
  * - GET /candles?symbol=AAPL Historical bars as chart-ready columnar `Candles`.
  *
- * Demonstrates: a long-lived market-data WebSocket fanned out to many HTTP
- * clients, plus REST helpers and auto-pagination - no extra web framework. The
- * live `/stream` bars and the historical `/bars` share ONE shape (`Bar`), so a
- * frontend can backfill history then append live updates without remapping.
+ * Demonstrates: a long-lived market-data WebSocket (with reconnect-lifecycle
+ * listeners) fanned out to many HTTP clients, plus REST helpers and
+ * auto-pagination - no extra web framework. The live `/stream` bars and the
+ * historical `/bars` share ONE shape (`Bar`), so a frontend can backfill history
+ * then append live updates without remapping.
  * Upstream failures are surfaced as typed `ApiError`s, mapped to the right HTTP
  * status with Alpaca's request id for debugging.
  *
@@ -42,6 +43,10 @@ stream.onBar((bar) => {
     for (const res of clients) res.write(frame);
 });
 stream.onError((msg) => console.error("stream error:", msg));
+// The client auto-reconnects with backoff and restores subscriptions; surface
+// the lifecycle so the backend can log/observe gaps in the feed.
+stream.onReconnecting((attempt) => console.warn(`market-data stream reconnecting (attempt ${attempt})`));
+stream.onReconnected(() => console.info("market-data stream reconnected; subscriptions restored"));
 stream.onConnect(() => stream.subscribeForBars(SYMBOLS));
 stream.connect();
 

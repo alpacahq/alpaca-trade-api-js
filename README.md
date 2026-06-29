@@ -228,7 +228,8 @@ const alpaca = new Alpaca({
   // Abort a stalled request after N ms (default: 30000; set 0 to disable).
   timeoutMs: 10_000,
 
-  // Use the market-data sandbox host (default false; market data only).
+  // Use the market-data sandbox host for stock/option data (default false).
+  // Crypto and news streams are production-only, so this flag isn't applied there.
   sandbox: false,
 
   // Automatic retry. The Alpaca client enables this by default (3 attempts);
@@ -589,6 +590,38 @@ updates.connect();
 ```
 
 `cryptoStream()`, `optionStream()`, and `newsStream()` share the same surface.
+
+Every stream also exposes:
+
+- **Awaitable authentication** — `whenAuthenticated()` resolves with a typed
+  `StreamAuthResult` (never rejects), or `waitForAuthentication(timeoutMs?)` for
+  a `boolean`. Failures carry a `STREAM_AUTH_STATUS` (`server_rejected` with the
+  server `code`, `closed`, `timeout`).
+- **Reconnect lifecycle** — `onReconnecting((attempt) => …)` (1-based) and
+  `onReconnected(() => …)` (after re-auth + re-subscribe), distinct from the
+  first `onConnect`.
+- **A custom `url`** on any stream (market-data included) to route through a
+  proxy/gateway, plus a `callbackExecutor` to offload listener work — a throwing
+  listener is logged and can never break the stream.
+
+```ts
+const stocks = alpaca.marketData.stockStream({
+  feed: "iex",
+  url: "wss://proxy.internal/v2/iex", // optional: override the derived endpoint
+  callbackExecutor: (task) => queueMicrotask(task), // optional: offload listeners
+});
+stocks.onReconnecting((attempt) => console.warn(`reconnecting (attempt ${attempt})`));
+stocks.onReconnected(() => console.info("reconnected; subscriptions restored"));
+stocks.connect();
+
+const result = await stocks.whenAuthenticated();
+if (!result.authenticated) {
+  console.error(`stream auth failed: ${result.status} ${result.code ?? ""} ${result.message}`);
+}
+```
+
+> Crypto and news streams are **production-only** (no sandbox endpoint): pass an
+> explicit `url` if you must point them elsewhere; otherwise `sandbox: true` throws.
 
 ## Capability map (which method lives where)
 
@@ -2092,6 +2125,40 @@ news.onNews((n) => console.log(n.headline));
 news.onConnect(() => news.subscribeForNews(["AAPL", "TSLA"]));
 news.connect();
 ```
+
+#### Shared stream lifecycle (all streams)
+
+Every stream — trading and market-data — shares this lifecycle surface in
+addition to its data handlers:
+
+| Member | Description |
+| --- | --- |
+| `connect()` / `disconnect()` | Open / close the socket (`disconnect` suppresses auto-reconnect). |
+| `onConnect` / `onDisconnect` / `onStateChange` / `onError` | Lifecycle + error listeners. |
+| `onReconnecting((attempt) => …)` | Fires before each automatic reconnect (1-based `attempt`). |
+| `onReconnected(() => …)` | Fires after a reconnect re-authenticates and restores subscriptions. |
+| `whenAuthenticated(): Promise<StreamAuthResult>` | Resolves with the first-auth outcome; never rejects. |
+| `waitForAuthentication(timeoutMs?): Promise<boolean>` | `true` on auth, `false` on failure/close/timeout. |
+| `waitForAuthenticationResult(timeoutMs?)` | Typed result; a caller-side timeout doesn't settle the real outcome. |
+
+`StreamAuthResult` is `{ status, authenticated, code?, message }` where `status`
+is a `STREAM_AUTH_STATUS` (`authenticated`, `server_rejected`, `closed`,
+`timeout`). Server rejections (bad credentials, etc.) include the numeric `code`.
+
+```ts
+const updates = alpaca.trading.stream();
+updates.onReconnecting((attempt) => console.warn(`reconnecting #${attempt}`));
+updates.connect();
+
+const auth = await updates.waitForAuthenticationResult(10_000);
+if (!auth.authenticated) throw new Error(`stream auth ${auth.status}: ${auth.message}`);
+```
+
+Common stream **options** (in addition to `feed`/`paper`/`sandbox`): `reconnect`,
+`maxReconnectAttempts` (`UNLIMITED_RECONNECT_ATTEMPTS` to retry forever),
+`backoff`, `initialReconnectMs`, `maxReconnectMs`, `reconnectJitter`,
+`pingIntervalMs`, `pongWaitMs`, `url` (override the endpoint), and
+`callbackExecutor` (offload + isolate listener callbacks).
 
 ### Ergonomic helpers
 

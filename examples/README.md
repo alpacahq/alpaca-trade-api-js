@@ -28,9 +28,10 @@ export APCA_API_SECRET_KEY="your-secret"
 A paper trading bot: reads the account (formatting money with the `values`
 helpers), looks up the latest price, places a resting limit order with the
 ergonomic `orders.limit` builder (then cancels it), streams order/account
-updates, and places a market order with `submitAndWait` (which blocks until the
-order reaches a terminal state). Errors branch on the typed `ApiError`
-subclasses (`RateLimitError`, ...) and log Alpaca's request id.
+updates (awaiting the typed auth handshake and logging the reconnect lifecycle),
+and places a market order with `submitAndWait` (which blocks until the order
+reaches a terminal state). Errors branch on the typed `ApiError` subclasses
+(`RateLimitError`, ...) and log Alpaca's request id.
 
 ```bash
 npx tsx examples/trading-bot.ts
@@ -39,11 +40,12 @@ npx tsx examples/trading-bot.ts
 ## [`marketdata-backend.ts`](./marketdata-backend.ts)
 
 A tiny market-data backend for a visualization frontend. A single live
-market-data WebSocket is fanned out to many HTTP clients over Server-Sent
-Events, alongside REST routes for the latest price and historical bars. The
-live stream and the historical `/bars` route emit the same canonical `Bar`
-shape, so a frontend can backfill history then append live updates without
-remapping; `/candles` returns the columnar form charting libraries consume.
+market-data WebSocket (with reconnect-lifecycle logging) is fanned out to many
+HTTP clients over Server-Sent Events, alongside REST routes for the latest price
+and historical bars. The live stream and the historical `/bars` route emit the
+same canonical `Bar` shape, so a frontend can backfill history then append live
+updates without remapping; `/candles` returns the columnar form charting
+libraries consume.
 Upstream failures are surfaced as typed `ApiError`s, mapped to the right HTTP
 status with the request id.
 

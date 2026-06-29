@@ -43,6 +43,21 @@ function streamHost(sandbox?: boolean): string {
     return sandbox ? MARKET_DATA_STREAM_SANDBOX_HOST : MARKET_DATA_STREAM_HOST;
 }
 
+/**
+ * Guards production-only streams. The sandbox market-data host serves stock
+ * data only; crypto and news have no sandbox endpoint, so requesting one is a
+ * configuration error (matching the Java client's production-only enforcement).
+ * Pass an explicit `url` to bypass this guard.
+ */
+function requireProduction(streamName: string, sandbox?: boolean): void {
+    if (sandbox) {
+        throw new Error(
+            `The ${streamName} stream has no sandbox endpoint; it is only available on the ` +
+                "production market-data host. Use a non-sandbox client, or pass an explicit `url`.",
+        );
+    }
+}
+
 /** Subscribable market-data channels. */
 export type MarketDataChannel =
     | "trades"
@@ -71,7 +86,29 @@ const CHANNELS: MarketDataChannel[] = [
 export type MarketDataStreamOptions = Omit<AlpacaWebSocketOptions, "url" | "codec"> & {
     /** Use the market-data sandbox host instead of production. Default false. */
     sandbox?: boolean;
+    /**
+     * Override the derived endpoint entirely (e.g. to route through a proxy).
+     * Takes precedence over `sandbox` and the feed-derived path. When set, the
+     * production-only guard on crypto/news streams is bypassed.
+     */
+    url?: string;
 };
+
+/**
+ * Rejects null/blank subscription symbols before they reach the wire, matching
+ * the Java client's subscription validation. Returns the symbols unchanged.
+ */
+function validateSymbols(symbols: string[]): string[] {
+    if (!Array.isArray(symbols)) {
+        throw new TypeError("symbols must be an array of non-empty strings");
+    }
+    for (const symbol of symbols) {
+        if (typeof symbol !== "string" || symbol.trim() === "") {
+            throw new Error("subscription symbols must be non-empty, non-blank strings");
+        }
+    }
+    return symbols;
+}
 
 interface ControlOrDataFrame {
     T?: string;
@@ -231,7 +268,7 @@ export class MarketDataStream extends AlpacaWebSocket {
                     break;
                 case "subscription":
                     this.updateSubscriptions(frame);
-                    this.emit(EVENT.SUBSCRIPTION, this.getSubscriptions());
+                    this.safeEmit(EVENT.SUBSCRIPTION, this.getSubscriptions());
                     break;
                 case "error": {
                     const message =
@@ -240,9 +277,9 @@ export class MarketDataStream extends AlpacaWebSocket {
                     // Auth failures are terminal: don't reconnect with credentials
                     // the server already rejected.
                     if (frame.code != null && AUTH_FAILURE_CODES.has(frame.code)) {
-                        this.failAuthentication(message);
+                        this.failAuthentication(message, frame.code);
                     } else {
-                        this.emit(EVENT.CLIENT_ERROR, message);
+                        this.safeEmit(EVENT.CLIENT_ERROR, message);
                     }
                     break;
                 }
@@ -255,37 +292,37 @@ export class MarketDataStream extends AlpacaWebSocket {
     private dispatchData(frame: ControlOrDataFrame): void {
         switch (frame.T) {
             case "t":
-                this.emit(EVENT.TRADE, mapTrade(frame as never));
+                this.safeEmit(EVENT.TRADE, mapTrade(frame as never));
                 break;
             case "q":
-                this.emit(EVENT.QUOTE, mapQuote(frame as never));
+                this.safeEmit(EVENT.QUOTE, mapQuote(frame as never));
                 break;
             case "b":
-                this.emit(EVENT.BAR, mapBar(frame as never));
+                this.safeEmit(EVENT.BAR, mapBar(frame as never));
                 break;
             case "u":
-                this.emit(EVENT.UPDATED_BAR, mapBar(frame as never));
+                this.safeEmit(EVENT.UPDATED_BAR, mapBar(frame as never));
                 break;
             case "d":
-                this.emit(EVENT.DAILY_BAR, mapBar(frame as never));
+                this.safeEmit(EVENT.DAILY_BAR, mapBar(frame as never));
                 break;
             case "s":
-                this.emit(EVENT.STATUS, mapStatus(frame as never));
+                this.safeEmit(EVENT.STATUS, mapStatus(frame as never));
                 break;
             case "l":
-                this.emit(EVENT.LULD, mapLuld(frame as never));
+                this.safeEmit(EVENT.LULD, mapLuld(frame as never));
                 break;
             case "c":
-                this.emit(EVENT.CORRECTION, mapCorrection(frame as never));
+                this.safeEmit(EVENT.CORRECTION, mapCorrection(frame as never));
                 break;
             case "x":
-                this.emit(EVENT.CANCEL_ERROR, mapCancelError(frame as never));
+                this.safeEmit(EVENT.CANCEL_ERROR, mapCancelError(frame as never));
                 break;
             case "o":
-                this.emit(EVENT.ORDERBOOK, mapOrderbook(frame as never));
+                this.safeEmit(EVENT.ORDERBOOK, mapOrderbook(frame as never));
                 break;
             case "n":
-                this.emit(EVENT.NEWS, mapNews(frame as never));
+                this.safeEmit(EVENT.NEWS, mapNews(frame as never));
                 break;
             default:
                 this.log(`unhandled stream frame type: ${frame.T}`);
@@ -293,6 +330,7 @@ export class MarketDataStream extends AlpacaWebSocket {
     }
 
     private addSubscription(channel: MarketDataChannel, symbols: string[]): void {
+        validateSymbols(symbols);
         const set = new Set(this.subscriptions[channel]);
         const added: string[] = [];
         for (const s of symbols) {
@@ -308,6 +346,7 @@ export class MarketDataStream extends AlpacaWebSocket {
     }
 
     private removeSubscription(channel: MarketDataChannel, symbols: string[]): void {
+        validateSymbols(symbols);
         const remove = new Set(symbols);
         this.subscriptions[channel] = this.subscriptions[channel].filter(
             (s) => !remove.has(s),
@@ -337,8 +376,8 @@ export interface StockDataStreamOptions extends MarketDataStreamOptions {
 
 export class StockDataStream extends MarketDataStream {
     constructor(options: StockDataStreamOptions) {
-        const { feed = "iex", sandbox, ...rest } = options;
-        super({ ...rest, url: `${streamHost(sandbox)}/v2/${feed}` });
+        const { feed = "iex", sandbox, url, ...rest } = options;
+        super({ ...rest, url: url ?? `${streamHost(sandbox)}/v2/${feed}` });
     }
 }
 
@@ -349,8 +388,11 @@ export interface CryptoDataStreamOptions extends MarketDataStreamOptions {
 
 export class CryptoDataStream extends MarketDataStream {
     constructor(options: CryptoDataStreamOptions) {
-        const { loc = "us", sandbox, ...rest } = options;
-        super({ ...rest, url: `${streamHost(sandbox)}/v1beta3/crypto/${loc}` });
+        const { loc = "us", sandbox, url, ...rest } = options;
+        if (url == null) {
+            requireProduction("crypto", sandbox);
+        }
+        super({ ...rest, url: url ?? `${MARKET_DATA_STREAM_HOST}/v1beta3/crypto/${loc}` });
     }
 }
 
@@ -364,14 +406,17 @@ export interface OptionDataStreamOptions extends MarketDataStreamOptions {
 
 export class OptionDataStream extends MarketDataStream {
     constructor(options: OptionDataStreamOptions) {
-        const { feed = "indicative", sandbox, ...rest } = options;
-        super({ ...rest, url: `${streamHost(sandbox)}/v1beta1/${feed}` });
+        const { feed = "indicative", sandbox, url, ...rest } = options;
+        super({ ...rest, url: url ?? `${streamHost(sandbox)}/v1beta1/${feed}` });
     }
 }
 
 export class NewsStream extends MarketDataStream {
     constructor(options: MarketDataStreamOptions) {
-        const { sandbox, ...rest } = options;
-        super({ ...rest, url: `${streamHost(sandbox)}/v1beta1/news` });
+        const { sandbox, url, ...rest } = options;
+        if (url == null) {
+            requireProduction("news", sandbox);
+        }
+        super({ ...rest, url: url ?? `${MARKET_DATA_STREAM_HOST}/v1beta1/news` });
     }
 }
