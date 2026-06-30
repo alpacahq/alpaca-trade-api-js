@@ -101,6 +101,46 @@ for (const { name, rt } of RUNTIMES) {
         });
     });
 
+    describe(`[${name}] redirect hardening`, () => {
+        it('blocks redirects by default (redirect: "error") so secret headers can\'t follow off-host', async () => {
+            let seen: RequestInit | undefined;
+            const cfg = new rt.Configuration({
+                fetchApi: async (_url, init) => {
+                    seen = init;
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+            await call(cfg, 'GET');
+            expect(seen?.redirect).toBe('error');
+        });
+
+        it('lets the caller opt back into following redirects via config', async () => {
+            let seen: RequestInit | undefined;
+            const cfg = new rt.Configuration({
+                redirect: 'follow',
+                fetchApi: async (_url, init) => {
+                    seen = init;
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+            await call(cfg, 'GET');
+            expect(seen?.redirect).toBe('follow');
+        });
+
+        it('lets a per-call initOverride win over the configured redirect mode', async () => {
+            let seen: RequestInit | undefined;
+            const cfg = new rt.Configuration({
+                redirect: 'follow',
+                fetchApi: async (_url, init) => {
+                    seen = init;
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+            await call(cfg, 'GET', { redirect: 'manual' });
+            expect(seen?.redirect).toBe('manual');
+        });
+    });
+
     describe(`[${name}] G03 retry/backoff`, () => {
         it('does not retry when no policy is configured', async () => {
             let calls = 0;
@@ -318,6 +358,143 @@ for (const { name, rt } of RUNTIMES) {
             });
             await expect(call(cfg, 'GET')).rejects.toMatchObject({ name: 'FetchError' });
             expect(calls).toBe(1);
+        });
+    });
+
+    describe(`[${name}] retry observability (onRetry/onGiveUp)`, () => {
+        it('fires onRetry before each delayed retry, then succeeds without onGiveUp', async () => {
+            const events: trading.RetryEvent[] = [];
+            const giveUps: trading.RetryEvent[] = [];
+            let calls = 0;
+            const cfg = new rt.Configuration({
+                retry: {
+                    maxRetries: 3,
+                    retryDelayMs: 1,
+                    onRetry: (e) => events.push(e),
+                    onGiveUp: (e) => giveUps.push(e),
+                },
+                fetchApi: async () => {
+                    calls += 1;
+                    if (calls < 3) return jsonResponse(503, { message: 'try later' });
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+            const res = await call(cfg, 'GET');
+            expect(res.status).toBe(200);
+            expect(calls).toBe(3);
+            expect(giveUps).toHaveLength(0);
+            expect(events).toHaveLength(2);
+            expect(events.map((e) => e.attempt)).toEqual([1, 2]);
+            for (const e of events) {
+                expect(e.method).toBe('GET');
+                expect(e.url).toContain('/probe');
+                expect(e.maxRetries).toBe(3);
+                expect(e.status).toBe(503);
+                expect(e.error).toBeUndefined();
+                expect(e.delayMs).toBeGreaterThan(0);
+            }
+        });
+
+        it('fires onGiveUp exactly once after a retryable status exhausts all retries', async () => {
+            const events: trading.RetryEvent[] = [];
+            const giveUps: trading.RetryEvent[] = [];
+            const cfg = new rt.Configuration({
+                retry: {
+                    maxRetries: 2,
+                    retryDelayMs: 1,
+                    onRetry: (e) => events.push(e),
+                    onGiveUp: (e) => giveUps.push(e),
+                },
+                fetchApi: async () => jsonResponse(500, { message: 'boom' }),
+            });
+            await expect(call(cfg, 'GET')).rejects.toBeInstanceOf(rt.ApiError);
+            expect(events.map((e) => e.attempt)).toEqual([1, 2]);
+            expect(giveUps).toHaveLength(1);
+            expect(giveUps[0]).toMatchObject({ attempt: 2, maxRetries: 2, status: 500, delayMs: 0 });
+            expect(giveUps[0].error).toBeUndefined();
+        });
+
+        it('passes the network error (not a status) on network-error retries and give-up', async () => {
+            const events: trading.RetryEvent[] = [];
+            const giveUps: trading.RetryEvent[] = [];
+            const cfg = new rt.Configuration({
+                retry: {
+                    maxRetries: 1,
+                    retryDelayMs: 1,
+                    onRetry: (e) => events.push(e),
+                    onGiveUp: (e) => giveUps.push(e),
+                },
+                fetchApi: async () => {
+                    throw new Error('ECONNRESET');
+                },
+            });
+            await expect(call(cfg, 'GET')).rejects.toMatchObject({ name: 'FetchError' });
+            expect(events).toHaveLength(1);
+            expect(events[0]).toMatchObject({ attempt: 1, maxRetries: 1 });
+            expect(events[0].status).toBeUndefined();
+            expect(events[0].error).toBeInstanceOf(trading.FetchError);
+            expect(giveUps).toHaveLength(1);
+            expect(giveUps[0]).toMatchObject({ attempt: 1, delayMs: 0 });
+            expect(giveUps[0].status).toBeUndefined();
+            expect(giveUps[0].error).toBeInstanceOf(trading.FetchError);
+        });
+
+        it('does not fire either hook for a non-retryable status', async () => {
+            const events: trading.RetryEvent[] = [];
+            const giveUps: trading.RetryEvent[] = [];
+            const cfg = new rt.Configuration({
+                retry: {
+                    maxRetries: 3,
+                    retryDelayMs: 1,
+                    onRetry: (e) => events.push(e),
+                    onGiveUp: (e) => giveUps.push(e),
+                },
+                fetchApi: async () => jsonResponse(400, { message: 'bad request' }),
+            });
+            await expect(call(cfg, 'GET')).rejects.toBeInstanceOf(rt.ApiError);
+            expect(events).toHaveLength(0);
+            expect(giveUps).toHaveLength(0);
+        });
+
+        it('does not fire either hook for a non-idempotent POST', async () => {
+            const events: trading.RetryEvent[] = [];
+            const giveUps: trading.RetryEvent[] = [];
+            const cfg = new rt.Configuration({
+                retry: {
+                    maxRetries: 3,
+                    retryDelayMs: 1,
+                    onRetry: (e) => events.push(e),
+                    onGiveUp: (e) => giveUps.push(e),
+                },
+                fetchApi: async () => jsonResponse(503, { message: 'later' }),
+            });
+            await expect(call(cfg, 'POST')).rejects.toBeInstanceOf(rt.ApiError);
+            expect(events).toHaveLength(0);
+            expect(giveUps).toHaveLength(0);
+        });
+
+        it('swallows a throwing listener so observability never breaks the request', async () => {
+            let calls = 0;
+            const cfg = new rt.Configuration({
+                retry: {
+                    maxRetries: 2,
+                    retryDelayMs: 1,
+                    onRetry: () => {
+                        throw new Error('listener blew up');
+                    },
+                    onGiveUp: () => {
+                        throw new Error('listener blew up');
+                    },
+                },
+                fetchApi: async () => {
+                    calls += 1;
+                    if (calls < 2) return jsonResponse(503, { message: 'later' });
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+            const res = await call(cfg, 'GET');
+            expect(res.status).toBe(200);
+            expect(calls).toBe(2);
         });
     });
 

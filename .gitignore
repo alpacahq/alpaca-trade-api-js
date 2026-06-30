@@ -40,3 +40,9 @@ Thumbs.db
 *.swp
 .idea/
 *.iml
+
+# Docs site (docs/) generated artifacts — the Docusaurus build output, its cache,
+# and the generated API reference pages (regenerated on every build).
+docs/build/
+docs/.docusaurus/
+docs/docs/api/

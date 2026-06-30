@@ -118,7 +118,13 @@ export class RateLimitError extends ApiError {
     }
 }
 
-function parseRateLimit(headers: Headers | undefined): RateLimitInfo | undefined {
+/**
+ * Parse the `X-RateLimit-*` response headers into a {@link RateLimitInfo},
+ * returning `undefined` when none are present. Exposed so response helpers
+ * (e.g. `withResponse`) can surface the same throttling metadata that
+ * {@link ApiError} carries.
+ */
+export function parseRateLimit(headers: Headers | undefined): RateLimitInfo | undefined {
     if (!headers || typeof headers.get !== "function") {
         return undefined;
     }

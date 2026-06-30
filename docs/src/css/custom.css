@@ -1,0 +1,24 @@
+/**
+ * Minimal theme overrides. Docusaurus' default Infima palette is fine for an
+ * alpha docs site; tweak the brand color here if/when we have official tokens.
+ */
+:root {
+    --ifm-color-primary: #1a73e8;
+    --ifm-color-primary-dark: #1668d1;
+    --ifm-color-primary-darker: #1561c5;
+    --ifm-color-primary-darkest: #1150a2;
+    --ifm-color-primary-light: #2f80ea;
+    --ifm-color-primary-lighter: #3a87eb;
+    --ifm-color-primary-lightest: #5c9ef0;
+    --ifm-code-font-size: 95%;
+}
+
+[data-theme="dark"] {
+    --ifm-color-primary: #5c9ef0;
+    --ifm-color-primary-dark: #3a87eb;
+    --ifm-color-primary-darker: #2f80ea;
+    --ifm-color-primary-darkest: #1561c5;
+    --ifm-color-primary-light: #7eb2f3;
+    --ifm-color-primary-lighter: #8fbcf5;
+    --ifm-color-primary-lightest: #c2dafa;
+}

@@ -138,7 +138,7 @@ function formatExample(code: string): string {
 // --- Anchors -------------------------------------------------------------
 
 /** GitHub-compatible heading slug (strips backticks/dots, lowercases, etc.). */
-function slugify(text: string): string {
+export function headingSlug(text: string): string {
     return text
         .toLowerCase()
         .replace(/[^a-z0-9 -]/g, "")
@@ -147,7 +147,7 @@ function slugify(text: string): string {
 
 /** In-page anchor for a REST `accessor.method` heading. */
 function anchorFor(key: string): string {
-    return `#${slugify(`alpaca.${key}`)}`;
+    return `#${headingSlug(`alpaca.${key}`)}`;
 }
 
 // --- Markdown blocks -----------------------------------------------------
@@ -227,20 +227,43 @@ function ergonomicGroup(): string[] {
     return lines;
 }
 
+/** One top-level group of the API reference (heading + rendered markdown). */
+export interface ApiReferenceSection {
+    /** Group title, e.g. `"Trading API"`. */
+    title: string;
+    /**
+     * Rendered markdown lines for the group. The first line is the
+     * `### {title}` heading; consumers that render the group as its own page
+     * (e.g. the docs site) strip it in favor of a page title.
+     */
+    lines: string[];
+}
+
+/**
+ * The API reference split into its four top-level groups, in render order.
+ * {@link renderApiReference} concatenates these for the single-page README
+ * block; the docs-site generator emits one page per section instead.
+ */
+export function apiReferenceSections(): ApiReferenceSection[] {
+    const trading = capabilities.filter((c) => c.group === "trading");
+    const marketData = capabilities.filter((c) => c.group === "marketData");
+    return [
+        { title: "Trading API", lines: restGroup("Trading API", trading) },
+        { title: "Market Data API", lines: restGroup("Market Data API", marketData) },
+        { title: "Real-time streaming", lines: streamingGroup() },
+        { title: "Ergonomic helpers", lines: ergonomicGroup() },
+    ];
+}
+
 /**
  * Render the full API reference markdown block (without the surrounding
  * markers). Throws if any documented method lacks an examples entry.
  */
 export function renderApiReference(): string {
-    const trading = capabilities.filter((c) => c.group === "trading");
-    const marketData = capabilities.filter((c) => c.group === "marketData");
-    const lines = [
-        ...restGroup("Trading API", trading),
-        ...restGroup("Market Data API", marketData),
-        ...streamingGroup(),
-        ...ergonomicGroup(),
-    ];
-    return lines.join("\n").trimEnd();
+    return apiReferenceSections()
+        .flatMap((section) => section.lines)
+        .join("\n")
+        .trimEnd();
 }
 
 /**

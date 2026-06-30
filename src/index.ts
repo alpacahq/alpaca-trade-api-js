@@ -41,6 +41,9 @@ export {
 } from './errors';
 export type { RateLimitInfo } from './errors';
 
+export { withResponse } from './responses';
+export type { AlpacaApiResponse } from './responses';
+
 export { RateLimiter } from './rate-limit';
 export type { RateLimitConfig } from './rate-limit';
 

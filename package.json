@@ -110,6 +110,7 @@
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "docs:api": "tsx scripts/gen-api-reference.ts",
+    "docs:api-site": "tsx scripts/gen-docs-api-reference.ts",
     "generate": "npm --prefix tooling run generate --",
     "generate:offline": "npm --prefix tooling run generate -- --offline",
     "changeset": "changeset",

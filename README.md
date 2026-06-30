@@ -240,6 +240,8 @@ const alpaca = new Alpaca({
     maxDelayMs: 5_000,        // cap per delay (default 5000)
     retryableStatuses: [408, 425, 429, 500, 502, 503, 504], // default
     respectRetryAfter: true,  // honor a Retry-After header (default true)
+    onRetry: (e) => console.warn(`retry ${e.attempt}/${e.maxRetries} in ${e.delayMs}ms`, e.status ?? e.error),
+    onGiveUp: (e) => console.error(`gave up after ${e.attempt} retries`, e.status ?? e.error),
   },
 
   // Proactive client-side rate limiting (the Alpaca client enables a safe
@@ -247,6 +249,8 @@ const alpaca = new Alpaca({
   rateLimit: { maxRequests: 200, intervalMs: 60_000, maxConcurrent: 16 },
 
   userAgent: "my-app/1.0", // default `@alpacahq/alpaca-trade-api/<version>`; "" disables
+
+  redirect: "error", // default: reject 3xx so the APCA-API-* secret can't follow an off-host redirect ("follow" to opt out)
 });
 ```
 
@@ -268,6 +272,12 @@ const alpaca = new Alpaca({
 - Backoff is exponential (doubling per attempt) from `retryDelayMs` (250ms) up
   to `maxDelayMs` (5s), with `±20%` jitter. A `Retry-After` header (seconds or
   HTTP-date) is honored over the computed delay when present.
+- **Observability.** Pass `onRetry` to be notified before each delayed retry and
+  `onGiveUp` when a retryable failure exhausts all attempts. Each fires with a
+  `RetryEvent` (`{ method, url, attempt, maxRetries, delayMs, status?, error? }`):
+  `status` is set for status-based retries, `error` for network-error retries.
+  These are pure observability hooks — exceptions thrown from them are swallowed
+  so they can never break a request.
 
 ### Idempotency keys
 
@@ -289,6 +299,16 @@ await alpaca.trading.orders.market(
 `30000` (30s); pass `0` to disable the deadline. A per-call `AbortSignal` (passed
 via `initOverrides`) still works and composes with the timeout — whichever aborts
 first wins.
+
+### Redirects
+
+Requests default to `redirect: "error"`, so any `3xx` redirect fails fast instead
+of being followed. Alpaca's APIs never redirect, and following one off-host would
+forward the `APCA-API-KEY-ID`/`APCA-API-SECRET-KEY` headers to the redirect
+target — unlike `Authorization`, custom headers are **not** stripped on a
+cross-origin redirect, so this prevents leaking your secret. Set
+`redirect: "follow"` (client option or per-call `initOverrides`) to opt back into
+the platform default if you front the API with a redirecting proxy.
 
 ### Rate limiting
 
@@ -337,6 +357,27 @@ catch (err) {
 ```
 
 A failed `fetch` itself (network/abort) rejects with `FetchError`.
+
+### Response headers (`withResponse`)
+
+The client methods return just the deserialized body. When you also need the
+HTTP status, response headers, or `X-RateLimit-*` metadata of a **successful**
+call, wrap the generated `*Raw` sibling (every method has one) with
+`withResponse`. It returns a typed `AlpacaApiResponse<T>` —
+`{ data, status, headers, rateLimit }`:
+
+```ts
+import { withResponse } from "@alpacahq/alpaca-trade-api";
+
+const res = await withResponse(alpaca.trading.account.getAccountRaw());
+res.data;                    // typed Account (same as getAccount())
+res.status;                  // 200
+res.headers.get("X-Request-ID");
+res.rateLimit?.remaining;    // parsed X-RateLimit-Remaining, when present
+```
+
+The body stream is read once, so use `res.data` rather than re-reading the
+underlying response.
 
 ## Placing orders
 
@@ -623,6 +664,31 @@ if (!result.authenticated) {
 > Crypto and news streams are **production-only** (no sandbox endpoint): pass an
 > explicit `url` if you must point them elsewhere; otherwise `sandbox: true` throws.
 
+### Shared stream lifecycle (all streams)
+
+Every stream — trading and market-data — shares this lifecycle surface in
+addition to its data handlers:
+
+| Member | Description |
+| --- | --- |
+| `connect()` / `disconnect()` | Open / close the socket (`disconnect` suppresses auto-reconnect). |
+| `onConnect` / `onDisconnect` / `onStateChange` / `onError` | Lifecycle + error listeners. |
+| `onReconnecting((attempt) => …)` | Fires before each automatic reconnect (1-based `attempt`). |
+| `onReconnected(() => …)` | Fires after a reconnect re-authenticates and restores subscriptions. |
+| `whenAuthenticated(): Promise<StreamAuthResult>` | Resolves with the first-auth outcome; never rejects. |
+| `waitForAuthentication(timeoutMs?): Promise<boolean>` | `true` on auth, `false` on failure/close/timeout. |
+| `waitForAuthenticationResult(timeoutMs?)` | Typed result; a caller-side timeout doesn't settle the real outcome. |
+
+`StreamAuthResult` is `{ status, authenticated, code?, message }` where `status`
+is a `STREAM_AUTH_STATUS` (`authenticated`, `server_rejected`, `closed`,
+`timeout`). Server rejections (bad credentials, etc.) include the numeric `code`.
+
+Common stream **options** (in addition to `feed`/`paper`/`sandbox`): `reconnect`,
+`maxReconnectAttempts` (`UNLIMITED_RECONNECT_ATTEMPTS` to retry forever),
+`backoff`, `initialReconnectMs`, `maxReconnectMs`, `reconnectJitter`,
+`pingIntervalMs`, `pongWaitMs`, `url` (override the endpoint), and
+`callbackExecutor` (offload + isolate listener callbacks).
+
 ## Capability map (which method lives where)
 
 The `capabilities` namespace maps each **generated** facade accessor to its
@@ -792,6 +858,35 @@ snapshot of Alpaca's OpenAPI spec; everything else — the `Alpaca` facade, orde
 builders, normalized market-data shapes, pagination, streaming, and the shared
 transport — is hand-written in separate modules. When contributing, edit the
 hand-written modules and don't hand-edit the generated `apis`/`models` trees.
+
+## Documentation site
+
+A [Docusaurus](https://docusaurus.io) documentation site lives in
+[`docs/`](./docs) — curated guides plus an API reference for every REST endpoint
+that is generated from the SDK's capability maps (by `docs`' `prebuild`, which
+runs [`scripts/gen-docs-api-reference.ts`](./scripts/gen-docs-api-reference.ts)).
+The guides themselves are hand-written under `docs/docs/`.
+
+Run it **locally**:
+
+```bash
+npm --prefix docs install            # first time only
+npm --prefix docs start              # dev server + hot reload
+# → http://localhost:3000/alpaca-trade-api-js/
+```
+
+To preview the exact production build instead of the dev server:
+
+```bash
+npm --prefix docs run build          # regenerates the API reference, then builds
+npm --prefix docs run serve          # serves docs/build/
+```
+
+> **Local launch only, for now.** This site is **not deployed automatically** —
+> there is intentionally no GitHub Pages / CI workflow for it yet. Automatic
+> deployment (and a PR build check) will be wired up once this `ts-alpha` branch
+> is merged and the `4.0` major release is out. Until then, run it locally with
+> the commands above.
 
 ## Background
 
@@ -2125,40 +2220,6 @@ news.onNews((n) => console.log(n.headline));
 news.onConnect(() => news.subscribeForNews(["AAPL", "TSLA"]));
 news.connect();
 ```
-
-#### Shared stream lifecycle (all streams)
-
-Every stream — trading and market-data — shares this lifecycle surface in
-addition to its data handlers:
-
-| Member | Description |
-| --- | --- |
-| `connect()` / `disconnect()` | Open / close the socket (`disconnect` suppresses auto-reconnect). |
-| `onConnect` / `onDisconnect` / `onStateChange` / `onError` | Lifecycle + error listeners. |
-| `onReconnecting((attempt) => …)` | Fires before each automatic reconnect (1-based `attempt`). |
-| `onReconnected(() => …)` | Fires after a reconnect re-authenticates and restores subscriptions. |
-| `whenAuthenticated(): Promise<StreamAuthResult>` | Resolves with the first-auth outcome; never rejects. |
-| `waitForAuthentication(timeoutMs?): Promise<boolean>` | `true` on auth, `false` on failure/close/timeout. |
-| `waitForAuthenticationResult(timeoutMs?)` | Typed result; a caller-side timeout doesn't settle the real outcome. |
-
-`StreamAuthResult` is `{ status, authenticated, code?, message }` where `status`
-is a `STREAM_AUTH_STATUS` (`authenticated`, `server_rejected`, `closed`,
-`timeout`). Server rejections (bad credentials, etc.) include the numeric `code`.
-
-```ts
-const updates = alpaca.trading.stream();
-updates.onReconnecting((attempt) => console.warn(`reconnecting #${attempt}`));
-updates.connect();
-
-const auth = await updates.waitForAuthenticationResult(10_000);
-if (!auth.authenticated) throw new Error(`stream auth ${auth.status}: ${auth.message}`);
-```
-
-Common stream **options** (in addition to `feed`/`paper`/`sandbox`): `reconnect`,
-`maxReconnectAttempts` (`UNLIMITED_RECONNECT_ATTEMPTS` to retry forever),
-`backoff`, `initialReconnectMs`, `maxReconnectMs`, `reconnectJitter`,
-`pingIntervalMs`, `pongWaitMs`, `url` (override the endpoint), and
-`callbackExecutor` (offload + isolate listener callbacks).
 
 ### Ergonomic helpers
 

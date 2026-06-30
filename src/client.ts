@@ -121,6 +121,13 @@ export interface AlpacaClientOptions {
     headers?: trading.HTTPHeaders;
     /** Value for the `credentials` option on every REST request. */
     credentials?: RequestCredentials;
+    /**
+     * How `fetch` treats 3xx redirects. Defaults to `"error"` — Alpaca's APIs
+     * never redirect, and following one off-host would forward the
+     * `APCA-API-*` secret headers to the redirect target. Set `"follow"` to opt
+     * back into the platform default (e.g. behind a redirecting proxy).
+     */
+    redirect?: RequestRedirect;
 }
 
 /** REST configuration fields shared by both sub-clients. */
@@ -138,6 +145,7 @@ type SharedRestConfig = Pick<
     | "middleware"
     | "headers"
     | "credentials"
+    | "redirect"
 >;
 
 /**
@@ -182,6 +190,7 @@ function sharedRestConfig(options: AlpacaClientOptions, creds: ResolvedCredentia
         middleware: options.middleware,
         headers: options.headers,
         credentials: options.credentials,
+        redirect: options.redirect,
     };
 }
 

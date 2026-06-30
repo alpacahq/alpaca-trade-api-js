@@ -110,7 +110,16 @@ const alpaca = new Alpaca({
 - **Resilience is opt-in but conservative.** `timeoutMs`, `retry`
   (`maxRetries > 0` to enable; non-idempotent POSTs are never auto-retried),
   `rateLimit` (the `Alpaca` client enables a safe ~200/min default; raw `Api`
-  classes do not), and `userAgent` are all top-level client options.
+  classes do not), and `userAgent` are all top-level client options. The `retry`
+  config also takes `onRetry`/`onGiveUp` observability hooks (each fired with a
+  `RetryEvent`; thrown exceptions are swallowed so they can't break a request).
+  Requests default to `redirect: "error"` (3xx fails fast) so the `APCA-API-*`
+  secret headers can't follow an off-host redirect; set `redirect: "follow"` to
+  opt out.
+- **Response metadata.** Methods return just the body; to also read status,
+  headers, or rate-limit metadata of a successful call, wrap the generated
+  `*Raw` sibling with `withResponse(...)` → `{ data, status, headers, rateLimit }`
+  (`AlpacaApiResponse<T>`).
 - **REST-only builds:** import from `@alpacahq/alpaca-trade-api/rest` to keep
   `ws`/`@msgpack/msgpack` out of the module graph. Stream factories and
   `submitAndWait` throw from this entrypoint — import the root package for

@@ -66,6 +66,27 @@ export interface RetryConfig {
     maxDelayMs?: number; // cap for any single backoff delay in ms (default 5000)
     retryableStatuses?: number[]; // HTTP statuses eligible for retry (default 408,425,429,500,502,503,504)
     respectRetryAfter?: boolean; // honor a Retry-After response header (default true)
+    onRetry?: (event: RetryEvent) => void; // observability hook fired before each delayed retry (must not throw; exceptions are swallowed)
+    onGiveUp?: (event: RetryEvent) => void; // observability hook fired when a retryable failure exhausts all retries (must not throw; exceptions are swallowed)
+}
+
+/**
+ * Per-attempt retry observability event passed to {@link RetryConfig.onRetry}
+ * and {@link RetryConfig.onGiveUp}. Mirrors the cross-SDK retry-listener
+ * surface so logging/metrics can be wired in without subclassing the transport.
+ */
+export interface RetryEvent {
+    method: string; // HTTP method of the request (uppercased)
+    url: string; // fully-qualified request URL
+    /**
+     * For `onRetry`: the 1-based number of the retry about to run (first retry
+     * is `1`). For `onGiveUp`: the number of retries performed before giving up.
+     */
+    attempt: number;
+    maxRetries: number; // configured maximum number of retries
+    delayMs: number; // delay before the upcoming retry (`onRetry`); always `0` for `onGiveUp`
+    status?: number; // HTTP status that triggered the decision (absent for network-error retries)
+    error?: unknown; // network error that triggered the decision (absent for status-based retries)
 }
 
 export interface ConfigurationParameters {
@@ -87,6 +108,7 @@ export interface ConfigurationParameters {
     rateLimit?: RateLimitConfig; // opt-in proactive client-side rate limiting (off unless set)
     userAgent?: string; // override the default User-Agent header (set to "" to disable)
     sandbox?: boolean; // select the sandbox host; honored only by hosts that distinguish it (e.g. market data), ignored if basePath is set explicitly
+    redirect?: RequestRedirect; // how fetch handles 3xx redirects; defaults to "error" so credentials can't follow an off-host redirect (set "follow" to opt out)
 }
 
 /**
@@ -186,6 +208,18 @@ export class BaseConfiguration {
 
     get credentials(): RequestCredentials | undefined {
         return this.configuration.credentials;
+    }
+
+    /**
+     * How the underlying `fetch` treats 3xx redirects. Defaults to `"error"`:
+     * Alpaca's APIs never redirect, and following one off-host would forward the
+     * `APCA-API-KEY-ID`/`APCA-API-SECRET-KEY` headers (which, unlike
+     * `Authorization`, are not stripped on a cross-origin redirect) to the
+     * redirect target, leaking the secret. Set `"follow"` to opt back into the
+     * platform default if you proxy through a redirecting gateway.
+     */
+    get redirect(): RequestRedirect {
+        return this.configuration.redirect ?? "error";
     }
 
     get timeoutMs(): number | undefined {
@@ -304,26 +338,32 @@ export class BaseAPI {
                 release?.();
             }
             if (networkError !== undefined) {
-                const canRetry = attempt < maxRetries
-                    && retryable
-                    && isRetryableNetworkError(networkError);
-                if (canRetry) {
-                    await sleep(backoffDelay(attempt, retry));
+                const isRetryable = retryable && isRetryableNetworkError(networkError);
+                if (isRetryable && attempt < maxRetries) {
+                    const delayMs = backoffDelay(attempt, retry);
+                    notifyRetry(retry, { method, url, attempt: attempt + 1, maxRetries, delayMs, error: networkError });
+                    await sleep(delayMs);
                     attempt++;
                     continue;
+                }
+                if (isRetryable && maxRetries > 0) {
+                    notifyGiveUp(retry, { method, url, attempt, maxRetries, delayMs: 0, error: networkError });
                 }
                 throw networkError;
             }
             if (response && (response.status >= 200 && response.status < 300)) {
                 return response;
             }
-            const canRetry = attempt < maxRetries
-                && retryable
-                && isRetryableStatus(response!.status, retry);
-            if (canRetry) {
-                await sleep(computeRetryDelay(response!, attempt, retry));
+            const isRetryable = retryable && isRetryableStatus(response!.status, retry);
+            if (isRetryable && attempt < maxRetries) {
+                const delayMs = computeRetryDelay(response!, attempt, retry);
+                notifyRetry(retry, { method, url, attempt: attempt + 1, maxRetries, delayMs, status: response!.status });
+                await sleep(delayMs);
                 attempt++;
                 continue;
+            }
+            if (isRetryable && maxRetries > 0) {
+                notifyGiveUp(retry, { method, url, attempt, maxRetries, delayMs: 0, status: response!.status });
             }
             throw await buildApiError(response!);
         }
@@ -370,6 +410,10 @@ export class BaseAPI {
             headers,
             body: context.body,
             credentials: this.configuration.credentials,
+            // Block off-host redirects by default so the APCA-API-* secret
+            // headers can't be forwarded to a redirect target. A per-call
+            // `initOverrides.redirect` still wins (it's spread in below).
+            redirect: this.configuration.redirect,
         };
 
         const overriddenInit: RequestInit = {
@@ -529,6 +573,31 @@ function isRetryableNetworkError(error: unknown): boolean {
     }
     const name = (error.cause as { name?: string } | undefined)?.name;
     return name !== 'AbortError' && name !== 'TimeoutError';
+}
+
+/**
+ * Fire a retry observability hook. Observability must never break the request,
+ * so a throwing listener is swallowed (consistent with the streaming layer's
+ * isolated-callback policy).
+ */
+function notifyRetry(retry: RetryConfig | undefined, event: RetryEvent): void {
+    const handler = retry?.onRetry;
+    if (!handler) return;
+    try {
+        handler(event);
+    } catch {
+        // listener exceptions are intentionally swallowed
+    }
+}
+
+function notifyGiveUp(retry: RetryConfig | undefined, event: RetryEvent): void {
+    const handler = retry?.onGiveUp;
+    if (!handler) return;
+    try {
+        handler(event);
+    } catch {
+        // listener exceptions are intentionally swallowed
+    }
 }
 
 /**
