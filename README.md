@@ -60,6 +60,26 @@ npm install @alpacahq/alpaca-trade-api@alpha
 Migrating from the stable `3.x` release? Follow the
 [Migration guide](./MIGRATION.md).
 
+## Documentation
+
+This README is the canonical, self-contained reference. There is also a
+[Docusaurus](https://docusaurus.io) documentation site in [`docs/`](./docs) —
+curated guides, a generated API reference, runtime compatibility, and the
+runnable examples. **It is not hosted yet** (no GitHub Pages deploy until this
+`ts-alpha` branch merges and `4.0` ships), but you can read the whole thing
+**locally** in two commands:
+
+```bash
+npm --prefix docs install   # first time only
+npm --prefix docs start     # dev server → http://localhost:3000/alpaca-trade-api-js/
+```
+
+Prefer the exact production build? Run `npm --prefix docs run build` (which
+regenerates the API reference and examples pages first), then
+`npm --prefix docs run serve`. The guides are hand-written under
+[`docs/docs/`](./docs/docs); the API reference and examples pages are generated
+at build time from the SDK's capability maps and `examples/`.
+
 ## Install the agent skill
 
 Building on this SDK with an AI coding agent? This repo ships an
@@ -862,35 +882,6 @@ snapshot of Alpaca's OpenAPI spec; everything else — the `Alpaca` facade, orde
 builders, normalized market-data shapes, pagination, streaming, and the shared
 transport — is hand-written in separate modules. When contributing, edit the
 hand-written modules and don't hand-edit the generated `apis`/`models` trees.
-
-## Documentation site
-
-A [Docusaurus](https://docusaurus.io) documentation site lives in
-[`docs/`](./docs) — curated guides plus an API reference for every REST endpoint
-that is generated from the SDK's capability maps (by `docs`' `prebuild`, which
-runs [`scripts/gen-docs-api-reference.ts`](./scripts/gen-docs-api-reference.ts)).
-The guides themselves are hand-written under `docs/docs/`.
-
-Run it **locally**:
-
-```bash
-npm --prefix docs install            # first time only
-npm --prefix docs start              # dev server + hot reload
-# → http://localhost:3000/alpaca-trade-api-js/
-```
-
-To preview the exact production build instead of the dev server:
-
-```bash
-npm --prefix docs run build          # regenerates the API reference, then builds
-npm --prefix docs run serve          # serves docs/build/
-```
-
-> **Local launch only, for now.** This site is **not deployed automatically** —
-> there is intentionally no GitHub Pages / CI workflow for it yet. Automatic
-> deployment (and a PR build check) will be wired up once this `ts-alpha` branch
-> is merged and the `4.0` major release is out. Until then, run it locally with
-> the commands above.
 
 ## Background
 

@@ -38,8 +38,8 @@ Legend: ✅ supported · ❌ not supported.
   throw if called. For real-time streaming, run on Node or Bun.
 - **Browser: technically works, but discouraged.** Calling Alpaca directly from a
   browser ships your `APCA_API_SECRET_KEY` to the client. Prefer a server or
-  proxy (see the [market-data backend example](./examples.md)) rather than
-  embedding credentials in front-end code.
+  proxy (see the [market-data backend example](https://github.com/alpacahq/alpaca-trade-api-js/blob/ts-alpha/examples/marketdata-backend.ts))
+  rather than embedding credentials in front-end code.
 
 ## Module formats (ESM & CJS)
 
