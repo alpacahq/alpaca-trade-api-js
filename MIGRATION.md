@@ -230,18 +230,28 @@ comment everywhere a human needs to verify a semantic change.
 
 ### Run it
 
+No install needed — `npx` fetches jscodeshift. The parser and extensions differ
+by language, so pick the line for your sources (run on a clean git tree):
+
 ```bash
-# from your project (no install needed)
+# JavaScript sources
 npx jscodeshift -t \
   https://raw.githubusercontent.com/alpacahq/alpaca-trade-api-js/ts-alpha/codemods/alpaca-v3-to-v4.js \
-  "src/**/*.{js,ts}"
+  --parser=babel "src/**/*.js"
 
-# or against a local checkout of the SDK repo
-npx jscodeshift -t ./codemods/alpaca-v3-to-v4.js "src/**/*.{js,ts}"
+# TypeScript sources (both flags are required)
+npx jscodeshift -t \
+  https://raw.githubusercontent.com/alpacahq/alpaca-trade-api-js/ts-alpha/codemods/alpaca-v3-to-v4.js \
+  --parser=tsx --extensions=ts,tsx "src/**/*.ts"
 ```
 
-Useful flags: add `--dry --print` to preview without writing, and `--extensions=ts`
-/ `--parser=tsx` for TypeScript. See [`codemods/README.md`](codemods/README.md).
+Against a local checkout of the SDK repo, swap the URL for the local path
+(`-t ./codemods/alpaca-v3-to-v4.js`).
+
+Preview without writing by adding `--dry --print`. The `--instanceName=foo,bar`
+flag registers extra identifiers as Alpaca clients (the name `alpaca` and any
+`new Alpaca(...)` variable are auto-detected). See
+[`codemods/README.md`](codemods/README.md) for the full reference.
 
 > Always run on a clean git tree and review the diff. The codemod is a
 > time-saver, not a substitute for reading this guide.
