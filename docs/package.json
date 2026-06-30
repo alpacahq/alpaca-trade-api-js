@@ -6,9 +6,11 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "gen:api": "tsx ../scripts/gen-docs-api-reference.ts",
-    "prestart": "npm run gen:api",
+    "gen:examples": "tsx ../scripts/gen-docs-examples.ts",
+    "gen": "npm run gen:api && npm run gen:examples",
+    "prestart": "npm run gen",
     "start": "docusaurus start",
-    "prebuild": "npm run gen:api",
+    "prebuild": "npm run gen",
     "build": "docusaurus build",
     "serve": "docusaurus serve",
     "clear": "docusaurus clear",

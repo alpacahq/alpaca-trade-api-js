@@ -63,7 +63,7 @@ writeFileSync(
     `${JSON.stringify(
         {
             label: "API reference",
-            position: 8,
+            position: 10,
             collapsed: false,
             link: {
                 type: "generated-index",

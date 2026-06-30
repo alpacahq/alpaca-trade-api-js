@@ -18,7 +18,8 @@
   "contributors": [
     "Jenya Tkachenko <jekatka@outlook.com>",
     "Aaron Suddjian <aaron@alpaca.markets>",
-    "Trevor Thackston <trevor@alpaca.markets>"
+    "Trevor Thackston <trevor@alpaca.markets>",
+    "Maksim Seliutin <maksim.seliutin@alpaca.markets>"
   ],
   "type": "commonjs",
   "engines": {
@@ -111,6 +112,7 @@
     "lint:fix": "biome lint --write .",
     "docs:api": "tsx scripts/gen-api-reference.ts",
     "docs:api-site": "tsx scripts/gen-docs-api-reference.ts",
+    "docs:examples-site": "tsx scripts/gen-docs-examples.ts",
     "generate": "npm --prefix tooling run generate --",
     "generate:offline": "npm --prefix tooling run generate -- --offline",
     "changeset": "changeset",

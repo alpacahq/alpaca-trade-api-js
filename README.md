@@ -47,6 +47,10 @@ Legend: ✅ supported · ❌ not supported.
   proxy (see [`examples/marketdata-backend.ts`](./examples/marketdata-backend.ts))
   rather than embedding credentials in front-end code.
 
+The same matrix plus the edge-resolution mechanics, module formats, and the
+REST-only entrypoint are consolidated on the docs site:
+**[Runtime & module compatibility](./docs/docs/runtime-compatibility.md)**.
+
 ## Install
 
 ```bash

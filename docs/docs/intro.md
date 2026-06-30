@@ -29,6 +29,8 @@ npm install @alpacahq/alpaca-trade-api@alpha
 - **[Market data](./market-data.md)** — normalized, symbol-keyed accessors and latest-price helpers.
 - **[Streaming](./streaming.md)** — real-time trading and market-data WebSocket streams.
 - **[Pagination](./pagination.md)** — iterate/collect helpers and the generic `pagination` helper.
+- **[Runtime & module compatibility](./runtime-compatibility.md)** — the Node/Bun/Deno/edge/browser support matrix, ESM + CJS module formats, the REST-only entrypoint, and dependencies.
+- **[Examples](./examples.md)** — runnable end-to-end programs (a paper trading bot and a market-data backend), embedded live from the repo's `examples/`.
 - **API reference** — a curated, example-driven reference for every REST endpoint
   (Trading API and Market Data API) in the sidebar, generated from the SDK's
   capability maps. Streaming and ergonomic helpers are documented in the guides
