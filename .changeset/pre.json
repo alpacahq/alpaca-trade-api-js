@@ -5,6 +5,7 @@
     "@alpacahq/alpaca-trade-api": "3.1.3"
   },
   "changesets": [
+    "great-poems-slide",
     "initial-rewrite",
     "redirect-hardening",
     "rest-retry-observability-response-headers",
