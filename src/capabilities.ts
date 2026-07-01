@@ -469,7 +469,7 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
         group: "trading",
         kind: "workflow",
         summary: "High-level trading flows that would otherwise be boilerplate.",
-        methods: ["submitAndWait", "closeAllPositions"],
+        methods: ["validateConnection", "submitAndWait", "closeAllPositions"],
     },
     {
         accessor: "trading",

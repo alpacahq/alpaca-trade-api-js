@@ -91,6 +91,53 @@ describe('TradingClient.closeAllPositions', () => {
     });
 });
 
+describe('TradingClient.validateConnection', () => {
+    it('returns ok with the account when credentials work', async () => {
+        const alpaca = new Alpaca({
+            ...CREDS,
+            fetchApi: routedFetch((method, url) => {
+                if (method === 'GET' && url.includes('/v2/account')) {
+                    return json({ id: 'acct-1', status: 'ACTIVE' });
+                }
+                return undefined;
+            }),
+        });
+        const check = await alpaca.trading.validateConnection();
+        expect(check.ok).toBe(true);
+        if (check.ok) expect(check.account.id).toBe('acct-1');
+    });
+
+    it('returns ok:false with the status/code on an auth failure (no throw)', async () => {
+        const alpaca = new Alpaca({
+            ...CREDS,
+            fetchApi: routedFetch((method, url) => {
+                if (method === 'GET' && url.includes('/v2/account')) {
+                    return json({ code: 40110000, message: 'access key verification failed' }, 401);
+                }
+                return undefined;
+            }),
+        });
+        const check = await alpaca.trading.validateConnection();
+        expect(check.ok).toBe(false);
+        if (!check.ok) {
+            expect(check.status).toBe(401);
+            expect(check.code).toBe(40110000);
+            expect(check.message).toContain('verification failed');
+        }
+    });
+
+    it('returns ok:false with a message on a network error (no throw)', async () => {
+        const alpaca = new Alpaca({
+            ...CREDS,
+            fetchApi: async () => {
+                throw new Error('network down');
+            },
+        });
+        const check = await alpaca.trading.validateConnection();
+        expect(check).toEqual({ ok: false, message: 'network down' });
+    });
+});
+
 describe('TradingClient.submitAndWait', () => {
     function alpacaWithOrderFetch(order: Record<string, unknown>): Alpaca {
         return new Alpaca({

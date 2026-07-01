@@ -434,6 +434,10 @@ are also exported under the `orders` namespace.
 A few high-level flows that would otherwise be boilerplate:
 
 ```ts
+// Verify credentials/connectivity without throwing (startup health check).
+const check = await alpaca.trading.validateConnection();
+if (!check.ok) throw new Error(`Alpaca auth failed (${check.status ?? "network"}): ${check.message}`);
+
 // Latest trade price as a number (undefined if unavailable).
 const price = await alpaca.marketData.getLatestPrice("AAPL");
 
@@ -2341,6 +2345,14 @@ await alpaca.trading.orders.submit({
 #### `alpaca.trading` — workflow helpers
 
 High-level trading flows that would otherwise be boilerplate.
+
+##### `alpaca.trading.validateConnection`
+
+Verify credentials/connectivity without throwing; returns `{ ok, account }` or `{ ok: false, status, code, message }`.
+
+```ts
+const check = await alpaca.trading.validateConnection();
+```
 
 ##### `alpaca.trading.submitAndWait`
 

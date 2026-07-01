@@ -29,6 +29,23 @@ the `Authorization: Bearer` header):
 const alpaca = new Alpaca({ accessToken: "OAUTH_TOKEN" });
 ```
 
+## Verifying credentials
+
+`trading.validateConnection()` checks credentials and connectivity without
+throwing. It performs a lightweight authenticated probe (`getAccount`) and
+returns a discriminated result: `{ ok: true, account }` on success, or
+`{ ok: false, status, code, message }` on failure (a `401`/`403` for bad or
+unauthorized credentials sets `status`; transport failures surface the
+underlying `message`). Handy for a startup health check.
+
+```ts
+const check = await alpaca.trading.validateConnection();
+if (!check.ok) {
+  throw new Error(`Alpaca auth failed (${check.status ?? "network"}): ${check.message}`);
+}
+console.log("connected as", check.account.id);
+```
+
 ## Paper vs live vs sandbox
 
 - **`paper`** (default `true`) selects the paper trading host; set `paper: false`

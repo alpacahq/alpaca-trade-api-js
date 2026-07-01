@@ -36,6 +36,7 @@
  */
 import type { AlpacaCredentials, ResolvedCredentials } from "./auth";
 import { resolveCredentials } from "./auth";
+import { ApiError, FetchError } from "./errors";
 import * as trading from "./trading";
 import * as marketData from "./market-data";
 // `streaming` is imported for TYPES ONLY (erased at build time) so the REST
@@ -310,6 +311,16 @@ export interface SubmitAndWaitOptions {
 }
 
 /**
+ * Result of {@link TradingClient.validateConnection}. A discriminated union: on
+ * success `ok` is `true` and the fetched {@link trading.Account} is attached; on
+ * failure `ok` is `false` with the HTTP `status` / Alpaca `code` (when the
+ * failure was an API response) plus a human-readable `message`. Never throws.
+ */
+export type ConnectionCheck =
+    | { ok: true; account: trading.Account }
+    | { ok: false; status?: number; code?: number | string; message: string };
+
+/**
  * Trading sub-client. Two layers in one object:
  *
  *   1. **Generated (always present).** Every trading `Api` is a lazily
@@ -432,6 +443,40 @@ export class TradingClient {
     }
 
     // --- Workflow helpers --------------------------------------------------
+
+    /**
+     * Verify the client's credentials and connectivity without throwing.
+     *
+     * Performs a lightweight authenticated probe (`getAccount`) and returns a
+     * discriminated {@link ConnectionCheck}: `{ ok: true, account }` when the
+     * credentials work, or `{ ok: false, status, code, message }` otherwise.
+     * A `401`/`403` surfaces as `ok: false` with the status set (bad or
+     * unauthorized credentials); network/other failures come back with just a
+     * `message`. Works for OAuth clients too, since it's a REST call.
+     *
+     * @example
+     * ```ts
+     * const check = await alpaca.trading.validateConnection();
+     * if (!check.ok) throw new Error(`Alpaca auth failed (${check.status}): ${check.message}`);
+     * ```
+     */
+    async validateConnection(): Promise<ConnectionCheck> {
+        try {
+            const account = await this.account.getAccount();
+            return { ok: true, account };
+        } catch (err) {
+            if (err instanceof ApiError) {
+                return { ok: false, status: err.status, code: err.code, message: err.message };
+            }
+            // Transport failures (DNS, connection refused, timeout/abort) are
+            // wrapped in a FetchError; surface the underlying cause, which is the
+            // actionable bit for a connectivity check.
+            if (err instanceof FetchError) {
+                return { ok: false, message: err.cause?.message ?? err.message };
+            }
+            return { ok: false, message: err instanceof Error ? err.message : String(err) };
+        }
+    }
 
     /**
      * Close every open position. Optionally cancel open orders first. Thin

@@ -554,6 +554,10 @@ const ergonomic: ApiReferenceExamples = {
         description: "Generic builder escape hatch for shapes the typed builders don't cover (e.g. `mleg`).",
         example: 'await alpaca.trading.orders.submit({ type: "market", symbol: "AAPL", side: "buy", qty: 1 });',
     },
+    "trading.validateConnection": {
+        description: "Verify credentials/connectivity without throwing; returns `{ ok, account }` or `{ ok: false, status, code, message }`.",
+        example: 'const check = await alpaca.trading.validateConnection();',
+    },
     "trading.submitAndWait": {
         description: "Place an order and resolve once it reaches a terminal state, observed over the trading stream.",
         example: 'const filled = await alpaca.trading.submitAndWait({ type: "market", symbol: "AAPL", side: "buy", qty: 1 }, { timeoutMs: 30_000 });',
