@@ -62,6 +62,13 @@ Crypto and news streams have no sandbox endpoint: pass an explicit `url` to poin
 them elsewhere, otherwise `sandbox: true` throws.
 :::
 
+:::note Order imbalances
+`stockStream` also exposes `subscribeForImbalances([...])` / `onImbalance(...)`.
+This channel is equities-only and sparse — Alpaca emits imbalance messages mainly
+during limit-up/limit-down halts, so long quiet periods are expected even while
+subscribed.
+:::
+
 ## Common options
 
 In addition to `feed`/`paper`/`sandbox`: `reconnect`, `maxReconnectAttempts`

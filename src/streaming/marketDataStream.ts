@@ -15,6 +15,7 @@ import {
     mapBar,
     mapCancelError,
     mapCorrection,
+    mapImbalance,
     mapLuld,
     mapNews,
     mapOrderbook,
@@ -24,6 +25,7 @@ import {
     type StreamBar,
     type StreamCancelError,
     type StreamCorrection,
+    type StreamImbalance,
     type StreamLuld,
     type StreamNews,
     type StreamOrderbook,
@@ -67,6 +69,7 @@ export type MarketDataChannel =
     | "dailyBars"
     | "statuses"
     | "lulds"
+    | "imbalances"
     | "orderbooks"
     | "news";
 
@@ -78,6 +81,7 @@ const CHANNELS: MarketDataChannel[] = [
     "dailyBars",
     "statuses",
     "lulds",
+    "imbalances",
     "orderbooks",
     "news",
 ];
@@ -126,6 +130,7 @@ export class MarketDataStream extends AlpacaWebSocket {
         dailyBars: [],
         statuses: [],
         lulds: [],
+        imbalances: [],
         orderbooks: [],
         news: [],
     };
@@ -157,6 +162,14 @@ export class MarketDataStream extends AlpacaWebSocket {
     subscribeForLulds(symbols: string[]): void {
         this.addSubscription("lulds", symbols);
     }
+    /**
+     * Subscribe to order-imbalance messages. Equities-only (stock stream); the
+     * feed emits these mainly during limit-up/limit-down halts, so expect long
+     * quiet periods even while subscribed.
+     */
+    subscribeForImbalances(symbols: string[]): void {
+        this.addSubscription("imbalances", symbols);
+    }
     subscribeForOrderbooks(symbols: string[]): void {
         this.addSubscription("orderbooks", symbols);
     }
@@ -184,6 +197,9 @@ export class MarketDataStream extends AlpacaWebSocket {
     }
     unsubscribeFromLulds(symbols: string[]): void {
         this.removeSubscription("lulds", symbols);
+    }
+    unsubscribeFromImbalances(symbols: string[]): void {
+        this.removeSubscription("imbalances", symbols);
     }
     unsubscribeFromOrderbooks(symbols: string[]): void {
         this.removeSubscription("orderbooks", symbols);
@@ -219,6 +235,9 @@ export class MarketDataStream extends AlpacaWebSocket {
     }
     onLuld(fn: (luld: StreamLuld) => void): this {
         return this.on(EVENT.LULD, fn);
+    }
+    onImbalance(fn: (imbalance: StreamImbalance) => void): this {
+        return this.on(EVENT.IMBALANCE, fn);
     }
     onCorrection(fn: (correction: StreamCorrection) => void): this {
         return this.on(EVENT.CORRECTION, fn);
@@ -311,6 +330,9 @@ export class MarketDataStream extends AlpacaWebSocket {
                 break;
             case "l":
                 this.safeEmit(EVENT.LULD, mapLuld(frame as never));
+                break;
+            case "i":
+                this.safeEmit(EVENT.IMBALANCE, mapImbalance(frame as never));
                 break;
             case "c":
                 this.safeEmit(EVENT.CORRECTION, mapCorrection(frame as never));

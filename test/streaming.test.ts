@@ -604,6 +604,25 @@ describe('MarketDataStream subscription management', () => {
         expect(stream.getSubscriptions().trades).toEqual(['MSFT']);
     });
 
+    it('subscribes and unsubscribes on the imbalances channel', () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        stream.connect();
+        authenticateMd(sock);
+        stream.subscribeForImbalances(['INAQU', 'AAPL']);
+        stream.unsubscribeFromImbalances(['AAPL']);
+
+        const sub = sentMsgpack(sock).filter((f) => f.action === 'subscribe').at(-1);
+        expect(sub).toEqual({ action: 'subscribe', imbalances: ['INAQU', 'AAPL'] });
+        const unsub = findFrame(sentMsgpack(sock), 'unsubscribe');
+        expect(unsub).toEqual({ action: 'unsubscribe', imbalances: ['AAPL'] });
+        expect(stream.getSubscriptions().imbalances).toEqual(['INAQU']);
+    });
+
     it('only mutates local state (no frames) while not authenticated', () => {
         const sock = new FakeSocket();
         const stream = new streaming.StockDataStream({
@@ -713,6 +732,12 @@ describe('stream mappers', () => {
         expect(l).toMatchObject({ symbol: 'AAPL', limitUpPrice: 10.5, limitDownPrice: 9.5, indicator: 'B', tape: 'C' });
     });
 
+    it('mapImbalance maps symbol/price/tape', () => {
+        const i = streaming.mapImbalance({ T: 'i', S: 'INAQU', p: 9.12, z: 'C', t: ts });
+        expect(i).toMatchObject({ symbol: 'INAQU', price: 9.12, tape: 'C' });
+        expect(i.timestamp).toBeInstanceOf(Date);
+    });
+
     it('mapCorrection maps original/corrected fields', () => {
         const c = streaming.mapCorrection({
             T: 'c', S: 'AAPL', x: 'V', oi: 1, op: 10, os: 5, oc: ['@'], ci: 2, cp: 11, cs: 6, cc: ['@', 'I'], t: ts, z: 'C',
@@ -802,6 +827,7 @@ describe('MarketDataStream dispatch wiring', () => {
         stream.onDailyBar((b) => (seen.dailyBar = b));
         stream.onStatus((s) => (seen.status = s));
         stream.onLuld((l) => (seen.luld = l));
+        stream.onImbalance((i) => (seen.imbalance = i));
         stream.onCorrection((c) => (seen.correction = c));
         stream.onCancelError((x) => (seen.cancelError = x));
         stream.onOrderbook((o) => (seen.orderbook = o));
@@ -818,6 +844,7 @@ describe('MarketDataStream dispatch wiring', () => {
                 { T: 'd', S: 'AAPL', o: 1, h: 2, l: 0.5, c: 1.5, v: 100, t: ts },
                 { T: 's', S: 'AAPL', sc: 'H', t: ts },
                 { T: 'l', S: 'AAPL', u: 10, d: 9, t: ts },
+                { T: 'i', S: 'AAPL', p: 9.12, z: 'C', t: ts },
                 { T: 'c', S: 'AAPL', oi: 1, op: 10, os: 1, ci: 2, cp: 11, cs: 1, t: ts },
                 { T: 'x', S: 'AAPL', i: 1, x: 'V', p: 10, s: 1, t: ts },
                 { T: 'o', S: 'BTC/USD', t: ts, b: [{ p: 100, s: 1 }], a: [{ p: 101, s: 2 }] },
@@ -830,6 +857,7 @@ describe('MarketDataStream dispatch wiring', () => {
         expect((seen.dailyBar as streaming.StreamBar).open).toBe(1);
         expect((seen.status as streaming.StreamStatus).statusCode).toBe('H');
         expect((seen.luld as streaming.StreamLuld).limitUpPrice).toBe(10);
+        expect((seen.imbalance as streaming.StreamImbalance).price).toBe(9.12);
         expect((seen.correction as streaming.StreamCorrection).correctedPrice).toBe(11);
         expect((seen.cancelError as streaming.StreamCancelError).id).toBe(1);
         expect((seen.orderbook as streaming.StreamOrderbook).bids).toEqual([{ price: 100, size: 1 }]);

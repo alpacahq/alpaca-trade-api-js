@@ -200,6 +200,37 @@ export function mapLuld(raw: RawLuld): StreamLuld {
     };
 }
 
+// --- Order imbalances (equities) -------------------------------------------
+
+export interface RawImbalance {
+    T: "i";
+    S: string;
+    p: number;
+    z?: string;
+    t: unknown;
+}
+
+/**
+ * A streamed order-imbalance message. Equities-only; per Alpaca's docs these are
+ * typically emitted during limit-up/limit-down trading halts, so this channel is
+ * sparse and legitimately quiet most of the time.
+ */
+export interface StreamImbalance {
+    symbol: string;
+    price: number;
+    tape?: string;
+    timestamp: Date;
+}
+
+export function mapImbalance(raw: RawImbalance): StreamImbalance {
+    return {
+        symbol: raw.S,
+        price: raw.p,
+        tape: raw.z,
+        timestamp: toDate(raw.t),
+    };
+}
+
 // --- Corrections -----------------------------------------------------------
 
 export interface RawCorrection {

@@ -2174,7 +2174,7 @@ updates.connect();
 
 #### `alpaca.marketData.stockStream` — StockDataStream
 
-Open the US-equity market-data WebSocket (msgpack).
+Open the US-equity market-data WebSocket (msgpack). Order imbalances are also available via `subscribeForImbalances([...])` / `onImbalance(...)` — an equities-only, sparse channel that Alpaca emits mainly during limit-up/limit-down halts, so long quiet periods are expected even while subscribed.
 
 ```ts
 const stocks = alpaca.marketData.stockStream({ feed: "iex" });

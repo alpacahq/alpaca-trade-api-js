@@ -43,6 +43,7 @@ export enum EVENT {
     DAILY_BAR = "daily_bar",
     STATUS = "status",
     LULD = "luld",
+    IMBALANCE = "imbalance",
     CORRECTION = "correction",
     CANCEL_ERROR = "cancel_error",
     ORDERBOOK = "orderbook",

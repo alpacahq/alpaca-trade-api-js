@@ -479,7 +479,8 @@ const streaming: ApiReferenceExamples = {
         ].join("\n"),
     },
     "marketData.stockStream": {
-        description: "Open the US-equity market-data WebSocket (msgpack).",
+        description:
+            "Open the US-equity market-data WebSocket (msgpack). Order imbalances are also available via `subscribeForImbalances([...])` / `onImbalance(...)` — an equities-only, sparse channel that Alpaca emits mainly during limit-up/limit-down halts, so long quiet periods are expected even while subscribed.",
         example: [
             'const stocks = alpaca.marketData.stockStream({ feed: "iex" });',
             "stocks.onBar((bar) => console.log(bar.symbol, bar.close));",
