@@ -7,6 +7,8 @@
   "changesets": [
     "great-poems-slide",
     "initial-rewrite",
+    "lossless-ids-and-more-timestamps",
+    "nanosecond-timestamp-raw",
     "redirect-hardening",
     "rest-retry-observability-response-headers",
     "streaming-parity"

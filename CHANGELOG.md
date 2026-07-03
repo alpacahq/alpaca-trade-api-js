@@ -1,5 +1,16 @@
 # @alpacahq/alpaca-trade-api
 
+## 4.0.0-alpha.2
+
+### Minor Changes
+
+- [#295](https://github.com/alpacahq/alpaca-trade-api-js/pull/295) [`8fe1d2a`](https://github.com/alpacahq/alpaca-trade-api-js/commit/8fe1d2a072b9c88e08ca0121fcdd814506b4c7b7) Thanks [@Azein](https://github.com/Azein)! - Preserve full precision for market-data identifiers and extend `timestampRaw` coverage, all additively:
+
+  - **Lossless 64-bit stream ids.** The market-data WebSocket now decodes trade/news ids as exact values and exposes them as strings alongside the numeric field: `idRaw` on trades and cancel-errors, `originalIdRaw`/`correctedIdRaw` on corrections, and `idRaw` on news. This prevents precision loss for ids beyond `2^53`; other numeric fields remain a plain `number`.
+  - **`timestampRaw` on more canonical shapes.** New `getIndexValues` and `getStockAuctions` accessors return canonical `IndexValue` / `DailyAuctions` shapes that carry the full-precision `timestampRaw` (per auction print), matching `Bar`/`Trade`/`Quote`.
+
+- [#295](https://github.com/alpacahq/alpaca-trade-api-js/pull/295) [`8fe1d2a`](https://github.com/alpacahq/alpaca-trade-api-js/commit/8fe1d2a072b9c88e08ca0121fcdd814506b4c7b7) Thanks [@Azein](https://github.com/Azein)! - Market-data timestamps now carry an additive `timestampRaw` (RFC-3339, nanosecond precision) alongside the existing millisecond `timestamp: Date`, on both the WebSocket stream and the REST canonical `Bar`/`Trade`/`Quote` shapes. Fixes the v3 nanosecond-truncation issue ([#250](https://github.com/alpacahq/alpaca-trade-api-js/issues/250)) without any breaking changes.
+
 ## 4.0.0-alpha.1
 
 ### Minor Changes
