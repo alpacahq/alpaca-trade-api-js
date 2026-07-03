@@ -46,6 +46,24 @@ The same exists for trades and quotes — `getStockTrades` / `getCryptoTrades`,
 `getStockQuotes` / `getCryptoQuotes`, and their `*For` variants — across stocks,
 crypto, and options (`getOptionBars` / `getOptionBarsFor`).
 
+### Timestamp precision
+
+Canonical `Bar` / `Trade` / `Quote` records include `timestampRaw?: string` —
+the original RFC-3339 timestamp with full **nanosecond** precision (e.g.
+`"2024-01-02T03:04:05.678099211Z"`) — alongside the millisecond `timestamp:
+Date`. The same fields appear on the live stream, so historical and real-time
+records stay identical.
+
+The canonical **index-value** (`getIndexValues`) and **stock-auction**
+(`getStockAuctions`) accessors carry the same `timestampRaw` on every record
+(each opening/closing auction print for auctions), so those endpoints no longer
+silently truncate to milliseconds when you reach for the canonical shape.
+
+> Note: raw generated models for fully-deserialized endpoints (e.g. latest
+> orderbooks, fixed-income, perp-futures) still surface only a millisecond
+> `Date`; prefer the canonical accessors above where nanosecond precision
+> matters.
+
 ### Chart-ready candles
 
 `get<Asset>Candles` (and `get<Asset>CandlesFor`) return the same data in a

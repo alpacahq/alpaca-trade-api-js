@@ -13,7 +13,11 @@
  */
 import { EventEmitter } from "node:events";
 import { WebSocket } from "ws";
-import { decode as msgpackDecode, encode as msgpackEncode } from "@msgpack/msgpack";
+import {
+    decode as msgpackDecode,
+    encode as msgpackEncode,
+    type ExtensionCodec,
+} from "@msgpack/msgpack";
 
 import type { AlpacaCredentials } from "../auth";
 
@@ -211,6 +215,13 @@ export abstract class AlpacaWebSocket extends EventEmitter {
     protected conn?: WebSocketLike;
     protected authenticated = false;
     protected isReconnected = false;
+
+    /**
+     * Optional msgpack extension codec, applied to inbound `decode` only (never
+     * to outbound `encode`). The market-data stream uses it to preserve
+     * nanosecond timestamps; see {@link "./timestamp"}.
+     */
+    protected extensionCodec?: ExtensionCodec;
 
     /** Resolves with the outcome of the first authentication attempt. */
     private readonly authResultPromise: Promise<StreamAuthResult>;
@@ -508,7 +519,17 @@ export abstract class AlpacaWebSocket extends EventEmitter {
                       : new TextDecoder().decode(raw as Uint8Array);
             return JSON.parse(text);
         }
-        return msgpackDecode(raw as Uint8Array);
+        // `useBigInt64` decodes 64-bit ints (e.g. large trade IDs) as `bigint`
+        // instead of a lossy `number`; the market-data mappers coerce the
+        // non-ID numeric fields back to `number` and expose the exact ID as a
+        // string. Enabled alongside the market-data extension codec so it stays
+        // scoped to the msgpack market-data streams.
+        return msgpackDecode(
+            raw as Uint8Array,
+            this.extensionCodec
+                ? { extensionCodec: this.extensionCodec, useBigInt64: true }
+                : undefined,
+        );
     }
 
     private handleClose(): void {

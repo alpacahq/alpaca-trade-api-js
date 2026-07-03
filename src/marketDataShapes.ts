@@ -44,6 +44,9 @@ import type {
     StockQuote,
     CryptoQuote,
     OptionQuote,
+    IndexValue as RestIndexValue,
+    StockAuction,
+    StockDailyAuctions,
 } from "./market-data";
 
 // --- Canonical types -------------------------------------------------------
@@ -56,8 +59,15 @@ import type {
 export interface Bar {
     /** Symbol the bar belongs to (set by the SDK from the response key). */
     symbol?: string;
-    /** Start of the bar interval. */
+    /** Start of the bar interval (millisecond precision). */
     timestamp: Date;
+    /**
+     * The original RFC-3339 timestamp string with full nanosecond precision,
+     * when the source preserved it (symbol-keyed map responses and the live
+     * stream do). `timestamp` truncates to milliseconds; use this when you need
+     * the exact instant Alpaca reported.
+     */
+    timestampRaw?: string;
     /** Opening price. */
     open: number;
     /** High price. */
@@ -81,8 +91,14 @@ export interface Bar {
 export interface Trade {
     /** Symbol the trade belongs to (set by the SDK from the response key). */
     symbol?: string;
-    /** Time of the trade. */
+    /** Time of the trade (millisecond precision). */
     timestamp: Date;
+    /**
+     * The original RFC-3339 timestamp string with full nanosecond precision,
+     * when the source preserved it (symbol-keyed map responses and the live
+     * stream do). `timestamp` truncates to milliseconds.
+     */
+    timestampRaw?: string;
     /** Trade price. */
     price: number;
     /** Trade size. */
@@ -108,8 +124,14 @@ export interface Trade {
 export interface Quote {
     /** Symbol the quote belongs to (set by the SDK from the response key). */
     symbol?: string;
-    /** Time of the quote. */
+    /** Time of the quote (millisecond precision). */
     timestamp: Date;
+    /**
+     * The original RFC-3339 timestamp string with full nanosecond precision,
+     * when the source preserved it (symbol-keyed map responses and the live
+     * stream do). `timestamp` truncates to milliseconds.
+     */
+    timestampRaw?: string;
     /** Bid price (0 means no active bid). */
     bidPrice: number;
     /** Bid size. */
@@ -128,6 +150,64 @@ export interface Quote {
     tape?: string;
 }
 
+/**
+ * The value of an index at a point in time. The generated REST model types the
+ * timestamp as `Date`, but index-value responses deserialize verbatim, so the
+ * full-precision RFC-3339 string survives at runtime and is surfaced here as
+ * {@link timestampRaw} (identical treatment to {@link Bar}/{@link Trade}).
+ */
+export interface IndexValue {
+    /** Symbol the value belongs to (set by the SDK from the response key). */
+    symbol?: string;
+    /** Time of the value (millisecond precision). */
+    timestamp: Date;
+    /**
+     * The original RFC-3339 timestamp string with full nanosecond precision,
+     * when the source preserved it. `timestamp` truncates to milliseconds.
+     */
+    timestampRaw?: string;
+    /** Index value. */
+    value: number;
+}
+
+/** A single opening or closing auction print. */
+export interface Auction {
+    /** Time of the auction print (millisecond precision). */
+    timestamp: Date;
+    /**
+     * The original RFC-3339 timestamp string with full nanosecond precision,
+     * when the source preserved it. `timestamp` truncates to milliseconds.
+     */
+    timestampRaw?: string;
+    /** Auction price. */
+    price: number;
+    /** Auction size, when provided. */
+    size?: number;
+    /** Exchange code. */
+    exchange: string;
+    /** Condition flag. */
+    condition: string;
+}
+
+/**
+ * A day's opening and closing auctions for one symbol. The generated model
+ * types the auction timestamps as `Date`, but auction responses deserialize
+ * verbatim, so the full-precision strings survive and are surfaced via each
+ * {@link Auction.timestampRaw}.
+ */
+export interface DailyAuctions {
+    /** Symbol the auctions belong to (set by the SDK from the response key). */
+    symbol?: string;
+    /** Trading session date (midnight UTC). */
+    date: Date;
+    /** The original date string (`YYYY-MM-DD`) as reported. */
+    dateRaw?: string;
+    /** Opening auctions. */
+    opening: Auction[];
+    /** Closing auctions. */
+    closing: Auction[];
+}
+
 // --- Helpers ---------------------------------------------------------------
 
 /**
@@ -141,6 +221,28 @@ export interface Quote {
  */
 function asDate(value: Date | string | number): Date {
     return value instanceof Date ? value : new Date(value);
+}
+
+/**
+ * The original RFC-3339 timestamp string when the source preserved it. The
+ * symbol-keyed map responses deserialize verbatim, so `t` is often still a
+ * full-precision `string` at runtime (this keeps every nanosecond digit).
+ * Otherwise it falls back to a best-effort ISO string from a `Date`/epoch
+ * number (millisecond precision — no digits are fabricated). Returns
+ * `undefined` for absent/invalid input.
+ */
+function rawTimestamp(value: Date | string | number): string | undefined {
+    if (typeof value === "string") {
+        return value;
+    }
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? undefined : value.toISOString();
+    }
+    if (typeof value === "number") {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+    }
+    return undefined;
 }
 
 /** Epoch ms for a `Date` (or a still-raw string/number timestamp). */
@@ -166,6 +268,7 @@ export function toBar(bar: StockBar | CryptoBar | OptionBar, symbol?: string): B
     return {
         symbol,
         timestamp: asDate(bar.t),
+        timestampRaw: rawTimestamp(bar.t),
         open: bar.o,
         high: bar.h,
         low: bar.l,
@@ -181,6 +284,7 @@ export function toStockTrade(trade: StockTrade, symbol?: string): Trade {
     return {
         symbol,
         timestamp: asDate(trade.t),
+        timestampRaw: rawTimestamp(trade.t),
         price: trade.p,
         size: trade.s,
         id: trade.i,
@@ -196,6 +300,7 @@ export function toCryptoTrade(trade: CryptoTrade, symbol?: string): Trade {
     return {
         symbol,
         timestamp: asDate(trade.t),
+        timestampRaw: rawTimestamp(trade.t),
         price: trade.p,
         size: trade.s,
         id: trade.i,
@@ -208,6 +313,7 @@ export function toOptionTrade(trade: OptionTrade, symbol?: string): Trade {
     return {
         symbol,
         timestamp: asDate(trade.t),
+        timestampRaw: rawTimestamp(trade.t),
         price: trade.p,
         size: trade.s,
         exchange: trade.x,
@@ -220,6 +326,7 @@ export function toStockQuote(quote: StockQuote, symbol?: string): Quote {
     return {
         symbol,
         timestamp: asDate(quote.t),
+        timestampRaw: rawTimestamp(quote.t),
         bidPrice: quote.bp,
         bidSize: quote.bs,
         bidExchange: quote.bx,
@@ -236,6 +343,7 @@ export function toCryptoQuote(quote: CryptoQuote, symbol?: string): Quote {
     return {
         symbol,
         timestamp: asDate(quote.t),
+        timestampRaw: rawTimestamp(quote.t),
         bidPrice: quote.bp,
         bidSize: quote.bs,
         askPrice: quote.ap,
@@ -248,6 +356,7 @@ export function toOptionQuote(quote: OptionQuote, symbol?: string): Quote {
     return {
         symbol,
         timestamp: asDate(quote.t),
+        timestampRaw: rawTimestamp(quote.t),
         bidPrice: quote.bp,
         bidSize: quote.bs,
         bidExchange: quote.bx,
@@ -255,6 +364,39 @@ export function toOptionQuote(quote: OptionQuote, symbol?: string): Quote {
         askSize: quote.as,
         askExchange: quote.ax,
         conditions: conditions(quote.c),
+    };
+}
+
+/** Map a REST index value onto a canonical {@link IndexValue}. */
+export function toIndexValue(value: RestIndexValue, symbol?: string): IndexValue {
+    return {
+        symbol,
+        timestamp: asDate(value.t),
+        timestampRaw: rawTimestamp(value.t),
+        value: value.v,
+    };
+}
+
+/** Map a single REST {@link StockAuction} onto a canonical {@link Auction}. */
+export function toAuction(auction: StockAuction): Auction {
+    return {
+        timestamp: asDate(auction.t),
+        timestampRaw: rawTimestamp(auction.t),
+        price: auction.p,
+        size: auction.s,
+        exchange: auction.x,
+        condition: auction.c,
+    };
+}
+
+/** Map a REST {@link StockDailyAuctions} record onto canonical {@link DailyAuctions}. */
+export function toDailyAuctions(daily: StockDailyAuctions, symbol?: string): DailyAuctions {
+    return {
+        symbol,
+        date: asDate(daily.d),
+        dateRaw: rawTimestamp(daily.d),
+        opening: (daily.o ?? []).map(toAuction),
+        closing: (daily.c ?? []).map(toAuction),
     };
 }
 
@@ -296,6 +438,20 @@ export function toQuotesBySymbol<T>(
     mapper: (quote: T, symbol?: string) => Quote,
 ): { [symbol: string]: Quote[] } {
     return mapBySymbol(map, mapper);
+}
+
+/** Normalize a `{ [symbol]: IndexValue[] }` map into canonical `{ [symbol]: IndexValue[] }`. */
+export function toIndexValuesBySymbol(
+    map: { [symbol: string]: RestIndexValue[] },
+): { [symbol: string]: IndexValue[] } {
+    return mapBySymbol(map, toIndexValue);
+}
+
+/** Normalize a `{ [symbol]: StockDailyAuctions[] }` map into `{ [symbol]: DailyAuctions[] }`. */
+export function toAuctionsBySymbol(
+    map: { [symbol: string]: StockDailyAuctions[] },
+): { [symbol: string]: DailyAuctions[] } {
+    return mapBySymbol(map, toDailyAuctions);
 }
 
 // --- Chart-ready helpers ---------------------------------------------------

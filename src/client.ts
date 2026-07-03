@@ -920,6 +920,30 @@ export class MarketDataClient {
         return marketDataShapes.toQuotesBySymbol(await this.collectCryptoQuotesBySymbol(req, opts), marketDataShapes.toCryptoQuote);
     }
 
+    /**
+     * Historical index values as canonical {@link marketDataShapes.IndexValue}s,
+     * keyed by symbol. Preserves the full-precision `timestampRaw` (the generated
+     * model truncates the timestamp to a `Date`).
+     */
+    async getIndexValues(
+        req: Omit<WithSymbolList<marketData.IndexValuesRequest>, "pageToken">,
+        opts?: SymbolCollectOptions,
+    ): Promise<{ [symbol: string]: marketDataShapes.IndexValue[] }> {
+        return marketDataShapes.toIndexValuesBySymbol(await this.collectIndexValuesBySymbol(req, opts));
+    }
+
+    /**
+     * Historical stock auctions as canonical {@link marketDataShapes.DailyAuctions},
+     * keyed by symbol. Each opening/closing {@link marketDataShapes.Auction}
+     * preserves the full-precision `timestampRaw`.
+     */
+    async getStockAuctions(
+        req: Omit<WithSymbolList<marketData.StockAuctionsRequest>, "pageToken">,
+        opts?: SymbolCollectOptions,
+    ): Promise<{ [symbol: string]: marketDataShapes.DailyAuctions[] }> {
+        return marketDataShapes.toAuctionsBySymbol(await this.collectStockAuctionsBySymbol(req, opts));
+    }
+
     /** Historical stock bars as chart-ready columnar {@link marketDataShapes.Candles}, keyed by symbol. */
     async getStockCandles(
         req: Omit<WithTimeframe<WithSymbolList<marketData.StockBarsRequest>>, "pageToken">,

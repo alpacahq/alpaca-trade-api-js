@@ -622,6 +622,14 @@ const ergonomic: ApiReferenceExamples = {
         description: "Historical crypto quotes as canonical `Quote`s, keyed by symbol.",
         example: 'const quotes = await alpaca.marketData.getCryptoQuotes({ loc: "us", symbols: ["BTC/USD"], start: new Date("2024-01-02") });',
     },
+    "marketData.getIndexValues": {
+        description: "Historical index values as canonical `IndexValue`s (with full-precision `timestampRaw`), keyed by symbol.",
+        example: 'const values = await alpaca.marketData.getIndexValues({ symbols: ["SPX"], start: new Date("2024-01-02") });',
+    },
+    "marketData.getStockAuctions": {
+        description: "Historical stock auctions as canonical `DailyAuctions` (each print with full-precision `timestampRaw`), keyed by symbol.",
+        example: 'const auctions = await alpaca.marketData.getStockAuctions({ symbols: ["AAPL"], start: new Date("2024-01-02") });',
+    },
     "marketData.getStockCandles": {
         description: "Historical stock bars as chart-ready columnar `Candles`, keyed by symbol.",
         example: 'const candles = await alpaca.marketData.getStockCandles({ symbols: ["AAPL"], timeframe: "1Day", start: new Date("2024-01-01") });',

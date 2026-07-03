@@ -552,6 +552,20 @@ etc.), which always hand back real `Date`s; only the **raw** generated map
 responses (e.g. `alpaca.marketData.stocks.stockBars`) carry the caveat, and there
 you can normalize with `values.toDate` / `values.toISO`.
 
+For **nanosecond precision**, every market-data `Bar`/`Trade`/`Quote` (both the
+REST canonical accessors and the live stream) also carries `timestampRaw?:
+string` — the original RFC-3339 timestamp with full sub-millisecond digits (e.g.
+`"2024-01-02T03:04:05.678099211Z"`). `timestamp` stays a convenient millisecond
+`Date`; reach for `timestampRaw` when you need the exact instant Alpaca reported.
+The canonical `getIndexValues` and `getStockAuctions` accessors carry the same
+`timestampRaw`.
+
+For **64-bit ids**, the market-data stream decodes trade/news ids losslessly and
+exposes an exact string next to the numeric field — `idRaw` on trades,
+cancel-errors, and news, plus `originalIdRaw`/`correctedIdRaw` on corrections.
+Use `idRaw` when you compare, store, or key on an id (values beyond `2^53` lose
+precision as a `number`); other numeric fields stay a plain `number`.
+
 ## Normalized market-data shapes (REST + streaming unified)
 
 The generated REST models keep Alpaca's compact wire keys (`StockBar` is
@@ -2534,6 +2548,28 @@ Historical crypto quotes as canonical `Quote`s, keyed by symbol.
 const quotes = await alpaca.marketData.getCryptoQuotes({
   loc: "us",
   symbols: ["BTC/USD"],
+  start: new Date("2024-01-02"),
+});
+```
+
+##### `alpaca.marketData.getIndexValues`
+
+Historical index values as canonical `IndexValue`s (with full-precision `timestampRaw`), keyed by symbol.
+
+```ts
+const values = await alpaca.marketData.getIndexValues({
+  symbols: ["SPX"],
+  start: new Date("2024-01-02"),
+});
+```
+
+##### `alpaca.marketData.getStockAuctions`
+
+Historical stock auctions as canonical `DailyAuctions` (each print with full-precision `timestampRaw`), keyed by symbol.
+
+```ts
+const auctions = await alpaca.marketData.getStockAuctions({
+  symbols: ["AAPL"],
   start: new Date("2024-01-02"),
 });
 ```

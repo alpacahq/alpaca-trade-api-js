@@ -762,6 +762,27 @@ income**, a **screener** (`mostActives`, `movers`), and **logos**. Plus
 chart-ready reshapers: `getStockCandles` / `getCryptoCandles` and the
 `toCandles` / `toCandlestickSeries` / `toLineSeries` helpers.
 
+Market-data timestamps also gained an additive `timestampRaw?: string`
+(RFC-3339, **nanosecond** precision) on both the REST canonical `Bar`/`Trade`/
+`Quote` shapes and the live stream events. This resolves the `3.x`
+nanosecond-truncation issue (timestamps were cast to a millisecond `Date`, losing
+precision). `timestamp` remains a millisecond `Date`, so no migration is required
+— read `timestampRaw` only when you need the exact instant Alpaca reported. The
+canonical **index-value** (`getIndexValues`) and **stock-auction**
+(`getStockAuctions`) accessors carry the same `timestampRaw`.
+
+Trade ids are 64-bit integers that can exceed JavaScript's safe integer range
+(`2^53`). The live market-data stream now decodes them losslessly and exposes an
+exact string alongside the numeric field — additive, so no migration is required:
+
+- Trades / cancel-errors: `idRaw?: string` next to `id: number`.
+- Corrections: `originalIdRaw?` / `correctedIdRaw?` next to the numeric ids.
+- News: `idRaw?: string` next to `id: number`.
+
+Use `idRaw` when you compare, store, or key on an id. (On the REST side, ids are
+still deserialized as `number`; Alpaca's current market-data ids are well within
+`2^53`, and a lossless-JSON transport layer is tracked as a follow-up.)
+
 ## Real-time streaming
 
 The model is still **EventEmitter-based** (`connect()`, `onConnect`, subscribe,

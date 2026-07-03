@@ -507,6 +507,8 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
             "getCryptoTrades",
             "getStockQuotes",
             "getCryptoQuotes",
+            "getIndexValues",
+            "getStockAuctions",
             "getStockCandles",
             "getCryptoCandles",
             "getStockBarsFor",

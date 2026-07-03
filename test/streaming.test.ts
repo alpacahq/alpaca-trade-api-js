@@ -158,7 +158,49 @@ describe('StockDataStream (market data)', () => {
         expect(trades).toHaveLength(1);
         expect(trades[0]).toMatchObject({ symbol: 'AAPL', id: 42, price: 187.25, size: 100, tape: 'C' });
         expect(trades[0].timestamp).toBeInstanceOf(Date);
+        // The msgpack timestamp extension is decoded with full precision and
+        // surfaced losslessly as an RFC-3339 nanosecond string.
+        expect(trades[0].timestampRaw).toBe('2026-01-02T15:04:05.000000000Z');
         expect(bars[0]).toMatchObject({ symbol: 'AAPL', open: 1, high: 2, low: 0.5, close: 1.5, volume: 1000, vwap: 1.4, tradeCount: 10 });
+        expect(bars[0].timestampRaw).toBe('2026-01-02T15:04:05.000000000Z');
+    });
+
+    it('preserves 64-bit trade ids losslessly and never leaks bigint into numeric fields', () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        const trades: streaming.StreamTrade[] = [];
+        const bars: streaming.StreamBar[] = [];
+        stream.onTrade((t) => trades.push(t));
+        stream.onBar((b) => bars.push(b));
+        stream.connect();
+        authenticateMd(sock);
+
+        const ts = new Date('2026-01-02T15:04:05Z');
+        // Encode the id and a large volume as genuine 64-bit ints (via bigint),
+        // as Alpaca's server would for values beyond 32-bit.
+        const bigId = 9223372036854775807n; // 2^63 - 1, well beyond 2^53
+        sock.emitEvent(
+            'message',
+            mpEncode(
+                [
+                    { T: 't', S: 'AAPL', i: bigId, x: 'V', p: 187.25, s: 100, t: ts, c: ['@'], z: 'C' },
+                    { T: 'b', S: 'AAPL', o: 1, h: 2, l: 0.5, c: 1.5, v: 9_007_199_254_740_992n, t: ts },
+                ],
+                { useBigInt64: true },
+            ),
+        );
+
+        // The exact id survives as a string; the numeric `id` is best-effort.
+        expect(trades[0].idRaw).toBe('9223372036854775807');
+        expect(typeof trades[0].id).toBe('number');
+        // Coercion keeps every canonical numeric field a plain number.
+        expect(typeof trades[0].size).toBe('number');
+        expect(typeof bars[0].volume).toBe('number');
+        expect(bars[0].volume).toBe(9_007_199_254_740_992);
     });
 
     it('maps numeric error codes to messages', () => {

@@ -9,8 +9,12 @@
  */
 import { OrderFromJSON, type Order } from "../trading";
 import type { Bar, Trade, Quote } from "../marketDataShapes";
+import { StreamTimestamp } from "./timestamp";
 
 function toDate(value: unknown): Date {
+    if (value instanceof StreamTimestamp) {
+        return value.toDate();
+    }
     if (value instanceof Date) {
         return value;
     }
@@ -18,6 +22,50 @@ function toDate(value: unknown): Date {
         return new Date(value);
     }
     return new Date(NaN);
+}
+
+/**
+ * The lossless RFC-3339 timestamp string for a stream value: full nanosecond
+ * precision from a {@link StreamTimestamp}, a preserved raw `string`, or a
+ * best-effort millisecond ISO fallback from a `Date`. Returns `undefined` when
+ * no timestamp is available.
+ */
+function toRawTs(value: unknown): string | undefined {
+    if (value instanceof StreamTimestamp) {
+        return value.toRFC3339();
+    }
+    if (typeof value === "string") {
+        return value;
+    }
+    if (value instanceof Date) {
+        return value.toISOString();
+    }
+    return undefined;
+}
+
+/**
+ * Coerce a numeric field to `number`. The market-data socket decodes with
+ * `useBigInt64`, so 64-bit-encoded values (sizes, volumes, counts, ids) arrive
+ * as `bigint`; this keeps the canonical numeric fields a plain `number`
+ * (precision-lossy above 2^53, matching the field's type — the exact value is
+ * preserved separately via {@link idString} where it matters).
+ */
+function num(value: number | bigint): number {
+    return typeof value === "bigint" ? Number(value) : value;
+}
+
+/** Optional variant of {@link num}: passes through `undefined`. */
+function optNum(value: number | bigint | undefined): number | undefined {
+    return value == null ? undefined : num(value);
+}
+
+/**
+ * The exact decimal string for an integer id, preserving full precision for
+ * 64-bit ids that exceed `Number.MAX_SAFE_INTEGER` (decoded as `bigint`).
+ * Returns `undefined` when the id is absent.
+ */
+function idString(value: number | bigint | undefined): string | undefined {
+    return value == null ? undefined : String(value);
 }
 
 // --- Trades ----------------------------------------------------------------
@@ -41,6 +89,8 @@ export interface RawTrade {
 export type StreamTrade = Trade & {
     symbol: string;
     id: number;
+    /** Exact trade id as a string, preserving 64-bit ids beyond `2^53`. */
+    idRaw?: string;
     exchange: string;
     conditions: string[];
 };
@@ -48,11 +98,13 @@ export type StreamTrade = Trade & {
 export function mapTrade(raw: RawTrade): StreamTrade {
     return {
         symbol: raw.S,
-        id: raw.i,
+        id: num(raw.i),
+        idRaw: idString(raw.i),
         exchange: raw.x,
-        price: raw.p,
-        size: raw.s,
+        price: num(raw.p),
+        size: num(raw.s),
         timestamp: toDate(raw.t),
+        timestampRaw: toRawTs(raw.t),
         conditions: raw.c ?? [],
         tape: raw.z,
     };
@@ -87,12 +139,13 @@ export function mapQuote(raw: RawQuote): StreamQuote {
     return {
         symbol: raw.S,
         bidExchange: raw.bx,
-        bidPrice: raw.bp,
-        bidSize: raw.bs,
+        bidPrice: num(raw.bp),
+        bidSize: num(raw.bs),
         askExchange: raw.ax,
-        askPrice: raw.ap,
-        askSize: raw.as,
+        askPrice: num(raw.ap),
+        askSize: num(raw.as),
         timestamp: toDate(raw.t),
+        timestampRaw: toRawTs(raw.t),
         conditions: raw.c ?? [],
         tape: raw.z,
     };
@@ -122,14 +175,15 @@ export type StreamBar = Bar & { symbol: string };
 export function mapBar(raw: RawBar): StreamBar {
     return {
         symbol: raw.S,
-        open: raw.o,
-        high: raw.h,
-        low: raw.l,
-        close: raw.c,
-        volume: raw.v,
+        open: num(raw.o),
+        high: num(raw.h),
+        low: num(raw.l),
+        close: num(raw.c),
+        volume: num(raw.v),
         timestamp: toDate(raw.t),
-        vwap: raw.vw,
-        tradeCount: raw.n,
+        timestampRaw: toRawTs(raw.t),
+        vwap: optNum(raw.vw),
+        tradeCount: optNum(raw.n),
     };
 }
 
@@ -153,6 +207,8 @@ export interface StreamStatus {
     reasonCode?: string;
     reasonMessage?: string;
     timestamp: Date;
+    /** Lossless RFC-3339 nanosecond timestamp. */
+    timestampRaw?: string;
     tape?: string;
 }
 
@@ -164,6 +220,7 @@ export function mapStatus(raw: RawStatus): StreamStatus {
         reasonCode: raw.rc,
         reasonMessage: raw.rm,
         timestamp: toDate(raw.t),
+        timestampRaw: toRawTs(raw.t),
         tape: raw.z,
     };
 }
@@ -186,16 +243,19 @@ export interface StreamLuld {
     limitDownPrice: number;
     indicator?: string;
     timestamp: Date;
+    /** Lossless RFC-3339 nanosecond timestamp. */
+    timestampRaw?: string;
     tape?: string;
 }
 
 export function mapLuld(raw: RawLuld): StreamLuld {
     return {
         symbol: raw.S,
-        limitUpPrice: raw.u,
-        limitDownPrice: raw.d,
+        limitUpPrice: num(raw.u),
+        limitDownPrice: num(raw.d),
         indicator: raw.i,
         timestamp: toDate(raw.t),
+        timestampRaw: toRawTs(raw.t),
         tape: raw.z,
     };
 }
@@ -220,14 +280,17 @@ export interface StreamImbalance {
     price: number;
     tape?: string;
     timestamp: Date;
+    /** Lossless RFC-3339 nanosecond timestamp. */
+    timestampRaw?: string;
 }
 
 export function mapImbalance(raw: RawImbalance): StreamImbalance {
     return {
         symbol: raw.S,
-        price: raw.p,
+        price: num(raw.p),
         tape: raw.z,
         timestamp: toDate(raw.t),
+        timestampRaw: toRawTs(raw.t),
     };
 }
 
@@ -253,14 +316,20 @@ export interface StreamCorrection {
     symbol: string;
     exchange?: string;
     originalId: number;
+    /** Exact original trade id as a string, preserving 64-bit ids beyond `2^53`. */
+    originalIdRaw?: string;
     originalPrice: number;
     originalSize: number;
     originalConditions: string[];
     correctedId: number;
+    /** Exact corrected trade id as a string, preserving 64-bit ids beyond `2^53`. */
+    correctedIdRaw?: string;
     correctedPrice: number;
     correctedSize: number;
     correctedConditions: string[];
     timestamp: Date;
+    /** Lossless RFC-3339 nanosecond timestamp. */
+    timestampRaw?: string;
     tape?: string;
 }
 
@@ -268,15 +337,18 @@ export function mapCorrection(raw: RawCorrection): StreamCorrection {
     return {
         symbol: raw.S,
         exchange: raw.x,
-        originalId: raw.oi,
-        originalPrice: raw.op,
-        originalSize: raw.os,
+        originalId: num(raw.oi),
+        originalIdRaw: idString(raw.oi),
+        originalPrice: num(raw.op),
+        originalSize: num(raw.os),
         originalConditions: raw.oc ?? [],
-        correctedId: raw.ci,
-        correctedPrice: raw.cp,
-        correctedSize: raw.cs,
+        correctedId: num(raw.ci),
+        correctedIdRaw: idString(raw.ci),
+        correctedPrice: num(raw.cp),
+        correctedSize: num(raw.cs),
         correctedConditions: raw.cc ?? [],
         timestamp: toDate(raw.t),
+        timestampRaw: toRawTs(raw.t),
         tape: raw.z,
     };
 }
@@ -298,24 +370,30 @@ export interface RawCancelError {
 export interface StreamCancelError {
     symbol: string;
     id: number;
+    /** Exact trade id as a string, preserving 64-bit ids beyond `2^53`. */
+    idRaw?: string;
     exchange: string;
     price: number;
     size: number;
     action?: string;
     tape?: string;
     timestamp: Date;
+    /** Lossless RFC-3339 nanosecond timestamp. */
+    timestampRaw?: string;
 }
 
 export function mapCancelError(raw: RawCancelError): StreamCancelError {
     return {
         symbol: raw.S,
-        id: raw.i,
+        id: num(raw.i),
+        idRaw: idString(raw.i),
         exchange: raw.x,
-        price: raw.p,
-        size: raw.s,
+        price: num(raw.p),
+        size: num(raw.s),
         action: raw.a,
         tape: raw.z,
         timestamp: toDate(raw.t),
+        timestampRaw: toRawTs(raw.t),
     };
 }
 
@@ -343,16 +421,19 @@ export interface OrderbookLevel {
 export interface StreamOrderbook {
     symbol: string;
     timestamp: Date;
+    /** Lossless RFC-3339 nanosecond timestamp. */
+    timestampRaw?: string;
     bids: OrderbookLevel[];
     asks: OrderbookLevel[];
     reset: boolean;
 }
 
 export function mapOrderbook(raw: RawOrderbook): StreamOrderbook {
-    const level = (e: RawOrderbookEntry): OrderbookLevel => ({ price: e.p, size: e.s });
+    const level = (e: RawOrderbookEntry): OrderbookLevel => ({ price: num(e.p), size: num(e.s) });
     return {
         symbol: raw.S,
         timestamp: toDate(raw.t),
+        timestampRaw: toRawTs(raw.t),
         bids: (raw.b ?? []).map(level),
         asks: (raw.a ?? []).map(level),
         reset: raw.r ?? false,
@@ -377,6 +458,8 @@ export interface RawNews {
 
 export interface StreamNews {
     id: number;
+    /** Exact article id as a string, preserving 64-bit ids beyond `2^53`. */
+    idRaw?: string;
     headline: string;
     summary?: string;
     author?: string;
@@ -390,7 +473,8 @@ export interface StreamNews {
 
 export function mapNews(raw: RawNews): StreamNews {
     return {
-        id: raw.id,
+        id: num(raw.id),
+        idRaw: idString(raw.id),
         headline: raw.headline,
         summary: raw.summary,
         author: raw.author,

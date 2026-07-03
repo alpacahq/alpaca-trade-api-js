@@ -35,6 +35,35 @@ All five factories return a stream sharing the lifecycle below:
 | `alpaca.marketData.optionStream()` | `OptionDataStream` | Options market data (msgpack) |
 | `alpaca.marketData.newsStream()` | `NewsStream` | Real-time news headlines |
 
+## Timestamp precision
+
+Market-data stream events expose two timestamp fields:
+
+- `timestamp: Date` — millisecond precision, convenient for most uses.
+- `timestampRaw?: string` — the full RFC-3339 **nanosecond** timestamp, e.g.
+  `"2024-01-02T03:04:05.678099211Z"`.
+
+The market-data stream is msgpack, whose default decoder truncates timestamps to
+milliseconds. The SDK installs a custom decoder so `timestampRaw` keeps every
+digit Alpaca sends. (This applies to the market-data channels — trades, quotes,
+bars, statuses, LULDs, imbalances, corrections, cancel-errors, and orderbooks.)
+
+## Trade-id precision
+
+Trade ids are 64-bit integers, which can exceed JavaScript's safe integer range
+(`2^53`). The same custom decoder reads them losslessly, so id-bearing events
+expose an exact string alongside the convenient (best-effort) `number`:
+
+- Trades — `id: number` and `idRaw?: string`.
+- Cancel-errors — `id: number` and `idRaw?: string`.
+- Corrections — `originalId` / `correctedId` (numbers) and
+  `originalIdRaw?` / `correctedIdRaw?` (strings).
+- News — `id: number` and `idRaw?: string`.
+
+Use `idRaw` whenever you compare, store, or key on an id; `id` remains for
+display and small values. Other numeric fields (sizes, volumes, counts) stay a
+plain `number`.
+
 ## Shared lifecycle
 
 Every stream exposes:

@@ -15,9 +15,18 @@ describe('toBar', () => {
         expect(marketDataShapes.toBar(stockBar, 'AAPL')).toEqual({
             symbol: 'AAPL',
             timestamp: new Date('2024-01-02T00:00:00Z'),
+            timestampRaw: '2024-01-02T00:00:00.000Z',
             open: 10, high: 12, low: 9, close: 11,
             volume: 1000, vwap: 10.5, tradeCount: 42,
         });
+    });
+
+    it('preserves a raw RFC-3339 nanosecond string verbatim when the source is a string', () => {
+        const raw = { ...stockBar, t: '2024-01-02T00:00:00.678099211Z' as unknown as Date };
+        const bar = marketDataShapes.toBar(raw, 'AAPL');
+        // timestamp truncates to ms; timestampRaw keeps every nanosecond digit.
+        expect(bar.timestamp.toISOString()).toBe('2024-01-02T00:00:00.678Z');
+        expect(bar.timestampRaw).toBe('2024-01-02T00:00:00.678099211Z');
     });
 
     it('coerces a still-raw string timestamp into a Date', () => {
@@ -57,6 +66,7 @@ describe('quote mappers', () => {
         const quote: StockQuote = { ap: 11, as: 2, ax: 'V', bp: 10, bs: 3, bx: 'P', c: ['R'], t: new Date('2024-01-02T00:00:00Z'), z: 'C' };
         expect(marketDataShapes.toStockQuote(quote, 'AAPL')).toEqual({
             symbol: 'AAPL', timestamp: new Date('2024-01-02T00:00:00Z'),
+            timestampRaw: '2024-01-02T00:00:00.000Z',
             bidPrice: 10, bidSize: 3, bidExchange: 'P',
             askPrice: 11, askSize: 2, askExchange: 'V',
             conditions: ['R'], tape: 'C',
@@ -92,6 +102,45 @@ describe('symbol-map helpers', () => {
             marketDataShapes.toCryptoTrade,
         );
         expect(trades['BTC/USD'][0]).toMatchObject({ symbol: 'BTC/USD', takerSide: 'S' });
+    });
+});
+
+describe('index values', () => {
+    it('preserves the verbatim nanosecond string while exposing a Date', () => {
+        // Index-value responses deserialize verbatim, so `t` is still a raw
+        // full-precision string at runtime despite the generated `Date` type.
+        const raw = { t: '2024-01-02T15:04:05.678099211Z' as unknown as Date, v: 4321.5 };
+        const value = marketDataShapes.toIndexValue(raw, 'SPX');
+        expect(value.symbol).toBe('SPX');
+        expect(value.value).toBe(4321.5);
+        expect(value.timestamp.toISOString()).toBe('2024-01-02T15:04:05.678Z');
+        expect(value.timestampRaw).toBe('2024-01-02T15:04:05.678099211Z');
+    });
+
+    it('stamps the symbol from the map key across a { [symbol]: IndexValue[] } map', () => {
+        const out = marketDataShapes.toIndexValuesBySymbol({
+            SPX: [{ t: '2024-01-02T15:04:05.5Z' as unknown as Date, v: 1 }],
+        });
+        expect(out.SPX[0].symbol).toBe('SPX');
+        expect(out.SPX[0].timestampRaw).toBe('2024-01-02T15:04:05.5Z');
+    });
+});
+
+describe('stock auctions', () => {
+    it('maps opening/closing prints and preserves each nanosecond timestamp', () => {
+        const daily = {
+            d: '2024-01-02' as unknown as Date,
+            o: [{ c: 'Q', p: 187.1, s: 100, t: '2024-01-02T14:30:00.123456789Z' as unknown as Date, x: 'V' }],
+            c: [{ c: 'M', p: 188.9, t: '2024-01-02T21:00:00.987654321Z' as unknown as Date, x: 'V' }],
+        };
+        const mapped = marketDataShapes.toDailyAuctions(daily, 'AAPL');
+        expect(mapped.symbol).toBe('AAPL');
+        expect(mapped.dateRaw).toBe('2024-01-02');
+        expect(mapped.opening[0]).toMatchObject({ price: 187.1, size: 100, exchange: 'V', condition: 'Q' });
+        expect(mapped.opening[0].timestampRaw).toBe('2024-01-02T14:30:00.123456789Z');
+        expect(mapped.closing[0].timestampRaw).toBe('2024-01-02T21:00:00.987654321Z');
+        // Size is optional on closing auctions.
+        expect(mapped.closing[0].size).toBeUndefined();
     });
 });
 

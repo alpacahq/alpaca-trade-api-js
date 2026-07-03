@@ -33,6 +33,7 @@ import {
     type StreamStatus,
     type StreamTrade,
 } from "./types";
+import { createMarketDataExtensionCodec } from "./timestamp";
 
 export const MARKET_DATA_STREAM_HOST = "wss://stream.data.alpaca.markets";
 export const MARKET_DATA_STREAM_SANDBOX_HOST = "wss://stream.data.sandbox.alpaca.markets";
@@ -137,6 +138,9 @@ export class MarketDataStream extends AlpacaWebSocket {
 
     constructor(options: Omit<AlpacaWebSocketOptions, "codec">) {
         super({ ...options, codec: "msgpack" });
+        // Preserve nanosecond timestamps: decode the msgpack timestamp
+        // extension (ext -1) into a StreamTimestamp instead of a lossy Date.
+        this.extensionCodec = createMarketDataExtensionCodec();
     }
 
     // --- Subscribe / unsubscribe -------------------------------------------
