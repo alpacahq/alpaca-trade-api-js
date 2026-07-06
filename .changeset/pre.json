@@ -8,6 +8,7 @@
     "great-poems-slide",
     "initial-rewrite",
     "lossless-ids-and-more-timestamps",
+    "lossless-rest-trade-ids",
     "nanosecond-timestamp-raw",
     "redirect-hardening",
     "rest-retry-observability-response-headers",
