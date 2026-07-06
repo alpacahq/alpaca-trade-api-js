@@ -12,7 +12,44 @@
  */
 export * from "../core/runtime";
 
-import { BaseAPI as CoreBaseAPI, BaseConfiguration } from "../core/runtime";
+import { parse as parseLossless } from "lossless-json";
+import {
+    BaseAPI as CoreBaseAPI,
+    BaseConfiguration,
+    JSONApiResponse as CoreJSONApiResponse,
+} from "../core/runtime";
+
+/**
+ * Number reviver for the lossless market-data JSON parse. Market-data ids are
+ * 64-bit integers and crypto trade ids run past `Number.MAX_SAFE_INTEGER`
+ * (`2^53`), where a JS `number` silently loses precision. This keeps such
+ * integers as their exact decimal `string` and returns a plain `number` for
+ * everything a `number` can represent losslessly (floats and safe integers), so
+ * the only runtime shift versus native `JSON.parse` is: integer tokens beyond
+ * `2^53` become strings — in practice, crypto trade ids.
+ */
+function losslessNumber(raw: string): number | string {
+    if (/^-?\d+$/.test(raw)) {
+        const n = Number(raw);
+        return Number.isSafeInteger(n) ? n : raw;
+    }
+    return Number(raw);
+}
+
+/**
+ * Market-data {@link CoreJSONApiResponse} that parses the body losslessly so
+ * 64-bit ids survive with full precision (see {@link losslessNumber}). This
+ * subclass is exported to shadow the `export *` re-export above, so every
+ * generated market-data API — which builds `new runtime.JSONApiResponse(...)` —
+ * transparently picks it up. The trading transport is unaffected.
+ */
+export class JSONApiResponse<T> extends CoreJSONApiResponse<T> {
+    override async value(): Promise<T> {
+        const text = await this.raw.text();
+        const parsed = text === "" ? undefined : parseLossless(text, undefined, losslessNumber);
+        return this.transformer(parsed);
+    }
+}
 
 export const MARKET_DATA_HOST = "https://data.alpaca.markets";
 export const MARKET_DATA_SANDBOX_HOST = "https://data.sandbox.alpaca.markets";

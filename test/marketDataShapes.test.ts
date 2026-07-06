@@ -59,6 +59,23 @@ describe('trade mappers normalize conditions and asset-specific fields', () => {
         expect(mapped.conditions).toBeUndefined();
         expect(mapped.symbol).toBe('BTC/USD');
     });
+
+    it('preserves a 64-bit crypto trade id past 2^53 as an exact idRaw string', () => {
+        // The lossless transport hands the mapper an id > Number.MAX_SAFE_INTEGER
+        // as a string; `id` stays a (lossy) number, `idRaw` is exact.
+        const trade = { i: '8857581800245878123' as unknown as number, p: 50000, s: 0.1, t: new Date('2024-01-02T00:00:00Z'), tks: 'B' } satisfies CryptoTrade;
+        const mapped = marketDataShapes.toCryptoTrade(trade, 'BTC/USD');
+        expect(mapped.idRaw).toBe('8857581800245878123');
+        expect(typeof mapped.id).toBe('number');
+        expect(mapped.id).toBe(Number('8857581800245878123')); // best-effort float64
+    });
+
+    it('exposes idRaw for a safe stock trade id too', () => {
+        const trade: StockTrade = { c: ['@'], i: 7, p: 99.5, s: 5, t: new Date('2024-01-02T00:00:00Z'), x: 'V', z: 'C' };
+        const mapped = marketDataShapes.toStockTrade(trade, 'AAPL');
+        expect(mapped.id).toBe(7);
+        expect(mapped.idRaw).toBe('7');
+    });
 });
 
 describe('quote mappers', () => {
@@ -207,5 +224,20 @@ describe('MarketDataClient normalized accessors', () => {
         const candles = await alpaca.marketData.getStockCandles({ symbols: 'AAPL', timeframe: TimeFrame.Day });
         expect(candles.AAPL.close).toEqual([11, 12]);
         expect(candles.AAPL.time[0]).toBe(Date.parse('2024-01-02T00:00:00Z'));
+    });
+
+    it('getCryptoTrades preserves a 64-bit id losslessly end-to-end via idRaw', async () => {
+        // Raw JSON body (sent verbatim) with an id and nanosecond timestamp that
+        // native JSON.parse / new Date would both truncate. The market-data
+        // transport parses losslessly, so idRaw survives to the canonical shape.
+        const rawBody =
+            '{"trades":{"BTC/USD":[{"t":"2024-01-02T00:00:00.123456789Z","p":50000,"s":0.1,"tks":"B","i":8857581800245878123}]},"next_page_token":null}';
+        const alpaca = createMockAlpaca([{ method: 'GET', path: '/v1beta3/crypto/us/trades', body: rawBody }]);
+        const trades = await alpaca.marketData.getCryptoTrades({ symbols: ['BTC/USD'], loc: 'us' });
+        expect(trades['BTC/USD']).toHaveLength(1);
+        const trade = trades['BTC/USD'][0];
+        expect(trade.idRaw).toBe('8857581800245878123');
+        expect(typeof trade.id).toBe('number');
+        expect(trade.timestampRaw).toBe('2024-01-02T00:00:00.123456789Z');
     });
 });

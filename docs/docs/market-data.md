@@ -64,6 +64,27 @@ silently truncate to milliseconds when you reach for the canonical shape.
 > `Date`; prefer the canonical accessors above where nanosecond precision
 > matters.
 
+### Trade-id precision
+
+Trade ids are 64-bit integers that can exceed JavaScript's safe integer range
+(`2^53`) — notably crypto trade ids. The market-data REST transport parses JSON
+losslessly, so canonical `Trade` records expose `idRaw?: string` (exact)
+alongside `id: number` (convenient, but lossy past `2^53`) — identical to the
+live stream, so historical and real-time ids match.
+
+```ts
+const trades = await alpaca.marketData.getCryptoTrades({ symbols: "BTC/USD", loc: "us" });
+const t = trades["BTC/USD"][0];
+t.id;    // number — fine to display, lossy past 2^53
+t.idRaw; // e.g. "8857581800245878123" — exact; use this to compare/store/key
+```
+
+> Note: on the **raw** generated models an id past `2^53` arrives as a `string`
+> at runtime (e.g. `alpaca.marketData.crypto.cryptoTrades(...).trades[sym][i].i`)
+> even though the generated type says `number`. Use the canonical
+> `getCryptoTrades` accessor, or treat the raw `.i` as the exact string. Other
+> numeric fields (sizes, volumes, counts, stock/option/news ids) are unaffected.
+
 ### Chart-ready candles
 
 `get<Asset>Candles` (and `get<Asset>CandlesFor`) return the same data in a

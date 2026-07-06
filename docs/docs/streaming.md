@@ -64,6 +64,11 @@ Use `idRaw` whenever you compare, store, or key on an id; `id` remains for
 display and small values. Other numeric fields (sizes, volumes, counts) stay a
 plain `number`.
 
+The REST canonical trade accessors (`getStockTrades`/`getCryptoTrades`) expose
+the same `idRaw`, so ids you backfill over REST match the ones you receive live
+— see [Trade-id precision](./market-data.md#trade-id-precision) in the
+market-data guide.
+
 ## Shared lifecycle
 
 Every stream exposes:

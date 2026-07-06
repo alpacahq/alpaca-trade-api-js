@@ -772,16 +772,23 @@ canonical **index-value** (`getIndexValues`) and **stock-auction**
 (`getStockAuctions`) accessors carry the same `timestampRaw`.
 
 Trade ids are 64-bit integers that can exceed JavaScript's safe integer range
-(`2^53`). The live market-data stream now decodes them losslessly and exposes an
-exact string alongside the numeric field — additive, so no migration is required:
+(`2^53`) — notably crypto trade ids. Both the live market-data stream **and** the
+REST canonical trade accessors now expose an exact string alongside the numeric
+field — additive, so no migration is required:
 
-- Trades / cancel-errors: `idRaw?: string` next to `id: number`.
-- Corrections: `originalIdRaw?` / `correctedIdRaw?` next to the numeric ids.
-- News: `idRaw?: string` next to `id: number`.
+- REST canonical trades (`getStockTrades`/`getCryptoTrades`): `idRaw?: string`
+  next to `id: number`.
+- Stream trades / cancel-errors: `idRaw?: string` next to `id: number`.
+- Stream corrections: `originalIdRaw?` / `correctedIdRaw?` next to the numeric ids.
+- Stream news: `idRaw?: string` next to `id: number`.
 
-Use `idRaw` when you compare, store, or key on an id. (On the REST side, ids are
-still deserialized as `number`; Alpaca's current market-data ids are well within
-`2^53`, and a lossless-JSON transport layer is tracked as a follow-up.)
+Use `idRaw` when you compare, store, or key on an id. The REST market-data
+transport now parses JSON losslessly to make this possible; the one runtime
+consequence is that on the **raw** generated models an id past `2^53` (in
+practice a crypto trade `.i`) surfaces as a `string` rather than a lossy
+`number`. Prefer the canonical accessors (both `id` and `idRaw`), or read the raw
+`.i` as the exact string; stock/option ids, news ids, sizes, volumes, and counts
+are unaffected.
 
 ## Real-time streaming
 

@@ -550,7 +550,9 @@ still arrive as ISO `string`s at runtime despite that type. The fix is to prefer
 the normalized accessors below (`getStockBars`, the single-symbol `getStockBarsFor`,
 etc.), which always hand back real `Date`s; only the **raw** generated map
 responses (e.g. `alpaca.marketData.stocks.stockBars`) carry the caveat, and there
-you can normalize with `values.toDate` / `values.toISO`.
+you can normalize with `values.toDate` / `values.toISO`. The same raw map
+responses also surface large 64-bit ids (crypto trade `.i`) as `string`s at
+runtime — see the id note under [Values & types](#values--types).
 
 For **nanosecond precision**, every market-data `Bar`/`Trade`/`Quote` (both the
 REST canonical accessors and the live stream) also carries `timestampRaw?:
@@ -560,11 +562,21 @@ string` — the original RFC-3339 timestamp with full sub-millisecond digits (e.
 The canonical `getIndexValues` and `getStockAuctions` accessors carry the same
 `timestampRaw`.
 
-For **64-bit ids**, the market-data stream decodes trade/news ids losslessly and
-exposes an exact string next to the numeric field — `idRaw` on trades,
-cancel-errors, and news, plus `originalIdRaw`/`correctedIdRaw` on corrections.
-Use `idRaw` when you compare, store, or key on an id (values beyond `2^53` lose
-precision as a `number`); other numeric fields stay a plain `number`.
+For **64-bit ids**, both the live stream **and** the REST canonical trade
+accessors (`getStockTrades`/`getCryptoTrades`) expose an exact `string` next to
+the numeric field — `idRaw` on trades, plus (stream-only) cancel-errors, news,
+and `originalIdRaw`/`correctedIdRaw` on corrections. Reach for `idRaw` whenever
+you compare, store, or key on an id: crypto trade ids run past `2^53`, where a
+`number` silently loses precision. `id` stays a `number` (unchanged) for
+convenience, and other numeric fields stay plain `number`s.
+
+> **Low-level/raw models:** the market-data transport parses JSON losslessly, so
+> integer fields whose value exceeds `2^53` — in practice **crypto trade ids** —
+> arrive as a `string` at runtime on the raw generated models (e.g.
+> `alpaca.marketData.crypto.cryptoTrades(...).trades[sym][i].i`) even though the
+> generated type says `number`. Prefer the canonical accessors (which give you
+> both `id` and `idRaw`), or read the raw `.i` as the exact string. Stock/option
+> ids, news ids, sizes, volumes, and counts stay plain `number`s.
 
 ## Normalized market-data shapes (REST + streaming unified)
 

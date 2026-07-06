@@ -103,8 +103,19 @@ export interface Trade {
     price: number;
     /** Trade size. */
     size: number;
-    /** Exchange-assigned trade id, when provided. */
+    /**
+     * Exchange-assigned trade id, when provided. A `number` for convenience;
+     * crypto trade ids run past `Number.MAX_SAFE_INTEGER` (`2^53`), where a
+     * `number` loses precision — use {@link idRaw} to compare, store, or key
+     * on an id.
+     */
     id?: number;
+    /**
+     * The exact trade id as a decimal `string`, preserving full precision for
+     * 64-bit ids that overflow `2^53`. The REST transport parses market-data
+     * JSON losslessly, so this matches the value the live stream reports.
+     */
+    idRaw?: string;
     /** Exchange code, when provided. */
     exchange?: string;
     /** Condition flags, normalized to an array (a single flag becomes `[flag]`). */
@@ -258,6 +269,21 @@ function conditions(value: string | string[] | null | undefined): string[] | und
     return Array.isArray(value) ? value : [value];
 }
 
+/**
+ * Canonical numeric id (lossy past `2^53`). The lossless market-data transport
+ * keeps 64-bit ids that overflow `2^53` as `string`s, so `id` typed `number`
+ * can carry a string at runtime; this coerces it back to a `number` for the
+ * convenient field, with the exact value preserved separately via {@link idRaw}.
+ */
+function idNumber(value: number | string | undefined): number | undefined {
+    return value == null ? undefined : Number(value);
+}
+
+/** The exact id as a decimal `string`, preserving full 64-bit precision. */
+function idRaw(value: number | string | undefined): string | undefined {
+    return value == null ? undefined : String(value);
+}
+
 // --- Per-record mappers ----------------------------------------------------
 
 /**
@@ -287,7 +313,8 @@ export function toStockTrade(trade: StockTrade, symbol?: string): Trade {
         timestampRaw: rawTimestamp(trade.t),
         price: trade.p,
         size: trade.s,
-        id: trade.i,
+        id: idNumber(trade.i),
+        idRaw: idRaw(trade.i),
         exchange: trade.x,
         conditions: conditions(trade.c),
         tape: trade.z,
@@ -303,7 +330,8 @@ export function toCryptoTrade(trade: CryptoTrade, symbol?: string): Trade {
         timestampRaw: rawTimestamp(trade.t),
         price: trade.p,
         size: trade.s,
-        id: trade.i,
+        id: idNumber(trade.i),
+        idRaw: idRaw(trade.i),
         takerSide: trade.tks,
     };
 }

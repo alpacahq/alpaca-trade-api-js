@@ -759,7 +759,7 @@ export interface ApiResponse<T> {
 export type ResponseTransformer<T> = (json: any) => T
 
 export class JSONApiResponse<T> {
-    constructor(public raw: Response, private transformer: ResponseTransformer<T> = (jsonValue: any) => jsonValue) {}
+    constructor(public raw: Response, protected transformer: ResponseTransformer<T> = (jsonValue: any) => jsonValue) {}
 
     async value(): Promise<T> {
         return this.transformer(await this.raw.json());
