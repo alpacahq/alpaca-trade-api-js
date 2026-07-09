@@ -106,28 +106,48 @@ Workflow:
    write a one-line, user-facing summary. Commit the generated `.changeset/*.md`
    file alongside the code change. Internal-only changes (CI, tooling, refactors
    with no consumer impact) need no changeset.
-2. **Cut an alpha**: trigger the **"Publish alpha pre-release to NPM"** GitHub
-   Actions workflow (`.github/workflows/alpha-release.yaml`, `workflow_dispatch`)
-   on `ts-alpha`. It runs `changeset version` (bumps to the next `4.0.0-alpha.N`,
-   updates `CHANGELOG.md`, pushes the bump back to the branch), builds, then
-   `changeset publish` to the `alpha` dist-tag. Users opt in with
-   `npm install @alpacahq/alpaca-trade-api@alpha`.
+2. **Cut a prerelease (manual, rarely needed)**: the dedicated alpha-release
+   workflow has been removed — no further alphas are planned before the stable
+   `4.0.0`. If a prerelease is still required while pre mode is active, publish it
+   by hand: `npm run changeset:version` then `npm run release` (publishes to the
+   `alpha` dist-tag). Otherwise, exit pre mode and use the stable release flow
+   below.
 3. **Local dry run**: `npm run changeset:version` then inspect the computed version
-   and `CHANGELOG.md` before discarding (the workflow is the source of truth for
-   real publishes).
+   and `CHANGELOG.md` before discarding (the release workflow is the source of
+   truth for real publishes).
 
 Notes:
 
 - `@changesets/changelog-github` (configured in `.changeset/config.json`, repo
-  `alpacahq/alpaca-trade-api-js`, `baseBranch: ts-alpha`) needs a `GITHUB_TOKEN`
+  `alpacahq/alpaca-trade-api-js`, `baseBranch: master`) needs a `GITHUB_TOKEN`
   env var when running `changeset:version` so it can resolve PR/commit/author
   links — e.g. `GITHUB_TOKEN=… npm run changeset:version`. The release workflow
   provides this automatically.
 - `access` is `public` in `.changeset/config.json` (the package is scoped
   `@alpacahq/*`).
 - **Exiting alpha for the stable `4.0.0`**: run `npx changeset pre exit`, commit
-  the removal of `.changeset/pre.json`, then publish via the normal (non-prerelease)
-  flow so the release lands on the `latest` dist-tag.
+  the removal of `.changeset/pre.json`, then let the stable release flow below
+  land the release on the `latest` dist-tag.
+
+### Stable release flow (post-merge, on `master`)
+
+Once `ts-alpha` merges to `master` and pre mode is exited, releases are automated
+by GitHub Actions — no manual publishing from a laptop:
+
+- **`.github/workflows/release.yaml`** runs on every push to `master` via the
+  [`changesets/action`](https://github.com/changesets/action). When unreleased
+  changesets exist it opens/updates a **"chore: version packages"** PR (bumping
+  the version + `CHANGELOG.md`). Merging that PR triggers `npm run release`
+  (build → `changeset publish`) to the **`latest`** dist-tag, with npm
+  **provenance** enabled (`id-token: write` + `NPM_CONFIG_PROVENANCE`). Requires
+  the `NPM_KEY` repo secret.
+- **`.github/workflows/ci.yaml`** runs on PRs and pushes to `master`: typecheck,
+  lint, test, build; a docs build (`onBrokenLinks: "throw"`); and a
+  regeneration-invariant job that runs `npm run generate:offline` and asserts the
+  generated trees are byte-for-byte unchanged (`git diff --exit-code`).
+- **`.github/workflows/docs.yaml`** builds and deploys the Docusaurus site to
+  GitHub Pages on push to `master` (and `workflow_dispatch`), publishing to
+  <https://alpacahq.github.io/alpaca-trade-api-js/>.
 
 ## Assisted regeneration (agent helping a human run `npm run generate`)
 

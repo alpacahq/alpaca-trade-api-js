@@ -63,11 +63,11 @@ Migrating from the stable `3.x` release? Follow the
 ## Documentation
 
 This README is the canonical, self-contained reference. There is also a
-[Docusaurus](https://docusaurus.io) documentation site in [`docs/`](./docs) —
-curated guides, a generated API reference, runtime compatibility, and the
-runnable examples. **It is not hosted yet** (no GitHub Pages deploy until this
-`ts-alpha` branch merges and `4.0` ships), but you can read the whole thing
-**locally** in two commands:
+[Docusaurus](https://docusaurus.io) documentation site — curated guides, a
+generated API reference, runtime compatibility, and the runnable examples —
+hosted at **<https://alpacahq.github.io/alpaca-trade-api-js/>** and deployed
+from [`docs/`](./docs) on every push to `master`. You can also read the whole
+thing **locally** in two commands:
 
 ```bash
 npm --prefix docs install   # first time only

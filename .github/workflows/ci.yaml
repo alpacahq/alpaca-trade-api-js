@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  docs:
+    name: Docs build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install SDK dependencies
+        run: npm ci
+      - name: Install docs dependencies
+        run: npm --prefix docs ci
+      # `prebuild` regenerates the API reference + examples pages, then builds.
+      # `onBrokenLinks: "throw"` makes this fail on any broken link/anchor.
+      - name: Build docs site
+        run: npm --prefix docs run build
+
+  regen-invariant:
+    name: OpenAPI trees reproduce byte-for-byte
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Install tooling dependencies
+        run: npm --prefix tooling ci
+      - name: Regenerate REST trees from pinned specs (offline)
+        run: npm run generate:offline
+      - name: Assert generated trees are unchanged
+        run: git diff --exit-code -- src/trading src/market-data

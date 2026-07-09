@@ -2,10 +2,9 @@ import type * as Preset from "@docusaurus/preset-classic";
 import type { Config } from "@docusaurus/types";
 import { themes as prismThemes } from "prism-react-renderer";
 
-// The site is local-only for now (no deploy workflow yet — see the README).
-// These defaults are what a local `start`/`serve` uses; the `DOCUSAURUS_URL` /
-// `DOCUSAURUS_BASE_URL` overrides are reserved for the future GitHub Pages
-// deploy workflow (enabled once `ts-alpha` merges and 4.0 ships).
+// The GitHub Pages deploy workflow (`.github/workflows/docs.yaml`) sets
+// `DOCUSAURUS_URL` / `DOCUSAURUS_BASE_URL`; these defaults match that deploy
+// target and are also what a local `start`/`serve` uses.
 const url = process.env.DOCUSAURUS_URL ?? "https://alpacahq.github.io";
 const baseUrl = process.env.DOCUSAURUS_BASE_URL ?? "/alpaca-trade-api-js/";
 
@@ -32,7 +31,7 @@ const config: Config = {
                     routeBasePath: "/",
                     sidebarPath: "./sidebars.ts",
                     editUrl:
-                        "https://github.com/alpacahq/alpaca-trade-api-js/edit/ts-alpha/docs/",
+                        "https://github.com/alpacahq/alpaca-trade-api-js/edit/master/docs/",
                 },
                 blog: false,
                 theme: { customCss: "./src/css/custom.css" },
@@ -47,9 +46,9 @@ const config: Config = {
 
     themeConfig: {
         announcementBar: {
-            id: "alpha",
+            id: "v4",
             content:
-                "This documents the <strong>4.0 alpha</strong> line of @alpacahq/alpaca-trade-api.",
+                'This documents <strong>4.0</strong> of @alpacahq/alpaca-trade-api — a full rewrite. Upgrading from 3.x? See the <a href="https://github.com/alpacahq/alpaca-trade-api-js/blob/master/MIGRATION.md">migration guide</a>.',
             isCloseable: true,
         },
         navbar: {
