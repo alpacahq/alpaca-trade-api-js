@@ -34,7 +34,9 @@ jobs:
       # When that PR is merged (no changesets left, versions bumped), it builds
       # and publishes to the `latest` dist-tag via `npm run release`.
       - name: Create release PR or publish
-        uses: changesets/action@v1
+        # Pinned to an immutable commit SHA (v1.9.0) — this workflow holds
+        # publish credentials, so a floating tag is a supply-chain risk.
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           version: npm run changeset:version
           publish: npm run release

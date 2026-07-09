@@ -65,6 +65,10 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      # `generate:offline` runs the SDK safety gate (typecheck/lint/test/docs)
+      # at the end, so the root deps must be installed too — not just tooling.
+      - name: Install SDK dependencies
+        run: npm ci
       - name: Install tooling dependencies
         run: npm --prefix tooling ci
       - name: Regenerate REST trees from pinned specs (offline)
