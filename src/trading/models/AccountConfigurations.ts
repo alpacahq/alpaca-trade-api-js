@@ -26,13 +26,6 @@ export interface AccountConfigurations extends Record<string, unknown> {
      */
     disableOvernightTrading?: boolean;
     /**
-     * both, entry, or exit. Controls Day Trading Margin Call (DTMC) checks.
-     * @type {string}
-     * @memberof AccountConfigurations
-     * @deprecated
-     */
-    dtbpCheck?: AccountConfigurationsDtbpCheckEnum;
-    /**
      * If true, account is able to participate in fractional trading
      * @type {boolean}
      * @memberof AccountConfigurations
@@ -57,13 +50,6 @@ export interface AccountConfigurations extends Record<string, unknown> {
      */
     noShorting?: boolean;
     /**
-     * `both`, `entry`, or `exit`. If entry orders will be rejected on entering a position if it could result in PDT being set for the account. exit will reject exiting orders if they would result in PDT being set.
-     * @type {string}
-     * @memberof AccountConfigurations
-     * @deprecated
-     */
-    pdtCheck?: string;
-    /**
      * If set to true then Alpaca will accept orders for PTP symbols with no exception. Default is false.
      * @type {boolean}
      * @memberof AccountConfigurations
@@ -83,16 +69,6 @@ export interface AccountConfigurations extends Record<string, unknown> {
     tradeConfirmEmail?: string;
 }
 
-
-/**
- * @export
- */
-export const AccountConfigurationsDtbpCheckEnum = {
-    Both: 'both',
-    Entry: 'entry',
-    Exit: 'exit'
-} as const;
-export type AccountConfigurationsDtbpCheckEnum = typeof AccountConfigurationsDtbpCheckEnum[keyof typeof AccountConfigurationsDtbpCheckEnum];
 
 /**
  * @export
@@ -125,12 +101,10 @@ export function AccountConfigurationsFromJSONTyped(json: any, ignoreDiscriminato
         ...json,
         
         'disableOvernightTrading': json['disable_overnight_trading'] == null ? undefined : json['disable_overnight_trading'],
-        'dtbpCheck': json['dtbp_check'] == null ? undefined : json['dtbp_check'],
         'fractionalTrading': json['fractional_trading'] == null ? undefined : json['fractional_trading'],
         'maxMarginMultiplier': json['max_margin_multiplier'] == null ? undefined : json['max_margin_multiplier'],
         'maxOptionsTradingLevel': json['max_options_trading_level'] == null ? undefined : json['max_options_trading_level'],
         'noShorting': json['no_shorting'] == null ? undefined : json['no_shorting'],
-        'pdtCheck': json['pdt_check'] == null ? undefined : json['pdt_check'],
         'ptpNoExceptionEntry': json['ptp_no_exception_entry'] == null ? undefined : json['ptp_no_exception_entry'],
         'suspendTrade': json['suspend_trade'] == null ? undefined : json['suspend_trade'],
         'tradeConfirmEmail': json['trade_confirm_email'] == null ? undefined : json['trade_confirm_email'],
@@ -149,12 +123,10 @@ export function AccountConfigurationsToJSONTyped(value?: AccountConfigurations |
     return {
         
         'disable_overnight_trading': value['disableOvernightTrading'],
-        'dtbp_check': value['dtbpCheck'],
         'fractional_trading': value['fractionalTrading'],
         'max_margin_multiplier': value['maxMarginMultiplier'],
         'max_options_trading_level': value['maxOptionsTradingLevel'],
         'no_shorting': value['noShorting'],
-        'pdt_check': value['pdtCheck'],
         'ptp_no_exception_entry': value['ptpNoExceptionEntry'],
         'suspend_trade': value['suspendTrade'],
         'trade_confirm_email': value['tradeConfirmEmail'],

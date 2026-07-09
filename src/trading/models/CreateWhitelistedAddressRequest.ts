@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CryptoChain } from './CryptoChain';
+import {
+    CryptoChainFromJSON,
+    CryptoChainFromJSONTyped,
+    CryptoChainToJSON,
+    CryptoChainToJSONTyped,
+} from './CryptoChain';
+
 /**
  * 
  * @export
@@ -32,25 +40,13 @@ export interface CreateWhitelistedAddressRequest {
      */
     asset?: string;
     /**
-     * Optional chain identifier. Use when the underlying asset for the whitelisted address is a multi-chain crypto asset.
-     * @type {string}
+     * 
+     * @type {CryptoChain}
      * @memberof CreateWhitelistedAddressRequest
      */
-    chain?: CreateWhitelistedAddressRequestChainEnum;
+    chain?: CryptoChain;
 }
 
-
-/**
- * @export
- */
-export const CreateWhitelistedAddressRequestChainEnum = {
-    Sol: 'SOL',
-    Eth: 'ETH',
-    Btc: 'BTC',
-    Xrp: 'XRP',
-    Arb: 'ARB'
-} as const;
-export type CreateWhitelistedAddressRequestChainEnum = typeof CreateWhitelistedAddressRequestChainEnum[keyof typeof CreateWhitelistedAddressRequestChainEnum];
 
 
 /**
@@ -72,7 +68,7 @@ export function CreateWhitelistedAddressRequestFromJSONTyped(json: any, ignoreDi
         
         'address': json['address'] == null ? undefined : json['address'],
         'asset': json['asset'] == null ? undefined : json['asset'],
-        'chain': json['chain'] == null ? undefined : json['chain'],
+        'chain': json['chain'] == null ? undefined : CryptoChainFromJSON(json['chain']),
     };
 }
 
@@ -89,7 +85,7 @@ export function CreateWhitelistedAddressRequestToJSONTyped(value?: CreateWhiteli
         
         'address': value['address'],
         'asset': value['asset'],
-        'chain': value['chain'],
+        'chain': CryptoChainToJSON(value['chain']),
     };
 }
 

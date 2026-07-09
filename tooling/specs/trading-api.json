@@ -477,7 +477,7 @@
         "type": "object"
       },
       "Account": {
-        "description": "The account API serves important information related to an account, including account status, funds available for trade, funds available for withdrawal, and various flags relevant to an account's ability to trade. An account maybe be blocked for just for trades (trades_blocked flag) or for both trades and transfers (account_blocked flag) if Alpaca identifies the account to engaging in any suspicious activity. Please note that cryptocurrencies are not eligible assets to be used as collateral for margin accounts and will require the asset be traded using cash only. Prior to June 4th, 2026, in accordance with FINRA's pattern day trading rule, an account could be flagged for pattern day trading (pattern_day_trader flag), which would inhibit an account from placing any further day-trades. Fields related to pattern day trading have been deprecated following [FINRA's adoption of new Intraday Margin Standards](https://docs.alpaca.markets/us/docs/understanding-finras-new-intraday-margin-rule-and-the-end-of-pdt).\n",
+        "description": "The account API serves important information related to an account, including account status, funds available for trade, funds available for withdrawal, and various flags relevant to an account's ability to trade. An account maybe be blocked for just for trades (trades_blocked flag) or for both trades and transfers (account_blocked flag) if Alpaca identifies the account to engaging in any suspicious activity. Please note that cryptocurrencies are not eligible assets to be used as collateral for margin accounts and will require the asset be traded using cash only.\n",
         "properties": {
           "account_blocked": {
             "description": "If true, the account activity by user is prohibited.",
@@ -516,26 +516,6 @@
             "description": "USD\n",
             "example": "USD",
             "type": "string"
-          },
-          "daytrade_count": {
-            "deprecated": true,
-            "description": "The current number of daytrades that have been made in the last 5 trading days (inclusive of today)",
-            "type": "integer",
-            "x-deprecation": {
-              "reason": "See https://docs.alpaca.markets/us/docs/understanding-finras-new-intraday-margin-rule-and-the-end-of-pdt",
-              "since": "2026-04-27T00:00:00Z",
-              "sunset": "2026-07-06T00:00:00Z"
-            }
-          },
-          "daytrading_buying_power": {
-            "deprecated": true,
-            "description": "Your buying power for day trades (continuously updated value)",
-            "type": "string",
-            "x-deprecation": {
-              "reason": "See https://docs.alpaca.markets/us/docs/understanding-finras-new-intraday-margin-rule-and-the-end-of-pdt",
-              "since": "2026-04-27T00:00:00Z",
-              "sunset": "2026-07-06T00:00:00Z"
-            }
           },
           "equity": {
             "description": "Cash + long_market_value + short_market_value",
@@ -605,16 +585,6 @@
             "example": 3,
             "type": "integer"
           },
-          "pattern_day_trader": {
-            "deprecated": true,
-            "description": "Whether or not the account has been flagged as a pattern day trader",
-            "type": "boolean",
-            "x-deprecation": {
-              "reason": "See https://docs.alpaca.markets/us/docs/understanding-finras-new-intraday-margin-rule-and-the-end-of-pdt",
-              "since": "2026-04-27T00:00:00Z",
-              "sunset": "2026-07-06T00:00:00Z"
-            }
-          },
           "pending_reg_taf_fees": {
             "description": "Pending regulatory fees for the account.\n",
             "type": "string"
@@ -678,8 +648,6 @@
             "cash": "-23140.2",
             "created_at": "2019-06-12T22:47:07.99658Z",
             "currency": "USD",
-            "daytrade_count": 0,
-            "daytrading_buying_power": "262113.632",
             "equity": "103820.56",
             "id": "e6fe16f3-64a4-4921-8928-cadf02f92f98",
             "initial_margin": "63480.38",
@@ -692,7 +660,6 @@
             "options_approved_level": 2,
             "options_buying_power": "40340.18",
             "options_trading_level": 1,
-            "pattern_day_trader": false,
             "pending_reg_taf_fees": "0",
             "portfolio_value": "103820.56",
             "regt_buying_power": "80680.36",
@@ -712,21 +679,6 @@
           "disable_overnight_trading": {
             "description": "If true, overnight trading is disabled.",
             "type": "boolean"
-          },
-          "dtbp_check": {
-            "deprecated": true,
-            "description": "both, entry, or exit. Controls Day Trading Margin Call (DTMC) checks.",
-            "enum": [
-              "both",
-              "entry",
-              "exit"
-            ],
-            "type": "string",
-            "x-deprecation": {
-              "reason": "See https://docs.alpaca.markets/us/docs/understanding-finras-new-intraday-margin-rule-and-the-end-of-pdt",
-              "since": "2026-04-27T00:00:00Z",
-              "sunset": "2026-07-06T00:00:00Z"
-            }
           },
           "fractional_trading": {
             "description": "If true, account is able to participate in fractional trading",
@@ -750,17 +702,6 @@
             "description": "If true, account becomes long-only mode.",
             "type": "boolean"
           },
-          "pdt_check": {
-            "deprecated": true,
-            "description": "`both`, `entry`, or `exit`. If entry orders will be rejected on entering a position if it could result in PDT being set for the account. exit will reject exiting orders if they would result in PDT being set.",
-            "example": "entry",
-            "type": "string",
-            "x-deprecation": {
-              "reason": "See https://docs.alpaca.markets/us/docs/understanding-finras-new-intraday-margin-rule-and-the-end-of-pdt",
-              "since": "2026-04-27T00:00:00Z",
-              "sunset": "2026-07-06T00:00:00Z"
-            }
-          },
           "ptp_no_exception_entry": {
             "description": "If set to true then Alpaca will accept orders for PTP symbols with no exception. Default is false.",
             "type": "boolean"
@@ -779,11 +720,9 @@
         "x-examples": {
           "example-1": {
             "disable_overnight_trading": false,
-            "dtbp_check": "entry",
             "fractional_trading": true,
             "max_margin_multiplier": "4",
             "no_shorting": false,
-            "pdt_check": "entry",
             "suspend_trade": false,
             "trade_confirm_email": "all"
           }
@@ -1247,12 +1186,33 @@
           }
         }
       },
+      "AssetAttribute": {
+        "description": "Unique characteristic of an asset. Supported values:\n- `ptp_no_exception`: Asset is a Publicly Traded Partnership (PTP) without a qualified notice; non-U.S. customers may incur 10% withholding on gross proceeds as per IRS guidance, and are blocked from being purchased by default.\n- `ptp_with_exception`: Users can open positions in these PTPs without general restrictions.\n- `ipo`: Accepting limit orders only before the stock begins trading on the secondary market.\n- `has_options`: The underlying equity has listed options available on the platform. Note: if the equity had inactive/expired contracts in the past, this will still show up.\n- `options_late_close`: Indicates the underlying asset's options contracts close at 4:15pm ET instead of the standard 4:00pm ET.\n- `fractional_eh_enabled`: Indicates the asset accepts fractional orders during extended hours sessions (pre-market, post-market, and overnight if enabled).\n- `overnight_tradable`: Asset is eligible for overnight (24x5) trading in supported venues on the platform.\n- `overnight_halted`: Asset is eligible for overnight trading but is currently halted/blocked for overnight sessions due to risk, corporate action, compliance, or venue constraints.",
+        "enum": [
+          "ptp_no_exception",
+          "ptp_with_exception",
+          "ipo",
+          "has_options",
+          "options_late_close",
+          "fractional_eh_enabled",
+          "overnight_tradable",
+          "overnight_halted"
+        ],
+        "example": "ptp_no_exception",
+        "type": "string"
+      },
       "AssetClass": {
         "description": "This represents the category to which the asset belongs to. It serves to identify the nature of the financial instrument, with options including \"us_equity\" for U.S. equities, \"us_option\" for U.S. options, \"crypto\" for cryptocurrencies, and \"ipo\" for IPO indications of interest/orders. This `asset_class: ipo` value is distinct from the assets API `attributes: [\"ipo\"]` flag.",
         "enum": [
           "us_equity",
           "us_option",
           "crypto",
+          "crypto_perp",
+          "treasury",
+          "corporate",
+          "global_equity",
+          "us_index",
+          "us_equity_chain",
           "ipo"
         ],
         "example": "us_equity",
@@ -1266,23 +1226,12 @@
         "description": "The assets API serves as the master list of assets available for trade and data consumption from Alpaca. Assets are sorted by asset class, exchange and symbol. Some assets are only available for data consumption via Polygon, and are not tradable with Alpaca. These assets will be marked with the flag tradable=false.\n",
         "properties": {
           "attributes": {
-            "description": "Unique characteristics of the asset. Supported values:\n- `ptp_no_exception`: Asset is a Publicly Traded Partnership (PTP) without a qualified notice; non-U.S. customers may incur 10% withholding on gross proceeds as per IRS guidance, and are blocked from being purchased by default.\n- `ptp_with_exception`: Users can open positions in these PTPs without general restrictions.\n- `ipo`: Accepting limit orders only before the stock begins trading on the secondary market.\n- `has_options`: The underlying equity has listed options available on the platform. Note: if the equity had inactive/expired contracts in the past, this will still show up.\n- `options_late_close`: Indicates the underlying asset's options contracts close at 4:15pm ET instead of the standard 4:00pm ET.\n- `fractional_eh_enabled`: Indicates the asset accepts fractional orders during extended hours sessions (pre-market, post-market, and overnight if enabled).\n- `overnight_tradable`: Asset is eligible for overnight (24x5) trading in supported venues on the platform.\n- `overnight_halted`: Asset is eligible for overnight trading but is currently halted/blocked for overnight sessions due to risk, corporate action, compliance, or venue constraints.",
             "example": [
               "ptp_no_exception",
               "ipo"
             ],
             "items": {
-              "enum": [
-                "ptp_no_exception",
-                "ptp_with_exception",
-                "ipo",
-                "has_options",
-                "options_late_close",
-                "fractional_eh_enabled",
-                "overnight_tradable",
-                "overnight_halted"
-              ],
-              "type": "string"
+              "$ref": "#/components/schemas/AssetAttribute"
             },
             "type": "array"
           },
@@ -1977,15 +1926,7 @@
             "type": "string"
           },
           "chain": {
-            "description": "Optional chain identifier. The blockchain network used for the withdrawal.",
-            "enum": [
-              "SOL",
-              "ETH",
-              "BTC",
-              "XRP",
-              "ARB"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CryptoChain"
           }
         },
         "required": [
@@ -2035,6 +1976,18 @@
           "qty"
         ],
         "type": "object"
+      },
+      "CryptoChain": {
+        "description": "Chain identifier for multi-chain crypto assets.",
+        "enum": [
+          "SOL",
+          "ETH",
+          "BTC",
+          "XRP",
+          "ARB"
+        ],
+        "example": "ETH",
+        "type": "string"
       },
       "CryptoTransfer": {
         "description": "Transfers allow you to transfer assets into your end customer's account (deposits) or out (withdrawal).",
@@ -2256,22 +2209,7 @@
         "type": "object"
       },
       "Exchange": {
-        "description": "Represents the current exchanges Alpaca supports. List is currently:\n\n- AMEX\n- ARCA\n- BATS\n- NYSE\n- NASDAQ\n- NYSEARCA\n- OTC",
-        "enum": [
-          "AMEX",
-          "ARCA",
-          "BATS",
-          "NYSE",
-          "NASDAQ",
-          "NYSEARCA",
-          "OTC"
-        ],
-        "example": "NYSE",
-        "title": "Exchange",
-        "type": "string"
-      },
-      "ExchangeForPosition": {
-        "description": "Represents the current exchanges Alpaca supports. List is currently:\n\n- AMEX\n- ARCA\n- BATS\n- NYSE\n- NASDAQ\n- NYSEARCA\n- OTC\n\nCan be empty if not applicable (e.g., for options contracts)",
+        "description": "Represents the current exchanges Alpaca supports. List is currently:\n\n- AMEX\n- ARCA\n- BATS\n- NYSE\n- NASDAQ\n- NYSEARCA\n- OTC\n- CRYPTO",
         "enum": [
           "AMEX",
           "ARCA",
@@ -2280,6 +2218,23 @@
           "NASDAQ",
           "NYSEARCA",
           "OTC",
+          "CRYPTO"
+        ],
+        "example": "NYSE",
+        "title": "Exchange",
+        "type": "string"
+      },
+      "ExchangeForPosition": {
+        "description": "Represents the current exchanges Alpaca supports. List is currently:\n\n- AMEX\n- ARCA\n- BATS\n- NYSE\n- NASDAQ\n- NYSEARCA\n- OTC\n- CRYPTO\n\nCan be empty if not applicable (e.g., for options contracts)",
+        "enum": [
+          "AMEX",
+          "ARCA",
+          "BATS",
+          "NYSE",
+          "NASDAQ",
+          "NYSEARCA",
+          "OTC",
+          "CRYPTO",
           ""
         ],
         "example": "NYSE",
@@ -2615,14 +2570,7 @@
             "type": "integer"
           },
           "status": {
-            "description": "Locate status.",
-            "enum": [
-              "active",
-              "expired",
-              "rejected"
-            ],
-            "example": "active",
-            "type": "string"
+            "$ref": "#/components/schemas/LocateStatus"
           },
           "symbol": {
             "description": "Stock symbol.",
@@ -2751,6 +2699,16 @@
           "message"
         ],
         "type": "object"
+      },
+      "LocateStatus": {
+        "description": "Locate status.",
+        "enum": [
+          "active",
+          "expired",
+          "rejected"
+        ],
+        "example": "active",
+        "type": "string"
       },
       "MAActivityV2": {
         "allOf": [
@@ -3231,13 +3189,7 @@
             "type": "string"
           },
           "style": {
-            "description": "The style of the option contract.",
-            "enum": [
-              "american",
-              "european"
-            ],
-            "example": "american",
-            "type": "string"
+            "$ref": "#/components/schemas/OptionContractStyle"
           },
           "symbol": {
             "description": "The symbol representing the option contract.",
@@ -3250,13 +3202,7 @@
             "type": "boolean"
           },
           "type": {
-            "description": "The type of the option contract.",
-            "enum": [
-              "call",
-              "put"
-            ],
-            "example": "call",
-            "type": "string"
+            "$ref": "#/components/schemas/OptionContractType"
           },
           "underlying_asset_id": {
             "description": "The unique identifier of the underlying asset.",
@@ -3286,6 +3232,24 @@
           "size"
         ],
         "type": "object"
+      },
+      "OptionContractStyle": {
+        "description": "The style of the option contract.",
+        "enum": [
+          "american",
+          "european"
+        ],
+        "example": "american",
+        "type": "string"
+      },
+      "OptionContractType": {
+        "description": "The type of the option contract.",
+        "enum": [
+          "call",
+          "put"
+        ],
+        "example": "call",
+        "type": "string"
       },
       "OptionDeliverable": {
         "properties": {
@@ -6112,12 +6076,7 @@
             "name": "status",
             "required": false,
             "schema": {
-              "enum": [
-                "active",
-                "expired",
-                "rejected"
-              ],
-              "type": "string"
+              "$ref": "#/components/schemas/LocateStatus"
             }
           },
           {
@@ -6572,15 +6531,12 @@
                   "accrued_fees": "0",
                   "admin_configurations": {},
                   "balance_asof": "2023-09-27",
-                  "bod_dtbp": 0,
                   "buying_power": "245432.61",
                   "cash": "122086.5",
                   "created_at": "2023-01-01T18:20:20.272275Z",
                   "crypto_status": "ACTIVE",
                   "crypto_tier": 1,
                   "currency": "USD",
-                  "daytrade_count": 0,
-                  "daytrading_buying_power": "0",
                   "effective_buying_power": "245432.61",
                   "equity": "123346.11",
                   "id": "1d9eed04-be39-4e01-9b84-a48ac5bbafcf",
@@ -6594,7 +6550,6 @@
                   "non_marginable_buying_power": "122086.5",
                   "options_buying_power": "122716.305",
                   "options_trading_level": 2,
-                  "pattern_day_trader": true,
                   "pending_reg_taf_fees": "0",
                   "pending_transfer_in": "0",
                   "portfolio_value": "123346.11",
@@ -6983,8 +6938,8 @@
                 "value": "ALL"
               },
               "cash_transfers": {
-                "summary": "Include cash deposits, withdraws, and transaction fees",
-                "value": "CSD,CSW,FEE"
+                "summary": "Include cash movements.",
+                "value": "JNLC,CSD,CSW"
               },
               "none": {
                 "value": "NONE"
@@ -7037,7 +6992,7 @@
             }
           },
           {
-            "description": "Optional AMEX, ARCA, BATS, NYSE, NASDAQ, NYSEARCA or OTC",
+            "description": "Optional AMEX, ARCA, BATS, NYSE, NASDAQ, NYSEARCA, OTC or CRYPTO",
             "in": "query",
             "name": "exchange",
             "schema": {
@@ -7056,17 +7011,7 @@
                 "ipo"
               ],
               "items": {
-                "enum": [
-                  "ptp_no_exception",
-                  "ptp_with_exception",
-                  "ipo",
-                  "has_options",
-                  "options_late_close",
-                  "fractional_eh_enabled",
-                  "overnight_tradable",
-                  "overnight_halted"
-                ],
-                "type": "string"
+                "$ref": "#/components/schemas/AssetAttribute"
               },
               "type": "array"
             }
@@ -7735,11 +7680,7 @@
             "in": "query",
             "name": "type",
             "schema": {
-              "enum": [
-                "call",
-                "put"
-              ],
-              "type": "string"
+              "$ref": "#/components/schemas/OptionContractType"
             }
           },
           {
@@ -7748,11 +7689,7 @@
             "in": "query",
             "name": "style",
             "schema": {
-              "enum": [
-                "american",
-                "european"
-              ],
-              "type": "string"
+              "$ref": "#/components/schemas/OptionContractStyle"
             }
           },
           {
@@ -9213,29 +9150,20 @@
         "parameters": [
           {
             "description": "Tokenization request type to be queried",
+            "example": "mint",
             "in": "query",
             "name": "type",
             "schema": {
-              "enum": [
-                "mint",
-                "redeem"
-              ],
-              "example": "mint",
-              "type": "string"
+              "$ref": "#/components/schemas/TokenizationRequestType"
             }
           },
           {
             "description": "Tokenization request status to be queried",
+            "example": "pending",
             "in": "query",
             "name": "status",
             "schema": {
-              "enum": [
-                "pending",
-                "rejected",
-                "completed"
-              ],
-              "example": "pending",
-              "type": "string"
+              "$ref": "#/components/schemas/TokenizationRequestStatus"
             }
           },
           {
@@ -9385,14 +9313,7 @@
           "in": "query",
           "name": "chain",
           "schema": {
-            "enum": [
-              "SOL",
-              "ETH",
-              "BTC",
-              "XRP",
-              "ARB"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/CryptoChain"
           }
         },
         {
@@ -9589,15 +9510,7 @@
                     "type": "string"
                   },
                   "chain": {
-                    "description": "Optional chain identifier. Use when the underlying asset for the whitelisted address is a multi-chain crypto asset.",
-                    "enum": [
-                      "SOL",
-                      "ETH",
-                      "BTC",
-                      "XRP",
-                      "ARB"
-                    ],
-                    "type": "string"
+                    "$ref": "#/components/schemas/CryptoChain"
                   }
                 },
                 "type": "object"

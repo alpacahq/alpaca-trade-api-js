@@ -22,7 +22,7 @@ import {
 } from './AccountStatus';
 
 /**
- * The account API serves important information related to an account, including account status, funds available for trade, funds available for withdrawal, and various flags relevant to an account's ability to trade. An account maybe be blocked for just for trades (trades_blocked flag) or for both trades and transfers (account_blocked flag) if Alpaca identifies the account to engaging in any suspicious activity. Please note that cryptocurrencies are not eligible assets to be used as collateral for margin accounts and will require the asset be traded using cash only. Prior to June 4th, 2026, in accordance with FINRA's pattern day trading rule, an account could be flagged for pattern day trading (pattern_day_trader flag), which would inhibit an account from placing any further day-trades. Fields related to pattern day trading have been deprecated following [FINRA's adoption of new Intraday Margin Standards](https://docs.alpaca.markets/us/docs/understanding-finras-new-intraday-margin-rule-and-the-end-of-pdt).
+ * The account API serves important information related to an account, including account status, funds available for trade, funds available for withdrawal, and various flags relevant to an account's ability to trade. An account maybe be blocked for just for trades (trades_blocked flag) or for both trades and transfers (account_blocked flag) if Alpaca identifies the account to engaging in any suspicious activity. Please note that cryptocurrencies are not eligible assets to be used as collateral for margin accounts and will require the asset be traded using cash only.
  * 
  * @export
  * @interface Account
@@ -85,20 +85,6 @@ export interface Account extends Record<string, unknown> {
      * @memberof Account
      */
     currency?: string;
-    /**
-     * The current number of daytrades that have been made in the last 5 trading days (inclusive of today)
-     * @type {number}
-     * @memberof Account
-     * @deprecated
-     */
-    daytradeCount?: number;
-    /**
-     * Your buying power for day trades (continuously updated value)
-     * @type {string}
-     * @memberof Account
-     * @deprecated
-     */
-    daytradingBuyingPower?: string;
     /**
      * Cash + long_market_value + short_market_value
      * @type {string}
@@ -186,13 +172,6 @@ export interface Account extends Record<string, unknown> {
      * @memberof Account
      */
     optionsTradingLevel?: AccountOptionsTradingLevelEnum;
-    /**
-     * Whether or not the account has been flagged as a pattern day trader
-     * @type {boolean}
-     * @memberof Account
-     * @deprecated
-     */
-    patternDayTrader?: boolean;
     /**
      * Pending regulatory fees for the account.
      * 
@@ -323,8 +302,6 @@ export function AccountFromJSONTyped(json: any, ignoreDiscriminator: boolean): A
         'createdAt': json['created_at'] == null ? undefined : (new Date(json['created_at'])),
         'cryptoStatus': json['crypto_status'] == null ? undefined : AccountStatusFromJSON(json['crypto_status']),
         'currency': json['currency'] == null ? undefined : json['currency'],
-        'daytradeCount': json['daytrade_count'] == null ? undefined : json['daytrade_count'],
-        'daytradingBuyingPower': json['daytrading_buying_power'] == null ? undefined : json['daytrading_buying_power'],
         'equity': json['equity'] == null ? undefined : json['equity'],
         'id': json['id'],
         'initialMargin': json['initial_margin'] == null ? undefined : json['initial_margin'],
@@ -338,7 +315,6 @@ export function AccountFromJSONTyped(json: any, ignoreDiscriminator: boolean): A
         'optionsApprovedLevel': json['options_approved_level'] == null ? undefined : json['options_approved_level'],
         'optionsBuyingPower': json['options_buying_power'] == null ? undefined : json['options_buying_power'],
         'optionsTradingLevel': json['options_trading_level'] == null ? undefined : json['options_trading_level'],
-        'patternDayTrader': json['pattern_day_trader'] == null ? undefined : json['pattern_day_trader'],
         'pendingRegTafFees': json['pending_reg_taf_fees'] == null ? undefined : json['pending_reg_taf_fees'],
         'pendingTransferIn': json['pending_transfer_in'] == null ? undefined : json['pending_transfer_in'],
         'pendingTransferOut': json['pending_transfer_out'] == null ? undefined : json['pending_transfer_out'],
@@ -374,8 +350,6 @@ export function AccountToJSONTyped(value?: Account | null, ignoreDiscriminator: 
         'created_at': value['createdAt'] == null ? undefined : ((value['createdAt']).toISOString()),
         'crypto_status': AccountStatusToJSON(value['cryptoStatus']),
         'currency': value['currency'],
-        'daytrade_count': value['daytradeCount'],
-        'daytrading_buying_power': value['daytradingBuyingPower'],
         'equity': value['equity'],
         'id': value['id'],
         'initial_margin': value['initialMargin'],
@@ -389,7 +363,6 @@ export function AccountToJSONTyped(value?: Account | null, ignoreDiscriminator: 
         'options_approved_level': value['optionsApprovedLevel'],
         'options_buying_power': value['optionsBuyingPower'],
         'options_trading_level': value['optionsTradingLevel'],
-        'pattern_day_trader': value['patternDayTrader'],
         'pending_reg_taf_fees': value['pendingRegTafFees'],
         'pending_transfer_in': value['pendingTransferIn'],
         'pending_transfer_out': value['pendingTransferOut'],

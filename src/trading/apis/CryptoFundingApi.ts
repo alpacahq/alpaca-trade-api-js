@@ -17,6 +17,7 @@ import * as runtime from '../runtime';
 import type {
   CreateCryptoTransferRequest,
   CreateWhitelistedAddressRequest,
+  CryptoChain,
   CryptoTransfer,
   CryptoWallet,
   WalletFeeEstimateResponse,
@@ -27,6 +28,8 @@ import {
     CreateCryptoTransferRequestToJSON,
     CreateWhitelistedAddressRequestFromJSON,
     CreateWhitelistedAddressRequestToJSON,
+    CryptoChainFromJSON,
+    CryptoChainToJSON,
     CryptoTransferFromJSON,
     CryptoTransferToJSON,
     CryptoWalletFromJSON,
@@ -62,7 +65,7 @@ export interface GetCryptoTransferEstimateRequest {
 
 export interface ListCryptoFundingWalletsRequest {
     asset?: string;
-    chain?: ListCryptoFundingWalletsChainEnum;
+    chain?: CryptoChain;
     network?: ListCryptoFundingWalletsNetworkEnum;
 }
 
@@ -448,17 +451,6 @@ export class CryptoFundingApi extends runtime.BaseAPI {
 
 }
 
-/**
- * @export
- */
-export const ListCryptoFundingWalletsChainEnum = {
-    Sol: 'SOL',
-    Eth: 'ETH',
-    Btc: 'BTC',
-    Xrp: 'XRP',
-    Arb: 'ARB'
-} as const;
-export type ListCryptoFundingWalletsChainEnum = typeof ListCryptoFundingWalletsChainEnum[keyof typeof ListCryptoFundingWalletsChainEnum];
 /**
  * @export
  */

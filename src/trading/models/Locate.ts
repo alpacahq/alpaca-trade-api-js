@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { LocateStatus } from './LocateStatus';
+import {
+    LocateStatusFromJSON,
+    LocateStatusFromJSONTyped,
+    LocateStatusToJSON,
+    LocateStatusToJSONTyped,
+} from './LocateStatus';
+
 /**
  * A locate request and its current lifecycle status.
  * @export
@@ -74,11 +82,11 @@ export interface Locate {
      */
     requestedQty: number;
     /**
-     * Locate status.
-     * @type {string}
+     * 
+     * @type {LocateStatus}
      * @memberof Locate
      */
-    status: LocateStatusEnum;
+    status: LocateStatus;
     /**
      * Stock symbol.
      * @type {string}
@@ -93,16 +101,6 @@ export interface Locate {
     totalFee?: string | null;
 }
 
-
-/**
- * @export
- */
-export const LocateStatusEnum = {
-    Active: 'active',
-    Expired: 'expired',
-    Rejected: 'rejected'
-} as const;
-export type LocateStatusEnum = typeof LocateStatusEnum[keyof typeof LocateStatusEnum];
 
 
 /**
@@ -137,7 +135,7 @@ export function LocateFromJSONTyped(json: any, ignoreDiscriminator: boolean): Lo
         'locatedQty': json['located_qty'] == null ? undefined : json['located_qty'],
         'rejectionReason': json['rejection_reason'] == null ? undefined : json['rejection_reason'],
         'requestedQty': json['requested_qty'],
-        'status': json['status'],
+        'status': LocateStatusFromJSON(json['status']),
         'symbol': json['symbol'],
         'totalFee': json['total_fee'] == null ? undefined : json['total_fee'],
     };
@@ -163,7 +161,7 @@ export function LocateToJSONTyped(value?: Locate | null, ignoreDiscriminator: bo
         'located_qty': value['locatedQty'],
         'rejection_reason': value['rejectionReason'],
         'requested_qty': value['requestedQty'],
-        'status': value['status'],
+        'status': LocateStatusToJSON(value['status']),
         'symbol': value['symbol'],
         'total_fee': value['totalFee'],
     };

@@ -13,6 +13,20 @@
  */
 
 import { mapValues } from '../runtime';
+import type { OptionContractStyle } from './OptionContractStyle';
+import {
+    OptionContractStyleFromJSON,
+    OptionContractStyleFromJSONTyped,
+    OptionContractStyleToJSON,
+    OptionContractStyleToJSONTyped,
+} from './OptionContractStyle';
+import type { OptionContractType } from './OptionContractType';
+import {
+    OptionContractTypeFromJSON,
+    OptionContractTypeFromJSONTyped,
+    OptionContractTypeToJSON,
+    OptionContractTypeToJSONTyped,
+} from './OptionContractType';
 import type { OptionDeliverable } from './OptionDeliverable';
 import {
     OptionDeliverableFromJSON,
@@ -111,11 +125,11 @@ export interface OptionContract extends Record<string, unknown> {
      */
     strikePrice: string;
     /**
-     * The style of the option contract.
-     * @type {string}
+     * 
+     * @type {OptionContractStyle}
      * @memberof OptionContract
      */
-    style: OptionContractStyleEnum;
+    style: OptionContractStyle;
     /**
      * The symbol representing the option contract.
      * @type {string}
@@ -129,11 +143,11 @@ export interface OptionContract extends Record<string, unknown> {
      */
     tradable: boolean;
     /**
-     * The type of the option contract.
-     * @type {string}
+     * 
+     * @type {OptionContractType}
      * @memberof OptionContract
      */
-    type: OptionContractTypeEnum;
+    type: OptionContractType;
     /**
      * The unique identifier of the underlying asset.
      * @type {string}
@@ -157,24 +171,6 @@ export const OptionContractStatusEnum = {
     Inactive: 'inactive'
 } as const;
 export type OptionContractStatusEnum = typeof OptionContractStatusEnum[keyof typeof OptionContractStatusEnum];
-
-/**
- * @export
- */
-export const OptionContractStyleEnum = {
-    American: 'american',
-    European: 'european'
-} as const;
-export type OptionContractStyleEnum = typeof OptionContractStyleEnum[keyof typeof OptionContractStyleEnum];
-
-/**
- * @export
- */
-export const OptionContractTypeEnum = {
-    Call: 'call',
-    Put: 'put'
-} as const;
-export type OptionContractTypeEnum = typeof OptionContractTypeEnum[keyof typeof OptionContractTypeEnum];
 
 
 /**
@@ -221,10 +217,10 @@ export function OptionContractFromJSONTyped(json: any, ignoreDiscriminator: bool
         'size': json['size'],
         'status': json['status'],
         'strikePrice': json['strike_price'],
-        'style': json['style'],
+        'style': OptionContractStyleFromJSON(json['style']),
         'symbol': json['symbol'],
         'tradable': json['tradable'],
-        'type': json['type'],
+        'type': OptionContractTypeFromJSON(json['type']),
         'underlyingAssetId': json['underlying_asset_id'],
         'underlyingSymbol': json['underlying_symbol'],
     };
@@ -254,10 +250,10 @@ export function OptionContractToJSONTyped(value?: OptionContract | null, ignoreD
         'size': value['size'],
         'status': value['status'],
         'strike_price': value['strikePrice'],
-        'style': value['style'],
+        'style': OptionContractStyleToJSON(value['style']),
         'symbol': value['symbol'],
         'tradable': value['tradable'],
-        'type': value['type'],
+        'type': OptionContractTypeToJSON(value['type']),
         'underlying_asset_id': value['underlyingAssetId'],
         'underlying_symbol': value['underlyingSymbol'],
     };

@@ -21,6 +21,7 @@ import type {
   ListLocatesResponse,
   Locate,
   LocateError,
+  LocateStatus,
 } from '../models/index';
 import {
     CreateLocateRequestFromJSON,
@@ -35,6 +36,8 @@ import {
     LocateToJSON,
     LocateErrorFromJSON,
     LocateErrorToJSON,
+    LocateStatusFromJSON,
+    LocateStatusToJSON,
 } from '../models/index';
 
 export interface CreateLocatesRequest {
@@ -52,7 +55,7 @@ export interface ListLocateQuotesRequest {
 export interface ListLocatesRequest {
     pageToken?: string;
     limit?: number;
-    status?: ListLocatesStatusEnum;
+    status?: LocateStatus;
     symbol?: string;
     start?: Date;
     end?: Date;
@@ -273,13 +276,3 @@ export class LocatesApi extends runtime.BaseAPI {
     }
 
 }
-
-/**
- * @export
- */
-export const ListLocatesStatusEnum = {
-    Active: 'active',
-    Expired: 'expired',
-    Rejected: 'rejected'
-} as const;
-export type ListLocatesStatusEnum = typeof ListLocatesStatusEnum[keyof typeof ListLocatesStatusEnum];

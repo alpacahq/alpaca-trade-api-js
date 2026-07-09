@@ -23,6 +23,7 @@
  * - NASDAQ
  * - NYSEARCA
  * - OTC
+ * - CRYPTO
  * @export
  */
 export const Exchange = {
@@ -32,7 +33,8 @@ export const Exchange = {
     Nyse: 'NYSE',
     Nasdaq: 'NASDAQ',
     Nysearca: 'NYSEARCA',
-    Otc: 'OTC'
+    Otc: 'OTC',
+    Crypto: 'CRYPTO'
 } as const;
 export type Exchange = typeof Exchange[keyof typeof Exchange];
 

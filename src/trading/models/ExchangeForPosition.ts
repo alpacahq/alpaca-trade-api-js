@@ -23,6 +23,7 @@
  * - NASDAQ
  * - NYSEARCA
  * - OTC
+ * - CRYPTO
  * 
  * Can be empty if not applicable (e.g., for options contracts)
  * @export
@@ -35,6 +36,7 @@ export const ExchangeForPosition = {
     Nasdaq: 'NASDAQ',
     Nysearca: 'NYSEARCA',
     Otc: 'OTC',
+    Crypto: 'CRYPTO',
     Empty: ''
 } as const;
 export type ExchangeForPosition = typeof ExchangeForPosition[keyof typeof ExchangeForPosition];

@@ -20,6 +20,13 @@ import {
     ExchangeToJSON,
     ExchangeToJSONTyped,
 } from './Exchange';
+import type { AssetAttribute } from './AssetAttribute';
+import {
+    AssetAttributeFromJSON,
+    AssetAttributeFromJSONTyped,
+    AssetAttributeToJSON,
+    AssetAttributeToJSONTyped,
+} from './AssetAttribute';
 import type { AssetClass } from './AssetClass';
 import {
     AssetClassFromJSON,
@@ -36,19 +43,11 @@ import {
  */
 export interface Assets {
     /**
-     * Unique characteristics of the asset. Supported values:
-     * - `ptp_no_exception`: Asset is a Publicly Traded Partnership (PTP) without a qualified notice; non-U.S. customers may incur 10% withholding on gross proceeds as per IRS guidance, and are blocked from being purchased by default.
-     * - `ptp_with_exception`: Users can open positions in these PTPs without general restrictions.
-     * - `ipo`: Accepting limit orders only before the stock begins trading on the secondary market.
-     * - `has_options`: The underlying equity has listed options available on the platform. Note: if the equity had inactive/expired contracts in the past, this will still show up.
-     * - `options_late_close`: Indicates the underlying asset's options contracts close at 4:15pm ET instead of the standard 4:00pm ET.
-     * - `fractional_eh_enabled`: Indicates the asset accepts fractional orders during extended hours sessions (pre-market, post-market, and overnight if enabled).
-     * - `overnight_tradable`: Asset is eligible for overnight (24x5) trading in supported venues on the platform.
-     * - `overnight_halted`: Asset is eligible for overnight trading but is currently halted/blocked for overnight sessions due to risk, corporate action, compliance, or venue constraints.
-     * @type {Array<string>}
+     * 
+     * @type {Array<AssetAttribute>}
      * @memberof Assets
      */
-    attributes?: Array<AssetsAttributesEnum>;
+    attributes?: Array<AssetAttribute>;
     /**
      * Borrow status for US equity assets. This field is omitted for non-US-equity assets.
      * @type {string}
@@ -177,21 +176,6 @@ export interface Assets {
 /**
  * @export
  */
-export const AssetsAttributesEnum = {
-    PtpNoException: 'ptp_no_exception',
-    PtpWithException: 'ptp_with_exception',
-    Ipo: 'ipo',
-    HasOptions: 'has_options',
-    OptionsLateClose: 'options_late_close',
-    FractionalEhEnabled: 'fractional_eh_enabled',
-    OvernightTradable: 'overnight_tradable',
-    OvernightHalted: 'overnight_halted'
-} as const;
-export type AssetsAttributesEnum = typeof AssetsAttributesEnum[keyof typeof AssetsAttributesEnum];
-
-/**
- * @export
- */
 export const AssetsBorrowStatusEnum = {
     EasyToBorrow: 'easy_to_borrow',
     HardToBorrow: 'hard_to_borrow'
@@ -236,7 +220,7 @@ export function AssetsFromJSONTyped(json: any, ignoreDiscriminator: boolean): As
     }
     return {
         
-        'attributes': json['attributes'] == null ? undefined : json['attributes'],
+        'attributes': json['attributes'] == null ? undefined : ((json['attributes'] as Array<any>).map(AssetAttributeFromJSON)),
         'borrowStatus': json['borrow_status'] == null ? undefined : json['borrow_status'],
         '_class': AssetClassFromJSON(json['class']),
         'cusip': json['cusip'] == null ? undefined : json['cusip'],
@@ -270,7 +254,7 @@ export function AssetsToJSONTyped(value?: Assets | null, ignoreDiscriminator: bo
 
     return {
         
-        'attributes': value['attributes'],
+        'attributes': value['attributes'] == null ? undefined : ((value['attributes'] as Array<any>).map(AssetAttributeToJSON)),
         'borrow_status': value['borrowStatus'],
         'class': AssetClassToJSON(value['_class']),
         'cusip': value['cusip'],

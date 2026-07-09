@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CryptoChain } from './CryptoChain';
+import {
+    CryptoChainFromJSON,
+    CryptoChainFromJSONTyped,
+    CryptoChainToJSON,
+    CryptoChainToJSONTyped,
+} from './CryptoChain';
+
 /**
  * 
  * @export
@@ -38,25 +46,13 @@ export interface CreateCryptoTransferRequest {
      */
     asset: string;
     /**
-     * Optional chain identifier. The blockchain network used for the withdrawal.
-     * @type {string}
+     * 
+     * @type {CryptoChain}
      * @memberof CreateCryptoTransferRequest
      */
-    chain?: CreateCryptoTransferRequestChainEnum;
+    chain?: CryptoChain;
 }
 
-
-/**
- * @export
- */
-export const CreateCryptoTransferRequestChainEnum = {
-    Sol: 'SOL',
-    Eth: 'ETH',
-    Btc: 'BTC',
-    Xrp: 'XRP',
-    Arb: 'ARB'
-} as const;
-export type CreateCryptoTransferRequestChainEnum = typeof CreateCryptoTransferRequestChainEnum[keyof typeof CreateCryptoTransferRequestChainEnum];
 
 
 /**
@@ -82,7 +78,7 @@ export function CreateCryptoTransferRequestFromJSONTyped(json: any, ignoreDiscri
         'address': json['address'],
         'amount': json['amount'],
         'asset': json['asset'],
-        'chain': json['chain'] == null ? undefined : json['chain'],
+        'chain': json['chain'] == null ? undefined : CryptoChainFromJSON(json['chain']),
     };
 }
 
@@ -100,7 +96,7 @@ export function CreateCryptoTransferRequestToJSONTyped(value?: CreateCryptoTrans
         'address': value['address'],
         'amount': value['amount'],
         'asset': value['asset'],
-        'chain': value['chain'],
+        'chain': CryptoChainToJSON(value['chain']),
     };
 }
 

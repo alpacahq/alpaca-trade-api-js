@@ -15,15 +15,20 @@
 
 import * as runtime from '../runtime';
 import type {
+  AssetAttribute,
   Assets,
   BondStatus,
   GetOptionsContracts200Response,
   OptionContract,
+  OptionContractStyle,
+  OptionContractType,
   TreasurySubtype,
   UsCorporatesResp,
   UsTreasuriesResp,
 } from '../models/index';
 import {
+    AssetAttributeFromJSON,
+    AssetAttributeToJSON,
     AssetsFromJSON,
     AssetsToJSON,
     BondStatusFromJSON,
@@ -32,6 +37,10 @@ import {
     GetOptionsContracts200ResponseToJSON,
     OptionContractFromJSON,
     OptionContractToJSON,
+    OptionContractStyleFromJSON,
+    OptionContractStyleToJSON,
+    OptionContractTypeFromJSON,
+    OptionContractTypeToJSON,
     TreasurySubtypeFromJSON,
     TreasurySubtypeToJSON,
     UsCorporatesRespFromJSON,
@@ -52,8 +61,8 @@ export interface GetOptionsContractsRequest {
     expirationDateGte?: Date;
     expirationDateLte?: Date;
     rootSymbol?: string;
-    type?: GetOptionsContractsTypeEnum;
-    style?: GetOptionsContractsStyleEnum;
+    type?: OptionContractType;
+    style?: OptionContractStyle;
     strikePriceGte?: number;
     strikePriceLte?: number;
     pageToken?: string;
@@ -65,7 +74,7 @@ export interface GetV2AssetsRequest {
     status?: string;
     assetClass?: string;
     exchange?: string;
-    attributes?: Array<GetV2AssetsAttributesEnum>;
+    attributes?: Array<AssetAttribute>;
 }
 
 export interface GetV2AssetsSymbolOrAssetIdRequest {
@@ -455,33 +464,3 @@ export const GetOptionsContractsStatusEnum = {
     Inactive: 'inactive'
 } as const;
 export type GetOptionsContractsStatusEnum = typeof GetOptionsContractsStatusEnum[keyof typeof GetOptionsContractsStatusEnum];
-/**
- * @export
- */
-export const GetOptionsContractsTypeEnum = {
-    Call: 'call',
-    Put: 'put'
-} as const;
-export type GetOptionsContractsTypeEnum = typeof GetOptionsContractsTypeEnum[keyof typeof GetOptionsContractsTypeEnum];
-/**
- * @export
- */
-export const GetOptionsContractsStyleEnum = {
-    American: 'american',
-    European: 'european'
-} as const;
-export type GetOptionsContractsStyleEnum = typeof GetOptionsContractsStyleEnum[keyof typeof GetOptionsContractsStyleEnum];
-/**
- * @export
- */
-export const GetV2AssetsAttributesEnum = {
-    PtpNoException: 'ptp_no_exception',
-    PtpWithException: 'ptp_with_exception',
-    Ipo: 'ipo',
-    HasOptions: 'has_options',
-    OptionsLateClose: 'options_late_close',
-    FractionalEhEnabled: 'fractional_eh_enabled',
-    OvernightTradable: 'overnight_tradable',
-    OvernightHalted: 'overnight_halted'
-} as const;
-export type GetV2AssetsAttributesEnum = typeof GetV2AssetsAttributesEnum[keyof typeof GetV2AssetsAttributesEnum];

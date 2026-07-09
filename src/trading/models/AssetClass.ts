@@ -21,6 +21,12 @@ export const AssetClass = {
     UsEquity: 'us_equity',
     UsOption: 'us_option',
     Crypto: 'crypto',
+    CryptoPerp: 'crypto_perp',
+    Treasury: 'treasury',
+    Corporate: 'corporate',
+    GlobalEquity: 'global_equity',
+    UsIndex: 'us_index',
+    UsEquityChain: 'us_equity_chain',
     Ipo: 'ipo'
 } as const;
 export type AssetClass = typeof AssetClass[keyof typeof AssetClass];

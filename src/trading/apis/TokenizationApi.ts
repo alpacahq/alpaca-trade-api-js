@@ -19,6 +19,8 @@ import type {
   TokenizationMintResponse,
   TokenizationNetwork,
   TokenizationRequest,
+  TokenizationRequestStatus,
+  TokenizationRequestType,
 } from '../models/index';
 import {
     TokenizationMintRequestFromJSON,
@@ -29,11 +31,15 @@ import {
     TokenizationNetworkToJSON,
     TokenizationRequestFromJSON,
     TokenizationRequestToJSON,
+    TokenizationRequestStatusFromJSON,
+    TokenizationRequestStatusToJSON,
+    TokenizationRequestTypeFromJSON,
+    TokenizationRequestTypeToJSON,
 } from '../models/index';
 
 export interface GetTokenizationRequestsRequest {
-    type?: GetTokenizationRequestsTypeEnum;
-    status?: GetTokenizationRequestsStatusEnum;
+    type?: TokenizationRequestType;
+    status?: TokenizationRequestStatus;
     underlyingSymbol?: string;
     issuer?: GetTokenizationRequestsIssuerEnum;
     network?: TokenizationNetwork;
@@ -168,23 +174,6 @@ export class TokenizationApi extends runtime.BaseAPI {
 
 }
 
-/**
- * @export
- */
-export const GetTokenizationRequestsTypeEnum = {
-    Mint: 'mint',
-    Redeem: 'redeem'
-} as const;
-export type GetTokenizationRequestsTypeEnum = typeof GetTokenizationRequestsTypeEnum[keyof typeof GetTokenizationRequestsTypeEnum];
-/**
- * @export
- */
-export const GetTokenizationRequestsStatusEnum = {
-    Pending: 'pending',
-    Rejected: 'rejected',
-    Completed: 'completed'
-} as const;
-export type GetTokenizationRequestsStatusEnum = typeof GetTokenizationRequestsStatusEnum[keyof typeof GetTokenizationRequestsStatusEnum];
 /**
  * @export
  */
