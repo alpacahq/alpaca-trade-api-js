@@ -8,7 +8,8 @@
  * `init` (no mutation of caller objects, auto-GC'd).
  *
  * Both middleware are pure observers: they never return an alternative response,
- * so they compose cleanly with retries and other middleware.
+ * and failures from user-provided loggers, metrics sinks, or request-ID
+ * generators are isolated so observability can never change a request outcome.
  */
 import type { Middleware } from "./trading";
 
@@ -36,7 +37,10 @@ export interface LoggingMiddlewareOptions {
     logHeaders?: boolean;
     /** Header names to mask when `logHeaders` is on. Default {@link DEFAULT_REDACTED_HEADERS}. */
     redactHeaders?: string[];
-    /** Generate the per-request id. Default: `crypto.randomUUID()` or a counter. */
+    /**
+     * Generate the per-request id. Default: `crypto.randomUUID()` or a counter.
+     * Falls back to the default generator if this callback throws.
+     */
     genRequestId?: () => string;
 }
 
@@ -55,9 +59,16 @@ export interface RequestMetric {
 }
 
 export interface MetricsMiddlewareOptions {
-    /** Called once per request attempt with its timing/outcome. */
+    /**
+     * Called once per request attempt with its timing/outcome. Throws and
+     * returned promise rejections are swallowed so the sink cannot fail a
+     * successful API request or replace its original error.
+     */
     onRequest: (metric: RequestMetric) => void;
-    /** Generate the per-request id. Default: `crypto.randomUUID()` or a counter. */
+    /**
+     * Generate the per-request id. Default: `crypto.randomUUID()` or a counter.
+     * Falls back to the default generator if this callback throws.
+     */
     genRequestId?: () => string;
 }
 
@@ -74,6 +85,38 @@ function defaultIdGenerator(): () => string {
     }
     let counter = 0;
     return () => `req-${Date.now().toString(36)}-${(counter++).toString(36)}`;
+}
+
+/**
+ * Run a user-provided observability callback without allowing either a
+ * synchronous throw or a returned rejected promise to affect the request.
+ */
+function runObserver(callback: () => unknown): void {
+    try {
+        const result = callback();
+        if (
+            result !== null &&
+            (typeof result === "object" || typeof result === "function") &&
+            typeof (result as PromiseLike<unknown>).then === "function"
+        ) {
+            void Promise.resolve(result).catch(() => {});
+        }
+    } catch {
+        // Observability is best-effort and must never change request outcomes.
+    }
+}
+
+/** Fall back to the built-in request ID when a custom generator fails. */
+function safeIdGenerator(custom?: () => string): () => string {
+    const fallback = defaultIdGenerator();
+    if (!custom) return fallback;
+    return () => {
+        try {
+            return custom();
+        } catch {
+            return fallback();
+        }
+    };
 }
 
 function now(): number {
@@ -108,12 +151,14 @@ function readHeaders(init: RequestInit | undefined, redact: Set<string>): Record
 /**
  * Logs one line per request attempt: method, url, status, duration, and a
  * generated request id (errors are logged at `error` level). Secrets in headers
- * are redacted; headers are only included when `logHeaders` is set.
+ * are redacted; headers are only included when `logHeaders` is set. Logger and
+ * request-ID-generator failures are swallowed so logging never changes the
+ * request's result.
  */
 export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middleware {
     const logger = options.logger ?? console;
     const level = options.level ?? "info";
-    const genId = options.genRequestId ?? defaultIdGenerator();
+    const genId = safeIdGenerator(options.genRequestId);
     const redact = new Set((options.redactHeaders ?? DEFAULT_REDACTED_HEADERS).map((h) => h.toLowerCase()));
     const tracked = new WeakMap<RequestInit, InFlight>();
 
@@ -122,7 +167,9 @@ export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middl
         message: string,
         meta: Record<string, unknown>,
     ): void => {
-        fn?.call(logger, message, meta);
+        if (fn) {
+            runObserver(() => fn.call(logger, message, meta));
+        }
     };
 
     return {
@@ -168,11 +215,15 @@ export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middl
 
 /**
  * Emits a {@link RequestMetric} per request attempt to your callback - wire it
- * into Prometheus, StatsD, OpenTelemetry, etc. Never alters the request.
+ * into Prometheus, StatsD, OpenTelemetry, etc. Callback failures are swallowed;
+ * this observer never alters the request.
  */
 export function metricsMiddleware(options: MetricsMiddlewareOptions): Middleware {
-    const genId = options.genRequestId ?? defaultIdGenerator();
+    const genId = safeIdGenerator(options.genRequestId);
     const tracked = new WeakMap<RequestInit, InFlight>();
+    const emit = (metric: RequestMetric): void => {
+        runObserver(() => options.onRequest(metric));
+    };
 
     return {
         async pre(context) {
@@ -181,7 +232,7 @@ export function metricsMiddleware(options: MetricsMiddlewareOptions): Middleware
         async post(context) {
             const tracking = tracked.get(context.init);
             tracked.delete(context.init);
-            options.onRequest({
+            emit({
                 requestId: tracking?.id ?? "",
                 method: methodOf(context.init),
                 url: context.url,
@@ -193,7 +244,7 @@ export function metricsMiddleware(options: MetricsMiddlewareOptions): Middleware
         async onError(context) {
             const tracking = tracked.get(context.init);
             tracked.delete(context.init);
-            options.onRequest({
+            emit({
                 requestId: tracking?.id ?? "",
                 method: methodOf(context.init),
                 url: context.url,

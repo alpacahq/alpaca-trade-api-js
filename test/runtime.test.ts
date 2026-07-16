@@ -4,14 +4,15 @@ import * as trading from '../src/trading';
 import * as marketData from '../src/market-data';
 
 /**
- * The transport (`runtime.ts`) is a duplicated copy in each namespace. These
- * tests run the full battery against BOTH so the suite fails if the copies
- * drift apart (e.g. a fix applied to one runtime but not the other).
+ * Both namespaces re-export the shared core transport through their runtime
+ * shims. These tests run the full battery against BOTH public surfaces.
  */
 type RuntimeModule = {
     Configuration: typeof trading.Configuration;
     BaseAPI: typeof trading.BaseAPI;
     ApiError: typeof trading.ApiError;
+    JSONApiResponse: typeof trading.JSONApiResponse;
+    VoidApiResponse: typeof trading.VoidApiResponse;
     USER_AGENT: string;
 };
 
@@ -30,6 +31,20 @@ function jsonResponse(status: number, body: unknown, headers: Record<string, str
     });
 }
 
+function stalledResponse(status = 200): Response {
+    return new Response(
+        new ReadableStream({
+            start() {
+                // Deliberately never enqueue or close: body consumption hangs.
+            },
+        }),
+        {
+            status,
+            headers: { 'Content-Type': 'application/json' },
+        },
+    );
+}
+
 /** Read a header regardless of whether the runtime used a plain object, array, or Headers. */
 function headerValue(init: RequestInit | undefined, name: string): string | undefined {
     const h = init?.headers;
@@ -45,7 +60,7 @@ function headerValue(init: RequestInit | undefined, name: string): string | unde
 
 /**
  * Builds a caller that drives `BaseAPI.request` directly for an arbitrary HTTP
- * method, so we can test verb-dependent behavior (idempotency gating) without
+ * method, so we can test verb-dependent retry gating without
  * depending on which generated endpoints happen to be GET vs POST.
  */
 function callerFor(rt: RuntimeModule) {
@@ -187,7 +202,7 @@ for (const { name, rt } of RUNTIMES) {
             expect(calls).toBe(2); // initial + 1 retry
         });
 
-        // Idempotency safety: the core property for a trading SDK.
+        // Submission safety: state-changing requests must not be replayed.
         it('does NOT retry a non-idempotent POST on 5xx', async () => {
             let calls = 0;
             const cfg = new rt.Configuration({
@@ -201,9 +216,8 @@ for (const { name, rt } of RUNTIMES) {
             expect(calls).toBe(1);
         });
 
-        // Idempotency safety: a non-idempotent POST is never auto-retried, even on
-        // 429. Retrying could duplicate an order; use an Idempotency-Key to make a
-        // POST safely retryable yourself.
+        // A non-idempotent POST is never auto-retried, even on 429. Retrying
+        // could duplicate an order when the original request reached the server.
         it('does NOT retry a non-idempotent POST on 429', async () => {
             let calls = 0;
             const cfg = new rt.Configuration({
@@ -215,6 +229,28 @@ for (const { name, rt } of RUNTIMES) {
             });
             await expect(call(cfg, 'POST')).rejects.toBeInstanceOf(rt.ApiError);
             expect(calls).toBe(1);
+        });
+
+        it('does not replay an order POST body after retryable response or network failures', async () => {
+            const body = JSON.stringify({ client_order_id: 'stable-order-123' });
+
+            for (const failure of ['response', 'network'] as const) {
+                let calls = 0;
+                const cfg = new rt.Configuration({
+                    retry: { maxRetries: 3, retryDelayMs: 1 },
+                    fetchApi: async (_url, init) => {
+                        calls += 1;
+                        expect(init?.body).toBe(body);
+                        if (failure === 'network') throw new Error('ECONNRESET');
+                        return jsonResponse(503, { message: 'unavailable' });
+                    },
+                });
+
+                await expect(call(cfg, 'POST', { body })).rejects.toMatchObject({
+                    name: failure === 'network' ? 'FetchError' : 'ApiError',
+                });
+                expect(calls).toBe(1);
+            }
         });
 
         it('retries the newly-added 408 and 425 statuses on an idempotent GET', async () => {
@@ -286,6 +322,41 @@ for (const { name, rt } of RUNTIMES) {
                 vi.useRealTimers();
             }
         });
+
+        it('caller abort during a status retry delay rejects promptly without a second GET', async () => {
+            vi.useFakeTimers();
+            try {
+                const controller = new AbortController();
+                const reason = new Error('caller cancelled during status backoff');
+                let calls = 0;
+                const cfg = new rt.Configuration({
+                    retry: {
+                        maxRetries: 1,
+                        retryDelayMs: 60_000,
+                        onRetry: () => controller.abort(reason),
+                    },
+                    fetchApi: async () => {
+                        calls += 1;
+                        return jsonResponse(503, { message: 'later' });
+                    },
+                });
+
+                let rejection: unknown;
+                void call(cfg, 'GET', { signal: controller.signal }).catch((error) => {
+                    rejection = error;
+                });
+                await vi.advanceTimersByTimeAsync(0);
+
+                expect(rejection).toMatchObject({
+                    name: 'FetchError',
+                    cause: reason,
+                });
+                expect(calls).toBe(1);
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
     });
 
     describe(`[${name}] network-error retry`, () => {
@@ -317,7 +388,7 @@ for (const { name, rt } of RUNTIMES) {
             expect(calls).toBe(2); // initial + 1 retry
         });
 
-        // Idempotency safety: a network error mid-POST might have reached the
+        // Submission safety: a network error mid-POST might have reached the
         // server, so it must never be silently re-sent.
         it('does NOT retry a non-idempotent POST on a network error', async () => {
             let calls = 0;
@@ -348,6 +419,41 @@ for (const { name, rt } of RUNTIMES) {
             expect(calls).toBe(1);
         });
 
+        it('does not classify a caller abort with a generic Error reason as retryable', async () => {
+            const controller = new AbortController();
+            const reason = new Error('caller cancelled');
+            let calls = 0;
+            let retries = 0;
+            const cfg = new rt.Configuration({
+                retry: {
+                    maxRetries: 3,
+                    retryDelayMs: 1,
+                    onRetry: () => {
+                        retries += 1;
+                    },
+                },
+                fetchApi: async (_url, init) => {
+                    calls += 1;
+                    const signal = init?.signal as AbortSignal;
+                    return new Promise<Response>((_resolve, reject) => {
+                        signal.addEventListener('abort', () => reject(signal.reason), {
+                            once: true,
+                        });
+                    });
+                },
+            });
+
+            const result = call(cfg, 'GET', { signal: controller.signal });
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            controller.abort(reason);
+            const error = await result.catch((caught) => caught);
+
+            expect(error).toMatchObject({ name: 'FetchError' });
+            expect(error.cause).toBe(reason);
+            expect(calls).toBe(1);
+            expect(retries).toBe(0);
+        });
+
         it('does not retry network errors when no policy is configured', async () => {
             let calls = 0;
             const cfg = new rt.Configuration({
@@ -358,6 +464,41 @@ for (const { name, rt } of RUNTIMES) {
             });
             await expect(call(cfg, 'GET')).rejects.toMatchObject({ name: 'FetchError' });
             expect(calls).toBe(1);
+        });
+
+        it('caller abort during a network retry delay rejects promptly without a second GET', async () => {
+            vi.useFakeTimers();
+            try {
+                const controller = new AbortController();
+                const reason = new Error('caller cancelled during network backoff');
+                let calls = 0;
+                const cfg = new rt.Configuration({
+                    retry: {
+                        maxRetries: 1,
+                        retryDelayMs: 60_000,
+                        onRetry: () => controller.abort(reason),
+                    },
+                    fetchApi: async () => {
+                        calls += 1;
+                        throw new Error('ECONNRESET');
+                    },
+                });
+
+                let rejection: unknown;
+                void call(cfg, 'GET', { signal: controller.signal }).catch((error) => {
+                    rejection = error;
+                });
+                await vi.advanceTimersByTimeAsync(0);
+
+                expect(rejection).toMatchObject({
+                    name: 'FetchError',
+                    cause: reason,
+                });
+                expect(calls).toBe(1);
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
         });
     });
 
@@ -651,6 +792,468 @@ for (const { name, rt } of RUNTIMES) {
                     }),
             });
             await expect(call(cfg, 'GET', { signal: ac.signal })).rejects.toBeTruthy();
+        });
+
+        it('keeps the attempt timeout live while a successful JSON body is consumed', async () => {
+            vi.useFakeTimers();
+            try {
+                const cfg = new rt.Configuration({
+                    timeoutMs: 5_000,
+                    fetchApi: async () => stalledResponse(),
+                });
+                const result = call(cfg, 'GET').then((response) =>
+                    new rt.JSONApiResponse(response).value(),
+                );
+                const expectation = expect(result).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(5_000);
+                await expectation;
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('cancels an active successful body reader exactly once on timeout', async () => {
+            vi.useFakeTimers();
+            try {
+                const cancel = vi.fn();
+                const cfg = new rt.Configuration({
+                    timeoutMs: 1_000,
+                    fetchApi: async () =>
+                        new Response(
+                            new ReadableStream({
+                                cancel,
+                            }),
+                            {
+                                status: 200,
+                                headers: { 'Content-Type': 'application/json' },
+                            },
+                        ),
+                });
+                const result = call(cfg, 'GET').then((response) =>
+                    new rt.JSONApiResponse(response).value(),
+                );
+                const expectation = expect(result).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(1_000);
+                await expectation;
+                expect(cancel).toHaveBeenCalledTimes(1);
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('keeps the attempt timeout live while arrayBuffer() consumes a body', async () => {
+            vi.useFakeTimers();
+            try {
+                const cfg = new rt.Configuration({
+                    timeoutMs: 5_000,
+                    fetchApi: async () => stalledResponse(),
+                });
+                const result = call(cfg, 'GET').then((response) => response.arrayBuffer());
+                const expectation = expect(result).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(5_000);
+                await expectation;
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('feature-detects bytes() and wraps it only when the Response provides it', async () => {
+            vi.useFakeTimers();
+            try {
+                type ResponseWithBytes = Response & {
+                    bytes?: () => Promise<Uint8Array>;
+                };
+                const withoutBytes = jsonResponse(200, OK_BODY) as ResponseWithBytes;
+                Object.defineProperty(withoutBytes, 'bytes', {
+                    configurable: true,
+                    value: undefined,
+                });
+                const cfgWithoutBytes = new rt.Configuration({
+                    timeoutMs: 5_000,
+                    fetchApi: async () => withoutBytes,
+                });
+                const unchanged = await call(cfgWithoutBytes, 'GET');
+                expect((unchanged as ResponseWithBytes).bytes).toBeUndefined();
+                await unchanged.json();
+
+                const withBytes = stalledResponse() as ResponseWithBytes;
+                const originalBytes = () => new Promise<Uint8Array>(() => {});
+                Object.defineProperty(withBytes, 'bytes', {
+                    configurable: true,
+                    value: originalBytes,
+                });
+                const cfgWithBytes = new rt.Configuration({
+                    timeoutMs: 5_000,
+                    fetchApi: async () => withBytes,
+                });
+                const wrapped = await call(cfgWithBytes, 'GET');
+                expect((wrapped as ResponseWithBytes).bytes).not.toBe(originalBytes);
+                const result = (wrapped as ResponseWithBytes).bytes?.();
+                const expectation = expect(result).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(5_000);
+                await expectation;
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('cancels an unexpected body before VoidApiResponse releases its deadline', async () => {
+            vi.useFakeTimers();
+            try {
+                const cancel = vi.fn();
+                const response = new Response(
+                    new ReadableStream({
+                        cancel,
+                    }),
+                    { status: 200 },
+                );
+                const cfg = new rt.Configuration({
+                    timeoutMs: 60_000,
+                    fetchApi: async () => response,
+                });
+                const raw = await call(cfg, 'GET');
+
+                await new rt.VoidApiResponse(raw).value();
+
+                expect(cancel).toHaveBeenCalledTimes(1);
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('preserves native Response method identity without a timeout or caller signal', async () => {
+            type ResponseWithBytes = Response & {
+                bytes?: () => Promise<Uint8Array>;
+            };
+            const response = jsonResponse(200, OK_BODY);
+            const methods = {
+                arrayBuffer: response.arrayBuffer,
+                blob: response.blob,
+                bytes: (response as ResponseWithBytes).bytes,
+                formData: response.formData,
+                json: response.json,
+                text: response.text,
+            };
+            const cfg = new rt.Configuration({
+                timeoutMs: 0,
+                fetchApi: async () => response,
+            });
+
+            const raw = await call(cfg, 'GET');
+
+            expect(raw.arrayBuffer).toBe(methods.arrayBuffer);
+            expect(raw.blob).toBe(methods.blob);
+            expect((raw as ResponseWithBytes).bytes).toBe(methods.bytes);
+            expect(raw.formData).toBe(methods.formData);
+            expect(raw.json).toBe(methods.json);
+            expect(raw.text).toBe(methods.text);
+        });
+
+        it('releases a rate-limit handle that resolves after the acquire race aborts', async () => {
+            const controller = new AbortController();
+            const reason = new DOMException('caller cancelled acquire race', 'AbortError');
+            const release = vi.fn();
+            let fetchCalls = 0;
+            const cfg = new rt.Configuration({
+                timeoutMs: 0,
+                rateLimit: { maxRequests: 1 },
+                fetchApi: async () => {
+                    fetchCalls += 1;
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+            const limiter = cfg.rateLimiter;
+            if (!limiter) throw new Error('expected configured rate limiter');
+            limiter.acquire = () => {
+                const acquired = Promise.resolve(release);
+                controller.abort(reason);
+                return acquired;
+            };
+
+            const error = await call(cfg, 'GET', { signal: controller.signal }).catch(
+                (caught) => caught,
+            );
+            await Promise.resolve();
+
+            expect(error).toMatchObject({ name: 'FetchError' });
+            expect(error.cause).toBe(reason);
+            expect(release).toHaveBeenCalledTimes(1);
+            expect(fetchCalls).toBe(0);
+        });
+
+        it('discards a Response that fetch resolves after the attempt timeout', async () => {
+            vi.useFakeTimers();
+            try {
+                const cancel = vi.fn();
+                const cfg = new rt.Configuration({
+                    timeoutMs: 1_000,
+                    fetchApi: async () =>
+                        new Promise<Response>((resolve) => {
+                            setTimeout(
+                                () =>
+                                    resolve(
+                                        new Response(
+                                            new ReadableStream({
+                                                cancel,
+                                            }),
+                                            { status: 200 },
+                                        ),
+                                    ),
+                                2_000,
+                            );
+                        }),
+                });
+                const request = call(cfg, 'GET');
+                const expectation = expect(request).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(1_000);
+                await expectation;
+                expect(cancel).toHaveBeenCalledTimes(0);
+
+                await vi.advanceTimersByTimeAsync(1_000);
+                await Promise.resolve();
+                expect(cancel).toHaveBeenCalledTimes(1);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('normalizes caller abort during a successful body read and preserves its cause', async () => {
+            vi.useFakeTimers();
+            try {
+                const controller = new AbortController();
+                const reason = new DOMException('caller cancelled body read', 'AbortError');
+                const cfg = new rt.Configuration({
+                    timeoutMs: 60_000,
+                    fetchApi: async () => stalledResponse(),
+                });
+                const result = call(cfg, 'GET', { signal: controller.signal }).then((response) =>
+                    new rt.JSONApiResponse(response).value(),
+                );
+
+                await vi.advanceTimersByTimeAsync(0);
+                controller.abort(reason);
+                const error = await result.catch((caught) => caught);
+
+                expect(error).toMatchObject({ name: 'FetchError' });
+                expect(error.cause).toBe(reason);
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('bounds stalled non-2xx error-body parsing with the attempt timeout', async () => {
+            vi.useFakeTimers();
+            try {
+                const cfg = new rt.Configuration({
+                    timeoutMs: 5_000,
+                    fetchApi: async () => stalledResponse(500),
+                });
+                const result = call(cfg, 'POST');
+                const expectation = expect(result).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(5_000);
+                await expectation;
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('cancels an active non-2xx error body exactly once on timeout', async () => {
+            vi.useFakeTimers();
+            try {
+                const cancel = vi.fn();
+                const cfg = new rt.Configuration({
+                    timeoutMs: 1_000,
+                    fetchApi: async () =>
+                        new Response(
+                            new ReadableStream({
+                                cancel,
+                            }),
+                            {
+                                status: 500,
+                                headers: { 'Content-Type': 'application/json' },
+                            },
+                        ),
+                });
+                const result = call(cfg, 'POST');
+                const expectation = expect(result).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(1_000);
+                await expectation;
+                expect(cancel).toHaveBeenCalledTimes(1);
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('applies the same body deadline to a Response replaced by post middleware', async () => {
+            vi.useFakeTimers();
+            try {
+                const cfg = new rt.Configuration({
+                    timeoutMs: 5_000,
+                    middleware: [
+                        {
+                            post: async () => stalledResponse(),
+                        },
+                    ],
+                    fetchApi: async () => jsonResponse(200, OK_BODY),
+                });
+                const result = call(cfg, 'GET').then((response) =>
+                    new rt.JSONApiResponse(response).value(),
+                );
+                const expectation = expect(result).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(5_000);
+                await expectation;
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('starts a fresh timeout budget for each retry and excludes backoff', async () => {
+            vi.useFakeTimers();
+            const random = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+            try {
+                let calls = 0;
+                const cfg = new rt.Configuration({
+                    timeoutMs: 1_000,
+                    retry: { maxRetries: 1, retryDelayMs: 500 },
+                    fetchApi: async () => {
+                        calls += 1;
+                        if (calls === 2) return stalledResponse();
+                        return new Promise<Response>((resolve) => {
+                            setTimeout(
+                                () => resolve(jsonResponse(503, { message: 'retry' })),
+                                800,
+                            );
+                        });
+                    },
+                });
+                const result = call(cfg, 'GET').then((response) =>
+                    new rt.JSONApiResponse(response).value(),
+                );
+                const expectation = expect(result).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(800);
+                await vi.advanceTimersByTimeAsync(500);
+                expect(calls).toBe(2);
+                await vi.advanceTimersByTimeAsync(999);
+                expect(vi.getTimerCount()).toBe(1);
+                await vi.advanceTimersByTimeAsync(1);
+
+                await expectation;
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                random.mockRestore();
+                vi.useRealTimers();
+            }
+        });
+
+        it('normalizes caller abort while waiting for the rate limiter', async () => {
+            const controller = new AbortController();
+            const reason = new DOMException('caller cancelled rate-limit wait', 'AbortError');
+            let calls = 0;
+            const cfg = new rt.Configuration({
+                timeoutMs: 0,
+                rateLimit: { maxRequests: 1, intervalMs: 60_000 },
+                fetchApi: async () => {
+                    calls += 1;
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+            await call(cfg, 'GET');
+
+            const waiting = call(cfg, 'GET', { signal: controller.signal });
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            controller.abort(reason);
+            const error = await waiting.catch((caught) => caught);
+
+            expect(error).toMatchObject({ name: 'FetchError' });
+            expect(error.cause).toBe(reason);
+            expect(calls).toBe(1);
+        });
+
+        it('releases an unconsumed raw response deadline when it fires', async () => {
+            vi.useFakeTimers();
+            try {
+                const cfg = new rt.Configuration({
+                    timeoutMs: 5_000,
+                    fetchApi: async () => jsonResponse(200, OK_BODY),
+                });
+
+                await call(cfg, 'GET');
+                expect(vi.getTimerCount()).toBe(1);
+                await vi.advanceTimersByTimeAsync(5_000);
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('cancels an unconsumed raw response body exactly once when its deadline fires', async () => {
+            vi.useFakeTimers();
+            try {
+                const cancel = vi.fn();
+                const cfg = new rt.Configuration({
+                    timeoutMs: 1_000,
+                    fetchApi: async () =>
+                        new Response(
+                            new ReadableStream({
+                                cancel,
+                            }),
+                            { status: 200 },
+                        ),
+                });
+
+                await call(cfg, 'GET');
+                await vi.advanceTimersByTimeAsync(1_000);
+
+                expect(cancel).toHaveBeenCalledTimes(1);
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
         });
     });
 }

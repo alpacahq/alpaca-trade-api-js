@@ -15,6 +15,9 @@ targets, the REST-only entrypoint, and the runtime dependencies.
 - **Node.js ≥ 20** (developed against v24) — the REST transport uses the
   platform-global `fetch`, `Headers`, `URL`, and `AbortController`. (Node 18
   reached end-of-life in April 2025; the package declares `engines.node >= 20`.)
+- **Strict Node without DOM libs is supported.** The published REST declarations
+  provide their own portable fetch-facing types and do not require `"dom"` in a
+  consumer's `tsconfig`.
 
 ## Support matrix
 
@@ -30,16 +33,25 @@ targets, the REST-only entrypoint, and the runtime dependencies.
 Legend: ✅ supported · ❌ not supported.
 
 - **Streaming is Node/Bun only.** The WebSocket clients depend on
-  [`ws`](https://github.com/websockets/ws) and `node:events`, which don't run on
-  edge or in the browser. On those targets the package's
+  Node-compatible streaming modules, which don't run on edge or in the browser.
+  On those targets the package's
   [export conditions](#edge--browser-runtimes) transparently resolve the root
   import to the streaming-free [REST build](#rest-only-entrypoint), so REST works
   and the stream factories (`stockStream`, `stream`, ...) plus `submitAndWait`
   throw if called. For real-time streaming, run on Node or Bun.
 - **Browser: technically works, but discouraged.** Calling Alpaca directly from a
   browser ships your `APCA_API_SECRET_KEY` to the client. Prefer a server or
-  proxy (see the [market-data backend example](https://github.com/alpacahq/alpaca-trade-api-js/blob/ts-alpha/examples/marketdata-backend.ts))
+  proxy (see the [market-data backend example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/marketdata-backend.ts))
   rather than embedding credentials in front-end code.
+
+## Runtime identity
+
+REST requests identify the SDK and the runtime in the default `User-Agent`:
+`APCA-NODE/<sdk-version> <Runtime>/<runtime-version>` (for example,
+`APCA-NODE/4.0.0 Node/22.4.0`). The runtime segment is `Node`, `Bun`, `Deno`, or
+`Unknown/unknown` when no runtime is detected; Bun and Deno are detected before
+Node compatibility globals. Override the header with `userAgent`, or set
+`userAgent: ""` to disable it.
 
 ## Module formats (ESM & CJS)
 
@@ -63,15 +75,14 @@ may compare against two copies.
 
 ## Edge & browser runtimes
 
-The streaming clients depend on `ws` and `node:events`, which don't run on edge
-runtimes (Cloudflare Workers / `workerd`, Vercel Edge, Deno) or in the browser.
+The streaming clients use Node-compatible WebSocket/EventEmitter modules, which
+don't run on edge runtimes (Cloudflare Workers / `workerd`, Vercel Edge, Deno)
+or in the browser.
 To keep the root import working there, the package `exports` map declares
 `workerd`, `worker`, `edge-light`, `deno`, and `browser` conditions that resolve
 `@alpacahq/alpaca-trade-api` to the streaming-free [REST build](#rest-only-entrypoint)
 automatically — so a plain `import { Alpaca } from "@alpacahq/alpaca-trade-api"`
-builds and runs on those targets without the `Class extends value [object Module]`
-failure that comes from a bundler trying to load `ws` / `node:events` on a runtime
-that lacks them.
+builds and runs on those targets without loading the streaming implementation.
 
 The trade-off is the same as importing `/rest` directly: REST works unchanged,
 but the stream factories (`stockStream`, `stream`, ...) and `submitAndWait`
@@ -86,6 +97,9 @@ including the typed errors and the `withResponse` response wrapper. The `Alpaca`
 facade is the same class, so all REST methods work unchanged; the stream
 factories (`stockStream`, `stream`, ...) and `submitAndWait` throw if called from
 this entrypoint — import from `@alpacahq/alpaca-trade-api` when you need streams.
+Its runtime graph and published declarations contain no Node, `ws`, or msgpack
+requirements, so strict Node projects without DOM libs and edge consumers can
+type-check the same REST facade.
 
 ```ts
 import { Alpaca } from "@alpacahq/alpaca-trade-api/rest";
@@ -97,14 +111,14 @@ explicitly — the root entrypoint resolves here automatically (see
 
 ## Dependencies
 
-The REST client needs nothing beyond the Node platform globals. The **streaming**
+The REST client needs only standard fetch-platform globals. The **streaming**
 clients (WebSockets) pull in two small runtime dependencies —
 [`ws`](https://github.com/websockets/ws) and
 [`@msgpack/msgpack`](https://github.com/msgpack/msgpack-javascript). At runtime
 the `Alpaca` facade only constructs them when you actually open a stream, but the
 **root entrypoint's module graph statically includes them** (it re-exports the
 `streaming` namespace), so a bundler resolving `@alpacahq/alpaca-trade-api` will see
-`ws` / `@msgpack/msgpack` / `node:events`. If you only use REST — or you target an
+`ws` / `@msgpack/msgpack`. If you only use REST — or you target an
 edge/browser runtime where `ws` cannot run — import from the
 [REST-only entrypoint](#rest-only-entrypoint) (or rely on the automatic edge
 resolution above) and they are never pulled in.

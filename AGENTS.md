@@ -163,13 +163,16 @@ output, recommend a decision, and let the human own the irreversible calls.
 - **Don't block on the prompt.** The confirm step reads stdin and will hang a
   non-interactive shell. Gather context non-interactively instead:
   - Preview live changes without writing: `npm run generate -- --dry-run --yes`
-    (prints the spec diff + plan; `--dry-run` guards every write, `--yes` only
-    skips the prompt).
+    (prints the spec diff, overlay projection, and projected orphan risks;
+    `--dry-run` guards every write, and removed schemas/operations do not require
+    an override in preview mode).
   - Reproduce/verify from pinned specs: `npm run generate:offline` then
     `git diff -- src/trading src/market-data`.
   - Iterate on one API: add `--target trading` or `--target market-data`.
   - Only run an adopting generation (`npm run generate`, or `… -- --yes`) after
-    the human approves the diff.
+    the human approves the diff. Non-interactive real adoption with any removed
+    schema or operation is blocked before spec writes unless the explicit
+    `--allow-breaking-spec-removals` flag is supplied.
 - **Interpret each output and surface it.**
   - *Spec diff* (`schemas +/-/~`, `operations +/-`): classify additive vs
     breaking. Removed/renamed schemas or operations, or modified shapes on models
@@ -183,8 +186,8 @@ output, recommend a decision, and let the human own the irreversible calls.
     grep the symbol in hand-written code.
   - *Orphan report (`exports removed`)*: for each removed symbol, search
     `src/client.ts`, `src/orders.ts`, `src/marketDataShapes.ts`,
-    `src/capabilities.ts`, and `src/streaming/` and fix references before
-    committing.
+    `src/capabilities.ts`, `src/streaming/`, `src/index.ts`, `src/rest.ts`, and
+    `scripts/api-reference/examples.ts`, and fix references before committing.
   - *Final `git status` on the trees*: the target is **no diff** except deliberate
     changes. Unexpected `apis/`/`models/` churn means a spec change was adopted —
     confirm it's intended and reflected in tests/ergonomics.

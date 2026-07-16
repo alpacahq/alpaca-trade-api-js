@@ -192,16 +192,19 @@ const trading: ApiReferenceExamples = {
         example: 'await alpaca.trading.orders.getAllOrders({ status: "open", limit: 100 });',
     },
     "trading.orders.postOrder": {
-        description: "Place an order (raw). Prefer the typed builders under Ergonomic helpers.",
-        example: 'await alpaca.trading.orders.postOrder({ postOrderRequest: { symbol: "AAPL", qty: "1", side: "buy", type: "market", timeInForce: "day" } });',
+        description: "Place one order (raw); include a stable, unique client ID for audit and recovery.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.postOrder({ postOrderRequest: { symbol: "AAPL", qty: "1", side: "buy", type: "market", timeInForce: "day", clientOrderId } });',
+        ].join("\n"),
     },
     "trading.orders.getOrderByOrderID": {
         description: "Fetch a single order by its order id.",
         example: 'await alpaca.trading.orders.getOrderByOrderID({ orderId: "f1...e9" });',
     },
     "trading.orders.getOrderByClientOrderId": {
-        description: "Fetch a single order by your client order id.",
-        example: 'await alpaca.trading.orders.getOrderByClientOrderId({ clientOrderId: "my-order-1" });',
+        description: "Look up an order by its client ID, including to reconcile an ambiguous placement before submitting again.",
+        example: 'const clientOrderId = "the-id-recorded-before-placement";\nconst order = await alpaca.trading.orders.getOrderByClientOrderId({ clientOrderId });',
     },
     "trading.orders.patchOrderByOrderId": {
         description: "Replace (amend) an open order.",
@@ -519,48 +522,78 @@ const streaming: ApiReferenceExamples = {
 
 const ergonomic: ApiReferenceExamples = {
     "trading.orders.market": {
-        description: "Place a market order (exactly one of `qty`/`notional`).",
-        example: 'await alpaca.trading.orders.market({ symbol: "AAPL", side: "buy", qty: 1 });',
+        description: "Place one market order (exactly one of `qty`/`notional`) with a client ID for audit and recovery.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.market({ symbol: "AAPL", side: "buy", qty: 1, clientOrderId });',
+        ].join("\n"),
     },
     "trading.orders.limit": {
-        description: "Place a limit order.",
-        example: 'await alpaca.trading.orders.limit({ symbol: "AAPL", side: "buy", qty: 1, limitPrice: 150 });',
+        description: "Place one limit order with a stable, unique client ID.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.limit({ symbol: "AAPL", side: "buy", qty: 1, limitPrice: 150, clientOrderId });',
+        ].join("\n"),
     },
     "trading.orders.stop": {
-        description: "Place a stop (stop-market) order.",
-        example: 'await alpaca.trading.orders.stop({ symbol: "AAPL", side: "sell", qty: 1, stopPrice: 140 });',
+        description: "Place one stop (stop-market) order with a stable, unique client ID.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.stop({ symbol: "AAPL", side: "sell", qty: 1, stopPrice: 140, clientOrderId });',
+        ].join("\n"),
     },
     "trading.orders.stopLimit": {
-        description: "Place a stop-limit order.",
-        example: 'await alpaca.trading.orders.stopLimit({ symbol: "AAPL", side: "sell", qty: 1, stopPrice: 140, limitPrice: 139 });',
+        description: "Place one stop-limit order with a stable, unique client ID.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.stopLimit({ symbol: "AAPL", side: "sell", qty: 1, stopPrice: 140, limitPrice: 139, clientOrderId });',
+        ].join("\n"),
     },
     "trading.orders.trailingStop": {
-        description: "Place a trailing-stop order (one of `trailPrice`/`trailPercent`).",
-        example: 'await alpaca.trading.orders.trailingStop({ symbol: "AAPL", side: "sell", qty: 1, trailPercent: 5 });',
+        description: "Place one trailing-stop order (one of `trailPrice`/`trailPercent`) with a stable, unique client ID.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.trailingStop({ symbol: "AAPL", side: "sell", qty: 1, trailPercent: 5, clientOrderId });',
+        ].join("\n"),
     },
     "trading.orders.bracket": {
-        description: "Place a bracket order: entry plus take-profit and stop-loss legs.",
-        example: 'await alpaca.trading.orders.bracket({ symbol: "AAPL", side: "buy", qty: 1, takeProfit: { limitPrice: 160 }, stopLoss: { stopPrice: 140 } });',
+        description: "Place one bracket order (entry plus take-profit and stop-loss legs) with a stable, unique client ID.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.bracket({ symbol: "AAPL", side: "buy", qty: 1, takeProfit: { limitPrice: 160 }, stopLoss: { stopPrice: 140 }, clientOrderId });',
+        ].join("\n"),
     },
     "trading.orders.oco": {
-        description: "Place a one-cancels-other order (take-profit + stop-loss on a held position).",
-        example: 'await alpaca.trading.orders.oco({ symbol: "AAPL", side: "sell", qty: 1, takeProfit: { limitPrice: 160 }, stopLoss: { stopPrice: 140 } });',
+        description: "Place one one-cancels-other order on a held position with a stable, unique client ID.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.oco({ symbol: "AAPL", side: "sell", qty: 1, takeProfit: { limitPrice: 160 }, stopLoss: { stopPrice: 140 }, clientOrderId });',
+        ].join("\n"),
     },
     "trading.orders.oto": {
-        description: "Place a one-triggers-other order (entry that triggers a single leg).",
-        example: 'await alpaca.trading.orders.oto({ symbol: "AAPL", side: "buy", qty: 1, limitPrice: 150, takeProfit: { limitPrice: 160 } });',
+        description: "Place one one-triggers-other order with a stable, unique client ID.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.oto({ symbol: "AAPL", side: "buy", qty: 1, limitPrice: 150, takeProfit: { limitPrice: 160 }, clientOrderId });',
+        ].join("\n"),
     },
     "trading.orders.submit": {
-        description: "Generic builder escape hatch for shapes the typed builders don't cover (e.g. `mleg`).",
-        example: 'await alpaca.trading.orders.submit({ type: "market", symbol: "AAPL", side: "buy", qty: 1 });',
+        description: "Place one near-raw order shape; include a stable, unique client ID and reconcile transport ambiguity explicitly.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'await alpaca.trading.orders.submit({ type: "market", symbol: "AAPL", side: "buy", qty: 1, clientOrderId });',
+        ].join("\n"),
     },
     "trading.validateConnection": {
         description: "Verify credentials/connectivity without throwing; returns `{ ok, account }` or `{ ok: false, status, code, message }`.",
         example: 'const check = await alpaca.trading.validateConnection();',
     },
     "trading.submitAndWait": {
-        description: "Place an order and resolve once it reaches a terminal state, observed over the trading stream.",
-        example: 'const filled = await alpaca.trading.submitAndWait({ type: "market", symbol: "AAPL", side: "buy", qty: 1 }, { timeoutMs: 30_000 });',
+        description: "After server listening acknowledgement, place once and await a terminal update under one workflow deadline.",
+        example: [
+            "const clientOrderId = crypto.randomUUID();",
+            'const filled = await alpaca.trading.submitAndWait({ type: "market", symbol: "AAPL", side: "buy", qty: 1, clientOrderId }, { timeoutMs: 30_000 });',
+        ].join("\n"),
     },
     "trading.closeAllPositions": {
         description: "Close every open position (optionally cancel open orders first).",
@@ -639,39 +672,39 @@ const ergonomic: ApiReferenceExamples = {
         example: 'const candles = await alpaca.marketData.getCryptoCandles({ loc: "us", symbols: ["BTC/USD"], timeframe: "1Day", start: new Date("2024-01-01") });',
     },
     "marketData.getStockBarsFor": {
-        description: "Single-symbol historical stock bars as canonical `Bar[]` (unwrapped, not a symbol map).",
+        description: "Exact-key stock bars as canonical `Bar[]`; returns `[]` when the requested symbol is absent.",
         example: 'const bars = await alpaca.marketData.getStockBarsFor("AAPL", { timeframe: "1Day", start: new Date("2024-01-01") });',
     },
     "marketData.getCryptoBarsFor": {
-        description: "Single-symbol historical crypto bars as canonical `Bar[]` (unwrapped).",
+        description: "Exact-key crypto bars as canonical `Bar[]`; returns `[]` when the requested pair is absent.",
         example: 'const bars = await alpaca.marketData.getCryptoBarsFor("BTC/USD", { loc: "us", timeframe: "1Day", start: new Date("2024-01-01") });',
     },
     "marketData.getOptionBarsFor": {
-        description: "Single-symbol historical option bars as canonical `Bar[]` (unwrapped).",
+        description: "Exact-key option bars as canonical `Bar[]`; returns `[]` when the requested contract is absent.",
         example: 'const bars = await alpaca.marketData.getOptionBarsFor("AAPL250117C00150000", { timeframe: "1Day", start: new Date("2024-01-01") });',
     },
     "marketData.getStockTradesFor": {
-        description: "Single-symbol historical stock trades as canonical `Trade[]` (unwrapped).",
+        description: "Exact-key stock trades as canonical `Trade[]`; never substitutes another symbol.",
         example: 'const trades = await alpaca.marketData.getStockTradesFor("AAPL", { start: new Date("2024-01-02") });',
     },
     "marketData.getCryptoTradesFor": {
-        description: "Single-symbol historical crypto trades as canonical `Trade[]` (unwrapped).",
+        description: "Exact-key crypto trades as canonical `Trade[]`; never substitutes another pair.",
         example: 'const trades = await alpaca.marketData.getCryptoTradesFor("BTC/USD", { loc: "us", start: new Date("2024-01-02") });',
     },
     "marketData.getStockQuotesFor": {
-        description: "Single-symbol historical stock quotes as canonical `Quote[]` (unwrapped).",
+        description: "Exact-key stock quotes as canonical `Quote[]`; never substitutes another symbol.",
         example: 'const quotes = await alpaca.marketData.getStockQuotesFor("AAPL", { start: new Date("2024-01-02") });',
     },
     "marketData.getCryptoQuotesFor": {
-        description: "Single-symbol historical crypto quotes as canonical `Quote[]` (unwrapped).",
+        description: "Exact-key crypto quotes as canonical `Quote[]`; never substitutes another pair.",
         example: 'const quotes = await alpaca.marketData.getCryptoQuotesFor("BTC/USD", { loc: "us", start: new Date("2024-01-02") });',
     },
     "marketData.getStockCandlesFor": {
-        description: "Single-symbol historical stock bars as chart-ready columnar `Candles` (unwrapped).",
+        description: "Exact-key stock `Candles`; returns empty columns when the requested symbol is absent.",
         example: 'const candles = await alpaca.marketData.getStockCandlesFor("AAPL", { timeframe: "1Day", start: new Date("2024-01-01") });',
     },
     "marketData.getCryptoCandlesFor": {
-        description: "Single-symbol historical crypto bars as chart-ready columnar `Candles` (unwrapped).",
+        description: "Exact-key crypto `Candles`; returns empty columns when the requested pair is absent.",
         example: 'const candles = await alpaca.marketData.getCryptoCandlesFor("BTC/USD", { loc: "us", timeframe: "1Day", start: new Date("2024-01-01") });',
     },
     "marketData.iterateStockBars": {
@@ -819,11 +852,11 @@ const ergonomic: ApiReferenceExamples = {
         example: 'const articles = await alpaca.marketData.collectNews({ symbols: ["AAPL"] });',
     },
     "marketData.iterateCorporateActionsPages": {
-        description: "Lazily yield each page's `CorporateActions` envelope, following the token.",
+        description: "Yield valid corporate-action pages and stop before any revisited token, including longer cycles.",
         example: 'for await (const page of alpaca.marketData.iterateCorporateActionsPages({ symbols: ["AAPL"] })) console.log(page.cashDividends);',
     },
     "marketData.collectCorporateActions": {
-        description: "Collect corporate actions across pages into one merged `CorporateActions` object.",
+        description: "Merge valid corporate-action pages, stopping before any revisited pagination token.",
         example: 'const actions = await alpaca.marketData.collectCorporateActions({ symbols: ["AAPL"], start: new Date("2024-01-01") });',
     },
 };

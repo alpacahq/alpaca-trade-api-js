@@ -48,6 +48,12 @@ const bySymbol = await alpaca.marketData.collectStockBarsBySymbol({
 These cover bars/trades/quotes/auctions for stocks, crypto and options, plus
 index values, forex rates, option snapshots/chains, news, and corporate actions.
 
+Every token- and cursor-based helper tracks the full traversal history. If an
+endpoint returns any previously visited token/cursor — including a longer cycle
+such as `A → B → A` — iteration stops instead of fetching it again. Items and
+corporate-action pages already fetched remain yielded/collected; only the
+revisited request is suppressed.
+
 ## The generic `pagination` helper
 
 For any endpoint without a dedicated helper, the exported `pagination` helper
@@ -64,4 +70,5 @@ for await (const activity of pagination.paginate((pageToken) =>
 ```
 
 In every case the next page is requested only as you consume the current one, so
-large histories stream lazily instead of buffering everything in memory.
+large histories stream lazily instead of buffering everything in memory. The
+same full-history cycle guard applies to these generic helpers.

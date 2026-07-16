@@ -12,8 +12,8 @@
  *
  * Options:
  *   --instanceName=alpaca   Extra identifier name(s, comma-separated) to treat
- *                           as an Alpaca client (in addition to auto-detected
- *                           `new Alpaca(...)` variables and `alpaca`).
+ *                           as a bound Alpaca client (in addition to immutable
+ *                           clients constructed from an SDK Alpaca import).
  *
  * What it does NOT do (flags with TODO instead): historical market-data calls
  * changed from AsyncGenerator/Map to array/object, latest/snapshot field
@@ -32,21 +32,449 @@ module.exports = function transformer(file, api, options) {
     const j = api.jscodeshift;
     const root = j(file.source);
     let mutated = false;
+    const packageName = "@alpacahq/alpaca-trade-api";
 
     const report = (msg) => api.report(`${file.path}: ${msg}`);
 
-    // --- 1. Identify Alpaca client instances -------------------------------
-    const instances = new Set(["alpaca"]);
+    // Provenance is stored by lexical Scope object + identifier name. A plain
+    // spelling match is never enough: nested parameters/locals/classes resolve
+    // to a different scope and therefore cannot inherit outer SDK provenance.
+    const createBindings = () => new Map();
+    const bindingScope = (path) =>
+        path?.value?.type === "Identifier"
+            ? path.scope?.lookup(path.value.name)
+            : undefined;
+    const setBinding = (bindings, path, value = true) => {
+        const scope = bindingScope(path);
+        if (!scope) return false;
+        let names = bindings.get(scope);
+        if (!names) {
+            names = new Map();
+            bindings.set(scope, names);
+        }
+        if (names.has(path.value.name)) return false;
+        names.set(path.value.name, value);
+        return true;
+    };
+    const setScopedBinding = (bindings, scope, name, value = true) => {
+        if (!scope) return false;
+        let names = bindings.get(scope);
+        if (!names) {
+            names = new Map();
+            bindings.set(scope, names);
+        }
+        if (names.has(name)) return false;
+        names.set(name, value);
+        return true;
+    };
+    const getBinding = (bindings, path) => {
+        const scope = bindingScope(path);
+        return scope
+            ? bindings.get(scope)?.get(path.value.name)
+            : undefined;
+    };
+    const hasBinding = (bindings, path) =>
+        getBinding(bindings, path) !== undefined;
+    const writes = createBindings();
+    const writeInfo = (path) => {
+        const scope = bindingScope(path);
+        if (!scope) return undefined;
+        let names = writes.get(scope);
+        if (!names) {
+            names = new Map();
+            writes.set(scope, names);
+        }
+        let info = names.get(path.value.name);
+        if (!info) {
+            info = { declarations: 0, initializers: 0, assignments: 0 };
+            names.set(path.value.name, info);
+        }
+        return info;
+    };
+    root.find(j.VariableDeclarator).forEach((p) => {
+        if (p.value.id.type !== "Identifier") return;
+        const info = writeInfo(p.get("id"));
+        if (!info) return;
+        info.declarations++;
+        if (p.value.init) info.initializers++;
+    });
+    const recordAssignmentTarget = (path) => {
+        if (!path?.value) return;
+        if (path.value.type === "Identifier") {
+            const info = writeInfo(path);
+            if (info) info.assignments++;
+            return;
+        }
+        if (
+            path.value.type === "RestElement" ||
+            path.value.type === "SpreadElement"
+        ) {
+            recordAssignmentTarget(path.get("argument"));
+            return;
+        }
+        if (path.value.type === "AssignmentPattern") {
+            recordAssignmentTarget(path.get("left"));
+            return;
+        }
+        if (path.value.type === "ArrayPattern") {
+            path.get("elements").each(recordAssignmentTarget);
+            return;
+        }
+        if (path.value.type === "ObjectPattern") {
+            path.get("properties").each((property) => {
+                if (
+                    property.value.type === "RestElement" ||
+                    property.value.type === "SpreadElement"
+                ) {
+                    recordAssignmentTarget(property.get("argument"));
+                } else {
+                    recordAssignmentTarget(property.get("value"));
+                }
+            });
+        }
+    };
+    root.find(j.AssignmentExpression).forEach((p) => {
+        recordAssignmentTarget(p.get("left"));
+    });
+    root.find(j.ForInStatement).forEach((p) => {
+        if (p.value.left.type !== "VariableDeclaration") {
+            recordAssignmentTarget(p.get("left"));
+        }
+    });
+    root.find(j.ForOfStatement).forEach((p) => {
+        if (p.value.left.type !== "VariableDeclaration") {
+            recordAssignmentTarget(p.get("left"));
+        }
+    });
+    root.find(j.UpdateExpression).forEach((p) => {
+        if (p.value.argument.type === "Identifier") {
+            const info = writeInfo(p.get("argument"));
+            if (info) info.assignments++;
+        }
+    });
+    const isStableDeclaration = (path) => {
+        const info = getBinding(writes, path);
+        return (
+            info?.declarations === 1 &&
+            info.initializers === 1 &&
+            info.assignments === 0
+        );
+    };
+    const hasLaterWrite = (scope, name) =>
+        (writes.get(scope)?.get(name)?.assignments ?? 0) > 0;
+    const reportedBindings = createBindings();
+    const markAmbiguous = (bindings, path, message) => {
+        const added = setBinding(bindings, path);
+        if (added && setBinding(reportedBindings, path)) {
+            report(`manual review — ${message}; left unchanged`);
+        }
+        return added;
+    };
+    const markScopedAmbiguous = (bindings, scope, name, message) => {
+        const added = setScopedBinding(bindings, scope, name);
+        if (
+            added &&
+            setScopedBinding(reportedBindings, scope, name)
+        ) {
+            report(`manual review — ${message}; left unchanged`);
+        }
+        return added;
+    };
+    const propagateAliases = (bindings, ambiguousBindings, kind) => {
+        let added;
+        do {
+            added = false;
+            root.find(j.VariableDeclarator).forEach((p) => {
+                if (
+                    p.value.id.type === "Identifier" &&
+                    p.value.init?.type === "Identifier"
+                ) {
+                    const value = getBinding(bindings, p.get("init"));
+                    if (value !== undefined) {
+                        if (isStableDeclaration(p.get("id"))) {
+                            added =
+                                setBinding(bindings, p.get("id"), value) || added;
+                        } else {
+                            markAmbiguous(
+                                ambiguousBindings,
+                                p.get("id"),
+                                `ambiguous ${kind} binding ${p.value.id.name}`,
+                            );
+                        }
+                    } else if (
+                        hasBinding(ambiguousBindings, p.get("init"))
+                    ) {
+                        markAmbiguous(
+                            ambiguousBindings,
+                            p.get("id"),
+                            `ambiguous ${kind} binding ${p.value.id.name}`,
+                        );
+                    }
+                }
+            });
+            root.find(j.AssignmentExpression, { operator: "=" }).forEach((p) => {
+                if (
+                    p.value.left.type === "Identifier" &&
+                    p.value.right.type === "Identifier"
+                ) {
+                    const value = getBinding(bindings, p.get("right"));
+                    if (
+                        value !== undefined ||
+                        hasBinding(ambiguousBindings, p.get("right"))
+                    ) {
+                        markAmbiguous(
+                            ambiguousBindings,
+                            p.get("left"),
+                            `assignment-based ${kind} binding ${p.value.left.name}`,
+                        );
+                    }
+                }
+            });
+        } while (added);
+    };
+
+    // --- 1. Normalize imports and identify Alpaca client instances ---------
+    const constructors = createBindings();
+    const ambiguousConstructors = createBindings();
+
+    root.find(j.ImportDeclaration, { source: { value: packageName } }).forEach((p) => {
+        const specifiers = p.value.specifiers || [];
+        const defaultSpecifier = specifiers.find(
+            (specifier) => specifier.type === "ImportDefaultSpecifier",
+        );
+        const namespaceSpecifier = specifiers.find(
+            (specifier) => specifier.type === "ImportNamespaceSpecifier",
+        );
+
+        for (const specifier of specifiers) {
+            if (specifier.type === "ImportDefaultSpecifier") {
+                const local = specifier.local || j.identifier("Alpaca");
+                const scope = p.scope.lookup(local.name);
+                if (hasLaterWrite(scope, local.name)) {
+                    markScopedAmbiguous(
+                        ambiguousConstructors,
+                        scope,
+                        local.name,
+                        `ambiguous constructor binding ${local.name}`,
+                    );
+                } else {
+                    setScopedBinding(constructors, scope, local.name);
+                }
+            } else if (
+                specifier.type === "ImportSpecifier" &&
+                specifier.imported.name === "Alpaca"
+            ) {
+                const local = specifier.local || specifier.imported;
+                const scope = p.scope.lookup(local.name);
+                if (hasLaterWrite(scope, local.name)) {
+                    markScopedAmbiguous(
+                        ambiguousConstructors,
+                        scope,
+                        local.name,
+                        `ambiguous constructor binding ${local.name}`,
+                    );
+                } else {
+                    setScopedBinding(constructors, scope, local.name);
+                }
+            }
+        }
+
+        if (defaultSpecifier && namespaceSpecifier) {
+            const local = defaultSpecifier.local || j.identifier("Alpaca");
+            const sourceText =
+                p.value.source.extra?.raw ??
+                JSON.stringify(p.value.source.value);
+            const suffix = file.source.slice(
+                p.value.source.end,
+                p.value.end,
+            );
+            const importKeyword =
+                p.value.importKind === "type" ? "import type" : "import";
+            const namedBinding =
+                local.name === "Alpaca"
+                    ? "Alpaca"
+                    : `Alpaca as ${local.name}`;
+            const firstComment = p.value.comments?.[0];
+            const commentPrefix =
+                typeof firstComment?.start === "number" &&
+                typeof p.value.start === "number"
+                    ? file.source.slice(firstComment.start, p.value.start)
+                    : "";
+            const parseImport = (source) =>
+                j(source).find(j.ImportDeclaration).nodes()[0];
+            const namedImport = parseImport(
+                `${commentPrefix}${importKeyword} { ${namedBinding} } from ${sourceText}${suffix}`,
+            );
+            const namespaceImport = parseImport(
+                `\n${importKeyword} * as ${namespaceSpecifier.local.name} from ${sourceText}${suffix}`,
+            );
+            p.replace(namedImport, namespaceImport);
+            mutated = true;
+            return;
+        }
+
+        p.value.specifiers = specifiers.map((specifier) => {
+            if (specifier.type !== "ImportDefaultSpecifier") return specifier;
+            const local = specifier.local || j.identifier("Alpaca");
+            const replacement = j.importSpecifier(j.identifier("Alpaca"), local);
+            if (local.name === "Alpaca") replacement.local = null;
+            replacement.comments = specifier.comments;
+            mutated = true;
+            return replacement;
+        });
+    });
+
+    const isPackageRequire = (path) => {
+        const node = path?.value;
+        return (
+            node &&
+            node.type === "CallExpression" &&
+            node.callee.type === "Identifier" &&
+            node.callee.name === "require" &&
+            !path.get("callee").scope.lookup("require") &&
+            node.arguments.length === 1 &&
+            (node.arguments[0].type === "StringLiteral" ||
+                node.arguments[0].type === "Literal") &&
+            node.arguments[0].value === packageName
+        );
+    };
+
+    root.find(j.VariableDeclarator).forEach((p) => {
+        if (!isPackageRequire(p.get("init"))) return;
+        if (p.value.id.type === "Identifier") {
+            const local = p.value.id;
+            const scope = p.scope.lookup(local.name);
+            if (isStableDeclaration(p.get("id"))) {
+                setScopedBinding(constructors, scope, local.name);
+            } else {
+                markAmbiguous(
+                    ambiguousConstructors,
+                    p.get("id"),
+                    `ambiguous constructor binding ${local.name}`,
+                );
+            }
+            const property = j.objectProperty(j.identifier("Alpaca"), local);
+            property.shorthand = local.name === "Alpaca";
+            p.value.id = j.objectPattern([property]);
+            mutated = true;
+            return;
+        }
+        if (p.value.id.type !== "ObjectPattern") return;
+        for (const property of p.value.id.properties) {
+            if (
+                property.type !== "ObjectProperty" &&
+                property.type !== "Property"
+            ) {
+                continue;
+            }
+            const key = property.key;
+            const value = property.value;
+            if (
+                (key.name === "default" || key.value === "default") &&
+                value.type === "Identifier"
+            ) {
+                const scope = p.scope.lookup(value.name);
+                property.key = j.identifier("Alpaca");
+                property.shorthand = value.name === "Alpaca";
+                if (hasLaterWrite(scope, value.name)) {
+                    markScopedAmbiguous(
+                        ambiguousConstructors,
+                        scope,
+                        value.name,
+                        `ambiguous constructor binding ${value.name}`,
+                    );
+                } else {
+                    setScopedBinding(constructors, scope, value.name);
+                }
+                mutated = true;
+            } else if (
+                (key.name === "Alpaca" || key.value === "Alpaca") &&
+                value.type === "Identifier"
+            ) {
+                const scope = p.scope.lookup(value.name);
+                if (hasLaterWrite(scope, value.name)) {
+                    markScopedAmbiguous(
+                        ambiguousConstructors,
+                        scope,
+                        value.name,
+                        `ambiguous constructor binding ${value.name}`,
+                    );
+                } else {
+                    setScopedBinding(constructors, scope, value.name);
+                }
+            }
+        }
+    });
+
+    propagateAliases(
+        constructors,
+        ambiguousConstructors,
+        "constructor",
+    );
+
+    const instances = createBindings();
+    const ambiguousInstances = createBindings();
+    const programPath = root.find(j.Program).paths()[0];
     if (options.instanceName) {
         for (const n of String(options.instanceName).split(",")) {
-            if (n.trim()) instances.add(n.trim());
+            const name = n.trim();
+            if (name) {
+                const scope = programPath?.scope.lookup(name);
+                const info = scope ? writes.get(scope)?.get(name) : undefined;
+                if (!scope) continue;
+                if (!info || (
+                    info.declarations === 1 &&
+                    info.initializers === 1 &&
+                    info.assignments === 0
+                )) {
+                    setScopedBinding(instances, scope, name);
+                } else {
+                    markScopedAmbiguous(
+                        ambiguousInstances,
+                        scope,
+                        name,
+                        `ambiguous client binding ${name}`,
+                    );
+                }
+            }
         }
     }
-    root.find(j.NewExpression, { callee: { name: "Alpaca" } }).forEach((p) => {
+    root.find(j.NewExpression).forEach((p) => {
+        if (p.value.callee.type !== "Identifier") return;
+        const callee = p.get("callee");
+        const constructorProven = hasBinding(constructors, callee);
+        const constructorAmbiguous = hasBinding(
+            ambiguousConstructors,
+            callee,
+        );
+        if (!constructorProven && !constructorAmbiguous) return;
         const parent = p.parent.value;
-        if (parent && parent.type === "VariableDeclarator" && parent.id.type === "Identifier") {
-            instances.add(parent.id.name);
+        const target =
+            parent?.type === "VariableDeclarator" &&
+            parent.id.type === "Identifier"
+                ? p.parent.get("id")
+                : parent?.type === "AssignmentExpression" &&
+                    parent.left.type === "Identifier"
+                  ? p.parent.get("left")
+                  : undefined;
+        if (target) {
+            if (
+                constructorProven &&
+                parent.type === "VariableDeclarator" &&
+                isStableDeclaration(target)
+            ) {
+                setBinding(instances, target);
+            } else {
+                markAmbiguous(
+                    ambiguousInstances,
+                    target,
+                    parent.type === "AssignmentExpression"
+                        ? `assignment-based client binding ${target.value.name}`
+                        : `ambiguous client binding ${target.value.name}`,
+                );
+            }
         }
+        if (!constructorProven) return;
         // rename `secretKey` -> `secret` in the constructor options object
         const arg = p.value.arguments[0];
         if (arg && arg.type === "ObjectExpression") {
@@ -59,7 +487,9 @@ module.exports = function transformer(file, api, options) {
         }
     });
 
-    const isInstance = (node) => node && node.type === "Identifier" && instances.has(node.name);
+    propagateAliases(instances, ambiguousInstances, "client");
+
+    const isInstance = (path) => hasBinding(instances, path);
 
     /** Attach a leading `// TODO(alpaca-codemod): msg` to the enclosing statement. */
     const addTodo = (path, msg) => {
@@ -185,7 +615,7 @@ module.exports = function transformer(file, api, options) {
         trade_ws: { to: ["trading", "stream"] },
     };
 
-    // Streaming handler renames (called on the stream object, any receiver).
+    // Streaming handler renames. Applied only to proven stream variables.
     const handlerRenames = {
         onStockTrade: "onTrade",
         onStockQuote: "onQuote",
@@ -217,7 +647,7 @@ module.exports = function transformer(file, api, options) {
     const typeToMethod = { market: "market", limit: "limit", stop: "stop", stop_limit: "stopLimit", trailing_stop: "trailingStop" };
 
     root.find(j.CallExpression, { callee: { type: "MemberExpression", property: { name: "createOrder" } } })
-        .filter((p) => isInstance(p.value.callee.object))
+        .filter((p) => isInstance(p.get("callee").get("object")))
         .forEach((p) => {
             const obj = p.value.arguments[0];
             const orderClass = literalOf(obj, "order_class");
@@ -243,7 +673,11 @@ module.exports = function transformer(file, api, options) {
     root.find(j.CallExpression, { callee: { type: "MemberExpression" } })
         .filter((p) => {
             const prop = p.value.callee.property;
-            return isInstance(p.value.callee.object) && prop && prop.name in tradingMap;
+            return (
+                isInstance(p.get("callee").get("object")) &&
+                prop &&
+                prop.name in tradingMap
+            );
         })
         .forEach((p) => {
             const spec = tradingMap[p.value.callee.property.name];
@@ -257,7 +691,11 @@ module.exports = function transformer(file, api, options) {
     root.find(j.CallExpression, { callee: { type: "MemberExpression" } })
         .filter((p) => {
             const prop = p.value.callee.property;
-            return isInstance(p.value.callee.object) && prop && prop.name in marketDataFlag;
+            return (
+                isInstance(p.get("callee").get("object")) &&
+                prop &&
+                prop.name in marketDataFlag
+            );
         })
         .forEach((p) => addTodo(p, marketDataFlag[p.value.callee.property.name]));
 
@@ -265,18 +703,62 @@ module.exports = function transformer(file, api, options) {
     // Each call to the factory creates a NEW stream, so only rewrite the safe
     // `const ws = alpaca.data_stream_v2` assignment pattern. Inline uses get a
     // TODO instead (rewriting them could create multiple stream instances).
+    const ambiguousStreamVariables = createBindings();
     root.find(j.MemberExpression)
         .filter((p) => {
             const prop = p.value.property;
-            return isInstance(p.value.object) && prop && prop.name in streamAccessor;
+            const object = p.get("object");
+            return (
+                prop &&
+                prop.name in streamAccessor &&
+                (isInstance(object) ||
+                    (object.value.type === "Identifier" &&
+                        object.value.name === "alpaca"))
+            );
         })
         .forEach((p) => {
             const spec = streamAccessor[p.value.property.name];
+            const object = p.get("object");
             const parentType = p.parent.value.type;
             const isAssignment =
                 (parentType === "VariableDeclarator" && p.parent.value.init === p.value) ||
                 (parentType === "AssignmentExpression" && p.parent.value.right === p.value);
+            if (!isInstance(object)) {
+                const targetPath =
+                    parentType === "VariableDeclarator"
+                        ? p.parent.get("id")
+                        : parentType === "AssignmentExpression"
+                          ? p.parent.get("left")
+                          : undefined;
+                if (targetPath?.value.type === "Identifier") {
+                    setBinding(ambiguousStreamVariables, targetPath);
+                }
+                report(
+                    `manual review — ambiguous stream accessor on ${object.value.name}; left unchanged`,
+                );
+                return;
+            }
             if (isAssignment) {
+                const targetPath =
+                    parentType === "VariableDeclarator"
+                        ? p.parent.get("id")
+                        : p.parent.get("left");
+                const stableDeclaration =
+                    parentType === "VariableDeclarator" &&
+                    targetPath.value.type === "Identifier" &&
+                    isStableDeclaration(targetPath);
+                if (!stableDeclaration) {
+                    if (targetPath.value.type === "Identifier") {
+                        markAmbiguous(
+                            ambiguousStreamVariables,
+                            targetPath,
+                            parentType === "AssignmentExpression"
+                                ? `assignment-based stream binding ${targetPath.value.name}`
+                                : `ambiguous stream binding ${targetPath.value.name}`,
+                        );
+                    }
+                    return;
+                }
                 j(p).replaceWith(j.callExpression(member(p.value.object, spec.to), []));
                 mutated = true;
                 if (spec.todo) addTodo(p, spec.todo);
@@ -286,21 +768,124 @@ module.exports = function transformer(file, api, options) {
         });
 
     // --- 7. Streaming handler + subscribe renames --------------------------
+    const streamKinds = createBindings();
+    const memberPath = (callPath) => {
+        const names = [];
+        let current = callPath.get("callee");
+        while (
+            current?.value?.type === "MemberExpression" &&
+            !current.value.computed &&
+            current.value.property.type === "Identifier"
+        ) {
+            names.unshift(current.value.property.name);
+            current = current.get("object");
+        }
+        return current?.value?.type === "Identifier"
+            ? { root: current, names }
+            : undefined;
+    };
+    const streamFactoryKind = (callPath) => {
+        if (callPath?.value?.type !== "CallExpression") return undefined;
+        const path = memberPath(callPath);
+        if (!path || !isInstance(path.root)) return undefined;
+        const dotted = path.names.join(".");
+        if (dotted === "trading.stream") return "trading";
+        if (
+            dotted === "marketData.stockStream" ||
+            dotted === "marketData.cryptoStream" ||
+            dotted === "marketData.newsStream" ||
+            dotted === "marketData.optionStream"
+        ) {
+            return "marketData";
+        }
+        return undefined;
+    };
+    root.find(j.VariableDeclarator).forEach((p) => {
+        if (p.value.id.type === "Identifier") {
+            const kind = streamFactoryKind(p.get("init"));
+            if (kind) {
+                if (isStableDeclaration(p.get("id"))) {
+                    setBinding(streamKinds, p.get("id"), kind);
+                } else {
+                    markAmbiguous(
+                        ambiguousStreamVariables,
+                        p.get("id"),
+                        `ambiguous stream binding ${p.value.id.name}`,
+                    );
+                }
+            }
+        }
+    });
+    root.find(j.AssignmentExpression, { operator: "=" }).forEach((p) => {
+        if (p.value.left.type === "Identifier") {
+            const kind = streamFactoryKind(p.get("right"));
+            if (kind) {
+                markAmbiguous(
+                    ambiguousStreamVariables,
+                    p.get("left"),
+                    `assignment-based stream binding ${p.value.left.name}`,
+                );
+            }
+        }
+    });
+    propagateAliases(
+        streamKinds,
+        ambiguousStreamVariables,
+        "stream",
+    );
+
     root.find(j.CallExpression, { callee: { type: "MemberExpression" } }).forEach((p) => {
+        if (p.value.callee.object.type !== "Identifier") return;
+        const object = p.get("callee").get("object");
+        const receiver = p.value.callee.object.name;
         const prop = p.value.callee.property;
         if (!prop) return;
+        if (
+            hasBinding(ambiguousStreamVariables, object) ||
+            (receiver === "alpaca" && !isInstance(object))
+        ) {
+            if (
+                prop.name in handlerRenames ||
+                prop.name === "subscribe"
+            ) {
+                report(
+                    `manual review — unproven stream receiver ${receiver}; left unchanged`,
+                );
+            }
+            return;
+        }
+        const kind = getBinding(streamKinds, object);
+        if (!kind) return;
         if (prop.name in handlerRenames) {
             prop.name = handlerRenames[prop.name];
             mutated = true;
-        } else if (
-            prop.name === "subscribe" &&
-            p.value.arguments.length === 1 &&
-            p.value.arguments[0].type === "ArrayExpression" &&
-            p.value.arguments[0].elements.some((e) => e && (e.value === "trade_updates"))
-        ) {
-            prop.name = "subscribeTradeUpdates";
-            p.value.arguments = [];
-            mutated = true;
+        } else if (prop.name === "subscribe") {
+            const channels =
+                p.value.arguments.length === 1 &&
+                p.value.arguments[0].type === "ArrayExpression"
+                    ? p.value.arguments[0].elements
+                    : undefined;
+            const exactlyTradeUpdates =
+                channels?.length === 1 &&
+                channels[0] &&
+                channels[0].value === "trade_updates";
+            if (kind === "trading" && exactlyTradeUpdates) {
+                prop.name = "subscribeTradeUpdates";
+                p.value.arguments = [];
+                mutated = true;
+            } else if (kind === "marketData") {
+                report(
+                    `manual review — subscribe call on market-data stream ${receiver}; left unchanged`,
+                );
+            } else {
+                const reason =
+                    channels && channels.length > 1
+                        ? "multiple subscription channels"
+                        : "arguments are not exactly [\"trade_updates\"]";
+                report(
+                    `manual review — unsupported trading stream subscribe on ${receiver} (${reason}); left unchanged`,
+                );
+            }
         }
     });
 

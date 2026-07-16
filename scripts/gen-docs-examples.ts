@@ -22,7 +22,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const examplesDir = resolve(here, "..", "examples");
 const outFile = resolve(here, "..", "docs", "docs", "examples.md");
 
-const GITHUB_BLOB = "https://github.com/alpacahq/alpaca-trade-api-js/blob/ts-alpha/examples";
+const GITHUB_BLOB = "https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples";
 
 /** Ordered list of example files to surface (matches `examples/README.md`). */
 const EXAMPLES = ["trading-bot.ts", "marketdata-backend.ts"];

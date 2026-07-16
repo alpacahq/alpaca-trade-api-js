@@ -312,29 +312,14 @@ describe('alpaca.trading.orders helper methods', () => {
         expect(order.status).toBe('accepted');
     });
 
-    it('sends an Idempotency-Key header (preserving auth headers) when provided', async () => {
-        let seen: RequestInit | undefined;
-        const fetchApi = (async (_url: string | URL | Request, init?: RequestInit) => {
-            seen = init;
-            return new Response(JSON.stringify({ id: 'order-1', status: 'accepted' }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }) as unknown as trading.FetchAPI;
-        const alpaca = new Alpaca({ ...CREDS, fetchApi, rateLimit: false });
-        await alpaca.trading.orders.market(
-            { symbol: 'AAPL', qty: 1, side: 'buy' },
-            { idempotencyKey: 'abc-123' },
-        );
+    it('exposes exactly one runtime argument for every ergonomic submission method', () => {
+        const methods = ['market', 'limit', 'stop', 'stopLimit', 'trailingStop', 'bracket', 'oco', 'oto', 'submit'] as const;
+        const arities = Object.fromEntries(methods.map((method) => [method, OrdersApi.prototype[method].length]));
 
-        const headers = seen?.headers as Record<string, string>;
-        expect(headers['Idempotency-Key']).toBe('abc-123');
-        // The idempotency override must merge, not clobber the auth headers.
-        expect(headers['APCA-API-KEY-ID']).toBe('AKTEST');
-        expect(headers['APCA-API-SECRET-KEY']).toBe('sekret');
+        expect(arities).toEqual(Object.fromEntries(methods.map((method) => [method, 1])));
     });
 
-    it('omits the Idempotency-Key header when no key is given', async () => {
+    it('serializes an explicit clientOrderId as client_order_id', async () => {
         let seen: RequestInit | undefined;
         const fetchApi = (async (_url: string | URL | Request, init?: RequestInit) => {
             seen = init;
@@ -344,10 +329,37 @@ describe('alpaca.trading.orders helper methods', () => {
             });
         }) as unknown as trading.FetchAPI;
         const alpaca = new Alpaca({ ...CREDS, fetchApi, rateLimit: false });
-        await alpaca.trading.orders.market({ symbol: 'AAPL', qty: 1, side: 'buy' });
+        await alpaca.trading.orders.market({
+            symbol: 'AAPL',
+            qty: 1,
+            side: 'buy',
+            clientOrderId: 'stable-order-123',
+        });
+
+        expect(JSON.parse(seen?.body as string)).toMatchObject({ client_order_id: 'stable-order-123' });
+    });
+
+    it('preserves auth headers without adding an Idempotency-Key', async () => {
+        let seen: RequestInit | undefined;
+        const fetchApi = (async (_url: string | URL | Request, init?: RequestInit) => {
+            seen = init;
+            return new Response(JSON.stringify({ id: 'order-1', status: 'accepted' }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }) as unknown as trading.FetchAPI;
+        const alpaca = new Alpaca({ ...CREDS, fetchApi, rateLimit: false });
+        await alpaca.trading.orders.market({
+            symbol: 'AAPL',
+            qty: 1,
+            side: 'buy',
+            clientOrderId: 'stable-order-123',
+        });
 
         const headers = seen?.headers as Record<string, string>;
         expect(headers['Idempotency-Key']).toBeUndefined();
+        expect(headers['APCA-API-KEY-ID']).toBe('AKTEST');
+        expect(headers['APCA-API-SECRET-KEY']).toBe('sekret');
     });
 
     it('getAllOrders() joins a symbols[] and passes a typed side', async () => {

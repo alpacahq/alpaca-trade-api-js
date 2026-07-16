@@ -42,6 +42,11 @@ const aapl = await alpaca.marketData.getStockBarsFor("AAPL", {
 });
 ```
 
+`*For` always reads the **exact requested key** from Alpaca's symbol map. If that
+key is absent it returns `[]`; it never substitutes data from another symbol.
+The candle variants return an empty `Candles` object (empty column arrays) when
+the requested symbol is absent.
+
 The same exists for trades and quotes — `getStockTrades` / `getCryptoTrades`,
 `getStockQuotes` / `getCryptoQuotes`, and their `*For` variants — across stocks,
 crypto, and options (`getOptionBars` / `getOptionBarsFor`).

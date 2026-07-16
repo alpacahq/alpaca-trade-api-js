@@ -31,8 +31,12 @@ jobs:
         run: npm run lint
       - name: Test
         run: npm test
+      - name: Verify migration codemod
+        run: npm run verify:codemod
       - name: Build
         run: npm run build
+      - name: Verify packed package consumers
+        run: npm run verify:package
 
   docs:
     name: Docs build

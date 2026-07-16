@@ -9,7 +9,12 @@ import { fetchSpec, SPEC_FILES } from "./fetchSpecs.js";
 import { canonicalize } from "./jsonCanonical.js";
 import { applyOverlay } from "./overlay.js";
 import { capture, run } from "./proc.js";
-import { formatSummary, hasChanges, summarizeSpecDiff } from "./specDiff.js";
+import {
+  formatSummary,
+  hasChanges,
+  type SpecDiffSummary,
+  summarizeSpecDiff,
+} from "./specDiff.js";
 import { filesToDelete } from "./staleClean.js";
 
 export type Target = "trading" | "market-data";
@@ -49,7 +54,49 @@ export interface GenerateOptions {
   offline: boolean;
   yes: boolean;
   dryRun: boolean;
+  allowBreakingSpecRemovals: boolean;
   target?: Target;
+}
+
+export const HAND_WRITTEN_RISK_SURFACES = [
+  "src/client.ts",
+  "src/orders.ts",
+  "src/marketDataShapes.ts",
+  "src/capabilities.ts",
+  "src/streaming/",
+  "src/index.ts",
+  "src/rest.ts",
+  "scripts/api-reference/examples.ts",
+] as const;
+
+export function projectOrphanRisks(target: Target, summary: SpecDiffSummary): string[] {
+  return [
+    ...summary.schemasRemoved.map((name) => `projected-schema:${target}#${name}`),
+    ...summary.operationsRemoved.map((name) => `projected-operation:${target}#${name}`),
+  ];
+}
+
+export function assertBreakingSpecRemovalsAllowed(
+  summary: SpecDiffSummary | readonly SpecDiffSummary[],
+  opts: GenerateOptions,
+): void {
+  const summaries = Array.isArray(summary) ? summary : [summary];
+  const removals = summaries.flatMap((item) => [
+    ...item.schemasRemoved,
+    ...item.operationsRemoved,
+  ]);
+  if (
+    opts.yes &&
+    !opts.dryRun &&
+    !opts.allowBreakingSpecRemovals &&
+    removals.length > 0
+  ) {
+    throw new Error(
+      "Refusing non-interactive adoption with removed schemas/operations. " +
+        "Review these removals and rerun with --allow-breaking-spec-removals to override:\n" +
+        removals.map((item) => `  - ${item}`).join("\n"),
+    );
+  }
 }
 
 // The CLI is launched from the tooling package root (npm script cwd).
@@ -84,12 +131,30 @@ function ensureToolchain(): void {
   ensureJavaOnPath();
 }
 
+function projectOverlay(target: Target, spec: unknown): void {
+  const patch = readJson(overlayPath(target)) as Operation[];
+  applyOverlay(spec, patch);
+  log(`  [dry-run] ${target} overlay projection applies cleanly.`);
+}
+
 /** Steps 2-5: fetch latest specs, diff vs pinned, prompt, adopt. */
-async function refreshSpecs(targets: Target[], opts: GenerateOptions): Promise<void> {
+async function refreshSpecs(targets: Target[], opts: GenerateOptions): Promise<string[]> {
+  const projectedRisks: string[] = [];
   if (opts.offline) {
     log("• Offline: skipping spec fetch/diff; using pinned specs.");
-    return;
+    if (opts.dryRun) {
+      for (const target of targets) projectOverlay(target, readJson(specPath(target)));
+    }
+    return projectedRisks;
   }
+
+  const refreshes: Array<{
+    target: Target;
+    file: string;
+    live: unknown;
+    summary: SpecDiffSummary;
+  }> = [];
+
   for (const target of targets) {
     assertTarget(target);
     const file = SPEC_FILES[target];
@@ -101,10 +166,22 @@ async function refreshSpecs(targets: Target[], opts: GenerateOptions): Promise<v
 
     if (!hasChanges(summary)) {
       log(`  ${target}: no spec changes vs pinned.`);
+    } else {
+      log(`  ${target} spec changes:\n${formatSummary(summary)}`);
+    }
+    refreshes.push({ target, file, live, summary });
+  }
+
+  assertBreakingSpecRemovalsAllowed(
+    refreshes.map(({ summary }) => summary),
+    opts,
+  );
+
+  for (const { target, file, live, summary } of refreshes) {
+    if (!hasChanges(summary)) {
+      if (opts.dryRun) projectOverlay(target, live);
       continue;
     }
-    log(`  ${target} spec changes:\n${formatSummary(summary)}`);
-
     const adopt = opts.yes || (await confirm(`  Adopt the new ${file} as the pinned baseline?`));
     if (!adopt) {
       log(`  Keeping pinned ${file} (declined).`);
@@ -112,11 +189,14 @@ async function refreshSpecs(targets: Target[], opts: GenerateOptions): Promise<v
     }
     if (opts.dryRun) {
       log(`  [dry-run] would overwrite ${specPath(target)}`);
+      projectOverlay(target, live);
+      projectedRisks.push(...projectOrphanRisks(target, summary));
     } else {
       fs.writeFileSync(specPath(target), canonicalize(live));
       log(`  Adopted new ${file}.`);
     }
   }
+  return projectedRisks;
 }
 
 /** Step 6: pinned spec + overlay -> derived input the generator consumes. */
@@ -166,12 +246,12 @@ function generateTarget(target: Target, opts: GenerateOptions): { removedExports
     models: readBarrelExports(target, "models"),
   };
 
-  deriveSpec(target);
-
   if (opts.dryRun) {
     log(`  [dry-run] would run openapi-generator for ${target}`);
     return { removedExports: [] };
   }
+
+  deriveSpec(target);
 
   run("npx", ["openapi-generator-cli", "generate", "-c", CONFIG_FILE[target]], {
     cwd: TOOLING_ROOT,
@@ -212,9 +292,10 @@ function safetyGate(removedExports: string[], opts: GenerateOptions): void {
   }
 
   if (removedExports.length > 0) {
-    log("\n⚠️  ORPHAN RISK — generated exports removed by this regeneration:");
+    log("\n⚠️  ORPHAN RISK — generated exports removed or projected to disappear:");
     for (const e of removedExports) log(`    - ${e}`);
-    log("  Check hand-written references (client.ts, orders.ts, marketDataShapes.ts).");
+    log("  Check every hand-written risk surface:");
+    for (const surface of HAND_WRITTEN_RISK_SURFACES) log(`    - ${surface}`);
   } else {
     log("  No generated exports were removed.");
   }
@@ -234,10 +315,14 @@ export async function runGenerate(opts: GenerateOptions): Promise<void> {
       `${opts.offline ? " [offline]" : ""}${opts.dryRun ? " [dry-run]" : ""}`,
   );
 
-  ensureToolchain();
-  await refreshSpecs(targets, opts);
+  if (opts.dryRun) {
+    log("• [dry-run] skipping generator toolchain setup.");
+  } else {
+    ensureToolchain();
+  }
+  const projectedRisks = await refreshSpecs(targets, opts);
 
-  const removedExports: string[] = [];
+  const removedExports: string[] = [...projectedRisks];
   for (const target of targets) {
     removedExports.push(...generateTarget(target, opts).removedExports);
   }

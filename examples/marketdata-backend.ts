@@ -43,10 +43,10 @@ stream.onBar((bar) => {
     for (const res of clients) res.write(frame);
 });
 stream.onError((msg) => console.error("stream error:", msg));
-// The client auto-reconnects with backoff and restores subscriptions; surface
-// the lifecycle so the backend can log/observe gaps in the feed.
+// The client auto-reconnects with backoff and dispatches subscriptions again
+// after authentication; onReconnected does not imply server acknowledgement.
 stream.onReconnecting((attempt) => console.warn(`market-data stream reconnecting (attempt ${attempt})`));
-stream.onReconnected(() => console.info("market-data stream reconnected; subscriptions restored"));
+stream.onReconnected(() => console.info("market-data stream reconnected; subscriptions dispatched"));
 stream.onConnect(() => stream.subscribeForBars(SYMBOLS));
 stream.connect();
 

@@ -1,5 +1,5 @@
 /**
- * Generation-safe authentication helpers for Alpaca's API key + secret scheme.
+ * Generation-safe authentication helpers for Alpaca API key and OAuth schemes.
  *
  * Alpaca authenticates with two distinct headers:
  *   - `APCA-API-KEY-ID`     (your key id)
@@ -61,8 +61,9 @@ export interface CredentialOptions {
     secret?: string;
     /**
      * OAuth2 access token sent as `Authorization: Bearer <token>` (or set
-     * `APCA_API_OAUTH_TOKEN`). Mutually exclusive with `keyId`/`secret`; when
-     * present it takes precedence and the key/secret pair is ignored.
+     * `APCA_API_OAUTH_TOKEN`). An explicitly passed token takes precedence over
+     * explicit or environment key credentials. When no auth option is passed,
+     * the environment OAuth token takes precedence over environment keys.
      */
     accessToken?: string;
 }
@@ -89,21 +90,48 @@ function readEnv(name: string): string | undefined {
 /**
  * Resolve credentials from explicit options, falling back to the standard
  * Alpaca environment variables (`APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`,
- * `APCA_API_OAUTH_TOKEN`). Explicitly-passed values always win over the
- * environment.
+ * `APCA_API_OAUTH_TOKEN`). Non-empty explicitly passed values select the
+ * scheme before environment fallback.
  *
- * OAuth takes precedence and is mutually exclusive with the key/secret pair
- * (mirroring the official SDKs): when an `accessToken` is resolved, `keyId` /
- * `secret` are ignored. Throws a descriptive error when neither a complete
- * key/secret pair nor an access token can be resolved.
+ * Precedence is selected by the caller before environment fallback:
+ *
+ * 1. A non-empty explicit `accessToken` selects OAuth.
+ * 2. Any non-empty explicit `keyId` or `secret` selects key authentication,
+ *    resolving only the missing half from its corresponding environment
+ *    variable.
+ * 3. With no explicit scheme, an environment OAuth token takes precedence over
+ *    an environment key pair.
+ *
+ * Empty explicit strings are treated as absent.
+ *
+ * This prevents a process-level OAuth token from silently replacing an
+ * explicitly selected key account while preserving both explicit and
+ * environment-only OAuth authentication.
  */
 export function resolveCredentials(options: CredentialOptions = {}): ResolvedCredentials {
-    const accessToken = options.accessToken || readEnv(OAUTH_TOKEN_ENV);
-    if (accessToken) {
-        return { accessToken };
+    if (options.accessToken) {
+        return { accessToken: options.accessToken };
     }
-    const keyId = options.keyId || readEnv(API_KEY_ID_ENV);
-    const secret = options.secret || readEnv(API_SECRET_KEY_ENV);
+
+    if (options.keyId || options.secret) {
+        const keyId = options.keyId || readEnv(API_KEY_ID_ENV);
+        const secret = options.secret || readEnv(API_SECRET_KEY_ENV);
+        if (keyId && secret) {
+            return { keyId, secret };
+        }
+        throw new Error(
+            "Explicit Alpaca key authentication requires both `keyId` and `secret`; " +
+            `the missing value may also be supplied through ${API_KEY_ID_ENV} / ${API_SECRET_KEY_ENV}.`,
+        );
+    }
+
+    const environmentAccessToken = readEnv(OAUTH_TOKEN_ENV);
+    if (environmentAccessToken) {
+        return { accessToken: environmentAccessToken };
+    }
+
+    const keyId = readEnv(API_KEY_ID_ENV);
+    const secret = readEnv(API_SECRET_KEY_ENV);
     if (keyId && secret) {
         return { keyId, secret };
     }

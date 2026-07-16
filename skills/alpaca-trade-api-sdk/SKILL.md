@@ -70,7 +70,11 @@ const alpaca = new Alpaca({
 ```
 
 - Credentials resolve from env vars when omitted: `APCA_API_KEY_ID`,
-  `APCA_API_SECRET_KEY`, `APCA_API_OAUTH_TOKEN`. Explicit values win.
+  `APCA_API_SECRET_KEY`, `APCA_API_OAUTH_TOKEN`. A non-empty explicit
+  `accessToken` selects OAuth; otherwise any non-empty explicit key field
+  selects key authentication ahead of an environment token. Empty strings are
+  absent. With no explicit scheme, environment OAuth takes precedence over
+  environment keys.
 - **Never** pass `apiKey` as a plain string — Alpaca needs two distinct headers
   and will reject a single value (the SDK throws a guided error). Use OAuth via
   `accessToken`, or `auth.apiKeyAuth({ keyId, secret })` for lazy credentials.
@@ -91,10 +95,20 @@ const alpaca = new Alpaca({
   `oto`) — they drop the `postOrder({ postOrderRequest })` wrapper and enforce
   required fields per kind at compile time. For uncovered shapes (e.g. multi-leg
   `mleg`) use `orders.submit(input)` or the raw `postOrder`.
+- **Order safety:** agent-generated trading code must put a stable, unique
+  `clientOrderId` in every order request and persist it with the strategy's
+  audit record. Never add a custom idempotency header and never retry an
+  order-placement `POST`. If a `FetchError` makes placement ambiguous, call
+  `orders.getOrderByClientOrderId({ clientOrderId })` before any further
+  submission. Duplicate client IDs are rejected; they do not replay the prior
+  response. A lookup miss is not proof that placement failed, and visibility is
+  not guaranteed to become eventual.
 - **Pagination is built in.** `iterate*` lazily yields across all pages;
   `collect*` / `collect*BySymbol` eagerly return them — never thread page tokens
   by hand. For big back-fills pass `SymbolCollectOptions`
   (`maxPerSymbol`, `concurrency`, `chunkSize`) to bound memory / parallelize.
+  Every helper stops before refetching any previously visited token/cursor,
+  including longer cycles, after preserving valid pages already fetched.
 - **REST and streaming share one shape.** The normalized accessors
   (`getStockBars`, `getCryptoTrades`, …; single-symbol `*For(symbol)` variants;
   chart-ready `get*Candles`) return the SAME `Bar`/`Trade`/`Quote` type the
@@ -102,6 +116,8 @@ const alpaca = new Alpaca({
   The **raw** generated map responses (e.g. `marketData.stocks.stockBars`) keep
   Alpaca's compact wire keys (`{ o, h, l, c, v, … }`) and may carry ISO-string
   timestamps; prefer the normalized accessors or `marketDataShapes.toBar` etc.
+  A single-symbol `*For` reads only the exact requested key; absent data is `[]`
+  or empty `Candles`, never another symbol's value.
 - **Errors are typed.** Non-2xx rejects with `ApiError` and status-specific
   subclasses (`AuthError` 401, `PermissionError` 403, `NotFoundError` 404,
   `ValidationError` 400/422, `RateLimitError` 429). Branch on the subclass, not
@@ -110,9 +126,16 @@ const alpaca = new Alpaca({
 - **Resilience is opt-in but conservative.** `timeoutMs`, `retry`
   (`maxRetries > 0` to enable; non-idempotent POSTs are never auto-retried),
   `rateLimit` (the `Alpaca` client enables a safe ~200/min default; raw `Api`
-  classes do not), and `userAgent` are all top-level client options. The `retry`
+  classes do not), and `userAgent` are all top-level client options. The
+  default User-Agent is
+  `APCA-NODE/<sdk-version> <Runtime>/<runtime-version>`; override it with
+  `userAgent`, or set `userAgent: ""` to disable it. The `retry`
   config also takes `onRetry`/`onGiveUp` observability hooks (each fired with a
   `RetryEvent`; thrown exceptions are swallowed so they can't break a request).
+  `timeoutMs` is fresh per attempt and covers rate-limit wait, pre/fetch/post/
+  error middleware, and success/error body reads. Backoff is outside that
+  attempt budget; caller abort spans the operation/backoff. Every cancellation
+  phase throws `FetchError` with `AbortError`/`TimeoutError` cause.
   Requests default to `redirect: "error"` (3xx fails fast) so the `APCA-API-*`
   secret headers can't follow an off-host redirect; set `redirect: "follow"` to
   opt out.
@@ -126,8 +149,9 @@ const alpaca = new Alpaca({
   streams. On edge/browser runtimes (Cloudflare Workers/`workerd`, Vercel Edge,
   Deno, browsers) the root import auto-resolves to this REST-only build via the
   package `exports` conditions, so streaming is unavailable there (`ws` can't
-  run on edge) but REST works without the `Class extends value [object Module]`
-  crash.
+  run on edge) but REST works. The REST runtime graph and declarations are free
+  of Node, `ws`, and msgpack requirements, including strict Node projects
+  without DOM libs.
 - **ESM & CJS dual package:** don't load the SDK through both `import` and
   `require` in one process if you rely on `instanceof` against its classes
   (e.g. `ApiError`) — you may compare against two copies.
@@ -146,8 +170,14 @@ stocks.connect();
 
 `cryptoStream()`, `optionStream()`, `newsStream()`, and the trading
 `alpaca.trading.stream()` (order/account updates) share the same surface. The
-`submitAndWait` workflow helper places an order and resolves on its terminal
-state over the trading-updates stream.
+`submitAndWait` workflow helper waits for the server's `listening`
+acknowledgement, then issues one placement per invocation and resolves on a
+terminal update. It preserves a supplied client ID or creates one once, never
+re-places on reconnect, and uses one deadline for connect, authentication,
+subscription, REST placement, and waiting. Only this helper performs one
+client-ID lookup after an ambiguous `FetchError`; generic builders do not
+reconcile automatically. It does not guarantee exactly-once execution or
+eventual lookup visibility.
 
 Every stream also exposes (parity with the Java client):
 
@@ -156,13 +186,17 @@ Every stream also exposes (parity with the Java client):
   `waitForAuthentication(timeoutMs?)` → `boolean`. `status` is a
   `STREAM_AUTH_STATUS` (`authenticated`/`server_rejected`/`closed`/`timeout`).
 - **Reconnect lifecycle:** `onReconnecting((attempt) => …)` (1-based) and
-  `onReconnected(() => …)`, distinct from the first `onConnect`.
+  `onReconnected(() => …)` after auth and re-subscription dispatch, distinct
+  from the first `onConnect`; it is not server subscription acknowledgement.
 - **Overrides:** a per-stream `url` (proxy/gateway routing on any stream,
   market-data included) and a `callbackExecutor` to offload + isolate listeners
   (a throwing listener is logged, never breaks the stream).
 - **Gotchas:** crypto & news streams are **production-only** — `sandbox: true`
   throws (the client `sandbox` flag isn't applied to them); pass `url` to
   override. Subscribing with blank/non-string symbols throws at the call site.
+  Socket generations isolate stale callbacks/timers, pings start only while
+  open, manual disconnect emits once, and malformed/decode/mapper or trading
+  `action: "error"` failures surface through `onError` / `CLIENT_ERROR`.
 
 ## Discovering anything programmatically
 

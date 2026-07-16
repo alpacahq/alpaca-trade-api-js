@@ -12,8 +12,8 @@
  *   APCA_API_KEY_ID=... APCA_API_SECRET_KEY=... npx tsx examples/trading-bot.ts
  */
 // In your own app this import is just:
-//   import { Alpaca, ApiError, RateLimitError, values } from "@alpacahq/alpaca-trade-api";
-import { Alpaca, ApiError, RateLimitError, values } from "../src/index";
+//   import { Alpaca, ApiError, FetchError, RateLimitError, values } from "@alpacahq/alpaca-trade-api";
+import { Alpaca, ApiError, FetchError, RateLimitError, values } from "../src/index";
 
 async function main(): Promise<void> {
     const keyId = process.env.APCA_API_KEY_ID;
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
         secret,
         paper: true,
         timeoutMs: 10_000,
-        retry: { maxRetries: 3 }, // covers transient 5xx AND network errors on GETs
+        retry: { maxRetries: 3 }, // covers transient 5xx and network errors on safe GETs, never order POSTs
     });
 
     // Money/quantity fields are wire-truthful strings; format them for display
@@ -49,7 +49,8 @@ async function main(): Promise<void> {
     updates.onError((msg) => console.error("stream error:", msg));
     // Observe the reconnect lifecycle (auto-reconnect with backoff is built in).
     updates.onReconnecting((attempt) => console.warn(`stream reconnecting (attempt ${attempt})`));
-    updates.onReconnected(() => console.info("stream reconnected; subscriptions restored"));
+    // This means re-subscription was dispatched, not acknowledged by the server.
+    updates.onReconnected(() => console.info("stream reconnected; subscriptions dispatched"));
     updates.onConnect(() => updates.subscribeTradeUpdates());
     updates.connect();
 
@@ -62,17 +63,41 @@ async function main(): Promise<void> {
         process.exit(1);
     }
 
+    // A stable, unique client ID makes this placement auditable and provides
+    // the reconciliation key if the transport fails after Alpaca receives it.
+    const restingClientOrderId = newClientOrderId("resting-limit-aapl");
+
     // Ergonomic order builder: a limit buy well below the market rests without
     // filling. The typed `orders.limit` builder requires `limitPrice` at compile
     // time and accepts `number | string` amounts. We place then cancel it to
     // show both the builder and a raw generated method (`deleteOrderByOrderID`).
     try {
-        const resting = await alpaca.trading.orders.limit({
-            symbol: "AAPL",
-            qty: 1,
-            side: "buy",
-            limitPrice: Math.max(1, Math.floor((price ?? 100) * 0.5)),
-        });
+        let resting: Awaited<ReturnType<typeof alpaca.trading.orders.limit>>;
+        try {
+            resting = await alpaca.trading.orders.limit({
+                symbol: "AAPL",
+                qty: 1,
+                side: "buy",
+                limitPrice: Math.max(1, Math.floor((price ?? 100) * 0.5)),
+                clientOrderId: restingClientOrderId,
+            });
+        } catch (err) {
+            if (!(err instanceof FetchError)) throw err;
+
+            // The POST outcome is ambiguous. Reconcile by client ID before any
+            // further submission; a failed lookup is not proof that placement
+            // failed, so this example stops instead of risking another order.
+            try {
+                resting = await alpaca.trading.orders.getOrderByClientOrderId({
+                    clientOrderId: restingClientOrderId,
+                });
+                console.warn(`reconciled ambiguous placement as order ${resting.id}`);
+            } catch (lookupError) {
+                reportError("limit order reconciliation", lookupError);
+                updates.disconnect();
+                return;
+            }
+        }
         console.log(`placed resting limit order ${resting.id} @ ${resting.limitPrice}`);
         if (resting.id) {
             await alpaca.trading.orders.deleteOrderByOrderID({ orderId: resting.id });
@@ -82,12 +107,21 @@ async function main(): Promise<void> {
         reportError("limit order", err);
     }
 
-    // `submitAndWait` places an order and resolves once it reaches a terminal
-    // state, observed over the trade-updates stream.
+    // `submitAndWait` waits for Alpaca's listening acknowledgement, places once
+    // per invocation, and never re-places on reconnect. It preserves this
+    // client ID and uses one deadline for subscription, REST, and terminal wait.
+    // Only this workflow makes one client-ID GET after an ambiguous FetchError;
+    // the generic order builders require the explicit recovery shown above.
     try {
         const order = await alpaca.trading.submitAndWait(
-            { type: "market", symbol: "AAPL", qty: 1, side: "buy" },
-            { timeoutMs: 30_000 },
+            {
+                type: "market",
+                symbol: "AAPL",
+                qty: 1,
+                side: "buy",
+                clientOrderId: newClientOrderId("market-aapl"),
+            },
+            { timeoutMs: 30_000, stream: updates },
         );
         console.log(`order ${order.id} reached ${order.status} (filledAvgPrice=${order.filledAvgPrice ?? "n/a"})`);
     } catch (err) {
@@ -95,6 +129,11 @@ async function main(): Promise<void> {
     } finally {
         updates.disconnect();
     }
+}
+
+/** Human-readable strategy prefix plus collision-resistant Node 20 UUID. */
+function newClientOrderId(purpose: string): string {
+    return `${purpose}-${globalThis.crypto.randomUUID()}`;
 }
 
 /** Branch on the typed-error subclasses; always log the request id on an ApiError. */

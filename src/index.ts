@@ -11,8 +11,23 @@ export * as rateLimit from './rate-limit';
 export * as capabilities from './capabilities';
 export * as middleware from './middleware';
 
-export { Alpaca, TradingClient, MarketDataClient, OrdersApi, LIVE_TRADING_BASE_PATH, DEFAULT_RATE_LIMIT } from './client';
-export type { AlpacaClientOptions, SymbolCollectOptions } from './client';
+export {
+    Alpaca,
+    TradingClient,
+    MarketDataClient,
+    OrdersApi,
+    SubmitAndWaitError,
+    LIVE_TRADING_BASE_PATH,
+    DEFAULT_RATE_LIMIT,
+} from './client';
+export type {
+    AlpacaClientOptions,
+    AlpacaRequestCredentials,
+    AlpacaRequestRedirect,
+    SubmitAndWaitOptions,
+    SubmitAndWaitPhase,
+    SymbolCollectOptions,
+} from './client';
 
 export { TimeFrame, TimeFrameUnit, timeFrame } from './values';
 export type { Money } from './values';

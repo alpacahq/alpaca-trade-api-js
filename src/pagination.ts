@@ -32,15 +32,14 @@ export type PageFetcher<T> = (pageToken?: string) => Promise<Page<T>>;
 
 /**
  * Resolve the token for the next page, or `undefined` to stop. Stops when the
- * API omits a token (`null`/`undefined`/blank) and ALSO when it echoes the same
- * token we just used: a misbehaving endpoint that repeats its cursor would
- * otherwise loop forever, so we apply the "repeated-token STOP" safeguard and
- * return what was collected so far.
+ * API omits a token (`null`/`undefined`/blank) or returns any token already
+ * visited in this pagination run.
  */
-function nextToken(raw: string | null | undefined, current: string | undefined): string | undefined {
-    if (!raw || raw === current) {
+function nextToken(raw: string | null | undefined, visited: Set<string>): string | undefined {
+    if (!raw || visited.has(raw)) {
         return undefined;
     }
+    visited.add(raw);
     return raw;
 }
 
@@ -50,12 +49,13 @@ function nextToken(raw: string | null | undefined, current: string | undefined):
  */
 export async function* paginate<T>(fetchPage: PageFetcher<T>): AsyncGenerator<T, void, void> {
     let pageToken: string | undefined ;
+    const visitedTokens = new Set<string>();
     for (;;) {
         const page = await fetchPage(pageToken);
         for (const item of page.items ?? []) {
             yield item;
         }
-        const next = nextToken(page.nextPageToken, pageToken);
+        const next = nextToken(page.nextPageToken, visitedTokens);
         if (next === undefined) {
             return;
         }
@@ -116,6 +116,7 @@ export async function* paginateSymbolMap<T>(
     fetchPage: SymbolMapPageFetcher<T>,
 ): AsyncGenerator<{ symbol: string; value: T }, void, void> {
     let pageToken: string | undefined ;
+    const visitedTokens = new Set<string>();
     for (;;) {
         const page = await fetchPage(pageToken);
         const data = page.data ?? {};
@@ -124,7 +125,7 @@ export async function* paginateSymbolMap<T>(
                 yield { symbol, value };
             }
         }
-        const next = nextToken(page.nextPageToken, pageToken);
+        const next = nextToken(page.nextPageToken, visitedTokens);
         if (next === undefined) {
             return;
         }
@@ -163,6 +164,7 @@ export async function collectBySymbol<T>(
     const cap = options.maxPerSymbol;
     const expected = options.symbols;
     let pageToken: string | undefined ;
+    const visitedTokens = new Set<string>();
     for (;;) {
         const page = await fetchPage(pageToken);
         const data = page.data ?? {};
@@ -178,7 +180,7 @@ export async function collectBySymbol<T>(
         if (cap !== undefined && allSymbolsCapped(out, cap, expected)) {
             break;
         }
-        const next = nextToken(page.nextPageToken, pageToken);
+        const next = nextToken(page.nextPageToken, visitedTokens);
         if (next === undefined) {
             break;
         }
@@ -224,13 +226,14 @@ export async function* paginateSymbolObjects<T>(
     fetchPage: SymbolObjectPageFetcher<T>,
 ): AsyncGenerator<{ symbol: string; value: T }, void, void> {
     let pageToken: string | undefined ;
+    const visitedTokens = new Set<string>();
     for (;;) {
         const page = await fetchPage(pageToken);
         const data = page.data ?? {};
         for (const symbol of Object.keys(data)) {
             yield { symbol, value: data[symbol] };
         }
-        const next = nextToken(page.nextPageToken, pageToken);
+        const next = nextToken(page.nextPageToken, visitedTokens);
         if (next === undefined) {
             return;
         }
@@ -247,13 +250,14 @@ export async function collectSymbolObjects<T>(
 ): Promise<{ [symbol: string]: T }> {
     const out: { [symbol: string]: T } = {};
     let pageToken: string | undefined ;
+    const visitedTokens = new Set<string>();
     for (;;) {
         const page = await fetchPage(pageToken);
         const data = page.data ?? {};
         for (const symbol of Object.keys(data)) {
             out[symbol] = data[symbol];
         }
-        const next = nextToken(page.nextPageToken, pageToken);
+        const next = nextToken(page.nextPageToken, visitedTokens);
         if (next === undefined) {
             return out;
         }
@@ -284,6 +288,7 @@ export async function* paginateCursor<T>(
 ): AsyncGenerator<T, void, void> {
     const { fetchPage, getCursor, pageSize } = options;
     let pageToken: string | undefined ;
+    const visitedCursors = new Set<string>();
     for (;;) {
         const page = await fetchPage(pageToken);
         if (!page || page.length === 0) {
@@ -296,11 +301,10 @@ export async function* paginateCursor<T>(
             return;
         }
         const cursor = getCursor(page[page.length - 1]);
-        // Stop on a missing cursor or a repeated one (the same last-item id):
-        // re-requesting it would return the same page forever.
-        if (!cursor || cursor === pageToken) {
+        if (!cursor || visitedCursors.has(cursor)) {
             return;
         }
+        visitedCursors.add(cursor);
         pageToken = cursor;
     }
 }

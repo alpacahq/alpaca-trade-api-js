@@ -42,8 +42,10 @@ Thumbs.db
 *.iml
 
 # Docs site (docs/) generated artifacts — the Docusaurus build output, its cache,
-# and the generated pages (API reference + examples, regenerated on every build).
+# and the generated pages (API reference, examples, and migration guide,
+# regenerated on every build).
 docs/build/
 docs/.docusaurus/
 docs/docs/api/
 docs/docs/examples.md
+docs/docs/migration.md

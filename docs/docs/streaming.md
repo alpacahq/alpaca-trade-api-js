@@ -7,8 +7,9 @@ title: Streaming
 
 WebSocket clients for market data (stocks, crypto, options, news) and a trading
 stream (order/account updates). Both authenticate automatically, reconnect with
-backoff, re-subscribe after a reconnect, and ping/pong. The API is a typed
-`EventEmitter`: register listeners, then `connect()`.
+backoff, dispatch their current subscriptions after reconnect authentication,
+and ping/pong. The API is a typed `EventEmitter`: register listeners, then
+`connect()`.
 
 ```ts
 const stocks = alpaca.marketData.stockStream({ feed: "iex" });
@@ -78,8 +79,9 @@ Every stream exposes:
   a `boolean`. Failures carry a `STREAM_AUTH_STATUS` (`server_rejected` with the
   server `code`, `closed`, `timeout`).
 - **Reconnect lifecycle** — `onReconnecting((attempt) => …)` (1-based) and
-  `onReconnected(() => …)` (after re-auth + re-subscribe), distinct from the first
-  `onConnect`.
+  `onReconnected(() => …)` after re-authentication and re-subscription
+  **dispatch**, distinct from the first `onConnect`. This event does not promise
+  a server subscription acknowledgement.
 - **A custom `url`** on any stream to route through a proxy/gateway, plus a
   `callbackExecutor` to offload listener work — a throwing listener is isolated
   and can never break the stream.
@@ -90,6 +92,19 @@ if (!result.authenticated) {
   console.error(`auth failed: ${result.status} ${result.code ?? ""}`);
 }
 ```
+
+## Connection safety
+
+Lifecycle callbacks, messages, keepalive timers, and reconnect work are scoped
+to the socket generation that created them, so a stale socket cannot mutate a
+new connection. Ping timers start only after the socket is open. A manual
+`disconnect()` suppresses reconnect and emits the disconnect lifecycle exactly
+once.
+
+Malformed frames, decode failures, and event-mapper failures are caught and
+reported through `onError` / `CLIENT_ERROR` without escaping the socket callback
+or crashing the process. The trading protocol's `action: "error"` frames use
+the same error channel. Listener/callback-executor failures are isolated too.
 
 :::note Production-only streams
 Crypto and news streams have no sandbox endpoint: pass an explicit `url` to point

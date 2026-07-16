@@ -57,15 +57,24 @@ import * as marketDataShapes from "./marketDataShapes";
  */
 export const LIVE_TRADING_BASE_PATH = trading.TRADING_LIVE_HOST;
 
+/** Values accepted by {@link AlpacaClientOptions.credentials}. */
+export type AlpacaRequestCredentials = "omit" | "same-origin" | "include";
+
+/** Values accepted by {@link AlpacaClientOptions.redirect}. */
+export type AlpacaRequestRedirect = "error" | "follow" | "manual";
+
 /**
  * Options accepted by the top-level {@link Alpaca} client.
  *
  * Provide credentials as either an API `keyId`/`secret` pair or an OAuth
  * `accessToken`. Any of them may be omitted and resolved from the standard
  * Alpaca environment variables (`APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`,
- * `APCA_API_OAUTH_TOKEN`); explicit values win. Every other field is an
- * optional passthrough shared by both the trading and market-data REST
- * configurations.
+ * `APCA_API_OAUTH_TOKEN`). A non-empty explicit token selects OAuth; otherwise
+ * any non-empty explicit key field selects key authentication ahead of an
+ * environment token. Empty strings are treated as absent. With no explicit
+ * scheme, environment OAuth takes precedence over environment keys. Every
+ * other field is an optional passthrough shared by both the trading and
+ * market-data REST configurations.
  */
 export interface AlpacaClientOptions {
     /** API key id, or set `APCA_API_KEY_ID`. Pair with {@link secret}. */
@@ -74,10 +83,10 @@ export interface AlpacaClientOptions {
     secret?: string;
     /**
      * OAuth2 access token sent as `Authorization: Bearer <token>` (or set
-     * `APCA_API_OAUTH_TOKEN`). Mutually exclusive with {@link keyId}/{@link secret}
-     * and takes precedence over them for REST requests. Note: the real-time
-     * streaming endpoints authenticate with a key/secret pair, so OAuth-only
-     * clients cannot open WebSocket streams.
+     * `APCA_API_OAUTH_TOKEN`). An explicitly passed token takes precedence over
+     * key credentials for REST requests. Note: the real-time streaming
+     * endpoints authenticate with a key/secret pair, so OAuth-only clients
+     * cannot open WebSocket streams.
      */
     accessToken?: string;
     /**
@@ -121,14 +130,14 @@ export interface AlpacaClientOptions {
     /** Headers sent on every REST request. */
     headers?: trading.HTTPHeaders;
     /** Value for the `credentials` option on every REST request. */
-    credentials?: RequestCredentials;
+    credentials?: AlpacaRequestCredentials;
     /**
      * How `fetch` treats 3xx redirects. Defaults to `"error"` — Alpaca's APIs
      * never redirect, and following one off-host would forward the
      * `APCA-API-*` secret headers to the redirect target. Set `"follow"` to opt
      * back into the platform default (e.g. behind a redirecting proxy).
      */
-    redirect?: RequestRedirect;
+    redirect?: AlpacaRequestRedirect;
 }
 
 /** REST configuration fields shared by both sub-clients. */
@@ -228,46 +237,46 @@ export type GetAllOrdersInput = Omit<trading.GetAllOrdersRequest, "side" | "symb
 
 export class OrdersApi extends trading.OrdersApi {
     /** Place a market order (requires `qty` or `notional`). */
-    market(input: orders.MarketOrderInput, options?: orders.OrderSubmitOptions): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildMarketOrder(input) }, orders.orderInitOverrides(options));
+    market(input: orders.MarketOrderInput): Promise<trading.Order> {
+        return this.postOrder({ postOrderRequest: orders.buildMarketOrder(input) });
     }
     /** Place a limit order. */
-    limit(input: orders.LimitOrderInput, options?: orders.OrderSubmitOptions): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildLimitOrder(input) }, orders.orderInitOverrides(options));
+    limit(input: orders.LimitOrderInput): Promise<trading.Order> {
+        return this.postOrder({ postOrderRequest: orders.buildLimitOrder(input) });
     }
     /** Place a stop (stop-market) order. */
-    stop(input: orders.StopOrderInput, options?: orders.OrderSubmitOptions): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildStopOrder(input) }, orders.orderInitOverrides(options));
+    stop(input: orders.StopOrderInput): Promise<trading.Order> {
+        return this.postOrder({ postOrderRequest: orders.buildStopOrder(input) });
     }
     /** Place a stop-limit order. */
-    stopLimit(input: orders.StopLimitOrderInput, options?: orders.OrderSubmitOptions): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildStopLimitOrder(input) }, orders.orderInitOverrides(options));
+    stopLimit(input: orders.StopLimitOrderInput): Promise<trading.Order> {
+        return this.postOrder({ postOrderRequest: orders.buildStopLimitOrder(input) });
     }
     /** Place a trailing-stop order (requires `trailPrice` or `trailPercent`). */
-    trailingStop(input: orders.TrailingStopOrderInput, options?: orders.OrderSubmitOptions): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildTrailingStopOrder(input) }, orders.orderInitOverrides(options));
+    trailingStop(input: orders.TrailingStopOrderInput): Promise<trading.Order> {
+        return this.postOrder({ postOrderRequest: orders.buildTrailingStopOrder(input) });
     }
     /** Place a bracket order (entry + take-profit + stop-loss). */
-    bracket(input: orders.BracketOrderInput, options?: orders.OrderSubmitOptions): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildBracketOrder(input) }, orders.orderInitOverrides(options));
+    bracket(input: orders.BracketOrderInput): Promise<trading.Order> {
+        return this.postOrder({ postOrderRequest: orders.buildBracketOrder(input) });
     }
     /** Place a one-cancels-other (OCO) order. */
-    oco(input: orders.OcoOrderInput, options?: orders.OrderSubmitOptions): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildOcoOrder(input) }, orders.orderInitOverrides(options));
+    oco(input: orders.OcoOrderInput): Promise<trading.Order> {
+        return this.postOrder({ postOrderRequest: orders.buildOcoOrder(input) });
     }
     /** Place a one-triggers-other (OTO) order. */
-    oto(input: orders.OtoOrderInput, options?: orders.OrderSubmitOptions): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildOtoOrder(input) }, orders.orderInitOverrides(options));
+    oto(input: orders.OtoOrderInput): Promise<trading.Order> {
+        return this.postOrder({ postOrderRequest: orders.buildOtoOrder(input) });
     }
     /**
      * Generic escape hatch: submit a near-raw order, normalizing amount fields
      * to wire strings. Use the typed methods above when possible; reach for this
-     * only for shapes they don't cover (e.g. `mleg`). Pass
-     * {@link orders.OrderSubmitOptions.idempotencyKey} to make the POST safely
-     * retryable.
+     * only for shapes they don't cover (e.g. `mleg`). Supply a stable, unique
+     * `clientOrderId` so an ambiguous transport failure can be reconciled before
+     * deciding whether to submit another order.
      */
-    submit(input: orders.OrderInput, options?: orders.OrderSubmitOptions): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildOrder(input) }, orders.orderInitOverrides(options));
+    submit(input: orders.OrderInput): Promise<trading.Order> {
+        return this.postOrder({ postOrderRequest: orders.buildOrder(input) });
     }
 
     /**
@@ -296,6 +305,29 @@ const DEFAULT_TERMINAL_EVENTS: readonly streaming.TradeUpdateEvent[] = [
     "done_for_day",
 ];
 
+/** Map REST order statuses to their corresponding trade-update event names. */
+function tradeEventForOrderStatus(status: trading.OrderStatus | undefined): streaming.TradeUpdateEvent | undefined {
+    if (status === "filled") return "fill";
+    if (status === "partially_filled") return "partial_fill";
+    if (
+        status === "new" ||
+        status === "done_for_day" ||
+        status === "canceled" ||
+        status === "expired" ||
+        status === "replaced" ||
+        status === "pending_cancel" ||
+        status === "pending_replace" ||
+        status === "pending_new" ||
+        status === "stopped" ||
+        status === "rejected" ||
+        status === "suspended" ||
+        status === "calculated"
+    ) {
+        return status;
+    }
+    return undefined;
+}
+
 /** Options for {@link TradingClient.submitAndWait}. */
 export interface SubmitAndWaitOptions {
     /** Reject if no terminal event arrives within this many ms. Default `30000`. */
@@ -308,6 +340,43 @@ export interface SubmitAndWaitOptions {
      * once the promise settles.
      */
     stream?: streaming.TradingStream;
+}
+
+/** Workflow stage reported by {@link SubmitAndWaitError}. */
+export type SubmitAndWaitPhase = "subscription" | "placement" | "reconciliation" | "terminal";
+
+/**
+ * Actionable failure from {@link TradingClient.submitAndWait}.
+ *
+ * When {@link placementAmbiguous} is true, the order placement may have reached
+ * Alpaca. Reconcile with {@link clientOrderId} before submitting another order.
+ * When placement is confirmed, {@link orderId} identifies the known order.
+ */
+export class SubmitAndWaitError extends Error {
+    override readonly name = "SubmitAndWaitError";
+    readonly clientOrderId: string;
+    readonly orderId?: string;
+    readonly phase: SubmitAndWaitPhase;
+    readonly placementAmbiguous: boolean;
+    readonly cause: unknown;
+
+    constructor(
+        message: string,
+        details: {
+            clientOrderId: string;
+            orderId?: string;
+            phase: SubmitAndWaitPhase;
+            placementAmbiguous: boolean;
+            cause: unknown;
+        },
+    ) {
+        super(message);
+        this.clientOrderId = details.clientOrderId;
+        this.orderId = details.orderId;
+        this.phase = details.phase;
+        this.placementAmbiguous = details.placementAmbiguous;
+        this.cause = details.cause;
+    }
 }
 
 /**
@@ -493,10 +562,11 @@ export class TradingClient {
      * over the trading-updates stream. Resolves with the terminal
      * {@link trading.Order}; rejects on timeout or a stream error.
      *
-     * The stream is connected and subscribed BEFORE the order is placed (and
-     * any updates that arrive before the order id is known are buffered and
-     * replayed), so a fast fill cannot slip through the gap between placement
-     * and subscription.
+     * The stream confirms its `trade_updates` subscription before the order is
+     * placed. A client order ID is known before subscribing, so a fast terminal
+     * update can be matched even while the POST response is still pending.
+     * Post-placement workflow failures reject with {@link SubmitAndWaitError},
+     * exposing the `clientOrderId` and, after confirmation, the `orderId`.
      */
     submitAndWait(input: orders.OrderInput, options: SubmitAndWaitOptions = {}): Promise<trading.Order> {
         const timeoutMs = options.timeoutMs ?? 30_000;
@@ -504,17 +574,27 @@ export class TradingClient {
         const ownStream = options.stream === undefined;
         const stream = options.stream ?? this.stream();
         const EVENT = getStreaming().EVENT;
+        const submittedInput: orders.OrderInput = {
+            ...input,
+            clientOrderId: input.clientOrderId ?? globalThis.crypto.randomUUID(),
+        };
+        const clientOrderId = submittedInput.clientOrderId as string;
 
         return new Promise<trading.Order>((resolve, reject) => {
             let settled = false;
-            let known = false;
-            let timer: ReturnType<typeof setTimeout> | undefined;
-            let clientOrderId: string | undefined;
+            let cleaned = false;
+            let placementStarted = false;
+            let placementConfirmed = false;
+            let workflowPhase: SubmitAndWaitPhase = "subscription";
             let orderId: string | undefined;
-            const bufferedUpdates: streaming.TradeUpdate[] = [];
+            const workflowController = new AbortController();
 
             const cleanup = (): void => {
-                if (timer) clearTimeout(timer);
+                if (cleaned) return;
+                cleaned = true;
+                clearTimeout(timer);
+                workflowController.abort();
+                stream.off(EVENT.SUBSCRIPTION, onSubscription);
                 stream.off(EVENT.TRADE_UPDATE, onUpdate);
                 stream.off(EVENT.CLIENT_ERROR, onError);
                 if (ownStream) stream.disconnect();
@@ -526,56 +606,145 @@ export class TradingClient {
                 run();
             };
             const matches = (order: trading.Order): boolean =>
-                (clientOrderId !== undefined && order.clientOrderId === clientOrderId) ||
-                (orderId !== undefined && order.id === orderId);
-            // Returns true once a terminal match has resolved the promise.
-            const consider = (u: streaming.TradeUpdate): boolean => {
-                if (!matches(u.order) || !terminal.has(u.event)) return false;
+                order.clientOrderId === clientOrderId || (orderId !== undefined && order.id === orderId);
+            const consider = (u: streaming.TradeUpdate): void => {
+                if (!matches(u.order) || !terminal.has(u.event)) return;
                 settle(() => resolve(u.order));
-                return true;
             };
             function onUpdate(u: streaming.TradeUpdate): void {
-                if (!known) {
-                    bufferedUpdates.push(u);
-                    return;
-                }
                 consider(u);
             }
             function onError(message: string): void {
-                settle(() => reject(new Error(`trading stream error: ${message}`)));
+                const cause = new Error(`trading stream error: ${message}`);
+                if (placementStarted) {
+                    const placementAmbiguous = !placementConfirmed;
+                    const errorMessage = placementAmbiguous
+                        ? `submitAndWait lost the trading stream after placement started for clientOrderId "${clientOrderId}"; the placement outcome is ambiguous. Reconcile this clientOrderId before submitting another order. Cause: ${cause.message}`
+                        : `submitAndWait lost the trading stream after placement was confirmed for clientOrderId "${clientOrderId}", orderId "${orderId}". Inspect the order and resume monitoring before taking further action. Cause: ${cause.message}`;
+                    settle(() =>
+                        reject(
+                            new SubmitAndWaitError(
+                                errorMessage,
+                                {
+                                    clientOrderId,
+                                    orderId,
+                                    phase: workflowPhase,
+                                    placementAmbiguous,
+                                    cause,
+                                },
+                            ),
+                        ),
+                    );
+                    return;
+                }
+                settle(() => reject(cause));
             }
-
-            stream.on(EVENT.TRADE_UPDATE, onUpdate);
-            stream.on(EVENT.CLIENT_ERROR, onError);
-            stream.subscribeTradeUpdates();
 
             const place = async (): Promise<void> => {
                 try {
-                    const placed = await this.orders.submit(input);
-                    clientOrderId = placed.clientOrderId;
-                    orderId = placed.id;
-                    known = true;
-                    for (const u of bufferedUpdates) {
-                        if (consider(u)) return;
-                    }
-                    bufferedUpdates.length = 0;
-                    if (settled) return;
-                    timer = setTimeout(
-                        () => settle(() => reject(new Error(`submitAndWait timed out after ${timeoutMs}ms`))),
-                        timeoutMs,
+                    const placed = await this.orders.postOrder(
+                        { postOrderRequest: orders.buildOrder(submittedInput) },
+                        { signal: workflowController.signal },
                     );
+                    if (settled) return;
+                    orderId = placed.id;
+                    placementConfirmed = true;
+                    workflowPhase = "terminal";
                 } catch (err) {
-                    settle(() => reject(err as Error));
+                    if (settled) return;
+                    if (!(err instanceof FetchError)) {
+                        settle(() => reject(err as Error));
+                        return;
+                    }
+                    workflowPhase = "reconciliation";
+                    try {
+                        const reconciled = await this.orders.getOrderByClientOrderId(
+                            { clientOrderId },
+                            { signal: workflowController.signal },
+                        );
+                        if (settled) return;
+                        orderId = reconciled.id;
+                        placementConfirmed = true;
+                        workflowPhase = "terminal";
+                        const event = tradeEventForOrderStatus(reconciled.status);
+                        if (event !== undefined && terminal.has(event)) {
+                            settle(() => resolve(reconciled));
+                        }
+                    } catch (reconciliationError) {
+                        if (settled) return;
+                        if (reconciliationError instanceof ApiError && reconciliationError.status === 404) {
+                            return;
+                        }
+                        settle(() =>
+                            reject(
+                                new SubmitAndWaitError(
+                                    `submitAndWait failed for clientOrderId "${clientOrderId}" because it could not reconcile the ambiguous placement. Query this clientOrderId before submitting another order.`,
+                                    {
+                                        clientOrderId,
+                                        orderId,
+                                        phase: "reconciliation",
+                                        placementAmbiguous: true,
+                                        cause: reconciliationError,
+                                    },
+                                ),
+                            ),
+                        );
+                    }
                 }
             };
-
-            if (ownStream) {
-                stream.onConnect(() => {
-                    void place();
-                });
-                stream.connect();
-            } else {
+            function onSubscription(subscriptions: unknown): void {
+                if (
+                    placementStarted ||
+                    !Array.isArray(subscriptions) ||
+                    !subscriptions.includes("trade_updates")
+                ) {
+                    return;
+                }
+                placementStarted = true;
+                workflowPhase = "placement";
                 void place();
+            }
+
+            const timer = setTimeout(() => {
+                const timeoutCause = new DOMException(
+                    `submitAndWait timed out after ${timeoutMs}ms`,
+                    "TimeoutError",
+                );
+                const phaseDescription = !placementStarted
+                    ? "before order placement while waiting for the trade_updates subscription"
+                    : workflowPhase === "reconciliation"
+                      ? "because the placement outcome is ambiguous while reconciling"
+                      : !placementConfirmed
+                      ? "because the placement outcome is ambiguous"
+                      : "while waiting for a terminal update";
+                const placementAmbiguous = placementStarted && !placementConfirmed;
+                const action = placementAmbiguous
+                    ? " Reconcile this clientOrderId before submitting another order."
+                    : "";
+                settle(() =>
+                    reject(
+                        new SubmitAndWaitError(
+                            `submitAndWait timed out after ${timeoutMs}ms for clientOrderId "${clientOrderId}" ${phaseDescription}.${action}`,
+                            {
+                                clientOrderId,
+                                orderId,
+                                phase: workflowPhase,
+                                placementAmbiguous,
+                                cause: timeoutCause,
+                            },
+                        ),
+                    ),
+                );
+            }, timeoutMs);
+
+            try {
+                stream.on(EVENT.SUBSCRIPTION, onSubscription);
+                stream.on(EVENT.TRADE_UPDATE, onUpdate);
+                stream.on(EVENT.CLIENT_ERROR, onError);
+                stream.subscribeTradeUpdates();
+                if (ownStream) stream.connect();
+            } catch (error) {
+                settle(() => reject(error as Error));
             }
         });
     }
@@ -969,7 +1138,7 @@ export class MarketDataClient {
 
     /** Unwrap a single-symbol `{ [symbol]: T[] }` map to that symbol's series (empty when absent). */
     private static firstSeries<T>(map: { [symbol: string]: T[] }, symbol: string): T[] {
-        return map[symbol] ?? Object.values(map)[0] ?? [];
+        return map[symbol] ?? [];
     }
 
     /** Historical stock bars for one symbol as canonical {@link marketDataShapes.Bar}s. */
@@ -1310,12 +1479,18 @@ export class MarketDataClient {
         req: Omit<WithOptionalSymbolList<marketData.CorporateActionsRequest>, "pageToken">,
     ): AsyncGenerator<marketData.CorporateActions, void, void> {
         let pageToken: string | undefined ;
+        const visitedTokens = new Set<string>();
         const symbols = req.symbols === undefined ? undefined : values.normalizeSymbols(req.symbols);
-        do {
+        for (;;) {
             const r = await this.corporateActions.corporateActions({ ...req, symbols, pageToken });
             yield r.corporateActions ?? ({} as marketData.CorporateActions);
-            pageToken = r.nextPageToken ? r.nextPageToken : undefined;
-        } while (pageToken);
+            const next = r.nextPageToken ? r.nextPageToken : undefined;
+            if (next === undefined || visitedTokens.has(next)) {
+                return;
+            }
+            visitedTokens.add(next);
+            pageToken = next;
+        }
     }
 
     /**

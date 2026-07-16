@@ -3,6 +3,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import * as trading from '../src/trading';
 import * as marketData from '../src/market-data';
 import * as auth from '../src/auth';
+import { Alpaca } from '../src/client';
 
 /**
  * Authentication ergonomics: `keyId`/`secret` are accepted directly on
@@ -66,6 +67,29 @@ describe('auth.resolveCredentials', () => {
         expect(auth.resolveCredentials({ keyId: KEY_ID, secret: SECRET, accessToken: 'tok' })).toEqual({ accessToken: 'tok' });
     });
 
+    it('prefers an explicit key pair over an environment OAuth token', () => {
+        restoreEnv = withCleanEnv();
+        process.env[auth.OAUTH_TOKEN_ENV] = 'env-tok';
+        expect(auth.resolveCredentials({ keyId: KEY_ID, secret: SECRET })).toEqual({ keyId: KEY_ID, secret: SECRET });
+    });
+
+    it('lets an explicit key field select key auth while resolving its counterpart from the environment', () => {
+        restoreEnv = withCleanEnv();
+        process.env[auth.OAUTH_TOKEN_ENV] = 'env-tok';
+        process.env[auth.API_SECRET_KEY_ENV] = 'env-secret';
+        expect(auth.resolveCredentials({ keyId: KEY_ID })).toEqual({ keyId: KEY_ID, secret: 'env-secret' });
+
+        delete process.env[auth.API_SECRET_KEY_ENV];
+        process.env[auth.API_KEY_ID_ENV] = 'AKENV';
+        expect(auth.resolveCredentials({ secret: SECRET })).toEqual({ keyId: 'AKENV', secret: SECRET });
+    });
+
+    it('does not fall back to environment OAuth after an incomplete explicit key selection', () => {
+        restoreEnv = withCleanEnv();
+        process.env[auth.OAUTH_TOKEN_ENV] = 'env-tok';
+        expect(() => auth.resolveCredentials({ keyId: KEY_ID })).toThrow(/keyId.*secret/i);
+    });
+
     it('falls back to key/secret env vars', () => {
         restoreEnv = withCleanEnv();
         process.env[auth.API_KEY_ID_ENV] = 'AKENV';
@@ -77,6 +101,37 @@ describe('auth.resolveCredentials', () => {
         restoreEnv = withCleanEnv();
         process.env[auth.OAUTH_TOKEN_ENV] = 'env-tok';
         expect(auth.resolveCredentials()).toEqual({ accessToken: 'env-tok' });
+    });
+
+    it('prefers environment OAuth when no explicit scheme is selected', () => {
+        restoreEnv = withCleanEnv();
+        process.env[auth.OAUTH_TOKEN_ENV] = 'env-tok';
+        process.env[auth.API_KEY_ID_ENV] = 'AKENV';
+        process.env[auth.API_SECRET_KEY_ENV] = 'env-secret';
+        expect(auth.resolveCredentials()).toEqual({ accessToken: 'env-tok' });
+    });
+
+    it('prefers an explicit OAuth token over environment key credentials', () => {
+        restoreEnv = withCleanEnv();
+        process.env[auth.API_KEY_ID_ENV] = 'AKENV';
+        process.env[auth.API_SECRET_KEY_ENV] = 'env-secret';
+        expect(auth.resolveCredentials({ accessToken: 'explicit-tok' })).toEqual({ accessToken: 'explicit-tok' });
+    });
+
+    it.each([
+        { options: { accessToken: '' }, label: 'accessToken' },
+        { options: { keyId: '', secret: '' }, label: 'key pair' },
+    ])('treats an empty explicit $label as absent', ({ options }) => {
+        restoreEnv = withCleanEnv();
+        process.env[auth.OAUTH_TOKEN_ENV] = 'env-tok';
+        expect(auth.resolveCredentials(options)).toEqual({ accessToken: 'env-tok' });
+    });
+
+    it('resolves an empty key counterpart from its environment variable', () => {
+        restoreEnv = withCleanEnv();
+        process.env[auth.OAUTH_TOKEN_ENV] = 'env-tok';
+        process.env[auth.API_SECRET_KEY_ENV] = 'env-secret';
+        expect(auth.resolveCredentials({ keyId: KEY_ID, secret: '' })).toEqual({ keyId: KEY_ID, secret: 'env-secret' });
     });
 
     it('lets explicit options win over env vars', () => {
@@ -169,5 +224,78 @@ describe('[trading] credentials reach the wire', () => {
         await new trading.AccountsApi(config).getAccount();
         expect(headerValue(seen, 'Authorization')).toBe('Bearer tok-xyz');
         expect(headerValue(seen, 'APCA-API-KEY-ID')).toBeUndefined();
+    });
+
+    it('uses an explicit key pair on the Alpaca facade even when environment OAuth is set', async () => {
+        const restoreEnv = withCleanEnv();
+        process.env[auth.OAUTH_TOKEN_ENV] = 'env-tok';
+        let seen: RequestInit | undefined;
+        try {
+            const alpaca = new Alpaca({
+                keyId: KEY_ID,
+                secret: SECRET,
+                rateLimit: false,
+                fetchApi: async (_url, init) => {
+                    seen = init;
+                    return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+                },
+            });
+
+            await alpaca.trading.account.getAccount();
+        } finally {
+            restoreEnv();
+        }
+
+        expect(headerValue(seen, 'APCA-API-KEY-ID')).toBe(KEY_ID);
+        expect(headerValue(seen, 'APCA-API-SECRET-KEY')).toBe(SECRET);
+        expect(headerValue(seen, 'Authorization')).toBeUndefined();
+    });
+
+    it('keeps explicit OAuth usable on the Alpaca facade when environment keys are set', async () => {
+        const restoreEnv = withCleanEnv();
+        process.env[auth.API_KEY_ID_ENV] = 'AKENV';
+        process.env[auth.API_SECRET_KEY_ENV] = 'env-secret';
+        let seen: RequestInit | undefined;
+        try {
+            const alpaca = new Alpaca({
+                accessToken: 'explicit-tok',
+                rateLimit: false,
+                fetchApi: async (_url, init) => {
+                    seen = init;
+                    return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+                },
+            });
+
+            await alpaca.trading.account.getAccount();
+        } finally {
+            restoreEnv();
+        }
+
+        expect(headerValue(seen, 'Authorization')).toBe('Bearer explicit-tok');
+        expect(headerValue(seen, 'APCA-API-KEY-ID')).toBeUndefined();
+        expect(headerValue(seen, 'APCA-API-SECRET-KEY')).toBeUndefined();
+    });
+
+    it('supports environment-only OAuth on the Alpaca facade', async () => {
+        const restoreEnv = withCleanEnv();
+        process.env[auth.OAUTH_TOKEN_ENV] = 'env-tok';
+        let seen: RequestInit | undefined;
+        try {
+            const alpaca = new Alpaca({
+                rateLimit: false,
+                fetchApi: async (_url, init) => {
+                    seen = init;
+                    return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+                },
+            });
+
+            await alpaca.trading.account.getAccount();
+        } finally {
+            restoreEnv();
+        }
+
+        expect(headerValue(seen, 'Authorization')).toBe('Bearer env-tok');
+        expect(headerValue(seen, 'APCA-API-KEY-ID')).toBeUndefined();
+        expect(headerValue(seen, 'APCA-API-SECRET-KEY')).toBeUndefined();
     });
 });

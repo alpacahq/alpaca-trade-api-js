@@ -11,12 +11,11 @@
  * The underlying socket is created through an injectable `wsFactory` so tests
  * can supply a fake (mirrors the `fetchApi` override on the REST runtime).
  */
-import { EventEmitter } from "node:events";
+import { EventEmitter as NodeEventEmitter } from "node:events";
 import { WebSocket } from "ws";
 import {
     decode as msgpackDecode,
     encode as msgpackEncode,
-    type ExtensionCodec,
 } from "@msgpack/msgpack";
 
 import type { AlpacaCredentials } from "../auth";
@@ -73,6 +72,17 @@ export const CONN_ERROR = new Map<number, string>([
 
 /** Wire format used on the socket. Market data is msgpack; trading is JSON. */
 export type Codec = "msgpack" | "json";
+
+/**
+ * Structural surface accepted by msgpack decoding for extension codecs.
+ *
+ * Kept local so public declarations do not require consumers to resolve
+ * `@msgpack/msgpack` merely to type a stream factory.
+ */
+export interface StreamExtensionCodec {
+    tryToEncode(object: unknown, context?: unknown): unknown;
+    decode(data: Uint8Array, type: number, context?: unknown): unknown;
+}
 
 /** Sentinel for {@link AlpacaWebSocketOptions.maxReconnectAttempts}: retry forever. */
 export const UNLIMITED_RECONNECT_ATTEMPTS = -1;
@@ -141,6 +151,8 @@ export interface WebSocketLike {
     close(code?: number, reason?: string): void;
     terminate?(): void;
     ping?(data?: unknown): void;
+    /** Standard WebSocket state (`1` means OPEN), when exposed by the transport. */
+    readonly readyState?: number;
 }
 
 /** Creates a socket for a given URL. Override in tests to inject a fake. */
@@ -194,7 +206,34 @@ export interface AlpacaWebSocketOptions {
     callbackExecutor?: (task: () => void) => void;
 }
 
-export abstract class AlpacaWebSocket extends EventEmitter {
+type EventName = string | symbol;
+type EventListener = (...args: never[]) => void;
+type RawEventListener = EventListener & { listener?: EventListener };
+
+interface EventEmitterContract {
+    on(event: EventName, listener: EventListener): unknown;
+    once(event: EventName, listener: EventListener): unknown;
+    off(event: EventName, listener: EventListener): unknown;
+    removeListener(event: EventName, listener: EventListener): unknown;
+    removeAllListeners(event?: EventName): unknown;
+    listenerCount(event: EventName): number;
+    eventNames(): EventName[];
+    rawListeners(event: EventName): RawEventListener[];
+}
+
+interface ScopedInterval {
+    socket: WebSocketLike;
+    generation: number;
+    timer: ReturnType<typeof setInterval>;
+}
+
+interface ScopedTimeout {
+    socket: WebSocketLike;
+    generation: number;
+    timer: ReturnType<typeof setTimeout>;
+}
+
+export abstract class AlpacaWebSocket {
     protected readonly keyId: string;
     protected readonly secret: string;
     protected readonly url: string;
@@ -211,6 +250,7 @@ export abstract class AlpacaWebSocket extends EventEmitter {
     private readonly verbose: boolean;
     private readonly wsFactory: WebSocketFactory;
     private readonly callbackExecutor: (task: () => void) => void;
+    private readonly emitter = new NodeEventEmitter() as unknown as EventEmitterContract;
 
     protected conn?: WebSocketLike;
     protected authenticated = false;
@@ -221,7 +261,7 @@ export abstract class AlpacaWebSocket extends EventEmitter {
      * to outbound `encode`). The market-data stream uses it to preserve
      * nanosecond timestamps; see {@link "./timestamp"}.
      */
-    protected extensionCodec?: ExtensionCodec;
+    protected extensionCodec?: StreamExtensionCodec;
 
     /** Resolves with the outcome of the first authentication attempt. */
     private readonly authResultPromise: Promise<StreamAuthResult>;
@@ -230,13 +270,14 @@ export abstract class AlpacaWebSocket extends EventEmitter {
 
     private state: STATE = STATE.DISCONNECTED;
     private manualClose = false;
+    private generation = 0;
     private reconnectAttempts = 0;
     private reconnectTimer?: ReturnType<typeof setTimeout>;
-    private pingTimer?: ReturnType<typeof setInterval>;
-    private pongTimer?: ReturnType<typeof setTimeout>;
+    private pingTimer?: ScopedInterval;
+    private pongTimer?: ScopedTimeout;
+    private callbackScope?: { socket: WebSocketLike; generation: number };
 
     constructor(options: AlpacaWebSocketOptions) {
-        super();
         const { keyId, secret } = options.credentials ?? ({} as AlpacaCredentials);
         if (!keyId || !secret) {
             throw new Error(
@@ -269,35 +310,52 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         if (this.conn) {
             return;
         }
+        this.clearReconnectTimer();
         this.manualClose = false;
         this.authenticated = false;
         this.setState(STATE.CONNECTING);
 
         const socket = this.wsFactory(this.url, this.codec);
+        const generation = ++this.generation;
         this.conn = socket;
-        socket.on("open", () => this.handleOpen());
-        socket.on("message", (data: unknown) => this.handleRawMessage(data));
-        socket.on("error", (err: unknown) =>
-            this.safeEmit(EVENT.CLIENT_ERROR, err instanceof Error ? err.message : String(err)),
-        );
-        socket.on("close", () => this.handleClose());
-        socket.on("pong", () => this.clearPongTimeout());
-        this.startPing();
+        socket.on("open", () => {
+            if (this.isCurrent(socket, generation)) this.handleOpen(socket, generation);
+        });
+        socket.on("message", (data: unknown) => {
+            if (this.isCurrent(socket, generation)) {
+                this.handleRawMessage(data, socket, generation);
+            }
+        });
+        socket.on("error", (err: unknown) => {
+            if (this.isCurrent(socket, generation)) {
+                this.safeEmit(
+                    EVENT.CLIENT_ERROR,
+                    err instanceof Error ? err.message : String(err),
+                );
+            }
+        });
+        socket.on("close", () => {
+            if (this.isCurrent(socket, generation)) this.handleClose(socket, generation);
+        });
+        socket.on("pong", () => {
+            if (this.isCurrent(socket, generation)) {
+                this.clearPongTimeout(socket, generation);
+            }
+        });
     }
 
     /** Closes the connection and disables auto-reconnect for this call. */
     disconnect(): void {
         this.manualClose = true;
-        this.stopPing();
-        if (this.reconnectTimer) {
-            clearTimeout(this.reconnectTimer);
-            this.reconnectTimer = undefined;
-        }
+        this.clearReconnectTimer();
         this.authenticated = false;
         // A close before we ever authenticated resolves the auth outcome.
         this.settleAuthResult(authResult.closed("disconnected before authentication"));
         const conn = this.conn;
+        const generation = this.generation;
         this.conn = undefined;
+        this.generation += 1;
+        if (conn) this.stopPing(conn, generation);
         conn?.close();
         this.setState(STATE.DISCONNECTED);
     }
@@ -305,6 +363,48 @@ export abstract class AlpacaWebSocket extends EventEmitter {
     /** Current lifecycle state. */
     getState(): STATE {
         return this.state;
+    }
+
+    // --- EventEmitter-compatible public surface ----------------------------
+
+    /** Register a listener. Returns this stream for chaining. */
+    on(event: EventName, listener: EventListener): this {
+        this.emitter.on(event, listener);
+        return this;
+    }
+
+    /** Register a one-shot listener. Returns this stream for chaining. */
+    once(event: EventName, listener: EventListener): this {
+        this.emitter.once(event, listener);
+        return this;
+    }
+
+    /** Remove a listener. Returns this stream for chaining. */
+    off(event: EventName, listener: EventListener): this {
+        this.emitter.off(event, listener);
+        return this;
+    }
+
+    /** Alias of {@link off}. Returns this stream for chaining. */
+    removeListener(event: EventName, listener: EventListener): this {
+        this.emitter.removeListener(event, listener);
+        return this;
+    }
+
+    /** Remove listeners for one event, or all events when omitted. */
+    removeAllListeners(event?: EventName): this {
+        this.emitter.removeAllListeners(event);
+        return this;
+    }
+
+    /** Number of listeners currently registered for an event. */
+    listenerCount(event: EventName): number {
+        return this.emitter.listenerCount(event);
+    }
+
+    /** Events that currently have at least one listener. */
+    eventNames(): EventName[] {
+        return this.emitter.eventNames();
     }
 
     // --- Listener sugar shared by all streams -------------------------------
@@ -397,7 +497,7 @@ export abstract class AlpacaWebSocket extends EventEmitter {
 
     /** Encode and send a payload using the configured codec. */
     protected send(payload: unknown): void {
-        if (!this.conn) {
+        if (!this.conn || !this.isCallbackCurrent()) {
             return;
         }
         const data =
@@ -409,18 +509,22 @@ export abstract class AlpacaWebSocket extends EventEmitter {
 
     /** Called by subclasses when the server confirms authentication. */
     protected onAuthenticated(): void {
+        if (!this.isCallbackCurrent()) return;
         const wasReconnected = this.isReconnected;
         this.authenticated = true;
         // A successful auth means the connection is healthy again: reset the
         // backoff so a later drop starts from the initial delay.
         this.reconnectAttempts = 0;
         this.setState(STATE.AUTHENTICATED);
+        if (!this.isCallbackCurrent()) return;
         this.resubscribe();
+        if (!this.isCallbackCurrent()) return;
         this.safeEmit(EVENT.AUTHORIZED);
         this.settleAuthResult(authResult.authenticated());
-        // Distinguish a reconnect's auth (subscriptions restored) from the
-        // first connect, mirroring the Java client's onReconnected callback.
+        // Distinguish a reconnect's auth + re-subscription dispatch from the
+        // first connect; this does not imply server subscription acknowledgement.
         if (wasReconnected) {
+            if (!this.isCallbackCurrent()) return;
             this.isReconnected = false;
             this.safeEmit(EVENT.RECONNECTED);
         }
@@ -435,7 +539,7 @@ export abstract class AlpacaWebSocket extends EventEmitter {
     protected failAuthentication(message: string, code?: number): void {
         this.settleAuthResult(authResult.serverRejected(code, message));
         this.safeEmit(EVENT.CLIENT_ERROR, message);
-        this.disconnect();
+        if (this.isCallbackCurrent()) this.disconnect();
     }
 
     /** Settles the first-auth outcome promise (idempotent - only the first call wins). */
@@ -457,16 +561,14 @@ export abstract class AlpacaWebSocket extends EventEmitter {
      * which logs instead of crashing).
      */
     protected safeEmit(event: string, ...args: unknown[]): void {
-        const handlers = this.rawListeners(event) as Array<
-            ((...a: unknown[]) => void) & { listener?: (...a: unknown[]) => void }
-        >;
+        const handlers = this.emitter.rawListeners(event);
         for (const handler of handlers) {
             // A `once` wrapper exposes the original via `.listener`; remove it
             // up front so it cannot fire again, then call the original.
             if (typeof handler.listener === "function") {
                 this.removeListener(event, handler);
             }
-            const fn = handler.listener ?? handler;
+            const fn = (handler.listener ?? handler) as (...args: unknown[]) => void;
             this.callbackExecutor(() => {
                 try {
                     fn(...args);
@@ -478,6 +580,9 @@ export abstract class AlpacaWebSocket extends EventEmitter {
     }
 
     protected setState(state: STATE): void {
+        if (this.state === state) {
+            return;
+        }
         this.state = state;
         this.safeEmit(state);
         this.safeEmit(EVENT.STATE_CHANGE, state);
@@ -490,23 +595,34 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         }
     }
 
-    private handleOpen(): void {
+    private handleOpen(socket: WebSocketLike, generation: number): void {
         this.setState(STATE.CONNECTED);
+        if (!this.isCurrent(socket, generation)) return;
+        this.startPing(socket, generation);
+        if (!this.isCurrent(socket, generation)) return;
         this.sendAuth();
     }
 
-    private handleRawMessage(raw: unknown): void {
-        let decoded: unknown;
+    private handleRawMessage(
+        raw: unknown,
+        socket: WebSocketLike,
+        generation: number,
+    ): void {
+        let phase = "decode";
+        const previousScope = this.callbackScope;
+        this.callbackScope = { socket, generation };
         try {
-            decoded = this.decode(raw);
+            const decoded = this.decode(raw);
+            phase = "process";
+            this.handleMessage(decoded);
         } catch (err) {
             this.safeEmit(
                 EVENT.CLIENT_ERROR,
-                `failed to decode message: ${(err as Error).message}`,
+                `failed to ${phase} message: ${err instanceof Error ? err.message : String(err)}`,
             );
-            return;
+        } finally {
+            this.callbackScope = previousScope;
         }
-        this.handleMessage(decoded);
     }
 
     private decode(raw: unknown): unknown {
@@ -527,18 +643,24 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         return msgpackDecode(
             raw as Uint8Array,
             this.extensionCodec
-                ? { extensionCodec: this.extensionCodec, useBigInt64: true }
+                ? {
+                      extensionCodec: this.extensionCodec as never,
+                      useBigInt64: true,
+                  }
                 : undefined,
         );
     }
 
-    private handleClose(): void {
-        this.stopPing();
+    private handleClose(socket: WebSocketLike, generation: number): void {
+        this.stopPing(socket, generation);
         this.conn = undefined;
+        this.generation += 1;
+        const reconnectGeneration = this.generation;
         this.authenticated = false;
         this.setState(STATE.DISCONNECTED);
+        if (this.generation !== reconnectGeneration || this.conn) return;
         if (this.shouldReconnect()) {
-            this.scheduleReconnect();
+            this.scheduleReconnect(reconnectGeneration);
         } else {
             // No reconnect will follow: the first-auth outcome is now terminal.
             this.settleAuthResult(authResult.closed("connection closed before authentication"));
@@ -556,17 +678,33 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         return this.reconnectAttempts < this.maxReconnectAttempts;
     }
 
-    private scheduleReconnect(): void {
+    private scheduleReconnect(generation: number): void {
         this.isReconnected = true;
         this.setState(STATE.WAITING_TO_RECONNECT);
         const delayMs = this.reconnectDelayMs(this.reconnectAttempts);
         this.reconnectAttempts += 1;
         const attempt = this.reconnectAttempts;
         this.log(`reconnecting in ${delayMs}ms (attempt ${attempt})`);
-        this.reconnectTimer = setTimeout(() => {
+        const timer = setTimeout(() => {
+            if (
+                this.reconnectTimer !== timer ||
+                this.generation !== generation ||
+                this.manualClose ||
+                this.conn
+            ) {
+                return;
+            }
+            this.reconnectTimer = undefined;
             this.safeEmit(EVENT.RECONNECTING, attempt);
-            this.connect();
+            if (
+                this.generation === generation &&
+                !this.manualClose &&
+                !this.conn
+            ) {
+                this.connect();
+            }
         }, delayMs);
+        this.reconnectTimer = timer;
     }
 
     /**
@@ -584,34 +722,83 @@ export abstract class AlpacaWebSocket extends EventEmitter {
         return Math.min(jittered, this.maxReconnectMs);
     }
 
-    private startPing(): void {
+    private startPing(socket: WebSocketLike, generation: number): void {
         if (!this.pingIntervalMs) {
             return;
         }
-        this.pingTimer = setInterval(() => {
-            if (this.conn?.ping) {
-                this.conn.ping();
-                this.pongTimer = setTimeout(() => {
+        this.stopPing();
+        const timer = setInterval(() => {
+            if (!this.isCurrent(socket, generation)) {
+                if (this.pingTimer?.timer === timer) this.stopPing(socket, generation);
+                return;
+            }
+            if (socket.readyState !== undefined && socket.readyState !== 1) {
+                return;
+            }
+            if (socket.ping) {
+                this.clearPongTimeout(socket, generation);
+                try {
+                    socket.ping();
+                } catch (err) {
+                    this.safeEmit(
+                        EVENT.CLIENT_ERROR,
+                        err instanceof Error ? err.message : String(err),
+                    );
+                    return;
+                }
+                const pongTimer = setTimeout(() => {
+                    if (!this.isCurrent(socket, generation)) return;
                     this.log("no pong received, terminating socket");
-                    this.conn?.terminate?.();
+                    socket.terminate?.();
                 }, this.pongWaitMs);
+                this.pongTimer = { socket, generation, timer: pongTimer };
             }
         }, this.pingIntervalMs);
+        this.pingTimer = { socket, generation, timer };
     }
 
-    private stopPing(): void {
-        if (this.pingTimer) {
-            clearInterval(this.pingTimer);
+    private stopPing(socket?: WebSocketLike, generation?: number): void {
+        if (
+            this.pingTimer &&
+            (socket === undefined ||
+                (this.pingTimer.socket === socket &&
+                    this.pingTimer.generation === generation))
+        ) {
+            clearInterval(this.pingTimer.timer);
             this.pingTimer = undefined;
         }
-        this.clearPongTimeout();
+        this.clearPongTimeout(socket, generation);
     }
 
-    private clearPongTimeout(): void {
-        if (this.pongTimer) {
-            clearTimeout(this.pongTimer);
+    private clearPongTimeout(socket?: WebSocketLike, generation?: number): void {
+        if (
+            this.pongTimer &&
+            (socket === undefined ||
+                (this.pongTimer.socket === socket &&
+                    this.pongTimer.generation === generation))
+        ) {
+            clearTimeout(this.pongTimer.timer);
             this.pongTimer = undefined;
         }
+    }
+
+    private clearReconnectTimer(): void {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = undefined;
+        }
+    }
+
+    private isCurrent(socket: WebSocketLike, generation: number): boolean {
+        return this.conn === socket && this.generation === generation;
+    }
+
+    /** Whether the socket callback currently dispatching a protocol frame is still current. */
+    protected isCallbackCurrent(): boolean {
+        return (
+            this.callbackScope === undefined ||
+            this.isCurrent(this.callbackScope.socket, this.callbackScope.generation)
+        );
     }
 }
 

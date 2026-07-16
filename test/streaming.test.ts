@@ -7,17 +7,27 @@ const CREDS = { keyId: 'AKTEST', secret: 'sekret' };
 
 /** Minimal fake satisfying WebSocketLike, with event injection + sent capture. */
 class FakeSocket {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSED = 3;
+
     sent: Array<string | Uint8Array> = [];
     listeners: Record<string, Array<(...args: any[]) => void>> = {};
     pings = 0;
     terminated = false;
     closed = false;
+    readyState = FakeSocket.CONNECTING;
+    deferClose = false;
+    throwOnPing = false;
+    private closePending = false;
 
     on(event: string, cb: (...args: any[]) => void): this {
         (this.listeners[event] ??= []).push(cb);
         return this;
     }
     emitEvent(event: string, ...args: any[]): void {
+        if (event === 'open') this.readyState = FakeSocket.OPEN;
+        if (event === 'close') this.readyState = FakeSocket.CLOSED;
         (this.listeners[event] ?? []).forEach((cb) => cb(...args));
     }
     send(data: string | Uint8Array): void {
@@ -25,12 +35,25 @@ class FakeSocket {
     }
     close(): void {
         this.closed = true;
+        if (this.deferClose) {
+            this.closePending = true;
+            return;
+        }
+        this.emitEvent('close');
+    }
+    flushClose(): void {
+        if (!this.closePending) return;
+        this.closePending = false;
         this.emitEvent('close');
     }
     terminate(): void {
         this.terminated = true;
+        this.readyState = FakeSocket.CLOSED;
     }
     ping(): void {
+        if (this.readyState !== FakeSocket.OPEN || this.throwOnPing) {
+            throw new Error('ping unavailable');
+        }
         this.pings++;
     }
 }
@@ -419,6 +442,251 @@ describe('credential validation', () => {
 });
 
 describe('base lifecycle & transport', () => {
+    it('starts keepalive only after open and only pings an open socket', () => {
+        vi.useFakeTimers();
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 10,
+            pongWaitMs: 5,
+            reconnect: false,
+            wsFactory: () => sock,
+        });
+
+        stream.connect();
+        expect(() => vi.advanceTimersByTime(30)).not.toThrow();
+        expect(sock.pings).toBe(0);
+
+        sock.emitEvent('open');
+        vi.advanceTimersByTime(10);
+        expect(sock.pings).toBe(1);
+    });
+
+    it('contains ping failures as CLIENT_ERROR and keeps the timer callback from throwing', () => {
+        vi.useFakeTimers();
+        const sock = new FakeSocket();
+        const errors: string[] = [];
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 10,
+            pongWaitMs: 5,
+            reconnect: false,
+            wsFactory: () => sock,
+        });
+        stream.onError((message) => errors.push(message));
+        stream.connect();
+        sock.emitEvent('open');
+        sock.throwOnPing = true;
+
+        expect(() => vi.advanceTimersByTime(10)).not.toThrow();
+        expect(errors).toContain('ping unavailable');
+        expect(sock.terminated).toBe(false);
+    });
+
+    it('ignores every late event from a manually disconnected socket after reconnect', () => {
+        vi.useFakeTimers();
+        const sockets: FakeSocket[] = [];
+        const errors: string[] = [];
+        const trades: streaming.StreamTrade[] = [];
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 10,
+            pongWaitMs: 5,
+            initialReconnectMs: 0,
+            reconnectJitter: 0,
+            wsFactory: trackingFactory(sockets),
+        });
+        stream.onError((message) => errors.push(message));
+        stream.onTrade((trade) => trades.push(trade));
+
+        stream.connect();
+        const old = sockets[0];
+        old.deferClose = true;
+        old.emitEvent('open');
+        stream.disconnect();
+        stream.connect();
+        const current = sockets[1];
+        current.emitEvent('open');
+
+        old.emitEvent('open');
+        old.emitEvent('message', mpEncode([{ T: 'success', msg: 'authenticated' }]));
+        old.emitEvent('message', mpEncode([{ T: 't', S: 'OLD', i: 1, p: 1, s: 1, t: new Date() }]));
+        old.emitEvent('error', new Error('stale error'));
+        old.emitEvent('pong');
+        old.flushClose();
+        vi.advanceTimersByTime(60_000);
+
+        expect(stream.getState()).toBe(streaming.STATE.CONNECTED);
+        expect(errors).not.toContain('stale error');
+        expect(trades).toEqual([]);
+        expect(sockets).toHaveLength(2);
+        expect(current.closed).toBe(false);
+    });
+
+    it('does not let an open callback authenticate a replacement created by a state listener', () => {
+        const sockets: FakeSocket[] = [];
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: trackingFactory(sockets),
+        });
+        let replaced = false;
+        stream.onStateChange((state) => {
+            if (state === streaming.STATE.CONNECTED && !replaced) {
+                replaced = true;
+                stream.disconnect();
+                stream.connect();
+            }
+        });
+
+        stream.connect();
+        sockets[0].emitEvent('open');
+
+        expect(sockets).toHaveLength(2);
+        expect(sockets[1].sent).toEqual([]);
+        expect(stream.getState()).toBe(streaming.STATE.CONNECTING);
+    });
+
+    it('does not schedule reconnect after an onDisconnect listener already replaced the socket', () => {
+        vi.useFakeTimers();
+        const sockets: FakeSocket[] = [];
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            initialReconnectMs: 10,
+            reconnectJitter: 0,
+            wsFactory: trackingFactory(sockets),
+        });
+        let replaced = false;
+        stream.onDisconnect(() => {
+            if (!replaced) {
+                replaced = true;
+                stream.connect();
+            }
+        });
+
+        stream.connect();
+        sockets[0].emitEvent('close');
+        vi.advanceTimersByTime(100);
+
+        expect(sockets).toHaveLength(2);
+        expect(stream.getState()).toBe(streaming.STATE.CONNECTING);
+    });
+
+    it('does not close a replacement created by an auth-error listener', () => {
+        const sockets: FakeSocket[] = [];
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: trackingFactory(sockets),
+        });
+        stream.onError(() => {
+            stream.disconnect();
+            stream.connect();
+        });
+
+        stream.connect();
+        sockets[0].emitEvent('open');
+        sockets[0].emitEvent('message', mpEncode([{ T: 'error', code: 402, msg: 'bad key' }]));
+
+        expect(sockets).toHaveLength(2);
+        expect(sockets[1].closed).toBe(false);
+        expect(stream.getState()).toBe(streaming.STATE.CONNECTING);
+    });
+
+    it('honors disconnect called from an onReconnecting listener', () => {
+        vi.useFakeTimers();
+        const sockets: FakeSocket[] = [];
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            initialReconnectMs: 10,
+            reconnectJitter: 0,
+            wsFactory: trackingFactory(sockets),
+        });
+        stream.onReconnecting(() => stream.disconnect());
+        stream.connect();
+        sockets[0].emitEvent('close');
+
+        vi.advanceTimersByTime(10);
+
+        expect(sockets).toHaveLength(1);
+        expect(stream.getState()).toBe(streaming.STATE.DISCONNECTED);
+    });
+
+    it.each([false, true])(
+        'manual disconnect emits DISCONNECTED once when close is deferred=%s',
+        (deferClose) => {
+            const sock = new FakeSocket();
+            sock.deferClose = deferClose;
+            const stream = new streaming.StockDataStream({
+                credentials: CREDS,
+                pingIntervalMs: 0,
+                wsFactory: () => sock,
+            });
+            let disconnects = 0;
+            stream.onDisconnect(() => disconnects++);
+            stream.connect();
+            sock.emitEvent('open');
+
+            stream.disconnect();
+            sock.flushClose();
+
+            expect(disconnects).toBe(1);
+            expect(stream.getState()).toBe(streaming.STATE.DISCONNECTED);
+        },
+    );
+
+    it('scopes pong and reconnect handling to the socket that created them', () => {
+        vi.useFakeTimers();
+        const sockets: FakeSocket[] = [];
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 10,
+            pongWaitMs: 5,
+            initialReconnectMs: 0,
+            maxReconnectMs: 0,
+            reconnectJitter: 0,
+            wsFactory: trackingFactory(sockets),
+        });
+        stream.connect();
+        sockets[0].emitEvent('open');
+        sockets[0].emitEvent('close');
+        vi.advanceTimersByTime(0);
+
+        const current = sockets[1];
+        current.emitEvent('open');
+        vi.advanceTimersByTime(10);
+        sockets[0].emitEvent('pong');
+        sockets[0].emitEvent('close');
+        vi.advanceTimersByTime(5);
+
+        expect(current.terminated).toBe(true);
+        expect(sockets).toHaveLength(2);
+    });
+
+    it('replaces an outstanding pong timeout instead of leaving an older timeout active', () => {
+        vi.useFakeTimers();
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 10,
+            pongWaitMs: 15,
+            reconnect: false,
+            wsFactory: () => sock,
+        });
+        stream.connect();
+        sock.emitEvent('open');
+
+        vi.advanceTimersByTime(20);
+        // Pause further pings so the second ping's timeout can be observed.
+        sock.readyState = FakeSocket.CONNECTING;
+        vi.advanceTimersByTime(5);
+        expect(sock.terminated).toBe(false);
+        vi.advanceTimersByTime(10);
+        expect(sock.terminated).toBe(true);
+    });
+
     it('walks through the lifecycle states', () => {
         const sock = new FakeSocket();
         const stream = new streaming.StockDataStream({
@@ -596,6 +864,54 @@ describe('base lifecycle & transport', () => {
         // 0xc1 is a reserved/never-used msgpack byte -> decode throws.
         sock.emitEvent('message', new Uint8Array([0xc1]));
         expect(errors.some((e) => /failed to decode message/.test(e))).toBe(true);
+    });
+
+    it('contains decoded null and mapper failures, then continues processing messages', () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        const errors: string[] = [];
+        const trades: streaming.StreamTrade[] = [];
+        stream.onError((message) => errors.push(message));
+        stream.onTrade((trade) => trades.push(trade));
+        stream.connect();
+        authenticateMd(sock);
+
+        expect(() => sock.emitEvent('message', mpEncode(null))).not.toThrow();
+        expect(() => sock.emitEvent('message', mpEncode([null]))).not.toThrow();
+        expect(() =>
+            sock.emitEvent('message', mpEncode([{ T: 'o', S: 'BTC/USD', b: [null], a: [] }])),
+        ).not.toThrow();
+        sock.emitEvent(
+            'message',
+            mpEncode([{ T: 't', S: 'AAPL', i: 1, x: 'V', p: 10, s: 1, t: new Date() }]),
+        );
+
+        expect(errors.length).toBeGreaterThanOrEqual(2);
+        expect(trades).toHaveLength(1);
+        expect(trades[0].symbol).toBe('AAPL');
+    });
+
+    it('exposes EventEmitter-compatible listener management with chainable returns', () => {
+        const stream = new streaming.StockDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => new FakeSocket(),
+        });
+        const first = vi.fn();
+        const second = vi.fn();
+
+        expect(stream.on('custom', first)).toBe(stream);
+        expect(stream.once('custom', second)).toBe(stream);
+        expect(stream.listenerCount('custom')).toBe(2);
+        expect(stream.eventNames()).toContain('custom');
+        expect(stream.off('custom', first)).toBe(stream);
+        expect(stream.removeListener('custom', second)).toBe(stream);
+        expect(stream.on('custom', first).removeAllListeners('custom')).toBe(stream);
+        expect(stream.listenerCount('custom')).toBe(0);
     });
 
     it('surfaces socket-level error events via onError', () => {
@@ -908,6 +1224,64 @@ describe('MarketDataStream dispatch wiring', () => {
 });
 
 describe('TradingStream lifecycle', () => {
+    it('surfaces action:error frames with the Alpaca error message and remains usable', () => {
+        const sock = new FakeSocket();
+        const errors: string[] = [];
+        const updates: streaming.TradeUpdate[] = [];
+        const stream = new streaming.TradingStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        stream.onError((message) => errors.push(message));
+        stream.onTradeUpdate((update) => updates.push(update));
+        stream.connect();
+        authorizeTrading(sock);
+
+        sock.emitEvent(
+            'message',
+            JSON.stringify({ action: 'error', data: { error_message: 'invalid listen request' } }),
+        );
+        sock.emitEvent(
+            'message',
+            JSON.stringify({ stream: 'trade_updates', data: { event: 'fill', order: { symbol: 'AAPL' } } }),
+        );
+
+        expect(errors).toContain('invalid listen request');
+        expect(updates).toHaveLength(1);
+    });
+
+    it('contains malformed trading frames and continues processing later updates', () => {
+        const sock = new FakeSocket();
+        const errors: string[] = [];
+        const updates: streaming.TradeUpdate[] = [];
+        const stream = new streaming.TradingStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        stream.onError((message) => errors.push(message));
+        stream.onTradeUpdate((update) => updates.push(update));
+        stream.connect();
+        authorizeTrading(sock);
+
+        expect(() => sock.emitEvent('message', 'null')).not.toThrow();
+        expect(() => sock.emitEvent('message', '[]')).not.toThrow();
+        expect(() =>
+            sock.emitEvent(
+                'message',
+                JSON.stringify({ stream: 'trade_updates', data: { event: 'fill', order: null } }),
+            ),
+        ).not.toThrow();
+        sock.emitEvent(
+            'message',
+            JSON.stringify({ stream: 'trade_updates', data: { event: 'fill', order: { symbol: 'AAPL' } } }),
+        );
+
+        expect(errors.length).toBeGreaterThanOrEqual(2);
+        expect(updates).toHaveLength(1);
+    });
+
     it('emits SUBSCRIPTION on a listening frame', () => {
         const sock = new FakeSocket();
         const stream = new streaming.TradingStream({

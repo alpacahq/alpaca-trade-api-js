@@ -122,6 +122,10 @@ interface ControlOrDataFrame {
     [key: string]: unknown;
 }
 
+function isFrame(value: unknown): value is ControlOrDataFrame {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export class MarketDataStream extends AlpacaWebSocket {
     private readonly subscriptions: Record<MarketDataChannel, string[]> = {
         trades: [],
@@ -278,9 +282,14 @@ export class MarketDataStream extends AlpacaWebSocket {
 
     protected handleMessage(message: unknown): void {
         if (!Array.isArray(message)) {
-            return;
+            throw new TypeError("market-data message must be an array of frame objects");
         }
-        for (const frame of message as ControlOrDataFrame[]) {
+        for (const value of message) {
+            if (!this.isCallbackCurrent()) return;
+            if (!isFrame(value)) {
+                throw new TypeError("market-data frame must be a non-null object");
+            }
+            const frame = value;
             switch (frame.T) {
                 case "success":
                     if (frame.msg === "authenticated") {

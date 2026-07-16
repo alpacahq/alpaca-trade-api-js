@@ -54,6 +54,92 @@ describe('metricsMiddleware', () => {
         expect(metrics[0]).toMatchObject({ ok: false, status: undefined });
         expect(metrics[0].error).toBeInstanceOf(Error);
     });
+
+    it('does not reject an accepted order when the metric sink throws', async () => {
+        let metrics = 0;
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: fetchReturning({ id: 'order-1', status: 'accepted' }),
+            middleware: [
+                metricsMiddleware({
+                    onRequest: () => {
+                        metrics++;
+                        throw new Error('metrics backend unavailable');
+                    },
+                }),
+            ],
+        });
+
+        await expect(
+            alpaca.trading.orders.market({ symbol: 'AAPL', qty: 1, side: 'buy' }),
+        ).resolves.toMatchObject({ id: 'order-1', status: 'accepted' });
+        expect(metrics).toBe(1);
+    });
+
+    it('consumes a rejected promise returned by the metric sink', async () => {
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: fetchReturning({ id: 'order-1', status: 'accepted' }),
+            middleware: [
+                metricsMiddleware({
+                    onRequest: async () => {
+                        throw new Error('async metrics backend unavailable');
+                    },
+                }),
+            ],
+        });
+
+        await expect(
+            alpaca.trading.orders.market({ symbol: 'AAPL', qty: 1, side: 'buy' }),
+        ).resolves.toMatchObject({ id: 'order-1', status: 'accepted' });
+        await Promise.resolve();
+    });
+
+    it('preserves the original network failure when the metric sink throws', async () => {
+        const networkError = new Error('connection reset');
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            retry: false,
+            fetchApi: fetchThrowing(networkError),
+            middleware: [
+                metricsMiddleware({
+                    onRequest: () => {
+                        throw new Error('metrics backend unavailable');
+                    },
+                }),
+            ],
+        });
+
+        await expect(alpaca.trading.account.getAccount()).rejects.toMatchObject({
+            name: 'FetchError',
+            cause: networkError,
+        });
+    });
+
+    it('falls back to an internal request id when the custom generator throws', async () => {
+        const metrics: RequestMetric[] = [];
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' }),
+            middleware: [
+                metricsMiddleware({
+                    genRequestId: () => {
+                        throw new Error('id generator unavailable');
+                    },
+                    onRequest: (metric) => metrics.push(metric),
+                }),
+            ],
+        });
+
+        await alpaca.trading.account.getAccount();
+
+        expect(metrics).toHaveLength(1);
+        expect(metrics[0].requestId).toBeTruthy();
+    });
 });
 
 describe('loggingMiddleware', () => {
@@ -106,5 +192,72 @@ describe('loggingMiddleware', () => {
         await expect(alpaca.trading.account.getAccount()).rejects.toBeTruthy();
         expect(errors).toHaveLength(1);
         expect(errors[0]).toMatchObject({ method: 'GET', error: 'kaboom' });
+    });
+
+    it('does not reject an accepted order when the logger throws', async () => {
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: fetchReturning({ id: 'order-1', status: 'accepted' }),
+            middleware: [
+                loggingMiddleware({
+                    logger: {
+                        info: () => {
+                            throw new Error('logger unavailable');
+                        },
+                    },
+                }),
+            ],
+        });
+
+        await expect(
+            alpaca.trading.orders.market({ symbol: 'AAPL', qty: 1, side: 'buy' }),
+        ).resolves.toMatchObject({ id: 'order-1', status: 'accepted' });
+    });
+
+    it('consumes a rejected promise returned by the logger', async () => {
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: fetchReturning({ id: 'order-1', status: 'accepted' }),
+            middleware: [
+                loggingMiddleware({
+                    logger: {
+                        info: async () => {
+                            throw new Error('async logger unavailable');
+                        },
+                    },
+                }),
+            ],
+        });
+
+        await expect(
+            alpaca.trading.orders.market({ symbol: 'AAPL', qty: 1, side: 'buy' }),
+        ).resolves.toMatchObject({ id: 'order-1', status: 'accepted' });
+        await Promise.resolve();
+    });
+
+    it('preserves the original network failure when the error logger throws', async () => {
+        const networkError = new Error('connection reset');
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            retry: false,
+            fetchApi: fetchThrowing(networkError),
+            middleware: [
+                loggingMiddleware({
+                    logger: {
+                        error: () => {
+                            throw new Error('logger unavailable');
+                        },
+                    },
+                }),
+            ],
+        });
+
+        await expect(alpaca.trading.account.getAccount()).rejects.toMatchObject({
+            name: 'FetchError',
+            cause: networkError,
+        });
     });
 });

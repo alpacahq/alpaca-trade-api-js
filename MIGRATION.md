@@ -1,8 +1,8 @@
-# Migration guide: `3.x` → `4.0` (alpha)
+# Migration guide: `3.x` → `4.0`
 
-This guide moves you from the stable **`@alpacahq/alpaca-trade-api@3.x`** (the
-current `latest` on npm, built from the `master` branch) to the rewritten
-**`4.0.0-alpha`** SDK.
+This guide moves you from **`@alpacahq/alpaca-trade-api@3.x`** to the rewritten
+**`4.x`** SDK. Version `4.0` is currently a prerelease published on the
+**`alpha`** dist-tag; the stable guidance below applies after `4.0.0` publishes.
 
 > **TL;DR**
 > - The package name is **unchanged** (`@alpacahq/alpaca-trade-api`). Only the
@@ -24,7 +24,7 @@ current `latest` on npm, built from the `master` branch) to the rewritten
 ## Contents
 
 - [Before you start](#before-you-start)
-- [Install side by side](#install-side-by-side)
+- [Install 4.0](#install-40)
 - [The five concepts that changed](#the-five-concepts-that-changed)
 - [Client construction](#client-construction)
 - [Automated migration (codemod)](#automated-migration-codemod)
@@ -50,33 +50,37 @@ current `latest` on npm, built from the `master` branch) to the rewritten
 
 - **Node.js >= 20 is required.** The new transport uses the platform-global
   `fetch`/`Headers`/`URL`/`AbortController`. Node 16/18 are no longer supported.
-- **Streaming runs on Node and Bun only.** REST works on Deno, Cloudflare
-  Workers, Vercel Edge, and the browser (via export conditions), but the
-  WebSocket clients need `ws` + `node:events`.
+- **Streaming runs on Node and Bun only.** REST works on strict Node projects
+  without DOM libs, Deno, Cloudflare Workers, Vercel Edge, and browsers via
+  export conditions. Those REST runtimes and declarations do not load or
+  require Node, `ws`, or msgpack.
 - **The dependency surface shrank.** `axios`, `lodash`, `urljoin`, `dotenv`,
   `msgpack5`, `nats`, etc. are gone. If your code imported those *transitively*
   through this package, add them to your own `package.json`. In particular,
   `dotenv` is no longer auto-loaded — call `import "dotenv/config"` yourself if
   you relied on a `.env` file.
-- **This is an alpha.** Pin an exact version and read the release notes before
-  upgrading the pin. The stable `3.x` line stays on the `latest` tag.
+## Install 4.0
 
-## Install side by side
-
-The `4.x` preview publishes under the `alpha` dist-tag; `latest` is still `3.x`:
+While `4.0` remains a prerelease, install the current alpha explicitly:
 
 ```bash
-# stay on stable
-npm install @alpacahq/alpaca-trade-api
-
-# install the rewrite
 npm install @alpacahq/alpaca-trade-api@alpha
 ```
 
-You can keep both in one repo while you migrate by aliasing:
+After stable `4.0.0` publishes, install the stable `4.x` line:
+
+```bash
+npm install @alpacahq/alpaca-trade-api@^4
+```
+
+If you need both major versions temporarily, install the current release under
+an alias. Use `@alpha` now, then change the alias target to `@^4` after stable
+`4.0.0` publishes:
 
 ```bash
 npm install alpaca-v4@npm:@alpacahq/alpaca-trade-api@alpha
+# after stable 4.0.0:
+npm install alpaca-v4@npm:@alpacahq/alpaca-trade-api@^4
 ```
 
 ```ts
@@ -167,7 +171,7 @@ Two more things became built in, so you can delete hand-rolled versions:
 
 - **Pagination** — ergonomic `get*`/`collect*`/`iterate*` helpers walk
   `nextPageToken` for you.
-- **Resilience** — retry (with `Retry-After`), per-request timeout, and client
+- **Resilience** — retry (with `Retry-After`), per-attempt timeout, and client
   rate limiting are on by default and configurable in the constructor.
 
 ## Client construction
@@ -204,7 +208,7 @@ const alpaca = new Alpaca({
 | `feed` (ctor) | per-call `feed` / `stockStream({ feed })` | the feed is no longer global state on the client |
 | `optionFeed` (ctor) | `optionStream({ feed })` / per-call | as above |
 | `verbose` | `middleware: [loggingMiddleware()]` | structured logging via middleware |
-| — | `timeoutMs` | new: per-request timeout (default 30s; `0` disables) |
+| — | `timeoutMs` | new: per-attempt timeout (default 30s; `0` disables) |
 | — | `retry` | new: auto-retry safe methods + `Retry-After` (default on; `false` to disable) |
 | — | `rateLimit` | new: client-side limiter (~200 req/min default; `false` to disable) |
 | — | `middleware` | new: `pre`/`post`/`onError` hooks |
@@ -223,7 +227,8 @@ import "dotenv/config";
 
 ## Automated migration (codemod)
 
-A [jscodeshift](https://github.com/facebook/jscodeshift) codemod ships in
+A [jscodeshift](https://github.com/facebook/jscodeshift) codemod ships in the npm
+package at
 [`codemods/alpaca-v3-to-v4.js`](codemods/alpaca-v3-to-v4.js). It rewrites the
 **mechanical** parts of the migration and leaves a `// TODO(alpaca-codemod): ...`
 comment everywhere a human needs to verify a semantic change.
@@ -236,21 +241,22 @@ by language, so pick the line for your sources (run on a clean git tree):
 ```bash
 # JavaScript sources
 npx jscodeshift -t \
-  https://raw.githubusercontent.com/alpacahq/alpaca-trade-api-js/ts-alpha/codemods/alpaca-v3-to-v4.js \
+  ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js \
   --parser=babel "src/**/*.js"
 
 # TypeScript sources (both flags are required)
 npx jscodeshift -t \
-  https://raw.githubusercontent.com/alpacahq/alpaca-trade-api-js/ts-alpha/codemods/alpaca-v3-to-v4.js \
+  ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js \
   --parser=tsx --extensions=ts,tsx "src/**/*.ts"
 ```
 
-Against a local checkout of the SDK repo, swap the URL for the local path
-(`-t ./codemods/alpaca-v3-to-v4.js`).
+Against a local checkout of the SDK repo, use
+`-t ./codemods/alpaca-v3-to-v4.js`.
 
 Preview without writing by adding `--dry --print`. The `--instanceName=foo,bar`
-flag registers extra identifiers as Alpaca clients (the name `alpaca` and any
-`new Alpaca(...)` variable are auto-detected). See
+flag registers extra lexically bound identifiers as Alpaca clients. Variables
+initialized with `new` using an SDK-imported `Alpaca` constructor are
+auto-detected; a variable merely named `alpaca` is not trusted. See
 [`codemods/README.md`](codemods/README.md) for the full reference.
 
 > Always run on a clean git tree and review the diff. The codemod is a
@@ -259,6 +265,8 @@ flag registers extra identifiers as Alpaca clients (the name `alpaca` and any
 ### What it does automatically
 
 - Renames the constructor option `secretKey` → `secret`.
+- Converts default ESM imports and CommonJS default bindings to named `Alpaca`
+  bindings while preserving aliases.
 - Rewrites the flat trading methods to their namespaced homes and wraps
   positional args into the new options object — `getOrder(id)` →
   `trading.orders.getOrderByOrderID({ orderId: id })`,
@@ -273,6 +281,13 @@ flag registers extra identifiers as Alpaca clients (the name `alpaca` and any
   `alpaca.marketData.stockStream()`, `onStockTrade` → `onTrade`,
   `onStatuses` → `onStatus`, …). `subscribeForTrades`/`Quotes`/`Bars`/… keep
   their names.
+
+These default ESM/CJS rewrites are binding- and flow-safe. The codemod only
+rewrites proven SDK constructors, clients, and stream variables with stable
+lexical bindings. Ambiguous, reassigned, shadowed, assignment-proven, or dynamic
+`require`/receiver flows remain source-unchanged and are reported for manual
+review. Trading `subscribe(...)` changes only when the receiver is a proven
+trading stream and the literal channel list is exactly `["trade_updates"]`.
 
 ### What it flags for you (does not silently rewrite)
 
@@ -388,10 +403,16 @@ await alpaca.createOrder({
   side: "buy",
   type: "market",
   time_in_force: "day",
+  client_order_id: "rebalance-2026-07-16-aapl-1",
 });
 
 // 4.x — market (ergonomic)
-await alpaca.trading.orders.market({ symbol: "AAPL", side: "buy", qty: 1 });
+await alpaca.trading.orders.market({
+  symbol: "AAPL",
+  side: "buy",
+  qty: 1,
+  clientOrderId: "rebalance-2026-07-16-aapl-1",
+});
 ```
 
 ```ts
@@ -450,15 +471,29 @@ await alpaca.trading.orders.postOrder({
 });
 ```
 
-**Idempotency:** make a `POST` safely retryable by passing a key (the transport
-never auto-retries non-idempotent methods):
+**Submission recovery:** pass a stable, unique `clientOrderId` in the order
+request body. Alpaca rejects a duplicate client ID; it does not return the
+original placement response. The transport never auto-retries the placement
+`POST`.
 
 ```ts
-await alpaca.trading.orders.market(
-  { symbol: "AAPL", side: "buy", qty: 1 },
-  { idempotencyKey: "my-unique-key" },
-);
+const clientOrderId = `migration-${crypto.randomUUID()}`;
+await alpaca.trading.orders.market({
+  symbol: "AAPL",
+  side: "buy",
+  qty: 1,
+  clientOrderId,
+});
+
+// After an ambiguous transport failure, reconcile before another submission:
+const order = await alpaca.trading.orders.getOrderByClientOrderId({
+  clientOrderId,
+});
 ```
+
+A lookup miss does not prove the placement failed, and the SDK does not promise
+that the record will eventually appear. Apply your application's reconciliation
+policy before deciding whether to submit anything else.
 
 #### Read / list / modify / cancel
 
@@ -489,15 +524,28 @@ alpaca.cancelAllOrders()
 
 #### Place-and-wait
 
-New ergonomic helper — submit an order and resolve once it reaches a terminal
-state (observed over the trade-updates stream):
+New ergonomic helper — wait for the server's trade-updates listening
+acknowledgement, submit one order, and resolve once it reaches a terminal state:
 
 ```ts
 const filled = await alpaca.trading.submitAndWait(
-  { type: "market", symbol: "AAPL", side: "buy", qty: 1 },
+  {
+    type: "market",
+    symbol: "AAPL",
+    side: "buy",
+    qty: 1,
+    clientOrderId: `migration-workflow-${crypto.randomUUID()}`,
+  },
   { timeoutMs: 30_000 },
 );
 ```
+
+One deadline covers connect, authentication, subscription, REST placement, and
+terminal-event waiting. The helper preserves the supplied client ID (or creates
+one once), issues one placement per invocation, and does not re-place on stream
+reconnect. After an ambiguous `FetchError`, it performs one client-ID lookup;
+generic order builders do not. A timeout can still leave the outcome ambiguous,
+so this is not an exactly-once execution guarantee.
 
 ### Positions
 
@@ -638,6 +686,10 @@ const bars = await alpaca.marketData.getStockBarsFor("AAPL", {
   timeframe: timeFrame(30, TimeFrameUnit.Minute),
 });
 ```
+
+Single-symbol `*For` helpers read only the exact requested symbol key. If Alpaca
+omits that key, array helpers return `[]` and candle helpers return empty
+`Candles`; they never substitute another symbol from the response map.
 
 ```ts
 // 3.x — multi symbol, Map
@@ -858,11 +910,18 @@ These are additive — existing 3.x-style code keeps working — but worth adopt
   a `STREAM_AUTH_STATUS` (`server_rejected` with the server code, `closed`,
   `timeout`). `waitForAuthentication(timeoutMs?)` returns a `boolean`.
 - **Reconnect lifecycle.** `onReconnecting((attempt) => …)` (1-based) and
-  `onReconnected(() => …)` (after re-auth + re-subscribe), distinct from the
-  first `onConnect`.
+  `onReconnected(() => …)` after re-authentication and re-subscription dispatch,
+  distinct from the first `onConnect`. It does not promise server subscription
+  acknowledgement.
 - **Custom `url`** on any stream and a **`callbackExecutor`** option to offload
   listener work; a throwing listener is logged and can't break the stream.
 - **Subscription validation.** Blank/non-string symbols throw at the call site.
+
+Lifecycle work is socket-generation scoped: stale callbacks/timers cannot
+mutate a replacement connection, pings start only while open, and manual
+disconnect emits once. Malformed/decode/mapper failures and trading
+`action: "error"` frames surface through `onError` / `CLIENT_ERROR` without
+crashing the process.
 
 ### Trade updates (account stream)
 
@@ -943,6 +1002,14 @@ safely do for you:
 6. **Manual retry/backoff/rate-limit code.** Likely now redundant — the client
    does it. Delete or reconcile with the `retry`/`rateLimit` options.
 7. **`.env` auto-loading.** Add `import "dotenv/config"` if you relied on it.
+8. **Pagination loops.** All token/cursor helpers now stop before refetching any
+   previously visited value (including longer cycles), after yielding valid
+   pages already fetched.
+9. **Timeout scope.** `timeoutMs` is a fresh per-attempt budget covering
+   rate-limit wait, middleware, fetch, and success/error body reads. Retry
+   backoff is outside that budget, while caller cancellation spans the whole
+   operation/backoff; all cancellation phases throw `FetchError` with an
+   `AbortError`/`TimeoutError` cause. `POST` remains non-retryable.
 
 ## End-to-end example
 
@@ -959,6 +1026,7 @@ const alpaca = new Alpaca({ keyId: K, secretKey: S, paper: true });
 
   const order = await alpaca.createOrder({
     symbol: "AAPL", qty: 1, side: "buy", type: "market", time_in_force: "day",
+    client_order_id: "buy-and-watch-aapl-1",
   });
 
   const ws = alpaca.trade_ws;
@@ -983,6 +1051,7 @@ console.log("buying power", account.buyingPower);
 // submit and wait for a terminal state in one call:
 const filled = await alpaca.trading.submitAndWait({
   type: "market", symbol: "AAPL", side: "buy", qty: 1,
+  clientOrderId: "buy-and-watch-aapl-1",
 });
 console.log("filled at", filled.filledAvgPrice);
 ```
@@ -1017,15 +1086,15 @@ the appendix.
 
 ## Rollback
 
-The `4.x` line is on the `alpha` tag and the stable `3.x` line stays on
-`latest`, so rolling back is just reinstalling:
+If you need to roll back during migration, install the previous major
+explicitly:
 
 ```bash
-npm install @alpacahq/alpaca-trade-api@latest   # back to 3.x
+npm install @alpacahq/alpaca-trade-api@^3
 ```
 
-Pin an exact alpha (`@alpacahq/alpaca-trade-api@4.0.0-alpha.0`) in `package.json`
-so an upgrade is always deliberate.
+Pin exact versions in `package.json` when your deployment process requires
+fully deterministic dependency upgrades.
 
 ## Appendix: full method cross-reference
 

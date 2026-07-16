@@ -498,7 +498,7 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
         accessor: "marketData",
         group: "marketData",
         kind: "normalized",
-        summary: "Auto-paginated, symbol-keyed accessors returning canonical Bar/Trade/Quote shapes (and chart-ready Candles), unified with the streaming layer. Each has a single-symbol `*For(symbol)` variant that returns the unwrapped value.",
+        summary: "Auto-paginated, symbol-keyed accessors returning canonical Bar/Trade/Quote shapes (and chart-ready Candles), unified with the streaming layer. Each single-symbol `*For(symbol)` reads only the exact requested key and returns an empty array/Candles when absent.",
         methods: [
             "getStockBars",
             "getCryptoBars",
@@ -526,7 +526,7 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
         accessor: "marketData",
         group: "marketData",
         kind: "pagination",
-        summary: "Auto-paginated iterate/collect helpers across every paginated market-data endpoint; the page token is managed for you.",
+        summary: "Auto-paginated iterate/collect helpers across every paginated market-data endpoint; the page token is managed for you and any revisited token stops traversal.",
         methods: [
             "iterateStockBars",
             "collectStockBarsBySymbol",

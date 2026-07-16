@@ -29,6 +29,27 @@ the `Authorization: Bearer` header):
 const alpaca = new Alpaca({ accessToken: "OAUTH_TOKEN" });
 ```
 
+OAuth also resolves from `APCA_API_OAUTH_TOKEN` when no explicit credential
+scheme is selected. Credential precedence is:
+
+1. A non-empty explicit `accessToken`.
+2. Any non-empty explicit `keyId` or `secret`, with only the missing key-pair
+   value read from `APCA_API_KEY_ID` or `APCA_API_SECRET_KEY`.
+3. Environment OAuth.
+4. An environment key pair.
+
+Empty explicit strings are treated as absent.
+
+Therefore, an unrelated process-level OAuth token cannot override an explicitly
+selected key account. OAuth remains available through either an explicit token
+or environment-only configuration. If both token and key fields are passed
+explicitly, the token wins.
+
+:::note Streaming authentication
+Real-time streams require a key/secret pair. OAuth-only clients can use every
+supported REST surface but cannot open WebSocket streams.
+:::
+
 ## Verifying credentials
 
 `trading.validateConnection()` checks credentials and connectivity without

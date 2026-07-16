@@ -3,5 +3,5 @@
   "compilerOptions": {
     "rootDir": "."
   },
-  "include": ["examples/**/*"]
+  "include": ["examples/**/*", "test/types/**/*.typecheck.ts"]
 }

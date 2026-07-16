@@ -15,12 +15,15 @@ and real-time streaming.
 > **Upgrading from 3.x?** See the [Migration guide](./MIGRATION.md) — it maps
 > every endpoint old → new, explains the ergonomic layer, and ships a
 > [codemod](./codemods/alpaca-v3-to-v4.js) that automates most of the work.
+> Both files are included in the published npm package.
 
 ## Requirements
 
 - **Node.js** >= 20 (developed against v24) — the REST transport uses the
   platform-global `fetch`, `Headers`, `URL`, and `AbortController`. (Node 18
   reached end-of-life in April 2025; the package declares `engines.node >=20`.)
+- Strict Node TypeScript projects may omit DOM libs; the REST declarations are
+  portable and do not require `"dom"` in the consumer `tsconfig`.
 
 ## Runtime compatibility
 
@@ -35,9 +38,9 @@ and real-time streaming.
 
 Legend: ✅ supported · ❌ not supported.
 
-- **Streaming is Node/Bun only.** The WebSocket clients depend on
-  [`ws`](https://github.com/websockets/ws) and `node:events`, which don't run on
-  edge or in the browser. On those targets the package's
+- **Streaming is Node/Bun only.** The WebSocket clients use Node-compatible
+  streaming modules, which don't run on edge or in the browser. On those
+  targets the package's
   [export conditions](#edge--browser-runtimes) transparently resolve the root
   import to the streaming-free [REST build](#rest-only-entrypoint), so REST works
   and the stream factories (`stockStream`, `stream`, ...) plus `submitAndWait`
@@ -57,6 +60,9 @@ REST-only entrypoint are consolidated on the docs site:
 npm install @alpacahq/alpaca-trade-api@alpha
 ```
 
+After stable `4.0.0` publishes, install the `4.x` line with
+`npm install @alpacahq/alpaca-trade-api@^4`.
+
 Migrating from the stable `3.x` release? Follow the
 [Migration guide](./MIGRATION.md).
 
@@ -75,10 +81,11 @@ npm --prefix docs start     # dev server → http://localhost:3000/alpaca-trade-
 ```
 
 Prefer the exact production build? Run `npm --prefix docs run build` (which
-regenerates the API reference and examples pages first), then
+regenerates the API reference, examples, and migration page first), then
 `npm --prefix docs run serve`. The guides are hand-written under
 [`docs/docs/`](./docs/docs); the API reference and examples pages are generated
-at build time from the SDK's capability maps and `examples/`.
+at build time from the SDK's capability maps and `examples/`; the site migration
+page is derived from the canonical [`MIGRATION.md`](./MIGRATION.md).
 
 ## Install the agent skill
 
@@ -116,7 +123,12 @@ const account = await alpaca.trading.account.getAccount();
 const positions = await alpaca.trading.positions.getAllOpenPositions();
 
 // Ergonomic order placement (see "Placing orders")
-await alpaca.trading.orders.market({ symbol: "AAPL", qty: 1, side: "buy" });
+await alpaca.trading.orders.market({
+  symbol: "AAPL",
+  qty: 1,
+  side: "buy",
+  clientOrderId: `quickstart-${crypto.randomUUID()}`,
+});
 
 // Streaming — shares the same credentials (market data ignores paper/live)
 const bars = alpaca.marketData.stockStream({ feed: "iex" });
@@ -173,7 +185,9 @@ guessable:
   shapes (`getStockBars`, `getCryptoTrades`, ...); `get<Asset>Candles` returns
   the chart-ready columnar form. Each has a single-symbol `get<Asset><Thing>For(symbol)`
   variant (`getStockBarsFor`, `getStockCandlesFor`, ...) that returns the
-  unwrapped value instead of a `{ [symbol]: ... }` map.
+  unwrapped value instead of a `{ [symbol]: ... }` map. It reads only the exact
+  requested key: if that key is absent, it returns `[]` (or empty `Candles`) and
+  never substitutes another symbol.
 - **Pagination:** `iterate<X>` lazily yields across pages; `collect<X>` /
   `collect<X>BySymbol` eagerly returns them.
 - **Workflow:** verb-named one-offs (`submitAndWait`, `closeAllPositions`,
@@ -190,8 +204,21 @@ const alpaca = new Alpaca({ keyId, secret });
 
 ### Environment variables
 
-Any credential may be omitted and resolved from the standard Alpaca environment
-variables; explicitly-passed values always win.
+Credentials may be resolved from the standard Alpaca environment variables.
+Scheme selection is deterministic:
+
+1. A non-empty explicit `accessToken` selects OAuth.
+2. Otherwise, any non-empty explicit `keyId` or `secret` selects key
+   authentication; only the missing half is read from its matching key
+   environment variable.
+3. With no explicit scheme, `APCA_API_OAUTH_TOKEN` takes precedence over an
+   environment key pair.
+
+Empty explicit strings are treated as absent.
+
+This means a process-level OAuth token cannot silently replace an explicitly
+selected key account, while OAuth remains available explicitly or entirely
+through the environment.
 
 | Option        | Environment variable    |
 | ------------- | ----------------------- |
@@ -207,8 +234,8 @@ const alpaca = new Alpaca();
 ### OAuth
 
 Pass an `accessToken` to authenticate via OAuth2; it is sent as
-`Authorization: Bearer <token>`. OAuth is mutually exclusive with `keyId`/`secret`
-and takes precedence over them.
+`Authorization: Bearer <token>`. An explicitly passed token takes precedence if
+key fields are also present.
 
 ```ts
 const alpaca = new Alpaca({ accessToken });
@@ -272,11 +299,15 @@ const alpaca = new Alpaca({
   // default; pass a config to tune or `false` to disable). See below.
   rateLimit: { maxRequests: 200, intervalMs: 60_000, maxConcurrent: 16 },
 
-  userAgent: "my-app/1.0", // default `@alpacahq/alpaca-trade-api/<version>`; "" disables
+  userAgent: "my-app/1.0", // default `APCA-NODE/<sdk-version> <Runtime>/<runtime-version>`; "" disables
 
   redirect: "error", // default: reject 3xx so the APCA-API-* secret can't follow an off-host redirect ("follow" to opt out)
 });
 ```
+
+The default identifies both the SDK family/version and the execution runtime,
+for example `APCA-NODE/4.0.0 Node/22.4.0`. Runtime detection prefers Bun and
+Deno before Node so their npm-compatibility globals are not mislabeled.
 
 ### Retry semantics
 
@@ -287,8 +318,8 @@ const alpaca = new Alpaca({
 - The `retryableStatuses` (`408, 425, 429, 500, 502, 503, 504` by default) are
   retried **only for safe/idempotent verbs** (`GET/HEAD/OPTIONS/TRACE`). A
   non-idempotent `POST`/`PUT`/`PATCH`/`DELETE` is **never** auto-retried (even on
-  `429`), so an order can't be silently duplicated — pass an `Idempotency-Key`
-  to make a `POST` safely retryable yourself (see below).
+  `429`). In particular, order-placement `POST`s are issued once and are never
+  replayed by the transport.
 - **Transient network failures** (DNS, connection reset, TLS — surfaced as a
   `FetchError`) are also retried, again **only for the safe verbs**. A
   deliberate abort (caller `AbortSignal` or the `timeoutMs` deadline) is *not*
@@ -303,26 +334,41 @@ const alpaca = new Alpaca({
   These are pure observability hooks — exceptions thrown from them are swallowed
   so they can never break a request.
 
-### Idempotency keys
+### Order-submission safety
 
-The ergonomic order methods accept an `idempotencyKey` that is sent as the
-`Idempotency-Key` header. Replaying the same key with the same parameters within
-Alpaca's 24h window returns the original response instead of creating a duplicate
-order, which makes the `POST` safe for you to retry:
+Give every order a stable, unique `clientOrderId` in the request body. It makes
+the order auditable and gives you a key for recovery, but it is not response
+replay: Alpaca rejects another order that reuses the same ID.
 
 ```ts
-await alpaca.trading.orders.market(
-  { symbol: "AAPL", qty: 1, side: "buy" },
-  { idempotencyKey: "client-generated-uuid" },
-);
+const clientOrderId = `mean-reversion-${crypto.randomUUID()}`;
+const order = await alpaca.trading.orders.market({
+  symbol: "AAPL",
+  qty: 1,
+  side: "buy",
+  clientOrderId,
+});
 ```
+
+The SDK never auto-retries the placement `POST`. If a `FetchError` leaves the
+outcome ambiguous, query `getOrderByClientOrderId({ clientOrderId })` before any
+further submission. Do not treat a lookup miss as proof that the first request
+was not accepted, and do not assume the order will eventually become visible;
+apply your application's reconciliation policy before deciding what to do next.
 
 ### Timeouts
 
-`timeoutMs` wires an `AbortController` into the underlying `fetch` and defaults to
-`30000` (30s); pass `0` to disable the deadline. A per-call `AbortSignal` (passed
-via `initOverrides`) still works and composes with the timeout — whichever aborts
-first wins.
+`timeoutMs` is a fresh per-attempt deadline and defaults to `30000` (30s); pass
+`0` to disable it. Each attempt budget includes the client-side rate-limit wait,
+pre middleware, `fetch`, error/post middleware, and successful or error
+response-body consumption. Retry backoff sits outside the completed attempt
+budget, and every retry starts with a new deadline.
+
+A per-call `AbortSignal` (passed via `initOverrides`) spans the whole operation,
+including retry backoff. Cancellation in any phase rejects with `FetchError`
+whose cause is an `AbortError` (caller cancellation) or `TimeoutError`
+(`timeoutMs`). Cancellation is never retried, and `POST` remains excluded from
+automatic retry.
 
 ### Redirects
 
@@ -409,11 +455,18 @@ underlying response.
 per common order kind that drops the `postOrder({ postOrderRequest })` wrapper,
 accepts `number | string` amounts, and enforces the required fields per kind at
 compile time. Each returns the created `Order`; `timeInForce` defaults to
-`"day"`.
+`"day"`. Supply a stable, unique `clientOrderId` for every live order so logs
+and recovery can correlate the submission with Alpaca.
 
 ```ts
-await alpaca.trading.orders.market({ symbol: "AAPL", qty: 1, side: "buy" });
-await alpaca.trading.orders.limit({ symbol: "AAPL", qty: 1, side: "buy", limitPrice: 150 });
+await alpaca.trading.orders.market({
+  symbol: "AAPL", qty: 1, side: "buy",
+  clientOrderId: `market-${crypto.randomUUID()}`,
+});
+await alpaca.trading.orders.limit({
+  symbol: "AAPL", qty: 1, side: "buy", limitPrice: 150,
+  clientOrderId: `limit-${crypto.randomUUID()}`,
+});
 await alpaca.trading.orders.stop({ symbol: "AAPL", qty: 1, side: "sell", stopPrice: 140 });
 await alpaca.trading.orders.stopLimit({ symbol: "AAPL", qty: 1, side: "sell", stopPrice: 140, limitPrice: 139.5 });
 await alpaca.trading.orders.trailingStop({ symbol: "AAPL", qty: 1, side: "sell", trailPercent: 5 });
@@ -444,14 +497,34 @@ const price = await alpaca.marketData.getLatestPrice("AAPL");
 // Close every open position (optionally cancelling open orders first).
 await alpaca.trading.closeAllPositions({ cancelOrders: true });
 
-// Place an order and await its terminal state over the trading-updates stream
-// (resolves on fill/canceled/rejected/expired/done_for_day; rejects on timeout).
+// Wait for server acknowledgement of the trade-updates subscription, place
+// once, then await a terminal state without placing again on stream reconnect.
 const filled = await alpaca.trading.submitAndWait(
-  { type: "market", symbol: "AAPL", qty: 1, side: "buy" },
+  {
+    type: "market",
+    symbol: "AAPL",
+    qty: 1,
+    side: "buy",
+    clientOrderId: `workflow-${crypto.randomUUID()}`,
+  },
   { timeoutMs: 30_000 },
 );
 console.log(filled.status, filled.filledAvgPrice);
 ```
+
+`submitAndWait` preserves a supplied client ID or creates one once, and issues
+one placement request per invocation. It waits for Alpaca's server-side
+`listening` acknowledgement before placement and never re-places after a stream
+reconnect. One deadline covers stream connect, authentication, subscription,
+the REST placement, and the terminal-event wait. If placement fails with an
+ambiguous `FetchError`, the helper makes one
+`getOrderByClientOrderId` reconciliation request and continues waiting when
+appropriate; the generic order builders do not do this for you. A timeout can
+still leave the placement outcome ambiguous, so this helper does not promise
+exactly-once execution or eventual lookup visibility. Post-placement workflow
+failures reject with `SubmitAndWaitError`; inspect its `clientOrderId`, optional
+confirmed `orderId`, `phase`, `placementAmbiguous`, and `cause`. Reconcile the
+client ID before resubmitting when the placement remains ambiguous.
 
 ## Pagination
 
@@ -488,6 +561,11 @@ auctions, `indexValues`, forex `rates`, option `snapshots`/`chain`,
 lower-level `pagination` namespace exposes the building blocks: `paginate`/
 `collect`, `paginateSymbolMap`/`collectBySymbol`, `paginateSymbolObjects`/
 `collectSymbolObjects`, and `paginateCursor`/`collectCursor`.
+
+All token/cursor helpers track every visited value, not only the immediately
+previous one. A repeated token in a longer cycle such as `A → B → A` stops
+pagination before refetching `A`, after preserving all valid items or corporate
+action pages fetched so far.
 
 ### Bounding large fetches
 
@@ -612,8 +690,10 @@ Normalized accessors: `getStockBars`/`getCryptoBars`/`getOptionBars`,
 chart-ready `getStockCandles`/`getCryptoCandles`. Each returns a `{ [symbol]: T }`
 map; for a single symbol, the `*For(symbol)` variants
 (`getStockBarsFor`, `getStockCandlesFor`, ... one per accessor) return the
-unwrapped value directly so you skip the `result[symbol]` step. For any other
-endpoint, normalize a raw response yourself with the pure mappers:
+unwrapped value directly so you skip the `result[symbol]` step. They use only
+the exact requested map key; an absent key returns `[]` or empty `Candles`
+instead of another symbol's data. For any other endpoint, normalize a raw
+response yourself with the pure mappers:
 `marketDataShapes.toBar`, `toStockTrade`/`toCryptoTrade`/`toOptionTrade`,
 `toStockQuote`/`toCryptoQuote`/`toOptionQuote`, and the `*BySymbol` helpers.
 
@@ -668,8 +748,9 @@ come from Alpaca's data plans, not the SDK:
 
 WebSocket clients for a market-data stream (stocks, crypto, options, news) and a
 trading stream (order/account updates). Both authenticate automatically,
-reconnect with backoff, re-subscribe after a reconnect, and ping/pong. The API
-is a typed `EventEmitter`: register listeners, then `connect()`.
+reconnect with backoff, dispatch current subscriptions after reconnect
+authentication, and ping/pong. The API is a typed `EventEmitter`: register
+listeners, then `connect()`.
 
 ```ts
 const stocks = alpaca.marketData.stockStream({ feed: "iex" }); // "iex" | "sip" | "delayed_sip"
@@ -693,8 +774,9 @@ Every stream also exposes:
   a `boolean`. Failures carry a `STREAM_AUTH_STATUS` (`server_rejected` with the
   server `code`, `closed`, `timeout`).
 - **Reconnect lifecycle** — `onReconnecting((attempt) => …)` (1-based) and
-  `onReconnected(() => …)` (after re-auth + re-subscribe), distinct from the
-  first `onConnect`.
+  `onReconnected(() => …)` after re-authentication and re-subscription
+  **dispatch**, distinct from the first `onConnect`. It does not promise server
+  acknowledgement of those subscriptions.
 - **A custom `url`** on any stream (market-data included) to route through a
   proxy/gateway, plus a `callbackExecutor` to offload listener work — a throwing
   listener is logged and can never break the stream.
@@ -706,7 +788,7 @@ const stocks = alpaca.marketData.stockStream({
   callbackExecutor: (task) => queueMicrotask(task), // optional: offload listeners
 });
 stocks.onReconnecting((attempt) => console.warn(`reconnecting (attempt ${attempt})`));
-stocks.onReconnected(() => console.info("reconnected; subscriptions restored"));
+stocks.onReconnected(() => console.info("reconnected; subscriptions dispatched"));
 stocks.connect();
 
 const result = await stocks.whenAuthenticated();
@@ -728,7 +810,7 @@ addition to its data handlers:
 | `connect()` / `disconnect()` | Open / close the socket (`disconnect` suppresses auto-reconnect). |
 | `onConnect` / `onDisconnect` / `onStateChange` / `onError` | Lifecycle + error listeners. |
 | `onReconnecting((attempt) => …)` | Fires before each automatic reconnect (1-based `attempt`). |
-| `onReconnected(() => …)` | Fires after a reconnect re-authenticates and restores subscriptions. |
+| `onReconnected(() => …)` | Fires after reconnect authentication and re-subscription dispatch (not server acknowledgement). |
 | `whenAuthenticated(): Promise<StreamAuthResult>` | Resolves with the first-auth outcome; never rejects. |
 | `waitForAuthentication(timeoutMs?): Promise<boolean>` | `true` on auth, `false` on failure/close/timeout. |
 | `waitForAuthenticationResult(timeoutMs?)` | Typed result; a caller-side timeout doesn't settle the real outcome. |
@@ -742,6 +824,13 @@ Common stream **options** (in addition to `feed`/`paper`/`sandbox`): `reconnect`
 `backoff`, `initialReconnectMs`, `maxReconnectMs`, `reconnectJitter`,
 `pingIntervalMs`, `pongWaitMs`, `url` (override the endpoint), and
 `callbackExecutor` (offload + isolate listener callbacks).
+
+Stream state is scoped to the socket generation that created it: stale socket
+callbacks and timers cannot mutate a newer connection, pings start only while
+open, and manual `disconnect()` emits disconnect exactly once. Malformed
+payloads, decode/mapper failures, trading `action: "error"` frames, and listener
+failures surface through `onError` / `CLIENT_ERROR` without escaping callbacks
+or crashing the process.
 
 ## Capability map (which method lives where)
 
@@ -808,7 +897,7 @@ and [`@msgpack/msgpack`](https://github.com/msgpack/msgpack-javascript). At
 runtime the `Alpaca` facade only constructs them when you actually open a stream,
 but the **root entrypoint's module graph statically includes them** (it
 re-exports the `streaming` namespace), so a bundler resolving
-`@alpacahq/alpaca-trade-api` will see `ws` / `@msgpack/msgpack` / `node:events`.
+`@alpacahq/alpaca-trade-api` will see `ws` / `@msgpack/msgpack`.
 If you only use REST — or you target an edge/browser runtime where `ws` cannot
 run — import from the [`@alpacahq/alpaca-trade-api/rest`](#rest-only-entrypoint)
 subpath (or rely on the automatic edge resolution described in
@@ -822,6 +911,9 @@ faster cold starts). It re-exports everything except the `streaming` namespace.
 The `Alpaca` facade is the same class, so all REST methods work unchanged; the
 stream factories (`stockStream`, `stream`, ...) and `submitAndWait` throw if
 called from this entrypoint — import from `@alpacahq/alpaca-trade-api` when you need streams.
+The REST runtime graph and published declarations contain no Node, `ws`, or
+msgpack requirements, supporting strict Node projects without DOM libraries and
+edge consumers with the same facade.
 
 ```ts
 import { Alpaca } from "@alpacahq/alpaca-trade-api/rest";
@@ -876,15 +968,15 @@ const { Alpaca } = require("@alpacahq/alpaca-trade-api");  // CJS
 
 ### Edge & browser runtimes
 
-The streaming clients depend on `ws` and `node:events`, which don't run on edge
-runtimes (Cloudflare Workers / `workerd`, Vercel Edge, Deno) or in the browser.
+The streaming clients use Node-compatible WebSocket/EventEmitter modules, which
+don't run on edge runtimes (Cloudflare Workers / `workerd`, Vercel Edge, Deno)
+or in the browser.
 To keep the root import working there, the package `exports` map declares
 `workerd`, `worker`, `edge-light`, `deno`, and `browser` conditions that resolve
 `@alpacahq/alpaca-trade-api` to the streaming-free
 [REST-only build](#rest-only-entrypoint) automatically — so a plain
 `import { Alpaca } from "@alpacahq/alpaca-trade-api"` builds and runs on those
-targets without the `Class extends value [object Module]` failure that comes
-from a bundler trying to load `ws` / `node:events` on a runtime that lacks them.
+targets without loading the streaming implementation.
 
 The trade-off is the same as importing `/rest` directly: REST works unchanged,
 but the stream factories (`stockStream`, `stream`, ...) and `submitAndWait`
@@ -897,21 +989,24 @@ npm install      # also builds via the `prepare` script
 npm run build    # tsup (esbuild) -> dual ESM+CJS + types in dist/
 npm run typecheck # tsc --noEmit (type authority; does not emit)
 npm test         # vitest
+npm run generate:offline # reproduce generated REST trees from pinned specs
 ```
 
 `dist/` is git-ignored and produced by the build (and automatically on
 `npm publish` / `npm pack` via `prepare`). Runnable end-to-end examples live in
 [`examples/`](./examples).
 
-This SDK was originally scaffolded with
-[OpenAPI Generator](https://openapi-generator.tech), but it is now **fully
-hand-maintained** — there are no further regenerations. The generated REST
-clients and models under `src/trading/{apis,models}` and
-`src/market-data/{apis,models}` are left untouched so they remain a faithful
-snapshot of Alpaca's OpenAPI spec; everything else — the `Alpaca` facade, order
-builders, normalized market-data shapes, pagination, streaming, and the shared
-transport — is hand-written in separate modules. When contributing, edit the
-hand-written modules and don't hand-edit the generated `apis`/`models` trees.
+OpenAPI Generator reproducibly derives the REST clients/models under
+`src/trading/{apis,models}` and `src/market-data/{apis,models}` from the
+committed pinned specs. Never hand-edit those trees; customization belongs in
+`tooling/` templates/overlays, while facade, pagination, streaming, and shared
+transport behavior stays in hand-written modules.
+
+Generated API docs describe only that committed snapshot. A live
+`npm run generate -- --dry-run --yes` preview is not adoption. Real
+non-interactive adoption refuses removed schemas/operations unless an owner
+explicitly supplies `--allow-breaking-spec-removals`; see
+[`tooling/GENERATION.md`](./tooling/GENERATION.md).
 
 ## Background
 
@@ -1425,18 +1520,11 @@ await alpaca.trading.orders.getAllOrders({ status: "open", limit: 100 });
 
 ##### `alpaca.trading.orders.postOrder`
 
-Place an order (raw). Prefer the typed builders under Ergonomic helpers.
+Place one order (raw); include a stable, unique client ID for audit and recovery.
 
 ```ts
-await alpaca.trading.orders.postOrder({
-  postOrderRequest: {
-    symbol: "AAPL",
-    qty: "1",
-    side: "buy",
-    type: "market",
-    timeInForce: "day",
-  },
-});
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.postOrder({ postOrderRequest: { symbol: "AAPL", qty: "1", side: "buy", type: "market", timeInForce: "day", clientOrderId } });
 ```
 
 ##### `alpaca.trading.orders.getOrderByOrderID`
@@ -1449,12 +1537,11 @@ await alpaca.trading.orders.getOrderByOrderID({ orderId: "f1...e9" });
 
 ##### `alpaca.trading.orders.getOrderByClientOrderId`
 
-Fetch a single order by your client order id.
+Look up an order by its client ID, including to reconcile an ambiguous placement before submitting again.
 
 ```ts
-await alpaca.trading.orders.getOrderByClientOrderId({
-  clientOrderId: "my-order-1",
-});
+const clientOrderId = "the-id-recorded-before-placement";
+const order = await alpaca.trading.orders.getOrderByClientOrderId({ clientOrderId });
 ```
 
 ##### `alpaca.trading.orders.patchOrderByOrderId`
@@ -2254,118 +2341,83 @@ One typed builder per order kind; drops the postOrder wrapper and enforces requi
 
 ##### `alpaca.trading.orders.market`
 
-Place a market order (exactly one of `qty`/`notional`).
+Place one market order (exactly one of `qty`/`notional`) with a client ID for audit and recovery.
 
 ```ts
-await alpaca.trading.orders.market({ symbol: "AAPL", side: "buy", qty: 1 });
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.market({ symbol: "AAPL", side: "buy", qty: 1, clientOrderId });
 ```
 
 ##### `alpaca.trading.orders.limit`
 
-Place a limit order.
+Place one limit order with a stable, unique client ID.
 
 ```ts
-await alpaca.trading.orders.limit({
-  symbol: "AAPL",
-  side: "buy",
-  qty: 1,
-  limitPrice: 150,
-});
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.limit({ symbol: "AAPL", side: "buy", qty: 1, limitPrice: 150, clientOrderId });
 ```
 
 ##### `alpaca.trading.orders.stop`
 
-Place a stop (stop-market) order.
+Place one stop (stop-market) order with a stable, unique client ID.
 
 ```ts
-await alpaca.trading.orders.stop({
-  symbol: "AAPL",
-  side: "sell",
-  qty: 1,
-  stopPrice: 140,
-});
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.stop({ symbol: "AAPL", side: "sell", qty: 1, stopPrice: 140, clientOrderId });
 ```
 
 ##### `alpaca.trading.orders.stopLimit`
 
-Place a stop-limit order.
+Place one stop-limit order with a stable, unique client ID.
 
 ```ts
-await alpaca.trading.orders.stopLimit({
-  symbol: "AAPL",
-  side: "sell",
-  qty: 1,
-  stopPrice: 140,
-  limitPrice: 139,
-});
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.stopLimit({ symbol: "AAPL", side: "sell", qty: 1, stopPrice: 140, limitPrice: 139, clientOrderId });
 ```
 
 ##### `alpaca.trading.orders.trailingStop`
 
-Place a trailing-stop order (one of `trailPrice`/`trailPercent`).
+Place one trailing-stop order (one of `trailPrice`/`trailPercent`) with a stable, unique client ID.
 
 ```ts
-await alpaca.trading.orders.trailingStop({
-  symbol: "AAPL",
-  side: "sell",
-  qty: 1,
-  trailPercent: 5,
-});
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.trailingStop({ symbol: "AAPL", side: "sell", qty: 1, trailPercent: 5, clientOrderId });
 ```
 
 ##### `alpaca.trading.orders.bracket`
 
-Place a bracket order: entry plus take-profit and stop-loss legs.
+Place one bracket order (entry plus take-profit and stop-loss legs) with a stable, unique client ID.
 
 ```ts
-await alpaca.trading.orders.bracket({
-  symbol: "AAPL",
-  side: "buy",
-  qty: 1,
-  takeProfit: { limitPrice: 160 },
-  stopLoss: { stopPrice: 140 },
-});
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.bracket({ symbol: "AAPL", side: "buy", qty: 1, takeProfit: { limitPrice: 160 }, stopLoss: { stopPrice: 140 }, clientOrderId });
 ```
 
 ##### `alpaca.trading.orders.oco`
 
-Place a one-cancels-other order (take-profit + stop-loss on a held position).
+Place one one-cancels-other order on a held position with a stable, unique client ID.
 
 ```ts
-await alpaca.trading.orders.oco({
-  symbol: "AAPL",
-  side: "sell",
-  qty: 1,
-  takeProfit: { limitPrice: 160 },
-  stopLoss: { stopPrice: 140 },
-});
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.oco({ symbol: "AAPL", side: "sell", qty: 1, takeProfit: { limitPrice: 160 }, stopLoss: { stopPrice: 140 }, clientOrderId });
 ```
 
 ##### `alpaca.trading.orders.oto`
 
-Place a one-triggers-other order (entry that triggers a single leg).
+Place one one-triggers-other order with a stable, unique client ID.
 
 ```ts
-await alpaca.trading.orders.oto({
-  symbol: "AAPL",
-  side: "buy",
-  qty: 1,
-  limitPrice: 150,
-  takeProfit: { limitPrice: 160 },
-});
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.oto({ symbol: "AAPL", side: "buy", qty: 1, limitPrice: 150, takeProfit: { limitPrice: 160 }, clientOrderId });
 ```
 
 ##### `alpaca.trading.orders.submit`
 
-Generic builder escape hatch for shapes the typed builders don't cover (e.g. `mleg`).
+Place one near-raw order shape; include a stable, unique client ID and reconcile transport ambiguity explicitly.
 
 ```ts
-await alpaca.trading.orders.submit({
-  type: "market",
-  symbol: "AAPL",
-  side: "buy",
-  qty: 1,
-});
+const clientOrderId = crypto.randomUUID();
+await alpaca.trading.orders.submit({ type: "market", symbol: "AAPL", side: "buy", qty: 1, clientOrderId });
 ```
 
 #### `alpaca.trading` — workflow helpers
@@ -2382,15 +2434,11 @@ const check = await alpaca.trading.validateConnection();
 
 ##### `alpaca.trading.submitAndWait`
 
-Place an order and resolve once it reaches a terminal state, observed over the trading stream.
+After server listening acknowledgement, place once and await a terminal update under one workflow deadline.
 
 ```ts
-const filled = await alpaca.trading.submitAndWait({
-  type: "market",
-  symbol: "AAPL",
-  side: "buy",
-  qty: 1,
-}, { timeoutMs: 30_000 });
+const clientOrderId = crypto.randomUUID();
+const filled = await alpaca.trading.submitAndWait({ type: "market", symbol: "AAPL", side: "buy", qty: 1, clientOrderId }, { timeoutMs: 30_000 });
 ```
 
 ##### `alpaca.trading.closeAllPositions`
@@ -2479,7 +2527,7 @@ const price = await alpaca.marketData.getLatestPrice("AAPL");
 
 #### `alpaca.marketData` — normalized accessors
 
-Auto-paginated, symbol-keyed accessors returning canonical Bar/Trade/Quote shapes (and chart-ready Candles), unified with the streaming layer. Each has a single-symbol `*For(symbol)` variant that returns the unwrapped value.
+Auto-paginated, symbol-keyed accessors returning canonical Bar/Trade/Quote shapes (and chart-ready Candles), unified with the streaming layer. Each single-symbol `*For(symbol)` reads only the exact requested key and returns an empty array/Candles when absent.
 
 ##### `alpaca.marketData.getStockBars`
 
@@ -2613,7 +2661,7 @@ const candles = await alpaca.marketData.getCryptoCandles({
 
 ##### `alpaca.marketData.getStockBarsFor`
 
-Single-symbol historical stock bars as canonical `Bar[]` (unwrapped, not a symbol map).
+Exact-key stock bars as canonical `Bar[]`; returns `[]` when the requested symbol is absent.
 
 ```ts
 const bars = await alpaca.marketData.getStockBarsFor("AAPL", { timeframe: "1Day", start: new Date("2024-01-01") });
@@ -2621,7 +2669,7 @@ const bars = await alpaca.marketData.getStockBarsFor("AAPL", { timeframe: "1Day"
 
 ##### `alpaca.marketData.getCryptoBarsFor`
 
-Single-symbol historical crypto bars as canonical `Bar[]` (unwrapped).
+Exact-key crypto bars as canonical `Bar[]`; returns `[]` when the requested pair is absent.
 
 ```ts
 const bars = await alpaca.marketData.getCryptoBarsFor("BTC/USD", { loc: "us", timeframe: "1Day", start: new Date("2024-01-01") });
@@ -2629,7 +2677,7 @@ const bars = await alpaca.marketData.getCryptoBarsFor("BTC/USD", { loc: "us", ti
 
 ##### `alpaca.marketData.getOptionBarsFor`
 
-Single-symbol historical option bars as canonical `Bar[]` (unwrapped).
+Exact-key option bars as canonical `Bar[]`; returns `[]` when the requested contract is absent.
 
 ```ts
 const bars = await alpaca.marketData.getOptionBarsFor("AAPL250117C00150000", { timeframe: "1Day", start: new Date("2024-01-01") });
@@ -2637,7 +2685,7 @@ const bars = await alpaca.marketData.getOptionBarsFor("AAPL250117C00150000", { t
 
 ##### `alpaca.marketData.getStockTradesFor`
 
-Single-symbol historical stock trades as canonical `Trade[]` (unwrapped).
+Exact-key stock trades as canonical `Trade[]`; never substitutes another symbol.
 
 ```ts
 const trades = await alpaca.marketData.getStockTradesFor("AAPL", { start: new Date("2024-01-02") });
@@ -2645,7 +2693,7 @@ const trades = await alpaca.marketData.getStockTradesFor("AAPL", { start: new Da
 
 ##### `alpaca.marketData.getCryptoTradesFor`
 
-Single-symbol historical crypto trades as canonical `Trade[]` (unwrapped).
+Exact-key crypto trades as canonical `Trade[]`; never substitutes another pair.
 
 ```ts
 const trades = await alpaca.marketData.getCryptoTradesFor("BTC/USD", { loc: "us", start: new Date("2024-01-02") });
@@ -2653,7 +2701,7 @@ const trades = await alpaca.marketData.getCryptoTradesFor("BTC/USD", { loc: "us"
 
 ##### `alpaca.marketData.getStockQuotesFor`
 
-Single-symbol historical stock quotes as canonical `Quote[]` (unwrapped).
+Exact-key stock quotes as canonical `Quote[]`; never substitutes another symbol.
 
 ```ts
 const quotes = await alpaca.marketData.getStockQuotesFor("AAPL", { start: new Date("2024-01-02") });
@@ -2661,7 +2709,7 @@ const quotes = await alpaca.marketData.getStockQuotesFor("AAPL", { start: new Da
 
 ##### `alpaca.marketData.getCryptoQuotesFor`
 
-Single-symbol historical crypto quotes as canonical `Quote[]` (unwrapped).
+Exact-key crypto quotes as canonical `Quote[]`; never substitutes another pair.
 
 ```ts
 const quotes = await alpaca.marketData.getCryptoQuotesFor("BTC/USD", { loc: "us", start: new Date("2024-01-02") });
@@ -2669,7 +2717,7 @@ const quotes = await alpaca.marketData.getCryptoQuotesFor("BTC/USD", { loc: "us"
 
 ##### `alpaca.marketData.getStockCandlesFor`
 
-Single-symbol historical stock bars as chart-ready columnar `Candles` (unwrapped).
+Exact-key stock `Candles`; returns empty columns when the requested symbol is absent.
 
 ```ts
 const candles = await alpaca.marketData.getStockCandlesFor("AAPL", { timeframe: "1Day", start: new Date("2024-01-01") });
@@ -2677,7 +2725,7 @@ const candles = await alpaca.marketData.getStockCandlesFor("AAPL", { timeframe: 
 
 ##### `alpaca.marketData.getCryptoCandlesFor`
 
-Single-symbol historical crypto bars as chart-ready columnar `Candles` (unwrapped).
+Exact-key crypto `Candles`; returns empty columns when the requested pair is absent.
 
 ```ts
 const candles = await alpaca.marketData.getCryptoCandlesFor("BTC/USD", { loc: "us", timeframe: "1Day", start: new Date("2024-01-01") });
@@ -2685,7 +2733,7 @@ const candles = await alpaca.marketData.getCryptoCandlesFor("BTC/USD", { loc: "u
 
 #### `alpaca.marketData` — pagination helpers
 
-Auto-paginated iterate/collect helpers across every paginated market-data endpoint; the page token is managed for you.
+Auto-paginated iterate/collect helpers across every paginated market-data endpoint; the page token is managed for you and any revisited token stops traversal.
 
 ##### `alpaca.marketData.iterateStockBars`
 
@@ -3091,7 +3139,7 @@ const articles = await alpaca.marketData.collectNews({ symbols: ["AAPL"] });
 
 ##### `alpaca.marketData.iterateCorporateActionsPages`
 
-Lazily yield each page's `CorporateActions` envelope, following the token.
+Yield valid corporate-action pages and stop before any revisited token, including longer cycles.
 
 ```ts
 for await (const page of alpaca.marketData.iterateCorporateActionsPages({
@@ -3101,7 +3149,7 @@ for await (const page of alpaca.marketData.iterateCorporateActionsPages({
 
 ##### `alpaca.marketData.collectCorporateActions`
 
-Collect corporate actions across pages into one merged `CorporateActions` object.
+Merge valid corporate-action pages, stopping before any revisited pagination token.
 
 ```ts
 const actions = await alpaca.marketData.collectCorporateActions({

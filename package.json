@@ -101,18 +101,24 @@
   "files": [
     "dist",
     "src",
-    "LICENSE"
+    "LICENSE",
+    "MIGRATION.md",
+    "codemods/README.md",
+    "codemods/alpaca-v3-to-v4.js"
   ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit && npm run typecheck:examples",
     "typecheck:examples": "tsc --noEmit -p tsconfig.examples.json",
     "test": "vitest run",
+    "verify:codemod": "vitest run codemods/alpaca-v3-to-v4.test.ts",
+    "verify:package": "node scripts/verify-package.mjs",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "docs:api": "tsx scripts/gen-api-reference.ts",
     "docs:api-site": "tsx scripts/gen-docs-api-reference.ts",
     "docs:examples-site": "tsx scripts/gen-docs-examples.ts",
+    "docs:migration-site": "tsx scripts/gen-docs-migration.ts",
     "generate": "npm --prefix tooling run generate --",
     "generate:offline": "npm --prefix tooling run generate -- --offline",
     "changeset": "changeset",
@@ -135,6 +141,7 @@
     "@microsoft/api-extractor": "^7.58.9",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
+    "jscodeshift": "17.4.0",
     "tsup": "^8.5.1",
     "tsx": "^4.22.4",
     "typescript": "^5.4.0",

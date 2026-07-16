@@ -19,6 +19,9 @@ This site documents the **4.0 alpha** line. Install it with the `alpha` dist-tag
 ```bash
 npm install @alpacahq/alpaca-trade-api@alpha
 ```
+
+After stable `4.0.0` publishes, install the `4.x` line with
+`npm install @alpacahq/alpaca-trade-api@^4`.
 :::
 
 ## How the docs are organized
@@ -30,7 +33,9 @@ npm install @alpacahq/alpaca-trade-api@alpha
 - **[Streaming](./streaming.md)** — real-time trading and market-data WebSocket streams.
 - **[Pagination](./pagination.md)** — iterate/collect helpers and the generic `pagination` helper.
 - **[Runtime & module compatibility](./runtime-compatibility.md)** — the Node/Bun/Deno/edge/browser support matrix, ESM + CJS module formats, the REST-only entrypoint, and dependencies.
-- **[Examples](https://github.com/alpacahq/alpaca-trade-api-js/tree/ts-alpha/examples)** — runnable end-to-end programs (a paper trading bot and a market-data backend); also rendered as an in-site Examples page (in the sidebar) when you build the docs.
+- **[Examples](./examples.md)** — runnable end-to-end programs (a paper trading
+  bot and a market-data backend), generated from the repository examples during
+  every docs build.
 - **API reference** — a curated, example-driven reference for every REST endpoint
   (Trading API and Market Data API) in the sidebar, generated from the SDK's
   capability maps. Streaming and ergonomic helpers are documented in the guides

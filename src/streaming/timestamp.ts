@@ -14,6 +14,7 @@
  * trees, which are kept untouched as a faithful snapshot of the OpenAPI spec.
  */
 import { ExtensionCodec, EXT_TIMESTAMP, decodeTimestampToTimeSpec } from "@msgpack/msgpack";
+import type { StreamExtensionCodec } from "./websocket";
 
 /**
  * A stream timestamp preserving nanosecond precision: `epochSeconds` plus
@@ -45,12 +46,12 @@ export class StreamTimestamp {
 }
 
 /**
- * A decode-only {@link ExtensionCodec} that maps the msgpack timestamp extension
+ * A decode-only extension codec that maps the msgpack timestamp extension
  * onto a {@link StreamTimestamp}. Pass it to `decode(...)` only; never to
  * `encode(...)` (the `encode` hook intentionally returns `null` so the default
  * `Date` encoding keeps working for callers that share this codec instance).
  */
-export function createMarketDataExtensionCodec(): ExtensionCodec {
+export function createMarketDataExtensionCodec(): StreamExtensionCodec {
     const codec = new ExtensionCodec();
     codec.register({
         type: EXT_TIMESTAMP,
@@ -60,5 +61,5 @@ export function createMarketDataExtensionCodec(): ExtensionCodec {
             return new StreamTimestamp(sec, nsec);
         },
     });
-    return codec;
+    return codec as unknown as StreamExtensionCodec;
 }

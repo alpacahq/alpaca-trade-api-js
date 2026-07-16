@@ -245,30 +245,37 @@ function errorForStatus(
  * the rate-limit headers. Reads a clone so the caller's `response.body` stays
  * available.
  */
-export async function buildApiError(response: Response): Promise<ApiError> {
+export async function buildApiError(
+    response: Response,
+    readBody?: (response: Response) => Promise<string>,
+): Promise<ApiError> {
     let code: number | string | undefined;
     let message = `Response returned an error code (HTTP ${response.status})`;
     try {
-        const text = await response.clone().text();
+        const body = response.clone();
+        const text = await (readBody ? readBody(body) : body.text());
         if (text) {
             try {
-                const body: unknown = JSON.parse(text);
-                if (body && typeof body === 'object') {
-                    const envelope = body as { code?: unknown; message?: unknown };
+                const parsed: unknown = JSON.parse(text);
+                if (parsed && typeof parsed === 'object') {
+                    const envelope = parsed as { code?: unknown; message?: unknown };
                     if (envelope.code != null) {
                         code = envelope.code as number | string;
                     }
                     if (envelope.message) {
                         message = String(envelope.message);
                     }
-                } else if (typeof body === 'string' && body) {
-                    message = body;
+                } else if (typeof parsed === 'string' && parsed) {
+                    message = parsed;
                 }
             } catch {
                 message = text;
             }
         }
-    } catch {
+    } catch (error) {
+        if (readBody && error instanceof FetchError) {
+            throw error;
+        }
         // body already consumed or unreadable; keep the default message
     }
     const rateLimit = parseRateLimit(response.headers);

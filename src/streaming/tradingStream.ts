@@ -23,8 +23,13 @@ export interface TradingStreamOptions
 }
 
 interface TradingFrame {
+    action?: string;
     stream?: string;
     data?: Record<string, unknown>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export class TradingStream extends AlpacaWebSocket {
@@ -66,7 +71,20 @@ export class TradingStream extends AlpacaWebSocket {
     }
 
     protected handleMessage(message: unknown): void {
+        if (!isRecord(message)) {
+            throw new TypeError("trading message must be a non-null object");
+        }
         const frame = message as TradingFrame;
+        if (frame.data !== undefined && !isRecord(frame.data)) {
+            throw new TypeError("trading frame data must be a non-null object");
+        }
+        if (frame.action === "error") {
+            this.safeEmit(
+                EVENT.CLIENT_ERROR,
+                String(frame.data?.error_message ?? "trading stream error"),
+            );
+            return;
+        }
         switch (frame.stream) {
             case "authorization":
                 if (frame.data?.status === "authorized") {
@@ -81,9 +99,12 @@ export class TradingStream extends AlpacaWebSocket {
                 this.safeEmit(EVENT.SUBSCRIPTION, frame.data?.streams ?? []);
                 break;
             case "trade_updates":
+                if (!isRecord(frame.data?.order)) {
+                    throw new TypeError("trade update order must be a non-null object");
+                }
                 this.safeEmit(
                     EVENT.TRADE_UPDATE,
-                    mapTradeUpdate(frame.data ?? {}),
+                    mapTradeUpdate(frame.data),
                 );
                 break;
             default:

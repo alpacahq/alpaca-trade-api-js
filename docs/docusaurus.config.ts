@@ -47,8 +47,7 @@ const config: Config = {
     themeConfig: {
         announcementBar: {
             id: "v4",
-            content:
-                'This documents <strong>4.0</strong> of @alpacahq/alpaca-trade-api — a full rewrite. Upgrading from 3.x? See the <a href="https://github.com/alpacahq/alpaca-trade-api-js/blob/master/MIGRATION.md">migration guide</a>.',
+            content: `This documents <strong>4.0</strong> of @alpacahq/alpaca-trade-api — a full rewrite. Upgrading from 3.x? See the <a href="${baseUrl}migration">migration guide</a>.`,
             isCloseable: true,
         },
         navbar: {
@@ -59,6 +58,12 @@ const config: Config = {
                     sidebarId: "docsSidebar",
                     position: "left",
                     label: "Docs",
+                },
+                {
+                    type: "doc",
+                    docId: "migration",
+                    position: "left",
+                    label: "Migration",
                 },
                 {
                     href: "https://github.com/alpacahq/alpaca-trade-api-js",

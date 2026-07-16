@@ -1,5 +1,6 @@
 import { builtinModules } from "node:module";
 import { defineConfig } from "tsup";
+import packageMetadata from "./package.json";
 
 /**
  * Re-add the `node:` scheme to Node builtin imports in the emitted bundles.
@@ -48,11 +49,15 @@ export default defineConfig({
     experimentalDts: true,
     sourcemap: true,
     clean: true,
-    // Single-file output per format (no shared chunks) for a clean package.
+    // Keep each runtime entry in one JS file per format. Declaration generation
+    // may still emit shared API Extractor rollup files referenced by the entry dts.
     splitting: false,
     treeshake: true,
     target: "es2020",
     platform: "node",
     outDir: "dist",
+    define: {
+        __ALPACA_PACKAGE_VERSION__: JSON.stringify(packageMetadata.version),
+    },
     plugins: [preserveNodeProtocol],
 });

@@ -15,6 +15,9 @@
 import { buildApiError, FetchError } from "../errors";
 import { RateLimiter } from "../rate-limit";
 import type { RateLimitConfig } from "../rate-limit";
+import { formatUserAgent } from "./runtimeIdentity";
+
+declare const __ALPACA_PACKAGE_VERSION__: string;
 
 export { RateLimiter } from "../rate-limit";
 export type { RateLimitConfig } from "../rate-limit";
@@ -36,14 +39,15 @@ export type { RateLimitInfo } from "../errors";
 /**
  * Default User-Agent sent on every request so Alpaca can attribute SDK traffic.
  * Override via `Configuration.userAgent` (set to "" to disable).
- *
- * Keep the version in sync with `package.json` on each release (there is no
- * build-time injection; this is a hand-maintained constant).
  */
-export const USER_AGENT = "@alpacahq/alpaca-trade-api/4.0.0-alpha.0";
+export const USER_AGENT = formatUserAgent(
+    typeof __ALPACA_PACKAGE_VERSION__ === "string"
+        ? __ALPACA_PACKAGE_VERSION__
+        : "0.0.0-dev",
+);
 
 /**
- * Default per-request timeout in ms, applied when `timeoutMs` is not configured.
+ * Default per-attempt timeout in ms, applied when `timeoutMs` is not configured.
  * Mirrors the cross-SDK read/write timeout so a hung socket can't stall a call
  * forever. Pass `timeoutMs: 0` to disable the deadline entirely.
  */
@@ -57,8 +61,8 @@ export const DEFAULT_TIMEOUT_MS = 30_000;
  * `±20%` jitter, and the retryable status set `408, 425, 429, 500, 502, 503,
  * 504`. Only the safe/idempotent methods (`GET`, `HEAD`, `OPTIONS`, `TRACE`) and
  * transient network failures are retried; a non-idempotent `POST`/`PATCH`/etc.
- * is never auto-retried (use an `Idempotency-Key` to make a POST safely
- * retryable yourself).
+ * is never auto-retried. After an ambiguous failure, reconcile the server state
+ * before deciding whether to issue another state-changing request.
  */
 export interface RetryConfig {
     maxRetries?: number; // max retry attempts after the initial request (default 0 = off)
@@ -89,6 +93,12 @@ export interface RetryEvent {
     error?: unknown; // network error that triggered the decision (absent for status-based retries)
 }
 
+/** Values accepted by the Fetch API's `credentials` request option. */
+export type FetchCredentials = "omit" | "same-origin" | "include";
+
+/** Values accepted by the Fetch API's `redirect` request option. */
+export type FetchRedirect = "error" | "follow" | "manual";
+
 export interface ConfigurationParameters {
     basePath?: string; // override base path
     fetchApi?: FetchAPI; // override for fetch implementation
@@ -102,13 +112,13 @@ export interface ConfigurationParameters {
     paper?: boolean; // select the paper vs live host; honored only by hosts that distinguish the two (e.g. trading), ignored if basePath is set explicitly
     accessToken?: string | Promise<string> | ((name?: string, scopes?: string[]) => string | Promise<string>); // parameter for oauth2 security
     headers?: HTTPHeaders; //header params we want to use on every request
-    credentials?: RequestCredentials; //value for the credentials param we want to use on each request
-    timeoutMs?: number; // per-request timeout in ms; aborts the fetch via AbortController when exceeded (default 30000; set 0 to disable)
+    credentials?: FetchCredentials; //value for the credentials param we want to use on each request
+    timeoutMs?: number; // per-attempt timeout in ms covering the whole attempt (default 30000; set 0 to disable)
     retry?: RetryConfig; // opt-in automatic retry/backoff policy
     rateLimit?: RateLimitConfig; // opt-in proactive client-side rate limiting (off unless set)
     userAgent?: string; // override the default User-Agent header (set to "" to disable)
     sandbox?: boolean; // select the sandbox host; honored only by hosts that distinguish it (e.g. market data), ignored if basePath is set explicitly
-    redirect?: RequestRedirect; // how fetch handles 3xx redirects; defaults to "error" so credentials can't follow an off-host redirect (set "follow" to opt out)
+    redirect?: FetchRedirect; // how fetch handles 3xx redirects; defaults to "error" so credentials can't follow an off-host redirect (set "follow" to opt out)
 }
 
 /**
@@ -206,7 +216,7 @@ export class BaseConfiguration {
         return this.configuration.headers;
     }
 
-    get credentials(): RequestCredentials | undefined {
+    get credentials(): FetchCredentials | undefined {
         return this.configuration.credentials;
     }
 
@@ -218,7 +228,7 @@ export class BaseConfiguration {
      * redirect target, leaking the secret. Set `"follow"` to opt back into the
      * platform default if you proxy through a redirecting gateway.
      */
-    get redirect(): RequestRedirect {
+    get redirect(): FetchRedirect {
         return this.configuration.redirect ?? "error";
     }
 
@@ -313,36 +323,51 @@ export class BaseAPI {
         const method = (init.method || context.method || 'GET').toUpperCase();
         // Only the safe/idempotent methods are auto-retried. A non-idempotent
         // POST/PATCH/etc. is never replayed (even on 429) because a request that
-        // reached the server could have already mutated state; use an
-        // `Idempotency-Key` to make a POST safely retryable yourself.
+        // reached the server could have already mutated state; reconcile the
+        // result before deciding whether to issue another request.
         const retryable = RETRYABLE_METHODS.has(method);
 
         let attempt = 0;
         while (true) {
-            const timeout = applyTimeout(this.configuration.timeoutMs, init.signal);
+            const deadline = new AttemptDeadline(this.configuration.timeoutMs, init.signal);
             let response: Response | undefined;
             let networkError: unknown;
             let release: (() => void) | undefined;
             try {
                 // Proactively wait for a rate-limit slot (and honor any timeout/
                 // caller abort while queued) before touching the network.
-                release = await this.configuration.rateLimiter?.acquire(timeout.signal);
-                response = await this.fetchApi(url, timeout.signal ? { ...init, signal: timeout.signal } : init);
+                const acquire = this.configuration.rateLimiter?.acquire(deadline.signal);
+                if (acquire) {
+                    // If abort wins after acquire has produced a concurrency
+                    // slot but before this await receives it, release that
+                    // late resource exactly once instead of leaking the slot.
+                    release = await deadline.race(acquire, (lateRelease) => lateRelease());
+                }
+                response = await deadline.race(
+                    this.fetchApi(
+                        url,
+                        deadline.signal ? { ...init, signal: deadline.signal } : init,
+                    ),
+                    (lateResponse) => discardResponse(lateResponse),
+                );
             } catch (e) {
                 // A transient network failure (DNS, connection reset, TLS) throws
                 // a FetchError with no Response. Capture it so the retry policy
                 // below can re-attempt it like a retryable status.
-                networkError = e;
+                networkError = normalizeCancellation(e, deadline.signal);
+                deadline.cancel();
             } finally {
-                timeout.cancel();
                 release?.();
             }
             if (networkError !== undefined) {
-                const isRetryable = retryable && isRetryableNetworkError(networkError);
+                const isRetryable =
+                    retryable &&
+                    !deadline.signal?.aborted &&
+                    isRetryableNetworkError(networkError);
                 if (isRetryable && attempt < maxRetries) {
                     const delayMs = backoffDelay(attempt, retry);
                     notifyRetry(retry, { method, url, attempt: attempt + 1, maxRetries, delayMs, error: networkError });
-                    await sleep(delayMs);
+                    await sleep(delayMs, init.signal);
                     attempt++;
                     continue;
                 }
@@ -352,20 +377,35 @@ export class BaseAPI {
                 throw networkError;
             }
             if (response && (response.status >= 200 && response.status < 300)) {
+                attachResponseDeadline(response, deadline);
                 return response;
             }
             const isRetryable = retryable && isRetryableStatus(response!.status, retry);
             if (isRetryable && attempt < maxRetries) {
+                deadline.cancel();
+                discardResponse(response!);
                 const delayMs = computeRetryDelay(response!, attempt, retry);
                 notifyRetry(retry, { method, url, attempt: attempt + 1, maxRetries, delayMs, status: response!.status });
-                await sleep(delayMs);
+                await sleep(delayMs, init.signal);
                 attempt++;
                 continue;
             }
             if (isRetryable && maxRetries > 0) {
                 notifyGiveUp(retry, { method, url, attempt, maxRetries, delayMs: 0, status: response!.status });
             }
-            throw await buildApiError(response!);
+            try {
+                throw await buildApiError(
+                    response!,
+                    (body) => readBodyWithDeadline(
+                        body,
+                        'text',
+                        deadline,
+                        () => discardResponse(response!),
+                    ) as Promise<string>,
+                );
+            } finally {
+                deadline.cancel();
+            }
         }
     }
 
@@ -509,41 +549,242 @@ function isFormData(value: any): value is FormData {
     return typeof FormData !== "undefined" && value instanceof FormData;
 }
 
-function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal | null): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(normalizeCancellation(abortReason(signal), signal));
+            return;
+        }
+        const onAbort = (): void => {
+            if (!signal) return;
+            clearTimeout(timer);
+            signal.removeEventListener('abort', onAbort);
+            reject(normalizeCancellation(abortReason(signal), signal));
+        };
+        const timer = setTimeout(() => {
+            signal?.removeEventListener('abort', onAbort);
+            resolve();
+        }, ms);
+        signal?.addEventListener('abort', onAbort, { once: true });
+    });
 }
 
-interface TimeoutHandle {
-    signal?: AbortSignal;
-    cancel: () => void;
+function abortReason(signal: AbortSignal): unknown {
+    return (signal as AbortSignal & { reason?: unknown }).reason ??
+        new DOMException('The operation was aborted.', 'AbortError');
 }
 
-function applyTimeout(timeoutMs: number | undefined, existing?: AbortSignal | null): TimeoutHandle {
-    if (!timeoutMs || timeoutMs <= 0) {
-        return { signal: existing ?? undefined, cancel: () => {} };
+function normalizeCancellation(error: unknown, signal?: AbortSignal): unknown {
+    if (error instanceof FetchError) {
+        return error;
     }
-    const controller = new AbortController();
-    const timer = setTimeout(
-        () => controller.abort(new DOMException(`Request timed out after ${timeoutMs} ms`, 'TimeoutError')),
-        timeoutMs,
-    );
-    const onAbort = () => controller.abort((existing as any)?.reason);
-    if (existing) {
-        if (existing.aborted) {
-            controller.abort((existing as any).reason);
-        } else {
-            existing.addEventListener('abort', onAbort, { once: true });
+    const cause = signal?.aborted ? abortReason(signal) : error;
+    const name = (cause as { name?: unknown } | undefined)?.name;
+    if (signal?.aborted || name === 'AbortError' || name === 'TimeoutError') {
+        const errorCause = cause instanceof Error
+            ? cause
+            : new DOMException(String(cause ?? 'The operation was aborted.'), 'AbortError');
+        return new FetchError(errorCause, 'The request was aborted');
+    }
+    return error;
+}
+
+/**
+ * One phase-specific request deadline. The timer starts immediately before a
+ * rate-limit acquisition and stays live through fetch, post middleware, and
+ * response-body consumption. Retry backoff happens only after this deadline is
+ * cancelled; the next attempt constructs a fresh instance.
+ */
+class AttemptDeadline {
+    readonly signal?: AbortSignal;
+    private timer?: ReturnType<typeof setTimeout>;
+    private callerSignal?: AbortSignal;
+    private onCallerAbort?: () => void;
+    private onDeadlineAbort?: () => void;
+    private stopped = false;
+
+    constructor(timeoutMs: number | undefined, callerSignal?: AbortSignal | null) {
+        if (!timeoutMs || timeoutMs <= 0) {
+            this.signal = callerSignal ?? undefined;
+            return;
+        }
+
+        const controller = new AbortController();
+        this.signal = controller.signal;
+        this.callerSignal = callerSignal ?? undefined;
+        this.onDeadlineAbort = () => this.stopClock();
+        controller.signal.addEventListener('abort', this.onDeadlineAbort, { once: true });
+        this.timer = setTimeout(
+            () => controller.abort(
+                new DOMException(`Request timed out after ${timeoutMs} ms`, 'TimeoutError'),
+            ),
+            timeoutMs,
+        );
+
+        if (callerSignal?.aborted) {
+            controller.abort(abortReason(callerSignal));
+        } else if (callerSignal) {
+            this.onCallerAbort = () => controller.abort(abortReason(callerSignal));
+            callerSignal.addEventListener('abort', this.onCallerAbort, { once: true });
         }
     }
-    return {
-        signal: controller.signal,
-        cancel: () => {
-            clearTimeout(timer);
-            if (existing) {
-                existing.removeEventListener('abort', onAbort);
+
+    race<T>(
+        operation: Promise<T>,
+        onLateResolve?: (value: T) => void,
+        onCancellation?: () => void,
+    ): Promise<T> {
+        const signal = this.signal;
+        if (!signal) {
+            return operation.catch((error) => {
+                throw normalizeCancellation(error);
+            });
+        }
+        if (signal.aborted) {
+            try {
+                onCancellation?.();
+            } catch {
+                // Resource cleanup must not mask the cancellation.
             }
-        },
+            // The operation may already have started (for example, a custom
+            // fetch called with an already-aborted signal). Observe its eventual
+            // rejection so the prompt cancellation does not leak an unhandled
+            // promise.
+            void operation.then(
+                (value) => {
+                    try {
+                        onLateResolve?.(value);
+                    } catch {
+                        // Resource cleanup must not create an unhandled rejection.
+                    }
+                },
+                () => {},
+            );
+            return Promise.reject(normalizeCancellation(abortReason(signal), signal));
+        }
+        return new Promise<T>((resolve, reject) => {
+            let settled = false;
+            const cleanup = (): void => signal.removeEventListener('abort', onAbort);
+            const onAbort = (): void => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                try {
+                    onAbortCallback?.();
+                } catch {
+                    // Resource cleanup must not mask the cancellation.
+                }
+                reject(normalizeCancellation(abortReason(signal), signal));
+            };
+            const onAbortCallback = onCancellation;
+            signal.addEventListener('abort', onAbort, { once: true });
+            operation.then(
+                (value) => {
+                    cleanup();
+                    if (settled) {
+                        try {
+                            onLateResolve?.(value);
+                        } catch {
+                            // Resource cleanup must not create an unhandled rejection.
+                        }
+                        return;
+                    }
+                    settled = true;
+                    resolve(value);
+                },
+                (error) => {
+                    if (settled) return;
+                    settled = true;
+                    cleanup();
+                    reject(normalizeCancellation(error, signal));
+                },
+            );
+        });
+    }
+
+    cancel(): void {
+        this.stopClock();
+    }
+
+    private stopClock(): void {
+        if (this.stopped) {
+            return;
+        }
+        this.stopped = true;
+        if (this.timer !== undefined) {
+            clearTimeout(this.timer);
+            this.timer = undefined;
+        }
+        if (this.callerSignal && this.onCallerAbort) {
+            this.callerSignal.removeEventListener('abort', this.onCallerAbort);
+            this.onCallerAbort = undefined;
+        }
+        if (this.signal && this.onDeadlineAbort) {
+            this.signal.removeEventListener('abort', this.onDeadlineAbort);
+            this.onDeadlineAbort = undefined;
+        }
+    }
+}
+
+interface ResponseDeadlineContext {
+    deadline: AttemptDeadline;
+    signal: AbortSignal;
+    onAbort?: () => void;
+}
+
+const responseDeadlines = new WeakMap<Response, ResponseDeadlineContext>();
+const discardedResponses = new WeakSet<Response>();
+
+function discardResponse(response: Response): void {
+    if (discardedResponses.has(response)) {
+        return;
+    }
+    discardedResponses.add(response);
+    try {
+        void response.body?.cancel().catch(() => {});
+    } catch {
+        // A custom/locked body may not be cancellable; the attempt deadline is
+        // still fully detached before retry backoff begins.
+    }
+}
+
+function attachResponseDeadline(response: Response, deadline: AttemptDeadline): void {
+    const signal = deadline.signal;
+    if (!signal) {
+        return;
+    }
+    const context: ResponseDeadlineContext = { deadline, signal };
+    context.onAbort = () => {
+        context.onAbort = undefined;
+        responseDeadlines.delete(response);
+        discardResponse(response);
     };
+    signal.addEventListener('abort', context.onAbort, { once: true });
+    responseDeadlines.set(response, context);
+    const descriptors: PropertyDescriptorMap = {};
+    for (const method of [
+        'arrayBuffer',
+        'blob',
+        'formData',
+        'json',
+        'text',
+    ] as const) {
+        const reader = response[method].bind(response);
+        descriptors[method] = {
+            configurable: true,
+            value: () => consumeResponse(response, method, reader),
+        };
+    }
+    const bytes = (response as Response & {
+        bytes?: () => Promise<Uint8Array>;
+    }).bytes;
+    if (typeof bytes === 'function') {
+        descriptors.bytes = {
+            configurable: true,
+            value: () => consumeResponse(response, 'bytes', bytes.bind(response)),
+        };
+    }
+    Object.defineProperties(response, descriptors);
 }
 
 const DEFAULT_RETRYABLE_STATUSES = [408, 425, 429, 500, 502, 503, 504];
@@ -646,14 +887,15 @@ export const COLLECTION_FORMATS = {
     pipes: "|",
 };
 
-export type FetchAPI = WindowOrWorkerGlobalScope['fetch'];
+/** Fetch-compatible function used by the generated transport. */
+export type FetchAPI = (url: string, init: RequestInit) => Promise<Response>;
 
 export type Json = any;
 export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
 export type HTTPHeaders = { [key: string]: string };
 export type HTTPQuery = { [key: string]: string | number | null | boolean | Array<string | number | null | boolean> | Set<string | number | null | boolean> | HTTPQuery };
 export type HTTPBody = Json | FormData | URLSearchParams;
-export type HTTPRequestInit = { headers?: HTTPHeaders; method: HTTPMethod; credentials?: RequestCredentials; body?: HTTPBody };
+export type HTTPRequestInit = { headers?: HTTPHeaders; method: HTTPMethod; credentials?: FetchCredentials; body?: HTTPBody };
 export type ModelPropertyNaming = 'camelCase' | 'snake_case' | 'PascalCase' | 'original';
 
 export type InitOverrideFunction = (requestContext: { init: HTTPRequestInit, context: RequestOpts }) => Promise<RequestInit>
@@ -758,6 +1000,129 @@ export interface ApiResponse<T> {
 
 export type ResponseTransformer<T> = (json: any) => T
 
+type BodyReaderMethod =
+    | 'arrayBuffer'
+    | 'blob'
+    | 'bytes'
+    | 'formData'
+    | 'json'
+    | 'text';
+
+function detachResponseAbort(
+    response: Response,
+    context: ResponseDeadlineContext,
+): void {
+    if (context.onAbort) {
+        context.signal.removeEventListener('abort', context.onAbort);
+        context.onAbort = undefined;
+    }
+    responseDeadlines.delete(response);
+}
+
+async function readBodyWithDeadline(
+    response: Response,
+    method: BodyReaderMethod,
+    deadline: AttemptDeadline,
+    onCancellation?: () => void,
+): Promise<unknown> {
+    const body = response.body;
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let readerCancelled = false;
+    const cancelReader = (): void => {
+        if (readerCancelled) return;
+        readerCancelled = true;
+        try {
+            void reader?.cancel(
+                deadline.signal?.aborted
+                    ? abortReason(deadline.signal)
+                    : undefined,
+            ).catch(() => {});
+        } catch {
+            // A custom reader may throw synchronously while being cancelled.
+        }
+        onCancellation?.();
+    };
+
+    const operation = (async (): Promise<unknown> => {
+        const chunks: Uint8Array[] = [];
+        let totalLength = 0;
+        if (body) {
+            reader = body.getReader();
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                    totalLength += value.byteLength;
+                }
+            } finally {
+                reader.releaseLock();
+            }
+        }
+
+        const bytes = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const chunk of chunks) {
+            bytes.set(chunk, offset);
+            offset += chunk.byteLength;
+        }
+
+        switch (method) {
+            case 'arrayBuffer':
+                return bytes.buffer;
+            case 'blob':
+                return new Blob(
+                    [bytes],
+                    { type: response.headers.get('Content-Type') ?? '' },
+                );
+            case 'bytes':
+                return bytes;
+            case 'formData':
+                return new Response(bytes, {
+                    headers: response.headers,
+                }).formData();
+            case 'json':
+                return JSON.parse(new TextDecoder().decode(bytes));
+            case 'text':
+                return new TextDecoder().decode(bytes);
+        }
+    })();
+
+    return deadline.race(operation, undefined, cancelReader);
+}
+
+async function consumeResponse<T>(
+    response: Response,
+    method: BodyReaderMethod,
+    nativeReader: () => Promise<T>,
+): Promise<T> {
+    const context = responseDeadlines.get(response);
+    if (!context) {
+        return nativeReader().catch((error) => {
+            throw normalizeCancellation(error);
+        });
+    }
+    detachResponseAbort(response, context);
+    try {
+        return await readBodyWithDeadline(
+            response,
+            method,
+            context.deadline,
+        ) as T;
+    } finally {
+        context.deadline.cancel();
+    }
+}
+
+function releaseResponse(response: Response): void {
+    const context = responseDeadlines.get(response);
+    if (context) {
+        detachResponseAbort(response, context);
+    }
+    discardResponse(response);
+    context?.deadline.cancel();
+}
+
 export class JSONApiResponse<T> {
     constructor(public raw: Response, protected transformer: ResponseTransformer<T> = (jsonValue: any) => jsonValue) {}
 
@@ -770,6 +1135,7 @@ export class VoidApiResponse {
     constructor(public raw: Response) {}
 
     async value(): Promise<void> {
+        releaseResponse(this.raw);
         return undefined;
     }
 }

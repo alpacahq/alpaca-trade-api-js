@@ -102,6 +102,25 @@ describe('G04 pagination helpers', () => {
         expect(fetches).toBe(2);
     });
 
+    it('paginate() stops before refetching a token in an A→B→A cycle', async () => {
+        const pages: Record<string, Page<number>> = {
+            '': { items: [0], nextPageToken: 'A' },
+            A: { items: [1], nextPageToken: 'B' },
+            B: { items: [2], nextPageToken: 'A' },
+        };
+        const seen: Array<string | undefined> = [];
+        const iterator = paginate<number>(async (token) => {
+            seen.push(token);
+            return pages[token ?? ''];
+        });
+
+        expect(await iterator.next()).toEqual({ value: 0, done: false });
+        expect(await iterator.next()).toEqual({ value: 1, done: false });
+        expect(await iterator.next()).toEqual({ value: 2, done: false });
+        expect((await iterator.next()).done).toBe(true);
+        expect(seen).toEqual([undefined, 'A', 'B']);
+    });
+
     it('collectCursor() honors maxItems', async () => {
         let fetches = 0;
         const byToken: Record<string, Array<{ id: string; n: number }>> = {
@@ -188,6 +207,44 @@ describe('symbol-map pagination', () => {
         expect(merged).toEqual({ AAPL: [1], MSFT: [10] });
         expect(fetches).toBe(2); // cannot prove a later page has no new symbol
     });
+
+    it('paginateSymbolMap stops before refetching a token in an A→B→A cycle', async () => {
+        const cyclePages: Record<string, SymbolMapPage<number>> = {
+            '': { data: { AAPL: [0] }, nextPageToken: 'A' },
+            A: { data: { AAPL: [1] }, nextPageToken: 'B' },
+            B: { data: { AAPL: [2] }, nextPageToken: 'A' },
+        };
+        const seen: Array<string | undefined> = [];
+        const iterator = paginateSymbolMap<number>(async (token) => {
+            seen.push(token);
+            return cyclePages[token ?? ''];
+        });
+
+        expect((await iterator.next()).value).toEqual({ symbol: 'AAPL', value: 0 });
+        expect((await iterator.next()).value).toEqual({ symbol: 'AAPL', value: 1 });
+        expect((await iterator.next()).value).toEqual({ symbol: 'AAPL', value: 2 });
+        expect((await iterator.next()).done).toBe(true);
+        expect(seen).toEqual([undefined, 'A', 'B']);
+    });
+
+    it('collectBySymbol stops before refetching a token in an A→B→A cycle', async () => {
+        const cyclePages: Record<string, SymbolMapPage<number>> = {
+            '': { data: { AAPL: [0] }, nextPageToken: 'A' },
+            A: { data: { AAPL: [1] }, nextPageToken: 'B' },
+            B: { data: { AAPL: [2] }, nextPageToken: 'A' },
+        };
+        const seen: Array<string | undefined> = [];
+        const merged = await collectBySymbol<number>(async (token) => {
+            if (seen.includes(token)) {
+                throw new Error(`refetched token ${token}`);
+            }
+            seen.push(token);
+            return cyclePages[token ?? ''];
+        });
+
+        expect(merged).toEqual({ AAPL: [0, 1, 2] });
+        expect(seen).toEqual([undefined, 'A', 'B']);
+    });
 });
 
 describe('bounded concurrency helpers', () => {
@@ -250,6 +307,44 @@ describe('symbol-object pagination', () => {
         const merged = await collectSymbolObjects<{ v: number }>(async (token) => pages[token ?? '']);
         expect(merged).toEqual({ AAPL: { v: 9 }, MSFT: { v: 2 }, TSLA: { v: 3 } });
     });
+
+    it('paginateSymbolObjects stops before refetching a token in an A→B→A cycle', async () => {
+        const cyclePages: Record<string, SymbolObjectPage<{ v: number }>> = {
+            '': { data: { AAPL: { v: 0 } }, nextPageToken: 'A' },
+            A: { data: { MSFT: { v: 1 } }, nextPageToken: 'B' },
+            B: { data: { TSLA: { v: 2 } }, nextPageToken: 'A' },
+        };
+        const seen: Array<string | undefined> = [];
+        const iterator = paginateSymbolObjects<{ v: number }>(async (token) => {
+            seen.push(token);
+            return cyclePages[token ?? ''];
+        });
+
+        expect((await iterator.next()).value).toEqual({ symbol: 'AAPL', value: { v: 0 } });
+        expect((await iterator.next()).value).toEqual({ symbol: 'MSFT', value: { v: 1 } });
+        expect((await iterator.next()).value).toEqual({ symbol: 'TSLA', value: { v: 2 } });
+        expect((await iterator.next()).done).toBe(true);
+        expect(seen).toEqual([undefined, 'A', 'B']);
+    });
+
+    it('collectSymbolObjects stops before refetching a token in an A→B→A cycle', async () => {
+        const cyclePages: Record<string, SymbolObjectPage<{ v: number }>> = {
+            '': { data: { AAPL: { v: 0 } }, nextPageToken: 'A' },
+            A: { data: { MSFT: { v: 1 } }, nextPageToken: 'B' },
+            B: { data: { TSLA: { v: 2 } }, nextPageToken: 'A' },
+        };
+        const seen: Array<string | undefined> = [];
+        const merged = await collectSymbolObjects<{ v: number }>(async (token) => {
+            if (seen.includes(token)) {
+                throw new Error(`refetched token ${token}`);
+            }
+            seen.push(token);
+            return cyclePages[token ?? ''];
+        });
+
+        expect(merged).toEqual({ AAPL: { v: 0 }, MSFT: { v: 1 }, TSLA: { v: 2 } });
+        expect(seen).toEqual([undefined, 'A', 'B']);
+    });
 });
 
 describe('cursor pagination', () => {
@@ -304,6 +399,28 @@ describe('cursor pagination', () => {
         // First page sets cursor 'stuck'; second page's cursor 'stuck' === current -> STOP.
         expect(out.map((i) => i.n)).toEqual([1, 2]);
         expect(fetches).toBe(2);
+    });
+
+    it('paginateCursor stops before refetching a cursor in an A→B→A cycle', async () => {
+        const byToken: Record<string, Item[]> = {
+            '': [{ id: 'A', n: 0 }],
+            A: [{ id: 'B', n: 1 }],
+            B: [{ id: 'A', n: 2 }],
+        };
+        const seen: Array<string | undefined> = [];
+        const iterator = paginateCursor<Item>({
+            fetchPage: (token) => {
+                seen.push(token);
+                return Promise.resolve(byToken[token ?? '']);
+            },
+            getCursor: (last) => last.id,
+        });
+
+        expect((await iterator.next()).value.n).toBe(0);
+        expect((await iterator.next()).value.n).toBe(1);
+        expect((await iterator.next()).value.n).toBe(2);
+        expect((await iterator.next()).done).toBe(true);
+        expect(seen).toEqual([undefined, 'A', 'B']);
     });
 
     it('stops when the cursor is nullish', async () => {

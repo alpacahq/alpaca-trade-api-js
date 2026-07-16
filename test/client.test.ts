@@ -386,6 +386,36 @@ describe('Pagination iterators', () => {
         expect(merged.cashDividends).toHaveLength(3);
     });
 
+    it('stops corporate-action pagination on an immediate repeated token', async () => {
+        const { fetchApi, tokens } = pagedFetch({
+            '': { corporate_actions: { cash_dividends: [{ symbol: 'AAPL' }] }, next_page_token: 'loop' },
+            loop: { corporate_actions: { cash_dividends: [{ symbol: 'MSFT' }] }, next_page_token: 'loop' },
+        });
+        const { marketData: md } = new Alpaca({ ...CREDS, fetchApi });
+        const iterator = md.iterateCorporateActionsPages({});
+
+        expect((await iterator.next()).value.cashDividends[0].symbol).toBe('AAPL');
+        expect((await iterator.next()).value.cashDividends[0].symbol).toBe('MSFT');
+        expect((await iterator.next()).done).toBe(true);
+        expect(tokens).toEqual([null, 'loop']);
+    });
+
+    it('stops corporate-action pagination before refetching an A→B→A cycle', async () => {
+        const { fetchApi, tokens } = pagedFetch({
+            '': { corporate_actions: { cash_dividends: [{ symbol: 'AAPL' }] }, next_page_token: 'A' },
+            A: { corporate_actions: { cash_dividends: [{ symbol: 'MSFT' }] }, next_page_token: 'B' },
+            B: { corporate_actions: { cash_dividends: [{ symbol: 'TSLA' }] }, next_page_token: 'A' },
+        });
+        const { marketData: md } = new Alpaca({ ...CREDS, fetchApi });
+        const iterator = md.iterateCorporateActionsPages({});
+
+        expect((await iterator.next()).value.cashDividends[0].symbol).toBe('AAPL');
+        expect((await iterator.next()).value.cashDividends[0].symbol).toBe('MSFT');
+        expect((await iterator.next()).value.cashDividends[0].symbol).toBe('TSLA');
+        expect((await iterator.next()).done).toBe(true);
+        expect(tokens).toEqual([null, 'A', 'B']);
+    });
+
     it('follows cursor pagination for account activities using the last id', async () => {
         const { fetchApi, tokens } = pagedFetch({
             '': [{ id: 'a' }, { id: 'b' }],
@@ -439,6 +469,30 @@ describe('Single-symbol normalized accessors (*For)', () => {
         const candles = await md.getStockCandlesFor('AAPL', { timeframe: TimeFrame.Day });
         expect(candles.close).toEqual([]);
         expect(candles.time).toEqual([]);
+    });
+
+    it('does not substitute another symbol for missing bars, trades, quotes, or Candles', async () => {
+        const fetchApi = (async (url: string | URL | Request): Promise<Response> => {
+            const pathname = new URL(String(url)).pathname;
+            const body = pathname.endsWith('/bars')
+                ? { bars: { MSFT: [{ t: '2024-01-02T00:00:00Z', o: 1, h: 2, l: 0.5, c: 1.5, v: 100 }] } }
+                : pathname.endsWith('/trades')
+                  ? { trades: { MSFT: [{ t: '2024-01-02T00:00:00Z', p: 100, s: 1 }] } }
+                  : { quotes: { MSFT: [{ t: '2024-01-02T00:00:00Z', bp: 99, bs: 1, ap: 101, as: 2 }] } };
+            return new Response(JSON.stringify({ ...body, next_page_token: null }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }) as unknown as trading.FetchAPI;
+        const { marketData: md } = new Alpaca({ ...CREDS, fetchApi });
+
+        expect(await md.getStockBarsFor('AAPL', { timeframe: TimeFrame.Day })).toEqual([]);
+        expect(await md.getStockTradesFor('AAPL', {})).toEqual([]);
+        expect(await md.getStockQuotesFor('AAPL', {})).toEqual([]);
+        const candles = await md.getStockCandlesFor('AAPL', { timeframe: TimeFrame.Day });
+        expect(candles.symbol).toBeUndefined();
+        expect(candles.time).toEqual([]);
+        expect(candles.close).toEqual([]);
     });
 
     it('getCryptoTradesFor unwraps a single pair to canonical Trade[]', async () => {

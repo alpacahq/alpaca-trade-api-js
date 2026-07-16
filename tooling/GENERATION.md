@@ -22,7 +22,9 @@ npm run generate:offline    # reproduce trees from the pinned specs (no network)
 # Useful flags (after `--`):
 npm run generate -- --target trading      # one target only
 npm run generate -- --offline --dry-run   # plan without writing anything
-npm run generate -- --yes                 # auto-adopt fetched spec changes
+npm run generate -- --yes                 # auto-adopt only when no schemas/operations were removed
+npm run generate -- --yes --allow-breaking-spec-removals
+                                          # explicit override after removal review
 ```
 
 Requirements: Node ≥ 20 and a **real JDK** (openapi-generator is a Java tool).
@@ -43,8 +45,13 @@ found: `brew install openjdk`.
    the early warning that the hand-written facade/capability map will need
    rewiring — e.g. the clock retag surfaced as
    `GET /v3/clock: "Calendar" -> "Clock"` before any code broke).
-3. **Confirm + adopt** — prompt before overwriting the pinned spec (auto-yes with
-   `--yes`). Declining keeps the current baseline.
+3. **Confirm + adopt** — prompt before overwriting the pinned spec. `--yes`
+   auto-adopts additive changes, but a non-interactive real adoption containing
+   any removed schema or operation refuses before any spec write unless
+   `--allow-breaking-spec-removals` is also supplied. `--dry-run --yes` remains
+   fully write-free and does not require the override. Interactive mode lists
+   removals and keeps the existing confirmation prompt. Declining keeps the
+   current baseline.
 4. **Derive** — apply the per-target JSON Patch overlay to the pinned spec
    (`src/overlay.ts`) to produce the generator input in `.work/derived/`. A stale
    overlay path is a hard failure (`OverlayDriftError`).
@@ -55,10 +62,14 @@ found: `brew install openjdk`.
    `runtime.ts` is protected.
 7. **Safety gate** — run the SDK's `typecheck`, `lint`, `test`, `docs:api`, plus
    the tooling's own `typecheck` + `test`.
-8. **Orphan report** — diff `apis/index.ts` + `models/index.ts` exports before/
-   after (`src/exportsSnapshot.ts`) and warn about removed generated symbols that
-   hand-written code (`client.ts`, `orders.ts`, `marketDataShapes.ts`) may
-   reference. Finally print `git status` for the generated trees.
+8. **Orphan report** — diff normalized `apis/index.ts` + `models/index.ts`
+   snapshots before/after (`src/exportsSnapshot.ts`), including both
+   `export * from` modules and named/type/aliased re-exported symbols. Dry runs
+   project orphan risks directly from removed schemas and operations. Search all
+   hand-written risk surfaces: `src/client.ts`, `src/orders.ts`,
+   `src/marketDataShapes.ts`, `src/capabilities.ts`, `src/streaming/`,
+   `src/index.ts`, `src/rest.ts`, and `scripts/api-reference/examples.ts`.
+   Finally print `git status` for the generated trees.
 
 ## Durability mechanisms (the regeneration-safe patches)
 
@@ -108,8 +119,12 @@ tooling/
 
 ## Refreshing the spec / adopting upstream changes
 
-1. `npm run generate` and review the printed spec diff.
-2. Confirm to adopt the new pinned spec.
+1. Run `npm run generate -- --dry-run --yes` and review the write-free spec diff,
+   overlay projection, and projected orphan risks.
+2. Run `npm run generate` and confirm interactively to adopt the new pinned spec.
+   For automation, `--yes` is allowed only when no schemas/operations were
+   removed; after explicit owner approval of removals, add
+   `--allow-breaking-spec-removals`.
 3. If generation fails with `OverlayDriftError`, the upstream spec moved a path an
    overlay targets — update the overlay in `overlays/` and re-run.
 4. Review the orphan report; update hand-written references if a symbol was
