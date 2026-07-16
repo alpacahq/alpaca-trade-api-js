@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import {
     externalModuleSpecifiers,
     forbiddenExternalSpecifiers,
+    parseNpmPackJson,
 } from "./bundle-specifiers.mjs";
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -60,7 +61,7 @@ try {
         throw new Error("npm pack failed");
     }
 
-    const [packInfo] = JSON.parse(packed.stdout);
+    const [packInfo] = parseNpmPackJson(packed.stdout);
     const packedFiles = new Set(packInfo.files.map(({ path }) => path));
     for (const required of [
         "MIGRATION.md",

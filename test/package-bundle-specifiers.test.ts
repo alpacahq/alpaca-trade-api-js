@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     externalModuleSpecifiers,
     forbiddenExternalSpecifiers,
+    parseNpmPackJson,
 } from "../scripts/bundle-specifiers.mjs";
 
 describe("packed bundle dependency scanning", () => {
@@ -28,5 +29,26 @@ describe("packed bundle dependency scanning", () => {
                 "@msgpack/msgpack",
             ]),
         ).toEqual(["@msgpack/msgpack", "node:events", "ws"]);
+    });
+
+    it("parses npm pack JSON after lifecycle output", () => {
+        const output = `CLI Building entry: src/index.ts
+ESM Build success
+[
+  {
+    "filename": "alpacahq-alpaca-trade-api-4.0.0.tgz",
+    "version": "4.0.0",
+    "files": []
+  }
+]
+`;
+
+        expect(parseNpmPackJson(output)).toEqual([
+            {
+                filename: "alpacahq-alpaca-trade-api-4.0.0.tgz",
+                version: "4.0.0",
+                files: [],
+            },
+        ]);
     });
 });

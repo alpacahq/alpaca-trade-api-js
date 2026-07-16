@@ -24,3 +24,8 @@ export function forbiddenExternalSpecifiers(source, forbiddenDependencies) {
         ),
     );
 }
+
+export function parseNpmPackJson(output) {
+    const jsonStart = output.lastIndexOf("\n[");
+    return JSON.parse(jsonStart === -1 ? output : output.slice(jsonStart + 1));
+}
