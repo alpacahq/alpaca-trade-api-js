@@ -1,5 +1,11 @@
 # @alpacahq/alpaca-trade-api
 
+## 4.0.1
+
+### Patch Changes
+
+- [#298](https://github.com/alpacahq/alpaca-trade-api-js/pull/298) [`5344968`](https://github.com/alpacahq/alpaca-trade-api-js/commit/5344968b63617c11d3332e167626e4a471e331fc) Thanks [@Azein](https://github.com/Azein)! - Update installation and migration documentation to use the stable 4.x release instead of the alpha channel.
+
 ## 4.0.0
 
 ### Major Changes
