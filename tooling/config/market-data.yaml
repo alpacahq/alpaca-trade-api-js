@@ -1,0 +1,9 @@
+generatorName: typescript-fetch
+# The generator consumes the *derived* spec (pinned spec + overlay) produced by
+# the pipeline; see tooling/src/run.ts and tooling/overlays/market-data.patch.json.
+inputSpec: .work/derived/market-data-api.json
+outputDir: ../src/market-data
+templateDir: templates/typescript-fetch
+additionalProperties:
+  supportsES6: true
+  typescriptThreePlus: true

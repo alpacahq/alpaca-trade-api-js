@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens (light theme). Defined in @theme so they are available both as
+ * Tailwind utilities (bg-surface, text-muted, border-line, ...) and as raw CSS
+ * variables (var(--color-brand)) for inline SVG fills, gradients, etc.
+ */
+/*
+ * Semantic tokens modeled on the Alpaca `algodash` design system:
+ *   Neutrals -> neutral gray scale   Accent (links/active/focus) -> Indigo
+ *   Primary CTA -> Alpaca Yellow (soft) used sparingly
+ *   Positive -> Emerald   Negative -> Red   Warning -> Orange
+ * Yellow is intentionally restrained: it appears only on the primary button
+ * and the logo mark; everything else interactive uses the calmer indigo accent.
+ */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-mono-jetbrains), "SFMono-Regular", Consolas, monospace;
+
+  --color-canvas: #f8f8f8;          /* gray-50 (page) */
+  --color-surface: #ffffff;
+  --color-surface-muted: #eeeeee;   /* gray-100 */
+  --color-line: #e4e4e4;
+  --color-line-strong: #d7d7d7;     /* gray-200 */
+
+  --color-ink: #202020;             /* gray-950 */
+  --color-muted: #565656;           /* gray-700 */
+  --color-faint: #7a7a7a;           /* gray-500 */
+
+  --color-brand: #fee546;           /* yellow-300 (soft CTA fill) */
+  --color-brand-hover: #fff489;     /* yellow-200 (lightens on hover) */
+  --color-brand-ink: #a26606;       /* yellow-700 (readable on light) */
+  --color-brand-soft: #fefac3;      /* yellow-100 */
+
+  --color-accent: #4f46e5;          /* indigo-600 (links / active / focus) */
+  --color-accent-hover: #6366f1;    /* indigo-500 */
+  --color-accent-soft: #eef2ff;     /* indigo-50 */
+  --color-accent-ink: #473eba;      /* indigo-700 */
+
+  --color-positive: #059669;        /* emerald-600 */
+  --color-positive-soft: #ecfdf5;   /* emerald-50 */
+  --color-negative: #d73939;        /* red-600 */
+  --color-negative-soft: #fef2f2;   /* red-50 */
+  --color-warning: #c2410c;         /* orange-700 */
+  --color-warning-soft: #fff7ed;    /* orange-50 */
+
+  --radius-card: 1rem;
+  --radius-control: 0.7rem;
+
+  --shadow-card: 0 1px 2px rgba(16, 16, 16, 0.04), 0 12px 28px -18px rgba(16, 16, 16, 0.2);
+  --shadow-pop: 0 12px 40px -16px rgba(16, 16, 16, 0.24);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 {
+    font-size: clamp(1.9rem, 1.2rem + 2.6vw, 2.9rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+  }
+
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-accent-ink);
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.14em] text-faint;
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum" 1;
+  }
+
+  .card {
+    @apply rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)];
+  }
+
+  .card-interactive {
+    @apply transition duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[var(--shadow-pop)];
+  }
+
+  .stat-label {
+    @apply text-[0.7rem] font-bold uppercase tracking-[0.1em] text-faint;
+  }
+
+  .stat-value {
+    @apply text-2xl font-bold tracking-tight tabular-nums;
+  }
+
+  .badge {
+    @apply inline-flex w-fit items-center gap-1.5 rounded-full bg-surface-muted px-2.5 py-1 text-xs font-semibold capitalize text-muted;
+  }
+
+  .badge-positive {
+    @apply bg-positive-soft text-positive;
+  }
+
+  .badge-negative {
+    @apply bg-negative-soft text-negative;
+  }
+
+  .badge-warning {
+    @apply bg-warning-soft text-warning;
+  }
+
+  .badge-brand {
+    @apply bg-brand-soft text-brand-ink;
+  }
+
+  .btn {
+    @apply inline-flex w-fit cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold no-underline transition duration-150 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-primary {
+    @apply bg-brand text-ink hover:bg-brand-hover active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply border border-line bg-surface text-ink hover:border-line-strong hover:bg-surface-muted;
+  }
+
+  .field {
+    @apply grid gap-1.5;
+  }
+
+  .label {
+    @apply text-[0.8rem] font-semibold text-muted;
+  }
+
+  .input {
+    @apply w-full rounded-[var(--radius-control)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink transition placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft;
+  }
+
+  .alert {
+    @apply rounded-[var(--radius-control)] border border-negative/25 bg-negative-soft px-4 py-3 text-sm text-negative;
+  }
+
+  .notice {
+    @apply rounded-[var(--radius-control)] border border-line bg-surface-muted px-4 py-3 text-sm text-muted;
+  }
+
+  .data-table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .data-table th {
+    @apply border-b border-line px-4 py-3 text-left text-[0.7rem] font-bold uppercase tracking-[0.08em] text-faint;
+  }
+
+  .data-table td {
+    @apply border-b border-line px-4 py-3.5 align-middle;
+  }
+
+  .data-table tbody tr {
+    @apply transition-colors hover:bg-surface-muted/60;
+  }
+
+  .data-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .num {
+    @apply text-right tabular-nums;
+  }
+}

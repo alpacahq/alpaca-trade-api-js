@@ -1,15 +1,73 @@
 # Examples
 
-This directory contains example trading algorithms that connect to the paper-trading API.  These scripts are meant to be run in a Node.js app, where you first install the Alpaca node module, then run the trading algorithm.  Please note you will need to replace the `API_KEY` and `API_SECRET` parameters at the top of the file with your own information from the [Alpaca dashboard](https://app.alpaca.markets/).  Please also note that the performance of these scripts in a real trading environment is not guaranteed. While they are written with the goal of showing realistic uses of the SDK, there is no guarantee that the strategies they outline are a good fit for your own brokerage account.
+Runnable, end-to-end examples for `@alpacahq/alpaca-trade-api`. They import from the local
+source (`../src`) so they run straight from this repo; in your own app the
+imports are simply `from "@alpacahq/alpaca-trade-api"` (shown in a comment at the top of each
+file).
 
-## Mean Reversion
+They are type-checked against the current source as part of `npm run typecheck`
+(via `tsconfig.examples.json`), so they cannot silently drift out of sync with
+the API.
 
-This trading algorithm bases its strategy on a mean reversion theory, which essentially guesses that the stock price will correct to the mean.  This means we'd want to execute trades when the stock price is below the running average, as the theory states that the stock price will eventually rise to the mean.  The algorithm does this by taking the 20 minute running average stock price of a given stock (in this case "AAPL") and longs or sells based on the average.  After every minute, the algorithm will re-evaluate the mean and see if adjustments to the position need to be made.  For more information on this strategy, you can read [this link](https://medium.com/automation-generation/a-simple-mean-reversion-stock-trading-script-in-c-fdd3d147af95) detailing a mean reversion strategy in C#.
+## Prerequisites
 
-## Long-Short Equity
+- Node.js >= 20
+- Paper-trading API credentials from <https://app.alpaca.markets/paper/dashboard/overview>
+- [`tsx`](https://github.com/privatenumber/tsx) to run TypeScript directly
+  (`npx tsx ...` will fetch it on first use)
 
-This trading algorithm implements the long-short equity strategy.  This means that the algorithm will rank a given universe of stocks based on a certain metric, and long the top ranked stocks and short the lower ranked stocks.  More specifically, the algorithm uses the frequently used 130/30 percent equity split between longs and shorts (130% of equity used for longs, 30% of equity used for shorts).  The algorithm will then grab the top and bottom 25% of stocks, and long or short them accordingly.  The algorithm will purchase equal quantities across a bucket of stocks, so all stocks in the long bucket are ordered with the same quantity (same with the short bucket).  After every minute, the algorithm will re-rank the stocks and make adjustments to the position if necessary.  For more information on this strategy, read this link [here](https://www.investopedia.com/terms/l/long-shortequity.asp).
+Export your credentials once:
 
-Some stocks cannot be shorted.  In this case, the algorithm uses the leftover equity from the stocks that could not be shorted and shorts the stocks have already been shorted.
+```bash
+export APCA_API_KEY_ID="your-key-id"
+export APCA_API_SECRET_KEY="your-secret"
+```
 
-The algorithm uses percent change in stock price over the past 10 minutes to rank the stocks, where the stocks that rose the most are longed and the ones that sunk the most are shorted.
+## [`trading-bot.ts`](./trading-bot.ts)
+
+A paper trading bot: reads the account (formatting money with the `values`
+helpers), looks up the latest price, places a resting limit order with the
+ergonomic `orders.limit` builder and an explicit, auditable `clientOrderId`
+(then cancels it), streams order/account updates (awaiting the typed auth
+handshake and logging the reconnect lifecycle), and places a market order with
+`submitAndWait`.
+
+The example shows the two recovery contracts separately. A generic builder does
+not retry or reconcile an ambiguous placement, so the bot looks up the stable
+client ID and stops if it cannot establish the outcome. `submitAndWait` waits
+for Alpaca's listening acknowledgement, issues one placement per invocation,
+preserves one client ID, does not re-place on reconnect, and uses one deadline
+across stream setup, REST placement, and terminal-state waiting. Only that
+workflow performs one client-ID lookup after an ambiguous transport failure; it
+does not promise exactly-once execution or eventual lookup visibility. Errors
+branch on the typed `ApiError` subclasses (`RateLimitError`, ...) and log
+Alpaca's request id.
+
+```bash
+npx tsx examples/trading-bot.ts
+```
+
+## [`marketdata-backend.ts`](./marketdata-backend.ts)
+
+A tiny market-data backend for a visualization frontend. A single live
+market-data WebSocket (with reconnect-lifecycle logging that distinguishes
+re-subscription dispatch from server acknowledgement) is fanned out to many HTTP
+clients over Server-Sent Events, alongside REST routes for the latest price and
+historical bars. The live stream and the historical `/bars` route emit the same
+canonical `Bar` shape, so a frontend can backfill history then append live
+updates without remapping; `/candles` returns the columnar form charting
+libraries consume.
+Upstream failures are surfaced as typed `ApiError`s, mapped to the right HTTP
+status with the request id.
+
+```bash
+npx tsx examples/marketdata-backend.ts
+
+# in another shell:
+curl -N http://localhost:8080/stream
+curl "http://localhost:8080/price?symbol=AAPL"
+curl "http://localhost:8080/bars?symbol=AAPL&start=2024-01-01"
+curl "http://localhost:8080/candles?symbol=AAPL&start=2024-01-01"
+```
+
+Configure with `PORT` (default `8080`) and `SYMBOLS` (default `AAPL,MSFT`).

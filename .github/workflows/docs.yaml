@@ -1,0 +1,60 @@
+name: Deploy docs to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "examples/**"
+      - "scripts/**"
+      - ".github/workflows/docs.yaml"
+  workflow_dispatch:
+
+# Allow the GITHUB_TOKEN to deploy to Pages and mint an OIDC token for it.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Serialize deploys; don't cancel an in-progress deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    env:
+      DOCUSAURUS_URL: https://alpacahq.github.io
+      DOCUSAURUS_BASE_URL: /alpaca-trade-api-js/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install SDK dependencies
+        run: npm ci
+      - name: Install docs dependencies
+        run: npm --prefix docs ci
+      - name: Build docs site
+        run: npm --prefix docs run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/build
+
+  deploy:
+    name: Deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

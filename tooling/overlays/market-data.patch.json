@@ -1,0 +1,7 @@
+[
+  {
+    "op": "replace",
+    "path": "/components/parameters/stock_auction_feed/schema",
+    "value": { "$ref": "#/components/schemas/stock_historical_feed" }
+  }
+]
