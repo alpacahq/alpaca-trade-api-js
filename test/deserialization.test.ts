@@ -16,8 +16,6 @@ import {
     ClockRespFromJSON,
     GetOptionsContracts200ResponseFromJSON,
     PublicCalendarRespFromJSON,
-    UsCorporatesRespFromJSON,
-    UsTreasuriesRespFromJSON,
     AccountFromJSON,
     AccountToJSON,
     OrderFromJSON,
@@ -52,8 +50,6 @@ const G01_CASES: G01Case[] = [
     { name: 'ClockResp', fn: ClockRespFromJSON, input: { clocks: null }, arrayFields: ['clocks'] },
     { name: 'GetOptionsContracts200Response', fn: GetOptionsContracts200ResponseFromJSON, input: { option_contracts: null }, arrayFields: ['optionContracts'] },
     { name: 'PublicCalendarResp', fn: PublicCalendarRespFromJSON, input: { calendar: null }, arrayFields: ['calendar'] },
-    { name: 'UsCorporatesResp', fn: UsCorporatesRespFromJSON, input: { us_corporates: null }, arrayFields: ['usCorporates'] },
-    { name: 'UsTreasuriesResp', fn: UsTreasuriesRespFromJSON, input: { us_treasuries: null }, arrayFields: ['usTreasuries'] },
 ];
 
 describe('G01 null-safe array deserialization', () => {

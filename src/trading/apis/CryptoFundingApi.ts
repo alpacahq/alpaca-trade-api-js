@@ -77,6 +77,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
     /**
      * Creates a withdrawal request. Note that outgoing withdrawals must be sent to a whitelisted address and you must whitelist addresses at least 24 hours in advance. If you attempt to withdraw funds to a non-whitelisted address then the transfer will be rejected.
      * Request a New Withdrawal
+     * @deprecated
      */
     async createCryptoTransferForAccountRaw(requestParameters: CreateCryptoTransferForAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CryptoTransfer>> {
         if (requestParameters['createCryptoTransferRequest'] == null) {
@@ -117,6 +118,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
     /**
      * Creates a withdrawal request. Note that outgoing withdrawals must be sent to a whitelisted address and you must whitelist addresses at least 24 hours in advance. If you attempt to withdraw funds to a non-whitelisted address then the transfer will be rejected.
      * Request a New Withdrawal
+     * @deprecated
      */
     async createCryptoTransferForAccount(requestParameters: CreateCryptoTransferForAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CryptoTransfer> {
         const response = await this.createCryptoTransferForAccountRaw(requestParameters, initOverrides);

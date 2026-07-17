@@ -42,6 +42,7 @@ import {
 
 export interface CreateLocatesRequest {
     createLocateRequest: CreateLocateRequest;
+    idempotencyKey?: string;
 }
 
 export interface GetLocateRequest {
@@ -83,6 +84,10 @@ export class LocatesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication

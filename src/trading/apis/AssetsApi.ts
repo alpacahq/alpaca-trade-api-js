@@ -17,22 +17,16 @@ import * as runtime from '../runtime';
 import type {
   AssetAttribute,
   Assets,
-  BondStatus,
   GetOptionsContracts200Response,
   OptionContract,
   OptionContractStyle,
   OptionContractType,
-  TreasurySubtype,
-  UsCorporatesResp,
-  UsTreasuriesResp,
 } from '../models/index';
 import {
     AssetAttributeFromJSON,
     AssetAttributeToJSON,
     AssetsFromJSON,
     AssetsToJSON,
-    BondStatusFromJSON,
-    BondStatusToJSON,
     GetOptionsContracts200ResponseFromJSON,
     GetOptionsContracts200ResponseToJSON,
     OptionContractFromJSON,
@@ -41,12 +35,6 @@ import {
     OptionContractStyleToJSON,
     OptionContractTypeFromJSON,
     OptionContractTypeToJSON,
-    TreasurySubtypeFromJSON,
-    TreasurySubtypeToJSON,
-    UsCorporatesRespFromJSON,
-    UsCorporatesRespToJSON,
-    UsTreasuriesRespFromJSON,
-    UsTreasuriesRespToJSON,
 } from '../models/index';
 
 export interface GetOptionContractSymbolOrIdRequest {
@@ -79,20 +67,6 @@ export interface GetV2AssetsRequest {
 
 export interface GetV2AssetsSymbolOrAssetIdRequest {
     symbolOrAssetId: string;
-}
-
-export interface UsCorporatesRequest {
-    bondStatus?: BondStatus;
-    isins?: string;
-    cusips?: string;
-    tickers?: string;
-}
-
-export interface UsTreasuriesRequest {
-    subtype?: TreasurySubtype;
-    bondStatus?: BondStatus;
-    cusips?: string;
-    isins?: string;
 }
 
 /**
@@ -341,116 +315,6 @@ export class AssetsApi extends runtime.BaseAPI {
      */
     async getV2AssetsSymbolOrAssetId(requestParameters: GetV2AssetsSymbolOrAssetIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Assets> {
         const response = await this.getV2AssetsSymbolOrAssetIdRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Serves the list of US corporates available at Alpaca. The response is sorted by ISIN.
-     * Get US corporates
-     */
-    async usCorporatesRaw(requestParameters: UsCorporatesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UsCorporatesResp>> {
-        const queryParameters: any = {};
-
-        if (requestParameters['bondStatus'] != null) {
-            queryParameters['bond_status'] = requestParameters['bondStatus'];
-        }
-
-        if (requestParameters['isins'] != null) {
-            queryParameters['isins'] = requestParameters['isins'];
-        }
-
-        if (requestParameters['cusips'] != null) {
-            queryParameters['cusips'] = requestParameters['cusips'];
-        }
-
-        if (requestParameters['tickers'] != null) {
-            queryParameters['tickers'] = requestParameters['tickers'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
-        }
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
-        }
-
-
-        let urlPath = `/v2/assets/fixed_income/us_corporates`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => UsCorporatesRespFromJSON(jsonValue));
-    }
-
-    /**
-     * Serves the list of US corporates available at Alpaca. The response is sorted by ISIN.
-     * Get US corporates
-     */
-    async usCorporates(requestParameters: UsCorporatesRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UsCorporatesResp> {
-        const response = await this.usCorporatesRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Serves the list of US treasuries available at Alpaca. The response is sorted by ISIN.
-     * Get US treasuries
-     */
-    async usTreasuriesRaw(requestParameters: UsTreasuriesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UsTreasuriesResp>> {
-        const queryParameters: any = {};
-
-        if (requestParameters['subtype'] != null) {
-            queryParameters['subtype'] = requestParameters['subtype'];
-        }
-
-        if (requestParameters['bondStatus'] != null) {
-            queryParameters['bond_status'] = requestParameters['bondStatus'];
-        }
-
-        if (requestParameters['cusips'] != null) {
-            queryParameters['cusips'] = requestParameters['cusips'];
-        }
-
-        if (requestParameters['isins'] != null) {
-            queryParameters['isins'] = requestParameters['isins'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
-        }
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
-        }
-
-
-        let urlPath = `/v2/assets/fixed_income/us_treasuries`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => UsTreasuriesRespFromJSON(jsonValue));
-    }
-
-    /**
-     * Serves the list of US treasuries available at Alpaca. The response is sorted by ISIN.
-     * Get US treasuries
-     */
-    async usTreasuries(requestParameters: UsTreasuriesRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UsTreasuriesResp> {
-        const response = await this.usTreasuriesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

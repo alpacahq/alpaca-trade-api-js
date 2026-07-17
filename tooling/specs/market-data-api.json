@@ -473,8 +473,7 @@
         "required": true,
         "schema": {
           "type": "string"
-        },
-        "x-go-name": "TimeFrame"
+        }
       },
       "trade_size": {
         "description": "Filters to best bid/ask where the minimum trade size is less than or equal to the given numeric value. For any negative value the best bid/ask will be returned for the smallest trade size on either side.\n",
@@ -679,106 +678,91 @@
             "items": {
               "$ref": "#/components/schemas/cash_dividend"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "cash_mergers": {
             "items": {
               "$ref": "#/components/schemas/cash_merger"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "forward_splits": {
             "items": {
               "$ref": "#/components/schemas/forward_split"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "name_changes": {
             "items": {
               "$ref": "#/components/schemas/name_change"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "partial_calls": {
             "items": {
               "$ref": "#/components/schemas/partial_call"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "redemptions": {
             "items": {
               "$ref": "#/components/schemas/redemption"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "reorganizations": {
             "items": {
               "$ref": "#/components/schemas/reorganization"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "reverse_splits": {
             "items": {
               "$ref": "#/components/schemas/reverse_split"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "rights_distributions": {
             "items": {
               "$ref": "#/components/schemas/rights_distribution"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "spin_offs": {
             "items": {
               "$ref": "#/components/schemas/spin_off"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "stock_and_cash_mergers": {
             "items": {
               "$ref": "#/components/schemas/stock_and_cash_merger"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "stock_dividends": {
             "items": {
               "$ref": "#/components/schemas/stock_dividend"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "stock_mergers": {
             "items": {
               "$ref": "#/components/schemas/stock_merger"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "unit_splits": {
             "items": {
               "$ref": "#/components/schemas/unit_split"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           },
           "worthless_removals": {
             "items": {
               "$ref": "#/components/schemas/worthless_removal"
             },
-            "type": "array",
-            "x-go-type-skip-optional-pointer": true
+            "type": "array"
           }
         },
         "type": "object"
@@ -814,32 +798,27 @@
           "c": {
             "description": "Closing price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Close"
+            "type": "number"
           },
           "h": {
             "description": "High price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "High"
+            "type": "number"
           },
           "l": {
             "description": "Low price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Low"
+            "type": "number"
           },
           "n": {
             "description": "Trade count in the bar.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "TradeCount"
+            "type": "integer"
           },
           "o": {
             "description": "Opening price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Open"
+            "type": "number"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -847,14 +826,12 @@
           "v": {
             "description": "Bar volume.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Volume"
+            "type": "number"
           },
           "vw": {
             "description": "Volume weighted average price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "VWAP"
+            "type": "number"
           }
         },
         "required": [
@@ -899,8 +876,7 @@
           "eu-1",
           "bs-1"
         ],
-        "type": "string",
-        "x-go-name": "TypeHistoricalLoc"
+        "type": "string"
       },
       "crypto_latest_bars_resp": {
         "properties": {
@@ -925,8 +901,7 @@
           "eu-1",
           "bs-1"
         ],
-        "type": "string",
-        "x-go-name": "TypeLatestLoc"
+        "type": "string"
       },
       "crypto_latest_orderbooks_resp": {
         "properties": {
@@ -1000,15 +975,13 @@
             "items": {
               "$ref": "#/components/schemas/crypto_orderbook_entry"
             },
-            "type": "array",
-            "x-go-name": "Asks"
+            "type": "array"
           },
           "b": {
             "items": {
               "$ref": "#/components/schemas/crypto_orderbook_entry"
             },
-            "type": "array",
-            "x-go-name": "Bids"
+            "type": "array"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -1031,14 +1004,12 @@
           "p": {
             "description": "Price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Price"
+            "type": "number"
           },
           "s": {
             "description": "Size.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Size"
+            "type": "number"
           }
         },
         "required": [
@@ -1061,32 +1032,27 @@
           "fr": {
             "description": "Funding rate.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "FundingRate"
+            "type": "number"
           },
           "ft": {
             "description": "Next funding time",
             "format": "date-time",
-            "type": "string",
-            "x-go-name": "NextFundingTime"
+            "type": "string"
           },
           "ip": {
             "description": "Index price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "IndexPrice"
+            "type": "number"
           },
           "mp": {
             "description": "Mark price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "MarkPrice"
+            "type": "number"
           },
           "oi": {
             "description": "Open interest.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "OpenInterest"
+            "type": "number"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -1121,8 +1087,7 @@
         "enum": [
           "global"
         ],
-        "type": "string",
-        "x-go-name": "TypePerpLoc"
+        "type": "string"
       },
       "crypto_quote": {
         "description": "The best bid and ask information for a given security.",
@@ -1137,26 +1102,22 @@
           "ap": {
             "description": "Ask price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "AskPrice"
+            "type": "number"
           },
           "as": {
             "description": "Ask size.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "AskSize"
+            "type": "number"
           },
           "bp": {
             "description": "Bid price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "BidPrice"
+            "type": "number"
           },
           "bs": {
             "description": "Bid size.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "BidSize"
+            "type": "number"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -1240,28 +1201,24 @@
           "i": {
             "description": "Trade ID.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "ID"
+            "type": "integer"
           },
           "p": {
             "description": "Trade price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Price"
+            "type": "number"
           },
           "s": {
             "description": "Trade size.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Size"
+            "type": "number"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
           },
           "tks": {
             "description": "Taker side: B for buyer, S for seller\n",
-            "type": "string",
-            "x-go-name": "TakerSide"
+            "type": "string"
           }
         },
         "required": [
@@ -1301,8 +1258,7 @@
       "date": {
         "description": "Date in RFC-3339.",
         "format": "date",
-        "type": "string",
-        "x-go-name": "Date"
+        "type": "string"
       },
       "due_bill_redemption_date": {
         "description": "The date when due bill obligations are redeemed.",
@@ -1363,8 +1319,7 @@
           "p": {
             "description": "Price",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Price"
+            "type": "number"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -1372,14 +1327,12 @@
           "ytm": {
             "description": "Yield to maturity.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "YieldToMaturity"
+            "type": "number"
           },
           "ytw": {
             "description": "Yield to worst.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "YieldToWorst"
+            "type": "number"
           }
         },
         "required": [
@@ -1407,62 +1360,52 @@
           "ams": {
             "description": "Best ask minimum trade size in par value.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "AskMinTradeSize"
+            "type": "integer"
           },
           "ap": {
             "description": "Best ask price. 0 means there is no active ask.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "AskPrice"
+            "type": "number"
           },
           "as": {
             "description": "Best ask size in par value. 0 means there is no active ask.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "AskSize"
+            "type": "integer"
           },
           "aytm": {
             "description": "Best ask yield to maturity.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "AskYieldToMaturity"
+            "type": "number"
           },
           "aytw": {
             "description": "Best ask yield to worst.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "AskYieldToWorst"
+            "type": "number"
           },
           "bms": {
             "description": "Best bid minimum trade size in par value.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "BidMinTradeSize"
+            "type": "integer"
           },
           "bp": {
             "description": "Best bid price. 0 means there is no active bid.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "BidPrice"
+            "type": "number"
           },
           "bs": {
             "description": "Best bid size in par value. 0 means there is no active bid.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "BidSize"
+            "type": "integer"
           },
           "bytm": {
             "description": "Best bid yield to maturity.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "BidYieldToMaturity"
+            "type": "number"
           },
           "bytw": {
             "description": "Best bid yield to worst.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "BidYieldToWorst"
+            "type": "number"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -1486,8 +1429,7 @@
       "forex_currency_pairs": {
         "description": "A comma-separated string with currency pairs.",
         "example": "USDJPY,USDMXN",
-        "type": "string",
-        "x-go-name": "TypeCurrencyPairs"
+        "type": "string"
       },
       "forex_latest_rates_resp": {
         "description": "The response object of the latest forex rates.",
@@ -1516,26 +1458,22 @@
           "ap": {
             "description": "The last ask price value of the currency at the end of the timeframe.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "AskPrice"
+            "type": "number"
           },
           "bp": {
             "description": "The last bid price value of the currency at the end of the timeframe.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "BidPrice"
+            "type": "number"
           },
           "mp": {
             "description": "The last mid price value of the currency at the end of the timeframe.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "MidPrice"
+            "type": "number"
           },
           "t": {
             "description": "Timestamp of the rate.",
             "format": "date-time",
-            "type": "string",
-            "x-go-name": "Timestamp"
+            "type": "string"
           }
         },
         "required": [
@@ -1665,8 +1603,7 @@
           "v": {
             "description": "Index value.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Value"
+            "type": "number"
           }
         },
         "required": [
@@ -2022,32 +1959,27 @@
           "c": {
             "description": "Closing price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Close"
+            "type": "number"
           },
           "h": {
             "description": "High price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "High"
+            "type": "number"
           },
           "l": {
             "description": "Low price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Low"
+            "type": "number"
           },
           "n": {
             "description": "Trade count in the bar.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "TradeCount"
+            "type": "integer"
           },
           "o": {
             "description": "Opening price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Open"
+            "type": "number"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -2055,14 +1987,12 @@
           "v": {
             "description": "Bar volume.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "Volume"
+            "type": "integer"
           },
           "vw": {
             "description": "Volume weighted average price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "VWAP"
+            "type": "number"
           }
         },
         "required": [
@@ -2207,41 +2137,34 @@
           "ap": {
             "description": "Ask price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "AskPrice"
+            "type": "number"
           },
           "as": {
             "description": "Ask size.",
             "format": "uint32",
-            "type": "integer",
-            "x-go-name": "AskSize"
+            "type": "integer"
           },
           "ax": {
             "description": "Ask exchange.",
-            "type": "string",
-            "x-go-name": "AskExchange"
+            "type": "string"
           },
           "bp": {
             "description": "Bid price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "BidPrice"
+            "type": "number"
           },
           "bs": {
             "description": "Bid size.",
             "format": "uint32",
-            "type": "integer",
-            "x-go-name": "BidSize"
+            "type": "integer"
           },
           "bx": {
             "description": "Bid exchange.",
-            "type": "string",
-            "x-go-name": "BidExchange"
+            "type": "string"
           },
           "c": {
             "description": "Quote condition.",
-            "type": "string",
-            "x-go-name": "Condition"
+            "type": "string"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -2318,27 +2241,23 @@
         "properties": {
           "c": {
             "description": "Trade condition.",
-            "type": "string",
-            "x-go-name": "Condition"
+            "type": "string"
           },
           "p": {
             "description": "Trade price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Price"
+            "type": "number"
           },
           "s": {
             "description": "Trade size.",
             "format": "uint32",
-            "type": "integer",
-            "x-go-name": "Size"
+            "type": "integer"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
           },
           "x": {
-            "type": "string",
-            "x-go-name": "Exchange"
+            "type": "string"
           }
         },
         "required": [
@@ -2502,8 +2421,7 @@
           "non_us",
           "all"
         ],
-        "type": "string",
-        "x-go-name": "Region"
+        "type": "string"
       },
       "reorganization": {
         "description": "Reorganization (cash and/or multiple stock allocations).",
@@ -2733,8 +2651,7 @@
           "asc",
           "desc"
         ],
-        "type": "string",
-        "x-go-name": "TypeSort"
+        "type": "string"
       },
       "spin_off": {
         "description": "Spin-off.",
@@ -2899,20 +2816,17 @@
         "properties": {
           "c": {
             "description": "The condition flag indicating that this is an auction. See `v2/stocks/meta/conditions/trade` for more details.\n",
-            "type": "string",
-            "x-go-name": "Condition"
+            "type": "string"
           },
           "p": {
             "description": "Auction price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Price"
+            "type": "number"
           },
           "s": {
             "description": "Auction trade size.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "Size"
+            "type": "integer"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -2999,32 +2913,27 @@
           "c": {
             "description": "Closing price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Close"
+            "type": "number"
           },
           "h": {
             "description": "High price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "High"
+            "type": "number"
           },
           "l": {
             "description": "Low price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Low"
+            "type": "number"
           },
           "n": {
             "description": "Trade count in the bar.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "TradeCount"
+            "type": "integer"
           },
           "o": {
             "description": "Opening price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Open"
+            "type": "number"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -3032,14 +2941,12 @@
           "v": {
             "description": "Bar volume.",
             "format": "int64",
-            "type": "integer",
-            "x-go-name": "Volume"
+            "type": "integer"
           },
           "vw": {
             "description": "Volume weighted average price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "VWAP"
+            "type": "number"
           }
         },
         "required": [
@@ -3122,8 +3029,7 @@
             "items": {
               "$ref": "#/components/schemas/stock_auction"
             },
-            "type": "array",
-            "x-go-name": "Closes"
+            "type": "array"
           },
           "d": {
             "$ref": "#/components/schemas/date"
@@ -3133,8 +3039,7 @@
             "items": {
               "$ref": "#/components/schemas/stock_auction"
             },
-            "type": "array",
-            "x-go-name": "Opens"
+            "type": "array"
           }
         },
         "required": [
@@ -3424,44 +3329,37 @@
           "ap": {
             "description": "Ask price. 0 means the security has no active ask.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "AskPrice"
+            "type": "number"
           },
           "as": {
             "description": "Ask size in shares (round lots prior to November 3, 2025).",
             "format": "uint32",
-            "type": "integer",
-            "x-go-name": "AskSize"
+            "type": "integer"
           },
           "ax": {
             "description": "Ask exchange. See `v2/stocks/meta/exchanges` for more details.",
-            "type": "string",
-            "x-go-name": "AskExchange"
+            "type": "string"
           },
           "bp": {
             "description": "Bid price. 0 means the security has no active bid.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "BidPrice"
+            "type": "number"
           },
           "bs": {
             "description": "Bid size in shares (round lots prior to November 3, 2025).",
             "format": "uint32",
-            "type": "integer",
-            "x-go-name": "BidSize"
+            "type": "integer"
           },
           "bx": {
             "description": "Bid exchange. See `v2/stocks/meta/exchanges` for more details.",
-            "type": "string",
-            "x-go-name": "BidExchange"
+            "type": "string"
           },
           "c": {
             "description": "Condition flags. See `v2/stocks/meta/conditions/quote` for more details. If the array contains one flag, it applies to both the bid and ask. If the array contains two flags, the first one applies to the bid and the second one to the ask.\n",
             "items": {
               "type": "string"
             },
-            "type": "array",
-            "x-go-name": "Conditions"
+            "type": "array"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
@@ -3586,8 +3484,7 @@
           "N",
           "O"
         ],
-        "type": "string",
-        "x-go-name": "Tape"
+        "type": "string"
       },
       "stock_trade": {
         "description": "A stock trade.",
@@ -3609,39 +3506,33 @@
             "items": {
               "type": "string"
             },
-            "type": "array",
-            "x-go-name": "Conditions"
+            "type": "array"
           },
           "i": {
             "description": "Trade ID sent by the exchange.",
             "format": "uint64",
-            "type": "integer",
-            "x-go-name": "ID"
+            "type": "integer"
           },
           "p": {
             "description": "Trade price.",
             "format": "double",
-            "type": "number",
-            "x-go-name": "Price"
+            "type": "number"
           },
           "s": {
             "description": "Trade size.",
             "format": "uint32",
-            "type": "integer",
-            "x-go-name": "Size"
+            "type": "integer"
           },
           "t": {
             "$ref": "#/components/schemas/timestamp"
           },
           "u": {
             "description": "Update to the trade. This field is optional, if it's missing, the trade is valid. Otherwise, it can have these values:\n - canceled: indicates that the trade has been canceled\n - incorrect: indicates that the trade has been corrected and the given trade is no longer valid\n - corrected: indicates that this trade is the correction of a previous (incorrect) trade\n",
-            "type": "string",
-            "x-go-name": "Update"
+            "type": "string"
           },
           "x": {
             "description": "Exchange code. See `v2/stocks/meta/exchanges` for more details.",
-            "type": "string",
-            "x-go-name": "Exchange"
+            "type": "string"
           },
           "z": {
             "$ref": "#/components/schemas/stock_tape"
@@ -3710,8 +3601,7 @@
       "timestamp": {
         "description": "Timestamp in RFC-3339 format with nanosecond precision.",
         "format": "date-time",
-        "type": "string",
-        "x-go-name": "Timestamp"
+        "type": "string"
       },
       "unit_split": {
         "description": "Unit split.",

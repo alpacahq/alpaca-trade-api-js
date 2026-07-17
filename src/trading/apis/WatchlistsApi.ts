@@ -16,6 +16,7 @@
 import * as runtime from '../runtime';
 import type {
   AddAssetToWatchlistRequest,
+  CreateWatchlistRequest,
   UpdateWatchlistRequest,
   Watchlist,
   WatchlistWithoutAsset,
@@ -23,6 +24,8 @@ import type {
 import {
     AddAssetToWatchlistRequestFromJSON,
     AddAssetToWatchlistRequestToJSON,
+    CreateWatchlistRequestFromJSON,
+    CreateWatchlistRequestToJSON,
     UpdateWatchlistRequestFromJSON,
     UpdateWatchlistRequestToJSON,
     WatchlistFromJSON,
@@ -58,7 +61,7 @@ export interface GetWatchlistByNameRequest {
 }
 
 export interface PostWatchlistRequest {
-    updateWatchlistRequest: UpdateWatchlistRequest;
+    createWatchlistRequest: CreateWatchlistRequest;
 }
 
 export interface RemoveAssetFromWatchlistRequest {
@@ -68,12 +71,12 @@ export interface RemoveAssetFromWatchlistRequest {
 
 export interface UpdateWatchlistByIdRequest {
     watchlistId: string;
-    updateWatchlistRequest?: UpdateWatchlistRequest;
+    updateWatchlistRequest?: UpdateWatchlistRequest | null;
 }
 
 export interface UpdateWatchlistByNameRequest {
     name: string;
-    updateWatchlistRequest?: UpdateWatchlistRequest;
+    updateWatchlistRequest?: UpdateWatchlistRequest | null;
 }
 
 /**
@@ -420,10 +423,10 @@ export class WatchlistsApi extends runtime.BaseAPI {
      * Create Watchlist
      */
     async postWatchlistRaw(requestParameters: PostWatchlistRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Watchlist>> {
-        if (requestParameters['updateWatchlistRequest'] == null) {
+        if (requestParameters['createWatchlistRequest'] == null) {
             throw new runtime.RequiredError(
-                'updateWatchlistRequest',
-                'Required parameter "updateWatchlistRequest" was null or undefined when calling postWatchlist().'
+                'createWatchlistRequest',
+                'Required parameter "createWatchlistRequest" was null or undefined when calling postWatchlist().'
             );
         }
 
@@ -449,7 +452,7 @@ export class WatchlistsApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: UpdateWatchlistRequestToJSON(requestParameters['updateWatchlistRequest']),
+            body: CreateWatchlistRequestToJSON(requestParameters['createWatchlistRequest']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => WatchlistFromJSON(jsonValue));

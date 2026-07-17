@@ -157,9 +157,6 @@ describe('Trading sub-client', () => {
         expect(t.calendar).toBeInstanceOf(trading.CalendarApi);
         expect(t.corporateActions).toBeInstanceOf(trading.CorporateActionsApi);
         expect(t.cryptoFunding).toBeInstanceOf(trading.CryptoFundingApi);
-        expect(t.cryptoPerpetualsAccountVitals).toBeInstanceOf(trading.CryptoPerpetualsAccountVitalsBetaApi);
-        expect(t.cryptoPerpetualsFunding).toBeInstanceOf(trading.CryptoPerpetualsFundingBetaApi);
-        expect(t.cryptoPerpetualsLeverage).toBeInstanceOf(trading.CryptoPerpetualsLeverageBetaApi);
         expect(t.events).toBeInstanceOf(trading.EventsApi);
         expect(t.orders).toBeInstanceOf(trading.OrdersApi);
         expect(t.portfolioHistory).toBeInstanceOf(trading.PortfolioHistoryApi);

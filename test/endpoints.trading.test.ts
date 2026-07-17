@@ -93,23 +93,6 @@ const cases: EndpointCase[] = [
         kind: 'object',
         call: (a) => a.trading.assets.getOptionContractSymbolOrId({ symbolOrId: 'AAPL240119C00050000' }),
     },
-    {
-        accessor: 'trading.assets',
-        method: 'usCorporates',
-        verb: 'GET',
-        path: /^\/v2\/assets\/fixed_income\/us_corporates$/,
-        kind: 'object',
-        call: (a) => a.trading.assets.usCorporates({}),
-    },
-    {
-        accessor: 'trading.assets',
-        method: 'usTreasuries',
-        verb: 'GET',
-        path: /^\/v2\/assets\/fixed_income\/us_treasuries$/,
-        kind: 'object',
-        call: (a) => a.trading.assets.usTreasuries({}),
-    },
-
     // --- trading.calendar ------------------------------------------------
     {
         accessor: 'trading.calendar',
@@ -233,100 +216,6 @@ const cases: EndpointCase[] = [
         call: (a) => a.trading.cryptoFunding.listWhitelistedAddress(),
     },
 
-    // --- trading.cryptoPerpetualsAccountVitals --------------------------
-    {
-        accessor: 'trading.cryptoPerpetualsAccountVitals',
-        method: 'getCryptoPerpAccountVitals',
-        verb: 'GET',
-        path: /^\/v2\/perpetuals\/account_vitals$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsAccountVitals.getCryptoPerpAccountVitals(),
-    },
-
-    // --- trading.cryptoPerpetualsFunding --------------------------------
-    {
-        accessor: 'trading.cryptoPerpetualsFunding',
-        method: 'createCryptoPerpTransferForAccount',
-        verb: 'POST',
-        path: /^\/v2\/perpetuals\/wallets\/transfers$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsFunding.createCryptoPerpTransferForAccount({ createCryptoTransferRequest: { amount: '1', address: '0xabc' } as any }),
-    },
-    {
-        accessor: 'trading.cryptoPerpetualsFunding',
-        method: 'getCryptoPerpFundingTransfer',
-        verb: 'GET',
-        path: /^\/v2\/perpetuals\/wallets\/transfers\/[^/]+$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsFunding.getCryptoPerpFundingTransfer({ transferId: 't-1' }),
-    },
-    {
-        accessor: 'trading.cryptoPerpetualsFunding',
-        method: 'getCryptoPerpTransferEstimate',
-        verb: 'GET',
-        path: /^\/v2\/perpetuals\/wallets\/fees\/estimate$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsFunding.getCryptoPerpTransferEstimate({}),
-    },
-    {
-        accessor: 'trading.cryptoPerpetualsFunding',
-        method: 'listCryptoPerpFundingTransfers',
-        verb: 'GET',
-        path: /^\/v2\/perpetuals\/wallets\/transfers$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsFunding.listCryptoPerpFundingTransfers(),
-    },
-    {
-        accessor: 'trading.cryptoPerpetualsFunding',
-        method: 'listCryptoPerpFundingWallets',
-        verb: 'GET',
-        path: /^\/v2\/perpetuals\/wallets$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsFunding.listCryptoPerpFundingWallets({}),
-    },
-    {
-        accessor: 'trading.cryptoPerpetualsFunding',
-        method: 'createWhitelistedPerpAddress',
-        verb: 'POST',
-        path: /^\/v2\/perpetuals\/wallets\/whitelists$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsFunding.createWhitelistedPerpAddress({ createWhitelistedPerpAddressRequest: { address: '0xabc', asset: 'USDT' } as any }),
-    },
-    {
-        accessor: 'trading.cryptoPerpetualsFunding',
-        method: 'deleteWhitelistedPerpAddress',
-        verb: 'DELETE',
-        path: /^\/v2\/perpetuals\/wallets\/whitelists\/[^/]+$/,
-        kind: 'void',
-        call: (a) => a.trading.cryptoPerpetualsFunding.deleteWhitelistedPerpAddress({ whitelistedAddressId: 'w-1' }),
-    },
-    {
-        accessor: 'trading.cryptoPerpetualsFunding',
-        method: 'listWhitelistedPerpAddress',
-        verb: 'GET',
-        path: /^\/v2\/perpetuals\/wallets\/whitelists$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsFunding.listWhitelistedPerpAddress(),
-    },
-
-    // --- trading.cryptoPerpetualsLeverage -------------------------------
-    {
-        accessor: 'trading.cryptoPerpetualsLeverage',
-        method: 'getCryptoPerpAccountLeverage',
-        verb: 'GET',
-        path: /^\/v2\/perpetuals\/leverage$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsLeverage.getCryptoPerpAccountLeverage({}),
-    },
-    {
-        accessor: 'trading.cryptoPerpetualsLeverage',
-        method: 'setCryptoPerpAccountLeverage',
-        verb: 'POST',
-        path: /^\/v2\/perpetuals\/leverage$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoPerpetualsLeverage.setCryptoPerpAccountLeverage({}),
-    },
-
     // --- trading.events --------------------------------------------------
     {
         accessor: 'trading.events',
@@ -344,7 +233,10 @@ const cases: EndpointCase[] = [
         verb: 'POST',
         path: /^\/v1\/locates$/,
         kind: 'object',
-        call: (a) => a.trading.locates.createLocates({ createLocateRequest: { symbol: 'AAPL', qty: 100 } }),
+        call: (a) => a.trading.locates.createLocates({
+            createLocateRequest: { symbol: 'AAPL', qty: 100 },
+            idempotencyKey: 'locate-1',
+        }),
     },
     {
         accessor: 'trading.locates',
@@ -492,6 +384,22 @@ const cases: EndpointCase[] = [
     // --- trading.tokenization -------------------------------------------
     {
         accessor: 'trading.tokenization',
+        method: 'getTokenizationRequest',
+        verb: 'GET',
+        path: /^\/v2\/tokenization\/requests\/[^/]+$/,
+        kind: 'object',
+        call: (a) => a.trading.tokenization.getTokenizationRequest({ tokenizationRequestId: 'req-1' }),
+    },
+    {
+        accessor: 'trading.tokenization',
+        method: 'getTokenizationRequestByClientRequestID',
+        verb: 'GET',
+        path: /^\/v2\/tokenization\/requests:by_client_request_id$/,
+        kind: 'object',
+        call: (a) => a.trading.tokenization.getTokenizationRequestByClientRequestID({ clientRequestId: 'client-1' }),
+    },
+    {
+        accessor: 'trading.tokenization',
         method: 'getTokenizationRequests',
         verb: 'GET',
         path: /^\/v2\/tokenization\/requests$/,
@@ -538,7 +446,7 @@ const cases: EndpointCase[] = [
         verb: 'POST',
         path: /^\/v2\/watchlists$/,
         kind: 'object',
-        call: (a) => a.trading.watchlists.postWatchlist({ updateWatchlistRequest: { name: 'mylist', symbols: [] } as any }),
+        call: (a) => a.trading.watchlists.postWatchlist({ createWatchlistRequest: { name: 'mylist', symbols: [] } }),
     },
     {
         accessor: 'trading.watchlists',

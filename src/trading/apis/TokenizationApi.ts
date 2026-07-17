@@ -37,6 +37,14 @@ import {
     TokenizationRequestTypeToJSON,
 } from '../models/index';
 
+export interface GetTokenizationRequestRequest {
+    tokenizationRequestId: string;
+}
+
+export interface GetTokenizationRequestByClientRequestIDRequest {
+    clientRequestId: string;
+}
+
 export interface GetTokenizationRequestsRequest {
     type?: TokenizationRequestType;
     status?: TokenizationRequestStatus;
@@ -55,6 +63,103 @@ export interface PostTokenizationMintRequest {
  * 
  */
 export class TokenizationApi extends runtime.BaseAPI {
+
+    /**
+     * An Authorized Participant can use this endpoint to retrieve a single tokenization request, mint or redeem, by its `tokenization_request_id`.
+     * Get Tokenization Request by ID
+     */
+    async getTokenizationRequestRaw(requestParameters: GetTokenizationRequestRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenizationRequest>> {
+        if (requestParameters['tokenizationRequestId'] == null) {
+            throw new runtime.RequiredError(
+                'tokenizationRequestId',
+                'Required parameter "tokenizationRequestId" was null or undefined when calling getTokenizationRequest().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
+        }
+
+
+        let urlPath = `/v2/tokenization/requests/{tokenization_request_id}`;
+        urlPath = urlPath.replace(`{${"tokenization_request_id"}}`, encodeURIComponent(String(requestParameters['tokenizationRequestId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => TokenizationRequestFromJSON(jsonValue));
+    }
+
+    /**
+     * An Authorized Participant can use this endpoint to retrieve a single tokenization request, mint or redeem, by its `tokenization_request_id`.
+     * Get Tokenization Request by ID
+     */
+    async getTokenizationRequest(requestParameters: GetTokenizationRequestRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenizationRequest> {
+        const response = await this.getTokenizationRequestRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * An Authorized Participant can use this endpoint to retrieve a single mint tokenization request by their own `client_request_id` -- the AP-supplied label originally passed on the mint request. If the AP has reused a `client_request_id` across multiple requests, the most recently created request is returned.
+     * Get Tokenization Request by `client_request_id`
+     */
+    async getTokenizationRequestByClientRequestIDRaw(requestParameters: GetTokenizationRequestByClientRequestIDRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenizationRequest>> {
+        if (requestParameters['clientRequestId'] == null) {
+            throw new runtime.RequiredError(
+                'clientRequestId',
+                'Required parameter "clientRequestId" was null or undefined when calling getTokenizationRequestByClientRequestID().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['clientRequestId'] != null) {
+            queryParameters['client_request_id'] = requestParameters['clientRequestId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
+        }
+
+
+        let urlPath = `/v2/tokenization/requests:by_client_request_id`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => TokenizationRequestFromJSON(jsonValue));
+    }
+
+    /**
+     * An Authorized Participant can use this endpoint to retrieve a single mint tokenization request by their own `client_request_id` -- the AP-supplied label originally passed on the mint request. If the AP has reused a `client_request_id` across multiple requests, the most recently created request is returned.
+     * Get Tokenization Request by `client_request_id`
+     */
+    async getTokenizationRequestByClientRequestID(requestParameters: GetTokenizationRequestByClientRequestIDRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenizationRequest> {
+        const response = await this.getTokenizationRequestByClientRequestIDRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * An Authorized Participant can use this endpoint to list the tokenization requests performed on the Instant Tokenization Network (ITN).

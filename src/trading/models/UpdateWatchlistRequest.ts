@@ -14,19 +14,19 @@
 
 import { mapValues } from '../runtime';
 /**
- * Request format used for creating a new watchlist or updating an existing watchlist with a set of assets and name.
+ * Request format used for updating an existing watchlist with a set of assets and/or a name.
  * @export
  * @interface UpdateWatchlistRequest
  */
 export interface UpdateWatchlistRequest {
     /**
-     * The watchlist name.
+     * The new watchlist name.
      * @type {string}
      * @memberof UpdateWatchlistRequest
      */
-    name: string;
+    name?: string;
     /**
-     * List of asset symbols to include in the watchlist.
+     * List of asset symbols to include in the watchlist. The existing assets will be replaced with the new list.
      * @type {Array<string | null>}
      * @memberof UpdateWatchlistRequest
      */
@@ -37,7 +37,6 @@ export interface UpdateWatchlistRequest {
  * Check if a given object implements the UpdateWatchlistRequest interface.
  */
 export function instanceOfUpdateWatchlistRequest(value: object): value is UpdateWatchlistRequest {
-    if (!('name' in value) || value['name'] === undefined) return false;
     return true;
 }
 
@@ -51,7 +50,7 @@ export function UpdateWatchlistRequestFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
-        'name': json['name'],
+        'name': json['name'] == null ? undefined : json['name'],
         'symbols': json['symbols'] == null ? undefined : json['symbols'],
     };
 }

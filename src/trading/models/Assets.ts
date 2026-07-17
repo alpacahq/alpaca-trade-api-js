@@ -76,7 +76,7 @@ export interface Assets {
      * @memberof Assets
      * @deprecated
      */
-    easyToBorrow: boolean;
+    easyToBorrow?: boolean;
     /**
      * 
      * @type {Exchange}
@@ -197,7 +197,6 @@ export type AssetsStatusEnum = typeof AssetsStatusEnum[keyof typeof AssetsStatus
  */
 export function instanceOfAssets(value: object): value is Assets {
     if (!('_class' in value) || value['_class'] === undefined) return false;
-    if (!('easyToBorrow' in value) || value['easyToBorrow'] === undefined) return false;
     if (!('exchange' in value) || value['exchange'] === undefined) return false;
     if (!('fractionable' in value) || value['fractionable'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
@@ -224,7 +223,7 @@ export function AssetsFromJSONTyped(json: any, ignoreDiscriminator: boolean): As
         'borrowStatus': json['borrow_status'] == null ? undefined : json['borrow_status'],
         '_class': AssetClassFromJSON(json['class']),
         'cusip': json['cusip'] == null ? undefined : json['cusip'],
-        'easyToBorrow': json['easy_to_borrow'],
+        'easyToBorrow': json['easy_to_borrow'] == null ? undefined : json['easy_to_borrow'],
         'exchange': ExchangeFromJSON(json['exchange']),
         'fractionable': json['fractionable'],
         'id': json['id'],

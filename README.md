@@ -1029,25 +1029,22 @@ paths, so every entry is individually anchor-linkable.
 ### Trading API
 
 <details>
-<summary><strong>Operations</strong> (68)</summary>
+<summary><strong>Operations</strong> (57)</summary>
 
 - `account` — [getAccount](#alpacatradingaccountgetaccount)
 - `accountActivities` — [getAccountActivities](#alpacatradingaccountactivitiesgetaccountactivities), [getAccountActivitiesByActivityType](#alpacatradingaccountactivitiesgetaccountactivitiesbyactivitytype)
 - `accountConfigurations` — [getAccountConfig](#alpacatradingaccountconfigurationsgetaccountconfig), [patchAccountConfig](#alpacatradingaccountconfigurationspatchaccountconfig)
-- `assets` — [getV2Assets](#alpacatradingassetsgetv2assets), [getV2AssetsSymbolOrAssetId](#alpacatradingassetsgetv2assetssymbolorassetid), [getOptionsContracts](#alpacatradingassetsgetoptionscontracts), [getOptionContractSymbolOrId](#alpacatradingassetsgetoptioncontractsymbolorid), [usCorporates](#alpacatradingassetsuscorporates), [usTreasuries](#alpacatradingassetsustreasuries)
+- `assets` — [getV2Assets](#alpacatradingassetsgetv2assets), [getV2AssetsSymbolOrAssetId](#alpacatradingassetsgetv2assetssymbolorassetid), [getOptionsContracts](#alpacatradingassetsgetoptionscontracts), [getOptionContractSymbolOrId](#alpacatradingassetsgetoptioncontractsymbolorid)
 - `calendar` — [calendar](#alpacatradingcalendarcalendar), [legacyCalendar](#alpacatradingcalendarlegacycalendar)
 - `clock` — [clock](#alpacatradingclockclock), [legacyClock](#alpacatradingclocklegacyclock)
 - `corporateActions` — [getV2CorporateActionsAnnouncements](#alpacatradingcorporateactionsgetv2corporateactionsannouncements), [getV2CorporateActionsAnnouncementsId](#alpacatradingcorporateactionsgetv2corporateactionsannouncementsid)
 - `cryptoFunding` — [createCryptoTransferForAccount](#alpacatradingcryptofundingcreatecryptotransferforaccount), [getCryptoFundingTransfer](#alpacatradingcryptofundinggetcryptofundingtransfer), [listCryptoFundingTransfers](#alpacatradingcryptofundinglistcryptofundingtransfers), [getCryptoTransferEstimate](#alpacatradingcryptofundinggetcryptotransferestimate), [listCryptoFundingWallets](#alpacatradingcryptofundinglistcryptofundingwallets), [createWhitelistedAddress](#alpacatradingcryptofundingcreatewhitelistedaddress), [deleteWhitelistedAddress](#alpacatradingcryptofundingdeletewhitelistedaddress), [listWhitelistedAddress](#alpacatradingcryptofundinglistwhitelistedaddress)
-- `cryptoPerpetualsAccountVitals` — [getCryptoPerpAccountVitals](#alpacatradingcryptoperpetualsaccountvitalsgetcryptoperpaccountvitals)
-- `cryptoPerpetualsFunding` — [createCryptoPerpTransferForAccount](#alpacatradingcryptoperpetualsfundingcreatecryptoperptransferforaccount), [getCryptoPerpFundingTransfer](#alpacatradingcryptoperpetualsfundinggetcryptoperpfundingtransfer), [getCryptoPerpTransferEstimate](#alpacatradingcryptoperpetualsfundinggetcryptoperptransferestimate), [listCryptoPerpFundingTransfers](#alpacatradingcryptoperpetualsfundinglistcryptoperpfundingtransfers), [listCryptoPerpFundingWallets](#alpacatradingcryptoperpetualsfundinglistcryptoperpfundingwallets), [createWhitelistedPerpAddress](#alpacatradingcryptoperpetualsfundingcreatewhitelistedperpaddress), [deleteWhitelistedPerpAddress](#alpacatradingcryptoperpetualsfundingdeletewhitelistedperpaddress), [listWhitelistedPerpAddress](#alpacatradingcryptoperpetualsfundinglistwhitelistedperpaddress)
-- `cryptoPerpetualsLeverage` — [getCryptoPerpAccountLeverage](#alpacatradingcryptoperpetualsleveragegetcryptoperpaccountleverage), [setCryptoPerpAccountLeverage](#alpacatradingcryptoperpetualsleveragesetcryptoperpaccountleverage)
 - `events` — [subscribeToActivitiesSSE](#alpacatradingeventssubscribetoactivitiessse)
 - `locates` — [createLocates](#alpacatradinglocatescreatelocates), [getLocate](#alpacatradinglocatesgetlocate), [listLocateQuotes](#alpacatradinglocateslistlocatequotes), [listLocates](#alpacatradinglocateslistlocates)
 - `orders` — [getAllOrders](#alpacatradingordersgetallorders), [postOrder](#alpacatradingorderspostorder), [getOrderByOrderID](#alpacatradingordersgetorderbyorderid), [getOrderByClientOrderId](#alpacatradingordersgetorderbyclientorderid), [patchOrderByOrderId](#alpacatradingorderspatchorderbyorderid), [deleteOrderByOrderID](#alpacatradingordersdeleteorderbyorderid), [deleteAllOrders](#alpacatradingordersdeleteallorders)
 - `portfolioHistory` — [getAccountPortfolioHistory](#alpacatradingportfoliohistorygetaccountportfoliohistory)
 - `positions` — [getAllOpenPositions](#alpacatradingpositionsgetallopenpositions), [getOpenPosition](#alpacatradingpositionsgetopenposition), [deleteAllOpenPositions](#alpacatradingpositionsdeleteallopenpositions), [deleteOpenPosition](#alpacatradingpositionsdeleteopenposition), [optionExercise](#alpacatradingpositionsoptionexercise), [optionDoNotExercise](#alpacatradingpositionsoptiondonotexercise)
-- `tokenization` — [getTokenizationRequests](#alpacatradingtokenizationgettokenizationrequests), [postTokenizationMint](#alpacatradingtokenizationposttokenizationmint)
+- `tokenization` — [getTokenizationRequest](#alpacatradingtokenizationgettokenizationrequest), [getTokenizationRequestByClientRequestID](#alpacatradingtokenizationgettokenizationrequestbyclientrequestid), [getTokenizationRequests](#alpacatradingtokenizationgettokenizationrequests), [postTokenizationMint](#alpacatradingtokenizationposttokenizationmint)
 - `watchlists` — [getWatchlists](#alpacatradingwatchlistsgetwatchlists), [getWatchlistById](#alpacatradingwatchlistsgetwatchlistbyid), [getWatchlistByName](#alpacatradingwatchlistsgetwatchlistbyname), [postWatchlist](#alpacatradingwatchlistspostwatchlist), [updateWatchlistById](#alpacatradingwatchlistsupdatewatchlistbyid), [updateWatchlistByName](#alpacatradingwatchlistsupdatewatchlistbyname), [addAssetToWatchlist](#alpacatradingwatchlistsaddassettowatchlist), [addAssetToWatchlistByName](#alpacatradingwatchlistsaddassettowatchlistbyname), [removeAssetFromWatchlist](#alpacatradingwatchlistsremoveassetfromwatchlist), [deleteWatchlistById](#alpacatradingwatchlistsdeletewatchlistbyid), [deleteWatchlistByName](#alpacatradingwatchlistsdeletewatchlistbyname)
 
 </details>
@@ -1155,22 +1152,6 @@ Fetch a single option contract by symbol or id.
 await alpaca.trading.assets.getOptionContractSymbolOrId({
   symbolOrId: "AAPL250117C00150000",
 });
-```
-
-##### `alpaca.trading.assets.usCorporates`
-
-Reference data for US corporate bonds (by ISIN, CUSIP or ticker).
-
-```ts
-await alpaca.trading.assets.usCorporates({ tickers: "AAPL" });
-```
-
-##### `alpaca.trading.assets.usTreasuries`
-
-Reference data for US Treasury instruments.
-
-```ts
-await alpaca.trading.assets.usTreasuries({ cusips: "912797JL3" });
 ```
 
 #### `alpaca.trading.calendar` — CalendarApi
@@ -1333,127 +1314,6 @@ List whitelisted crypto withdrawal addresses.
 await alpaca.trading.cryptoFunding.listWhitelistedAddress();
 ```
 
-#### `alpaca.trading.cryptoPerpetualsAccountVitals` — CryptoPerpetualsAccountVitalsBetaApi
-
-Crypto perpetual-futures account vitals (beta).
-
-##### `alpaca.trading.cryptoPerpetualsAccountVitals.getCryptoPerpAccountVitals`
-
-Crypto perpetual-futures account vitals: margin, collateral, P&L (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsAccountVitals.getCryptoPerpAccountVitals();
-```
-
-#### `alpaca.trading.cryptoPerpetualsFunding` — CryptoPerpetualsFundingBetaApi
-
-Crypto perpetual-futures wallets and transfers (beta).
-
-##### `alpaca.trading.cryptoPerpetualsFunding.createCryptoPerpTransferForAccount`
-
-Initiate a crypto perpetual-futures transfer (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsFunding.createCryptoPerpTransferForAccount({
-  createCryptoTransferRequest: { amount: "100", asset: "USDT" },
-});
-```
-
-##### `alpaca.trading.cryptoPerpetualsFunding.getCryptoPerpFundingTransfer`
-
-Fetch a single perpetual-futures transfer by id (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsFunding.getCryptoPerpFundingTransfer({
-  transferId: "f1...e9",
-});
-```
-
-##### `alpaca.trading.cryptoPerpetualsFunding.getCryptoPerpTransferEstimate`
-
-Estimate fees for a perpetual-futures transfer (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsFunding.getCryptoPerpTransferEstimate({
-  asset: "USDT",
-  amount: "100",
-});
-```
-
-##### `alpaca.trading.cryptoPerpetualsFunding.listCryptoPerpFundingTransfers`
-
-List perpetual-futures transfers (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsFunding.listCryptoPerpFundingTransfers();
-```
-
-##### `alpaca.trading.cryptoPerpetualsFunding.listCryptoPerpFundingWallets`
-
-List perpetual-futures wallets (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsFunding.listCryptoPerpFundingWallets({
-  asset: "USDT",
-});
-```
-
-##### `alpaca.trading.cryptoPerpetualsFunding.createWhitelistedPerpAddress`
-
-Whitelist a perpetual-futures withdrawal address (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsFunding.createWhitelistedPerpAddress({
-  createWhitelistedPerpAddressRequest: {
-    address: "0xabc...",
-    asset: "USDT",
-  },
-});
-```
-
-##### `alpaca.trading.cryptoPerpetualsFunding.deleteWhitelistedPerpAddress`
-
-Remove a whitelisted perpetual-futures address (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsFunding.deleteWhitelistedPerpAddress({
-  whitelistedAddressId: "a1...c2",
-});
-```
-
-##### `alpaca.trading.cryptoPerpetualsFunding.listWhitelistedPerpAddress`
-
-List whitelisted perpetual-futures addresses (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsFunding.listWhitelistedPerpAddress();
-```
-
-#### `alpaca.trading.cryptoPerpetualsLeverage` — CryptoPerpetualsLeverageBetaApi
-
-Read/set crypto perpetual-futures account leverage (beta).
-
-##### `alpaca.trading.cryptoPerpetualsLeverage.getCryptoPerpAccountLeverage`
-
-Read crypto perpetual-futures account leverage (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsLeverage.getCryptoPerpAccountLeverage({
-  symbol: "BTC-PERP",
-});
-```
-
-##### `alpaca.trading.cryptoPerpetualsLeverage.setCryptoPerpAccountLeverage`
-
-Set crypto perpetual-futures account leverage (beta).
-
-```ts
-await alpaca.trading.cryptoPerpetualsLeverage.setCryptoPerpAccountLeverage({
-  symbol: "BTC-PERP",
-  leverage: 5,
-});
-```
-
 #### `alpaca.trading.events` — EventsApi
 
 Server-sent event streams for account activity.
@@ -1479,6 +1339,7 @@ Create an easy-to-borrow locate request for a short sale.
 ```ts
 await alpaca.trading.locates.createLocates({
   createLocateRequest: { symbol: "AAPL", qty: 100 },
+  idempotencyKey: crypto.randomUUID(),
 });
 ```
 
@@ -1651,6 +1512,26 @@ await alpaca.trading.positions.optionDoNotExercise({
 
 Tokenization requests and minting.
 
+##### `alpaca.trading.tokenization.getTokenizationRequest`
+
+Fetch a tokenization request by its Alpaca request id.
+
+```ts
+await alpaca.trading.tokenization.getTokenizationRequest({
+  tokenizationRequestId: "req_123",
+});
+```
+
+##### `alpaca.trading.tokenization.getTokenizationRequestByClientRequestID`
+
+Fetch the latest tokenization request carrying a client-supplied request id.
+
+```ts
+await alpaca.trading.tokenization.getTokenizationRequestByClientRequestID({
+  clientRequestId: "mint-2026-001",
+});
+```
+
 ##### `alpaca.trading.tokenization.getTokenizationRequests`
 
 List tokenization (mint/redeem) requests.
@@ -1707,7 +1588,7 @@ Create a watchlist with an initial set of symbols.
 
 ```ts
 await alpaca.trading.watchlists.postWatchlist({
-  updateWatchlistRequest: { name: "Tech", symbols: ["AAPL", "MSFT"] },
+  createWatchlistRequest: { name: "Tech", symbols: ["AAPL", "MSFT"] },
 });
 ```
 

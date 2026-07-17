@@ -59,14 +59,6 @@ const trading: ApiReferenceExamples = {
         description: "Fetch a single option contract by symbol or id.",
         example: 'await alpaca.trading.assets.getOptionContractSymbolOrId({ symbolOrId: "AAPL250117C00150000" });',
     },
-    "trading.assets.usCorporates": {
-        description: "Reference data for US corporate bonds (by ISIN, CUSIP or ticker).",
-        example: 'await alpaca.trading.assets.usCorporates({ tickers: "AAPL" });',
-    },
-    "trading.assets.usTreasuries": {
-        description: "Reference data for US Treasury instruments.",
-        example: 'await alpaca.trading.assets.usTreasuries({ cusips: "912797JL3" });',
-    },
     "trading.calendar.calendar": {
         description: "Market calendar (sessions) for a market and date range.",
         example: 'await alpaca.trading.calendar.calendar({ market: "us_equity", start: new Date("2024-01-01"), end: new Date("2024-01-31") });',
@@ -85,7 +77,7 @@ const trading: ApiReferenceExamples = {
     },
     "trading.locates.createLocates": {
         description: "Create an easy-to-borrow locate request for a short sale.",
-        example: 'await alpaca.trading.locates.createLocates({ createLocateRequest: { symbol: "AAPL", qty: 100 } });',
+        example: 'await alpaca.trading.locates.createLocates({ createLocateRequest: { symbol: "AAPL", qty: 100 }, idempotencyKey: crypto.randomUUID() });',
     },
     "trading.locates.getLocate": {
         description: "Fetch a single locate request by id.",
@@ -138,50 +130,6 @@ const trading: ApiReferenceExamples = {
     "trading.cryptoFunding.listWhitelistedAddress": {
         description: "List whitelisted crypto withdrawal addresses.",
         example: 'await alpaca.trading.cryptoFunding.listWhitelistedAddress();',
-    },
-    "trading.cryptoPerpetualsAccountVitals.getCryptoPerpAccountVitals": {
-        description: "Crypto perpetual-futures account vitals: margin, collateral, P&L (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsAccountVitals.getCryptoPerpAccountVitals();',
-    },
-    "trading.cryptoPerpetualsFunding.createCryptoPerpTransferForAccount": {
-        description: "Initiate a crypto perpetual-futures transfer (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsFunding.createCryptoPerpTransferForAccount({ createCryptoTransferRequest: { amount: "100", asset: "USDT" } });',
-    },
-    "trading.cryptoPerpetualsFunding.getCryptoPerpFundingTransfer": {
-        description: "Fetch a single perpetual-futures transfer by id (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsFunding.getCryptoPerpFundingTransfer({ transferId: "f1...e9" });',
-    },
-    "trading.cryptoPerpetualsFunding.getCryptoPerpTransferEstimate": {
-        description: "Estimate fees for a perpetual-futures transfer (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsFunding.getCryptoPerpTransferEstimate({ asset: "USDT", amount: "100" });',
-    },
-    "trading.cryptoPerpetualsFunding.listCryptoPerpFundingTransfers": {
-        description: "List perpetual-futures transfers (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsFunding.listCryptoPerpFundingTransfers();',
-    },
-    "trading.cryptoPerpetualsFunding.listCryptoPerpFundingWallets": {
-        description: "List perpetual-futures wallets (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsFunding.listCryptoPerpFundingWallets({ asset: "USDT" });',
-    },
-    "trading.cryptoPerpetualsFunding.createWhitelistedPerpAddress": {
-        description: "Whitelist a perpetual-futures withdrawal address (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsFunding.createWhitelistedPerpAddress({ createWhitelistedPerpAddressRequest: { address: "0xabc...", asset: "USDT" } });',
-    },
-    "trading.cryptoPerpetualsFunding.deleteWhitelistedPerpAddress": {
-        description: "Remove a whitelisted perpetual-futures address (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsFunding.deleteWhitelistedPerpAddress({ whitelistedAddressId: "a1...c2" });',
-    },
-    "trading.cryptoPerpetualsFunding.listWhitelistedPerpAddress": {
-        description: "List whitelisted perpetual-futures addresses (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsFunding.listWhitelistedPerpAddress();',
-    },
-    "trading.cryptoPerpetualsLeverage.getCryptoPerpAccountLeverage": {
-        description: "Read crypto perpetual-futures account leverage (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsLeverage.getCryptoPerpAccountLeverage({ symbol: "BTC-PERP" });',
-    },
-    "trading.cryptoPerpetualsLeverage.setCryptoPerpAccountLeverage": {
-        description: "Set crypto perpetual-futures account leverage (beta).",
-        example: 'await alpaca.trading.cryptoPerpetualsLeverage.setCryptoPerpAccountLeverage({ symbol: "BTC-PERP", leverage: 5 });',
     },
     "trading.events.subscribeToActivitiesSSE": {
         description: "Server-sent event stream of account activities.",
@@ -246,6 +194,14 @@ const trading: ApiReferenceExamples = {
         description: "Submit a do-not-exercise instruction for an option position.",
         example: 'await alpaca.trading.positions.optionDoNotExercise({ symbolOrContractId: "AAPL250117C00150000" });',
     },
+    "trading.tokenization.getTokenizationRequest": {
+        description: "Fetch a tokenization request by its Alpaca request id.",
+        example: 'await alpaca.trading.tokenization.getTokenizationRequest({ tokenizationRequestId: "req_123" });',
+    },
+    "trading.tokenization.getTokenizationRequestByClientRequestID": {
+        description: "Fetch the latest tokenization request carrying a client-supplied request id.",
+        example: 'await alpaca.trading.tokenization.getTokenizationRequestByClientRequestID({ clientRequestId: "mint-2026-001" });',
+    },
     "trading.tokenization.getTokenizationRequests": {
         description: "List tokenization (mint/redeem) requests.",
         example: 'await alpaca.trading.tokenization.getTokenizationRequests({ status: "completed" });',
@@ -268,7 +224,7 @@ const trading: ApiReferenceExamples = {
     },
     "trading.watchlists.postWatchlist": {
         description: "Create a watchlist with an initial set of symbols.",
-        example: 'await alpaca.trading.watchlists.postWatchlist({ updateWatchlistRequest: { name: "Tech", symbols: ["AAPL", "MSFT"] } });',
+        example: 'await alpaca.trading.watchlists.postWatchlist({ createWatchlistRequest: { name: "Tech", symbols: ["AAPL", "MSFT"] } });',
     },
     "trading.watchlists.updateWatchlistById": {
         description: "Update a watchlist (name and/or symbols) by id.",

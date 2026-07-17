@@ -334,8 +334,7 @@
         "name": "end",
         "schema": {
           "format": "date-time",
-          "type": "string",
-          "x-go-type": "legacyTime"
+          "type": "string"
         }
       },
       "legacy_start": {
@@ -344,8 +343,7 @@
         "name": "start",
         "schema": {
           "format": "date-time",
-          "type": "string",
-          "x-go-type": "legacyTime"
+          "type": "string"
         }
       },
       "market": {
@@ -414,12 +412,6 @@
             "$ref": "#/components/headers/ratelimit_reset"
           }
         }
-      },
-      "401": {
-        "description": "Authentication headers are missing or invalid. Make sure you authenticate your request with a valid API key.\n"
-      },
-      "403": {
-        "description": "The requested resource is forbidden.\n"
       },
       "429": {
         "description": "Too many requests. You hit the rate limit. Use the X-RateLimit-... response headers to make sure you're under the rate limit.\n",
@@ -1134,7 +1126,9 @@
             "enum": [
               "NYSE",
               "NASDAQ",
-              "ARCA"
+              "ARCA",
+              "IEX",
+              "MEMX"
             ],
             "example": "NYSE",
             "type": "string"
@@ -1345,7 +1339,6 @@
           "tradable",
           "marginable",
           "shortable",
-          "easy_to_borrow",
           "fractionable"
         ],
         "title": "Assets",
@@ -1975,6 +1968,28 @@
           "symbol",
           "qty"
         ],
+        "type": "object"
+      },
+      "CreateWatchlistRequest": {
+        "description": "Request format used for creating a new watchlist with a set of assets and name.",
+        "properties": {
+          "name": {
+            "description": "The watchlist name.",
+            "type": "string"
+          },
+          "symbols": {
+            "description": "List of asset symbols to include in the watchlist.",
+            "items": {
+              "nullable": true,
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "PostWatchlistRequest",
         "type": "object"
       },
       "CryptoChain": {
@@ -2608,7 +2623,8 @@
               "security_not_found",
               "insufficient_buying_power",
               "easy_to_borrow",
-              "threshold_security"
+              "threshold_security",
+              "idempotency_key_conflict"
             ],
             "example": "invalid_symbols",
             "type": "string"
@@ -4604,7 +4620,26 @@
       "TokenizationRequest": {
         "properties": {
           "account": {
-            "description": "Alpaca account ID associated with this tokenization request",
+            "deprecated": true,
+            "description": "Alpaca account ID associated with this tokenization request. Use `client_account_id` instead.",
+            "type": "string",
+            "x-deprecation": {
+              "reason": "Use client_account_id instead.",
+              "since": "2026-07-15",
+              "sunset": "2026-10-15"
+            }
+          },
+          "client_account_id": {
+            "description": "Alpaca account UUID of the Authorized Participant associated with this tokenization request",
+            "format": "uuid",
+            "type": "string"
+          },
+          "client_external_account_id": {
+            "description": "Issuer-side account identifier of the Authorized Participant associated with this tokenization request",
+            "type": "string"
+          },
+          "client_request_id": {
+            "description": "Authorized Participant-supplied label associated with this tokenization request",
             "type": "string"
           },
           "created_at": {
@@ -4620,8 +4655,14 @@
             "$ref": "#/components/schemas/TokenizationIssuer"
           },
           "issuer_account": {
-            "description": "Issuer's account ID associated with this tokenization request",
-            "type": "string"
+            "deprecated": true,
+            "description": "Issuer's account ID associated with this tokenization request. Use `client_external_account_id` instead.",
+            "type": "string",
+            "x-deprecation": {
+              "reason": "Use client_external_account_id instead.",
+              "since": "2026-07-15",
+              "sunset": "2026-10-15"
+            }
           },
           "issuer_request_id": {
             "description": "Unique identifier of the tokenization request set by the issuer",
@@ -4913,14 +4954,26 @@
         "type": "object"
       },
       "UpdateWatchlistRequest": {
-        "description": "Request format used for creating a new watchlist or updating an existing watchlist with a set of assets and name.",
+        "anyOf": [
+          {
+            "required": [
+              "name"
+            ]
+          },
+          {
+            "required": [
+              "symbols"
+            ]
+          }
+        ],
+        "description": "Request format used for updating an existing watchlist with a set of assets and/or a name.",
         "properties": {
           "name": {
-            "description": "The watchlist name.",
+            "description": "The new watchlist name.",
             "type": "string"
           },
           "symbols": {
-            "description": "List of asset symbols to include in the watchlist.",
+            "description": "List of asset symbols to include in the watchlist. The existing assets will be replaced with the new list.",
             "items": {
               "nullable": true,
               "type": "string"
@@ -4928,10 +4981,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "name"
-        ],
-        "title": "PostWatchlistRequest",
+        "title": "PutWatchlistRequest",
         "type": "object"
       },
       "WRMActivityV2": {
@@ -5148,15 +5198,6 @@
         "pattern": "^[A-Z0-9]{11}$",
         "type": "string"
       },
-      "bond_status": {
-        "description": "Status of the bond.",
-        "enum": [
-          "outstanding",
-          "matured",
-          "pre_issuance"
-        ],
-        "type": "string"
-      },
       "calendar_day": {
         "description": "A calendar day.",
         "properties": {
@@ -5226,16 +5267,6 @@
         ],
         "type": "object"
       },
-      "call_type": {
-        "description": "The type of call on the bond refers to one of a variety of circumstances under which a callable bond may be called.",
-        "enum": [
-          "ordinary",
-          "make_whole",
-          "regulatory",
-          "special"
-        ],
-        "type": "string"
-      },
       "clock": {
         "properties": {
           "is_market_day": {
@@ -5293,42 +5324,7 @@
         "required": [
           "clocks"
         ],
-        "type": "object",
-        "x-go-name": "ClockResp"
-      },
-      "coupon_frequency": {
-        "description": "How often the coupon is paid",
-        "enum": [
-          "annual",
-          "semi_annual",
-          "quarterly",
-          "monthly",
-          "zero"
-        ],
-        "type": "string"
-      },
-      "coupon_type": {
-        "description": "The type of the coupon rate",
-        "enum": [
-          "fixed",
-          "floating",
-          "zero"
-        ],
-        "type": "string"
-      },
-      "day_count": {
-        "description": "The day count convention used to calculate accrued interest.\n\n- `A/360`: calculates the daily interest using a 360-day year and then multiplies that by the actual number of days in each time period.\n- `A/365`: calculates the daily interest using a 365-day year and then multiplies that by the actual number of days in each time period.\n- `30/360`: calculates the daily interest using a 360-day year and then multiplies that by 30 (standardized month).\n- `30/365`: calculates the daily interest using a 365-day year and then multiplies that by 30 (standardized month).\n- `A/A`: calculates the daily interest using the actual number of days in the year and then multiplies that by the actual number of days in each time period.\n- `30E/360`: number of days equals to the actual number of days (for February). If the start date or the end date of the period is the 31st of a month, that date is set to the 30th. The number of days in a year is 360.\n- `B/252`: calculates the daily interest using a 252-business-day year and then multiplies that by the actual number of days in each time period.\n- `A/364`: calculates the daily interest using a 364-day year and then multiplies that by the actual number of days in each time period.\n",
-        "enum": [
-          "A/360",
-          "A/365",
-          "30/360",
-          "30/365",
-          "A/A",
-          "30E/360",
-          "B/252",
-          "A/364"
-        ],
-        "type": "string"
+        "type": "object"
       },
       "legacy_calendar_day": {
         "description": "A calendar day.",
@@ -5508,8 +5504,7 @@
           "market",
           "calendar"
         ],
-        "type": "object",
-        "x-go-name": "CalendarResp"
+        "type": "object"
       },
       "public_market": {
         "description": "A market.",
@@ -5534,489 +5529,6 @@
           "acronym",
           "name",
           "timezone"
-        ],
-        "type": "object"
-      },
-      "sp_outlook": {
-        "description": "A Standard & Poor's rating outlook indicates S&P's view regarding the potential direction of a long-term credit rating over the intermediate term (2 years for investment grade, 1 year for speculative grade)",
-        "enum": [
-          "positive",
-          "negative",
-          "developing",
-          "stable",
-          "not_rated",
-          "not_meaningful"
-        ],
-        "type": "string"
-      },
-      "treasury_subtype": {
-        "description": "The subtype of the treasury.",
-        "enum": [
-          "bond",
-          "bill",
-          "note",
-          "strips",
-          "tips",
-          "floating"
-        ],
-        "type": "string"
-      },
-      "us_corporate": {
-        "description": "A US corporate",
-        "properties": {
-          "accrued_interest": {
-            "description": "The interest that has accumulated on a bond in dollars per bond between the last interest payment and the present date that has not yet been paid to the bondholder",
-            "format": "double",
-            "type": "number",
-            "x-go-type": "decimal.Decimal",
-            "x-go-type-import": {
-              "name": "decimal",
-              "path": "github.com/alpacahq/alpacadecimal"
-            }
-          },
-          "bond_status": {
-            "$ref": "#/components/schemas/bond_status"
-          },
-          "call_type": {
-            "$ref": "#/components/schemas/call_type"
-          },
-          "callable": {
-            "description": "Whether the bond is callable, meaning the issuer has the right, but not the obligation to redeem the bond - in other words, pay out the bondholder - before its maturity date at a set price (the call price)",
-            "type": "boolean"
-          },
-          "close_price": {
-            "description": "The price of the last transaction of a security before the market closes for normal trading, shown as a percentage of par value",
-            "format": "double",
-            "type": "number",
-            "x-go-type": "decimal.Decimal",
-            "x-go-type-import": {
-              "name": "decimal",
-              "path": "github.com/alpacahq/alpacadecimal"
-            }
-          },
-          "close_price_date": {
-            "description": "The date of the close price",
-            "format": "date",
-            "type": "string"
-          },
-          "close_yield_to_maturity": {
-            "description": "Yield to maturity of the treasury after the last close",
-            "format": "double",
-            "type": "number",
-            "x-go-type": "decimal.Decimal",
-            "x-go-type-import": {
-              "name": "decimal",
-              "path": "github.com/alpacahq/alpacadecimal"
-            }
-          },
-          "close_yield_to_worst": {
-            "description": "Yield to worst of the treasury after the last close",
-            "format": "double",
-            "type": "number",
-            "x-go-type": "decimal.Decimal",
-            "x-go-type-import": {
-              "name": "decimal",
-              "path": "github.com/alpacahq/alpacadecimal"
-            }
-          },
-          "convertible": {
-            "description": "A flag indicating whether the bond is convertible",
-            "type": "boolean"
-          },
-          "country_domicile": {
-            "description": "The country where the corporate is domiciled in the 2-alpha country code format (e.g., US, CA)",
-            "type": "string"
-          },
-          "coupon": {
-            "description": "The annual interest rate paid on the bond as a percentage of par value",
-            "format": "double",
-            "type": "number",
-            "x-go-type": "decimal.Decimal",
-            "x-go-type-import": {
-              "name": "decimal",
-              "path": "github.com/alpacahq/alpacadecimal"
-            }
-          },
-          "coupon_frequency": {
-            "$ref": "#/components/schemas/coupon_frequency"
-          },
-          "coupon_type": {
-            "$ref": "#/components/schemas/coupon_type"
-          },
-          "cusip": {
-            "description": "CUSIP is a nine-character alphanumeric code that uniquely identifies the security",
-            "maxLength": 12,
-            "minLength": 12,
-            "pattern": "^[A-Z0-9]{9}$",
-            "type": "string"
-          },
-          "dated_date": {
-            "description": "The dated date marks the beginning of the period for which interest starts accruing on the bond",
-            "format": "date",
-            "type": "string"
-          },
-          "day_count": {
-            "$ref": "#/components/schemas/day_count"
-          },
-          "description": {
-            "description": "Description of the corporate bond",
-            "type": "string"
-          },
-          "description_short": {
-            "description": "Short description of the corporate bond",
-            "type": "string"
-          },
-          "first_coupon_date": {
-            "description": "The date of the first coupon payment",
-            "format": "date",
-            "type": "string"
-          },
-          "isin": {
-            "description": "International Securities Identification Number",
-            "maxLength": 12,
-            "minLength": 12,
-            "pattern": "^[A-Z]{2}[A-Z0-9]{9}[0-9]$",
-            "type": "string"
-          },
-          "issue_date": {
-            "description": "The date on which the bond was issued",
-            "format": "date",
-            "type": "string"
-          },
-          "issue_minimum_denomination": {
-            "description": "The smallest unit of the bond that can be purchased at its initial offering",
-            "type": "number"
-          },
-          "issue_price": {
-            "description": "The price at which the bond was originally issued as a percentage of par value",
-            "format": "double",
-            "type": "number",
-            "x-go-type": "decimal.Decimal",
-            "x-go-type-import": {
-              "name": "decimal",
-              "path": "github.com/alpacahq/alpacadecimal"
-            }
-          },
-          "issue_size": {
-            "description": "The total size amount of the bond issue in the issuing currency",
-            "type": "number"
-          },
-          "issuer": {
-            "description": "The name of the issuer of the corporate bond",
-            "type": "string"
-          },
-          "last_coupon_date": {
-            "description": "The date of the last coupon payment",
-            "format": "date",
-            "type": "string"
-          },
-          "liquidity_institutional_aggregate": {
-            "description": "Score (from 1-5 or null if the bond is not priced/tradable) reflecting the historical depth of executable liquidity to buy or sell (no minimum trading sizes)",
-            "type": "number"
-          },
-          "liquidity_institutional_buy": {
-            "description": "Score (from 1-5 or null if the bond is not priced/tradable) reflecting the historical depth of executable liquidity to buy (no minimum trading sizes)",
-            "type": "number"
-          },
-          "liquidity_institutional_sell": {
-            "description": "Score (from 1-5 or null if the bond is not priced/tradable) reflecting the historical depth of executable liquidity to sell (no minimum trading sizes)",
-            "type": "number"
-          },
-          "liquidity_micro_aggregate": {
-            "description": "Score (from 1-5 or null if the bond is not priced/tradable) reflecting the historical depth of executable liquidity to buy or sell with minimum trading sizes less than or equal to $1,000.00",
-            "type": "number"
-          },
-          "liquidity_micro_buy": {
-            "description": "Score (from 1-5 if the bond is priced, or null if the bond is not tradable) reflecting the historical depth of executable liquidity to buy with minimum trading sizes less than or equal to $1,000.00",
-            "type": "number"
-          },
-          "liquidity_micro_sell": {
-            "description": "Score (from 1-5 or null if the bond is not priced/tradable) reflecting the historical depth of executable liquidity to sell with minimum trading sizes less than or equal to $1,000.00",
-            "type": "number"
-          },
-          "liquidity_retail_aggregate": {
-            "description": "Score (from 1-5 or null if the bond is not priced/tradable) reflecting the historical depth of executable liquidity to buy or sell with minimum trading sizes less than or equal to 10,000",
-            "type": "number"
-          },
-          "liquidity_retail_buy": {
-            "description": "Score (from 1-5 or null if the bond is not priced/tradable) reflecting the historical depth of executable liquidity to buy with minimum trading sizes less than or equal to $10,000.00",
-            "type": "number"
-          },
-          "liquidity_retail_sell": {
-            "description": "Score (from 1-5 or null if the bond is not priced/tradable) reflecting the historical depth of executable liquidity to sell with minimum trading sizes less than or equal to 10,000",
-            "type": "number"
-          },
-          "marginable": {
-            "description": "Whether the corporate is marginable",
-            "type": "boolean"
-          },
-          "maturity_date": {
-            "description": "The date on which the bond matures",
-            "format": "date",
-            "type": "string"
-          },
-          "next_call_date": {
-            "description": "The date of the next possible call on the bond.",
-            "format": "date",
-            "type": "string"
-          },
-          "next_call_price": {
-            "description": "The price at which a callable bond can be redeemed by the issuer on the next call date, as a percentage of par.",
-            "format": "double",
-            "type": "number",
-            "x-go-type": "decimal.Decimal",
-            "x-go-type-import": {
-              "name": "decimal",
-              "path": "github.com/alpacahq/alpacadecimal"
-            }
-          },
-          "next_coupon_date": {
-            "description": "The date of the next coupon payment",
-            "format": "date",
-            "type": "string"
-          },
-          "par_value": {
-            "description": "The amount that the issuer of the bond will pay back to the bondholder upon maturity",
-            "type": "number"
-          },
-          "perpetual": {
-            "description": "A flag representing whether a bond is perpetual",
-            "type": "boolean"
-          },
-          "puttable": {
-            "description": "Whether the bond is puttable, meaning the bondholder has the right, but not the obligation to sell the bond back to the issuer at a set price (the put price) on specified dates before maturity",
-            "type": "boolean"
-          },
-          "reg_s": {
-            "description": "Indicates whether the security falls under Regulation S, a rule that provides an exemption from the registration requirements for securities offerings made outside the United States",
-            "type": "boolean"
-          },
-          "reissue_date": {
-            "description": "The date on which the corporate was reissued",
-            "format": "date",
-            "type": "string"
-          },
-          "reissue_price": {
-            "description": "The price at which the corporate was reissued as a percentage of par value",
-            "format": "double",
-            "type": "number",
-            "x-go-type": "decimal.Decimal",
-            "x-go-type-import": {
-              "name": "decimal",
-              "path": "github.com/alpacahq/alpacadecimal"
-            }
-          },
-          "reissue_size": {
-            "description": "The total size amount of the corporate reissue in the issuing currency",
-            "type": "number"
-          },
-          "sector": {
-            "description": "The sector of the corporate bond",
-            "type": "string"
-          },
-          "seniority": {
-            "description": "The seniority of the corporate bond",
-            "type": "string"
-          },
-          "sp_creditwatch": {
-            "description": "S&P's CreditWatch highlights S&P's opinion regarding the potential direction of a short-term or long-term rating",
-            "type": "string"
-          },
-          "sp_creditwatch_date": {
-            "description": "The date of the most recent Standard & Poor's CreditWatch for the bond in YYYY-MM-DD format",
-            "format": "date",
-            "type": "string"
-          },
-          "sp_outlook": {
-            "$ref": "#/components/schemas/sp_outlook"
-          },
-          "sp_outlook_date": {
-            "description": "The date of the most recent Standard & Poor's outlook for the bond in YYYY-MM-DD format",
-            "format": "date",
-            "type": "string"
-          },
-          "sp_rating": {
-            "description": "Standard & Poor's rating for the bond in the standard AAA - D format",
-            "type": "string"
-          },
-          "sp_rating_date": {
-            "description": "The date in the timezone of the issuing country of the most recent Standard & Poor's rating for the bond in YYYY-MM-DD format",
-            "format": "date",
-            "type": "string"
-          },
-          "ticker": {
-            "description": "The ticker symbol of the corporate",
-            "type": "string"
-          },
-          "tradable": {
-            "description": "Whether the treasury is tradable",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "isin",
-          "cusip",
-          "bond_status",
-          "tradable",
-          "marginable",
-          "issue_date",
-          "country_domicile",
-          "ticker",
-          "seniority",
-          "issuer",
-          "sector",
-          "description",
-          "description_short",
-          "coupon",
-          "coupon_type",
-          "coupon_frequency",
-          "perpetual",
-          "day_count",
-          "dated_date",
-          "issue_size",
-          "issue_price",
-          "issue_minimum_denomination",
-          "par_value",
-          "callable",
-          "puttable",
-          "convertible",
-          "reg_s"
-        ],
-        "type": "object"
-      },
-      "us_corporates_resp": {
-        "properties": {
-          "us_corporates": {
-            "items": {
-              "$ref": "#/components/schemas/us_corporate"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "us_corporates"
-        ],
-        "type": "object"
-      },
-      "us_treasuries_resp": {
-        "properties": {
-          "us_treasuries": {
-            "items": {
-              "$ref": "#/components/schemas/us_treasury"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "us_treasuries"
-        ],
-        "type": "object"
-      },
-      "us_treasury": {
-        "description": "A US treasury",
-        "properties": {
-          "bond_status": {
-            "$ref": "#/components/schemas/bond_status"
-          },
-          "close_price": {
-            "description": "The price of the last transaction of a security before the market closes for normal trading, shown as a percentage of par value",
-            "format": "double",
-            "type": "number"
-          },
-          "close_price_date": {
-            "description": "The date of the close price",
-            "format": "date",
-            "type": "string"
-          },
-          "close_yield_to_maturity": {
-            "description": "Yield to maturity of the treasury after the last close",
-            "format": "double",
-            "type": "number"
-          },
-          "close_yield_to_worst": {
-            "description": "Yield to worst of the treasury after the last close",
-            "format": "double",
-            "type": "number"
-          },
-          "coupon": {
-            "description": "The annual interest rate paid on the bond as a percentage of par value",
-            "format": "double",
-            "type": "number"
-          },
-          "coupon_frequency": {
-            "$ref": "#/components/schemas/coupon_frequency"
-          },
-          "coupon_type": {
-            "$ref": "#/components/schemas/coupon_type"
-          },
-          "cusip": {
-            "description": "CUSIP is a nine-character alphanumeric code that uniquely identifies the security",
-            "maxLength": 12,
-            "minLength": 12,
-            "pattern": "^[A-Z0-9]{9}$",
-            "type": "string"
-          },
-          "description": {
-            "description": "Description of the treasury",
-            "type": "string"
-          },
-          "description_short": {
-            "description": "Short description of the treasury",
-            "type": "string"
-          },
-          "first_coupon_date": {
-            "description": "The date of the first coupon payment",
-            "format": "date",
-            "type": "string"
-          },
-          "isin": {
-            "description": "International Securities Identification Number",
-            "maxLength": 12,
-            "minLength": 12,
-            "pattern": "^[A-Z]{2}[A-Z0-9]{9}[0-9]$",
-            "type": "string"
-          },
-          "issue_date": {
-            "description": "The date on which the bond was issued",
-            "format": "date",
-            "type": "string"
-          },
-          "last_coupon_date": {
-            "description": "The date of the last coupon payment",
-            "format": "date",
-            "type": "string"
-          },
-          "maturity_date": {
-            "description": "The date on which the bond matures",
-            "format": "date",
-            "type": "string"
-          },
-          "next_coupon_date": {
-            "description": "The date of the next coupon payment",
-            "format": "date",
-            "type": "string"
-          },
-          "subtype": {
-            "$ref": "#/components/schemas/treasury_subtype"
-          },
-          "tradable": {
-            "description": "Whether the treasury is tradable",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "cusip",
-          "isin",
-          "bond_status",
-          "tradable",
-          "subtype",
-          "issue_date",
-          "maturity_date",
-          "description",
-          "description_short",
-          "coupon",
-          "coupon_type",
-          "coupon_frequency"
         ],
         "type": "object"
       }
@@ -6187,6 +5699,18 @@
       "post": {
         "description": "Creates a locate request for a short sale.",
         "operationId": "createLocates",
+        "parameters": [
+          {
+            "description": "Optional idempotency key for safe retries. Reusing the same key with\nthe same request returns the original locate response. Reusing the same\nkey with a different request returns HTTP 422.\nWe recommend always providing this header in production so timeouts,\nnetwork errors, and 5xx responses can be safely retried without creating\nduplicate locates. Use a client-generated unique value, such as a UUID,\nfor each logical locate.\n",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "maxLength": 128,
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6273,6 +5797,12 @@
                     "value": {
                       "code": "easy_to_borrow",
                       "message": "security is easy-to-borrow and does not require a locate"
+                    }
+                  },
+                  "idempotency_key_conflict": {
+                    "value": {
+                      "code": "idempotency_key_conflict",
+                      "message": "idempotency key was already used with a different request"
                     }
                   },
                   "insufficient_buying_power": {
@@ -7033,169 +6563,6 @@
           }
         },
         "summary": "Get Assets",
-        "tags": [
-          "Assets"
-        ]
-      }
-    },
-    "/v2/assets/fixed_income/us_corporates": {
-      "get": {
-        "description": "Serves the list of US corporates available at Alpaca. The response is sorted by ISIN.",
-        "operationId": "UsCorporates",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "bond_status",
-            "schema": {
-              "$ref": "#/components/schemas/bond_status"
-            }
-          },
-          {
-            "description": "A comma-separated list of ISINs with a limit of 1000.",
-            "example": "US912810UG12,US912797PM34",
-            "in": "query",
-            "name": "isins",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A comma-separated list of CUSIPs with a limit of 1000.",
-            "example": "912810UG1,912797PM3",
-            "in": "query",
-            "name": "cusips",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A comma-separated list of tickers with a limit of 1000.",
-            "example": "BAC,MSFT",
-            "in": "query",
-            "name": "tickers",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/us_corporates_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "summary": "Get US corporates",
-        "tags": [
-          "Assets"
-        ]
-      }
-    },
-    "/v2/assets/fixed_income/us_treasuries": {
-      "get": {
-        "description": "Serves the list of US treasuries available at Alpaca. The response is sorted by ISIN.",
-        "operationId": "UsTreasuries",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "subtype",
-            "schema": {
-              "$ref": "#/components/schemas/treasury_subtype"
-            }
-          },
-          {
-            "in": "query",
-            "name": "bond_status",
-            "schema": {
-              "$ref": "#/components/schemas/bond_status"
-            }
-          },
-          {
-            "description": "A comma-separated list of CUSIPs with a limit of 1000.",
-            "example": "912810UG1,912797PM3",
-            "in": "query",
-            "name": "cusips",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A comma-separated list of ISINs with a limit of 1000.",
-            "example": "US912810UG12,US912797PM34",
-            "in": "query",
-            "name": "isins",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/us_treasuries_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "summary": "Get US treasuries",
         "tags": [
           "Assets"
         ]
@@ -8392,399 +7759,6 @@
         ]
       }
     },
-    "/v2/perpetuals/account_vitals": {
-      "get": {
-        "description": "Fetches key financial metrics for the crypto perpetuals account, providing a snapshot of its current status by detailing the relationship between the user's positions and their collateral. The response includes maintenance margin (USDT), collateral balance (USDT), total collateral (USDT), and profit/loss (USDT)",
-        "operationId": "getCryptoPerpAccountVitals",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "collateral_balance": {
-                      "description": "CollateralBalance (USDT) is the sum of the unrealized PnL on each position plus TotalCollateral",
-                      "type": "integer"
-                    },
-                    "maintenance_margin": {
-                      "description": "MaintenanceMargin (USDT) is the sum of each position's individual maintenance margin",
-                      "type": "number"
-                    },
-                    "profit_loss": {
-                      "description": "ProfitAndLoss (USDT) is the net of realized and unrealized PnL across all positions",
-                      "type": "integer"
-                    },
-                    "total_collateral": {
-                      "description": "TotalCollateral (USDT) across all collateral assets",
-                      "type": "integer"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "Retrieve Account Vitals",
-        "tags": [
-          "Crypto Perpetuals Account Vitals (Beta)"
-        ]
-      }
-    },
-    "/v2/perpetuals/leverage": {
-      "get": {
-        "description": "Retrieves the current leverage setting for the crypto perpetuals account, specific to a given underlying asset. To use this endpoint, provide the 'symbol' of the asset as a query parameter. The system will return the asset's symbol and the integer value representing the current leverage applied to it within the account",
-        "operationId": "getCryptoPerpAccountLeverage",
-        "parameters": [
-          {
-            "description": "Symbol of underlying asset",
-            "in": "query",
-            "name": "symbol",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "leverage": {
-                      "type": "integer"
-                    },
-                    "symbol": {
-                      "description": "Symbol of underlying asset",
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "Get Account Leverage for an Asset",
-        "tags": [
-          "Crypto Perpetuals Leverage (Beta)"
-        ]
-      },
-      "post": {
-        "description": "Updates the leverage for the crypto perpetuals account for a specific underlying asset. Provide the 'symbol' of the asset and the desired 'leverage' (as an integer) using query parameters. The system will return the asset's symbol and the newly set leverage value upon successful update",
-        "operationId": "setCryptoPerpAccountLeverage",
-        "parameters": [
-          {
-            "description": "Symbol of underlying asset",
-            "in": "query",
-            "name": "symbol",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Leverage for the underlying asset",
-            "in": "query",
-            "name": "leverage",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "leverage": {
-                      "type": "integer"
-                    },
-                    "symbol": {
-                      "description": "Symbol of underlying asset",
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "Set Account Leverage for an Asset",
-        "tags": [
-          "Crypto Perpetuals Leverage (Beta)"
-        ]
-      }
-    },
-    "/v2/perpetuals/wallets": {
-      "get": {
-        "description": "Lists wallets for the account given in the path parameter. If an asset is specified and no wallet for the account and asset pair exists one will be created. If no asset is specified only existing wallets will be listed for the account. An account may have at most one wallet per asset",
-        "operationId": "listCryptoPerpFundingWallets",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptoWallet"
-                }
-              }
-            },
-            "description": "A single wallet object if an asset is specified or an array of wallet objects if no asset is specified"
-          }
-        },
-        "summary": "Retrieve Crypto Funding Wallets",
-        "tags": [
-          "Crypto Perpetuals Funding (Beta)"
-        ]
-      },
-      "parameters": [
-        {
-          "in": "query",
-          "name": "asset",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ]
-    },
-    "/v2/perpetuals/wallets/fees/estimate": {
-      "get": {
-        "description": "Returns the estimated on-chain network (gas) fee for a proposed withdrawal from a perpetuals wallet at current chain conditions. Pass the `asset`, `from_address`, `to_address`, and `amount` you intend to send; the response reports the network fee that would be charged for the corresponding transaction.",
-        "operationId": "getCryptoPerpTransferEstimate",
-        "parameters": [
-          {
-            "description": "The asset for the proposed transaction",
-            "in": "query",
-            "name": "asset",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The originating address of the proposed transaction",
-            "in": "query",
-            "name": "from_address",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The destination address of the proposed transaction",
-            "in": "query",
-            "name": "to_address",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The amount, denoted in the specified asset, of the proposed transaction",
-            "in": "query",
-            "name": "amount",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "fee": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK"
-          }
-        },
-        "summary": "Returns the estimated gas fee for a proposed transaction",
-        "tags": [
-          "Crypto Perpetuals Funding (Beta)"
-        ]
-      }
-    },
-    "/v2/perpetuals/wallets/transfers": {
-      "get": {
-        "description": "Returns an array of all transfers associated with the given account across all wallets",
-        "operationId": "listCryptoPerpFundingTransfers",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptoTransfer"
-                }
-              }
-            },
-            "description": "An array of transfer objects"
-          }
-        },
-        "summary": "Retrieve Crypto Funding Transfers",
-        "tags": [
-          "Crypto Perpetuals Funding (Beta)"
-        ]
-      },
-      "post": {
-        "description": "Creates a withdrawal request. Note that outgoing withdrawals must be sent to a whitelisted address and you must whitelist addresses at least 24 hours in advance. If you attempt to withdraw funds to a non-whitelisted address then the transfer will be rejected",
-        "operationId": "createCryptoPerpTransferForAccount",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCryptoTransferRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptoTransfer"
-                }
-              }
-            },
-            "description": "Successfully requested a transfer."
-          }
-        },
-        "summary": "Request a New Withdrawal",
-        "tags": [
-          "Crypto Perpetuals Funding (Beta)"
-        ]
-      }
-    },
-    "/v2/perpetuals/wallets/transfers/{transfer_id}": {
-      "get": {
-        "description": "Returns a specific wallet transfer by passing into the query the transfer_id",
-        "operationId": "getCryptoPerpFundingTransfer",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptoTransfer"
-                }
-              }
-            },
-            "description": "A single crypto transfer object"
-          }
-        },
-        "summary": "Retrieve a Crypto Funding Transfer",
-        "tags": [
-          "Crypto Perpetuals Funding (Beta)"
-        ]
-      },
-      "parameters": [
-        {
-          "description": "The crypto transfer to retrieve",
-          "in": "path",
-          "name": "transfer_id",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ]
-    },
-    "/v2/perpetuals/wallets/whitelists": {
-      "get": {
-        "description": "Returns the list of whitelisted withdrawal addresses for your perpetuals wallets.",
-        "operationId": "listWhitelistedPerpAddress",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WhitelistedAddress"
-                }
-              }
-            },
-            "description": "An array of whitelisted objects"
-          }
-        },
-        "summary": "An array of whitelisted addresses",
-        "tags": [
-          "Crypto Perpetuals Funding (Beta)"
-        ]
-      },
-      "post": {
-        "description": "Submits a new whitelisted withdrawal address for your perpetuals wallets. The chain is derived from the supplied asset symbol and address, and the same address cannot be whitelisted twice on the same chain.\n\nWhere travel rule reporting applies to your account, address details are validated against the travel rule provider before being persisted.\n\nNote that whitelisted addresses must wait at least 24 hours before they can be used as a withdrawal destination.",
-        "operationId": "createWhitelistedPerpAddress",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "address": {
-                    "description": "The address to be whitelisted",
-                    "type": "string"
-                  },
-                  "asset": {
-                    "description": "Symbol of underlying asset for the whitelisted address",
-                    "type": "string"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WhitelistedAddress"
-                }
-              }
-            },
-            "description": "Successfully requested a whitelisted address"
-          }
-        },
-        "summary": "Request a new whitelisted address",
-        "tags": [
-          "Crypto Perpetuals Funding (Beta)"
-        ]
-      }
-    },
-    "/v2/perpetuals/wallets/whitelists/{whitelisted_address_id}": {
-      "delete": {
-        "description": "Deletes a whitelisted withdrawal address from your perpetuals wallets by ID. Subsequent withdrawals targeting the deleted address will be rejected.",
-        "operationId": "deleteWhitelistedPerpAddress",
-        "responses": {
-          "200": {
-            "description": "Successfully deleted a whitelisted address"
-          }
-        },
-        "summary": "Delete a whitelisted address",
-        "tags": [
-          "Crypto Perpetuals Funding (Beta)"
-        ]
-      },
-      "parameters": [
-        {
-          "description": "The whitelisted address to delete",
-          "in": "path",
-          "name": "whitelisted_address_id",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ]
-    },
     "/v2/positions": {
       "delete": {
         "description": "Closes (liquidates) all of the account's open long and short positions. A response will be provided for each order that is attempted to be cancelled. If an order is no longer cancelable, the server will respond with status 500 and reject the request.",
@@ -9126,7 +8100,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "code": 40010001,
+                  "code": 42210001,
                   "message": "issuer is required, network is required"
                 },
                 "schema": {
@@ -9261,7 +8235,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "code": 40010001,
+                  "code": 42210001,
                   "message": "failed to parse after"
                 },
                 "schema": {
@@ -9273,6 +8247,216 @@
           }
         },
         "summary": "List Tokenization Requests",
+        "tags": [
+          "Tokenization"
+        ]
+      }
+    },
+    "/v2/tokenization/requests/{tokenization_request_id}": {
+      "get": {
+        "description": "An Authorized Participant can use this endpoint to retrieve a single tokenization request, mint or redeem, by its `tokenization_request_id`.",
+        "operationId": "getTokenizationRequest",
+        "parameters": [
+          {
+            "description": "Unique identifier of the tokenization request, as returned by the mint endpoint or the list-requests endpoint.",
+            "in": "path",
+            "name": "tokenization_request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "created_at": "2025-11-04T18:38:01.942282Z",
+                  "fees": "0.5",
+                  "issuer": "xstocks",
+                  "network": "solana",
+                  "qty": "1.0",
+                  "status": "completed",
+                  "token_symbol": "TSLAx",
+                  "tokenization_request_id": "5b1d6a3e-7f0a-4d2c-b8e1-9e6f1c0d2c4a",
+                  "tx_hash": "5J7ZxK4QwR3vH2pY1aB6sN8cM9tD0fA2eXyVwUjL3kPqR4mZcF7nB1tA8sH6dG2pE",
+                  "type": "mint",
+                  "underlying_symbol": "TSLA",
+                  "updated_at": "2025-11-04T18:38:42.117004Z",
+                  "wallet_address": "5dXY1aH2tQpV3wXmJg6Z7c8B4nKvF9bA1pQrSt2uVwYxXz"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TokenizationRequest"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 40110000,
+                  "message": "unauthorized"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Authentication credentials are missing or invalid."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 40310000,
+                  "message": "forbidden"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Caller is not authorized to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 40410000,
+                  "message": "tokenization request not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "No tokenization request with the supplied `tokenization_request_id` exists for the calling account."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 42210001,
+                  "message": "tokenization_request_id is not a valid UUID"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The `tokenization_request_id` path parameter is not a valid UUID."
+          }
+        },
+        "summary": "Get Tokenization Request by ID",
+        "tags": [
+          "Tokenization"
+        ]
+      }
+    },
+    "/v2/tokenization/requests:by_client_request_id": {
+      "get": {
+        "description": "An Authorized Participant can use this endpoint to retrieve a single mint tokenization request by their own `client_request_id` -- the AP-supplied label originally passed on the mint request. If the AP has reused a `client_request_id` across multiple requests, the most recently created request is returned.",
+        "operationId": "getTokenizationRequestByClientRequestID",
+        "parameters": [
+          {
+            "description": "AP-supplied request identifier originally passed on the mint request, echoed back on the tokenization-request response.",
+            "in": "query",
+            "name": "client_request_id",
+            "required": true,
+            "schema": {
+              "example": "ap-request-2025-11-04-001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "created_at": "2025-11-04T18:38:01.942282Z",
+                  "fees": "0.5",
+                  "issuer": "xstocks",
+                  "network": "solana",
+                  "qty": "1.0",
+                  "status": "completed",
+                  "token_symbol": "TSLAx",
+                  "tokenization_request_id": "5b1d6a3e-7f0a-4d2c-b8e1-9e6f1c0d2c4a",
+                  "tx_hash": "5J7ZxK4QwR3vH2pY1aB6sN8cM9tD0fA2eXyVwUjL3kPqR4mZcF7nB1tA8sH6dG2pE",
+                  "type": "mint",
+                  "underlying_symbol": "TSLA",
+                  "updated_at": "2025-11-04T18:38:42.117004Z",
+                  "wallet_address": "5dXY1aH2tQpV3wXmJg6Z7c8B4nKvF9bA1pQrSt2uVwYxXz"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/TokenizationRequest"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 40110000,
+                  "message": "unauthorized"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Authentication credentials are missing or invalid."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 40310000,
+                  "message": "forbidden"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Caller is not authorized to perform this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 40410000,
+                  "message": "tokenization request not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "No tokenization request with the supplied `client_request_id` exists for the calling account."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 42210001,
+                  "message": "client_request_id query parameter is required"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The `client_request_id` query parameter is missing."
+          }
+        },
+        "summary": "Get Tokenization Request by `client_request_id`",
         "tags": [
           "Tokenization"
         ]
@@ -9409,6 +8593,7 @@
         ]
       },
       "post": {
+        "deprecated": true,
         "description": "Creates a withdrawal request. Note that outgoing withdrawals must be sent to a whitelisted address and you must whitelist addresses at least 24 hours in advance. If you attempt to withdraw funds to a non-whitelisted address then the transfer will be rejected.",
         "operationId": "createCryptoTransferForAccount",
         "requestBody": {
@@ -9436,7 +8621,12 @@
         "summary": "Request a New Withdrawal",
         "tags": [
           "Crypto Funding"
-        ]
+        ],
+        "x-deprecation": {
+          "reason": "This endpoint is deprecated. Use the Alpaca web application to initiate withdrawals.",
+          "since": "2026-07-09",
+          "sunset": "2026-10-09"
+        }
       }
     },
     "/v2/wallets/transfers/{transfer_id}": {
@@ -9607,7 +8797,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateWatchlistRequest"
+                "$ref": "#/components/schemas/CreateWatchlistRequest"
               }
             }
           },
@@ -10151,15 +9341,6 @@
     },
     {
       "name": "Crypto Funding"
-    },
-    {
-      "name": "Crypto Perpetuals Funding (Beta)"
-    },
-    {
-      "name": "Crypto Perpetuals Account Vitals (Beta)"
-    },
-    {
-      "name": "Crypto Perpetuals Leverage (Beta)"
     },
     {
       "description": "Request minting of tokenized assets and list tokenization requests on the Instant Tokenization Network (ITN).",

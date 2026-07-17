@@ -49,11 +49,30 @@ import {
  */
 export interface TokenizationRequest {
     /**
-     * Alpaca account ID associated with this tokenization request
+     * Alpaca account ID associated with this tokenization request. Use `client_account_id` instead.
+     * @type {string}
+     * @memberof TokenizationRequest
+     * @deprecated
+     */
+    account?: string;
+    /**
+     * Alpaca account UUID of the Authorized Participant associated with this tokenization request
      * @type {string}
      * @memberof TokenizationRequest
      */
-    account?: string;
+    clientAccountId?: string;
+    /**
+     * Issuer-side account identifier of the Authorized Participant associated with this tokenization request
+     * @type {string}
+     * @memberof TokenizationRequest
+     */
+    clientExternalAccountId?: string;
+    /**
+     * Authorized Participant-supplied label associated with this tokenization request
+     * @type {string}
+     * @memberof TokenizationRequest
+     */
+    clientRequestId?: string;
     /**
      * 
      * @type {Date}
@@ -73,9 +92,10 @@ export interface TokenizationRequest {
      */
     issuer: TokenizationIssuer;
     /**
-     * Issuer's account ID associated with this tokenization request
+     * Issuer's account ID associated with this tokenization request. Use `client_external_account_id` instead.
      * @type {string}
      * @memberof TokenizationRequest
+     * @deprecated
      */
     issuerAccount?: string;
     /**
@@ -176,6 +196,9 @@ export function TokenizationRequestFromJSONTyped(json: any, ignoreDiscriminator:
     return {
         
         'account': json['account'] == null ? undefined : json['account'],
+        'clientAccountId': json['client_account_id'] == null ? undefined : json['client_account_id'],
+        'clientExternalAccountId': json['client_external_account_id'] == null ? undefined : json['client_external_account_id'],
+        'clientRequestId': json['client_request_id'] == null ? undefined : json['client_request_id'],
         'createdAt': (new Date(json['created_at'])),
         'fees': json['fees'] == null ? undefined : json['fees'],
         'issuer': TokenizationIssuerFromJSON(json['issuer']),
@@ -206,6 +229,9 @@ export function TokenizationRequestToJSONTyped(value?: TokenizationRequest | nul
     return {
         
         'account': value['account'],
+        'client_account_id': value['clientAccountId'],
+        'client_external_account_id': value['clientExternalAccountId'],
+        'client_request_id': value['clientRequestId'],
         'created_at': ((value['createdAt']).toISOString()),
         'fees': value['fees'],
         'issuer': TokenizationIssuerToJSON(value['issuer']),

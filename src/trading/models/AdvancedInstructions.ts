@@ -74,7 +74,9 @@ export type AdvancedInstructionsAlgorithmEnum = typeof AdvancedInstructionsAlgor
 export const AdvancedInstructionsDestinationEnum = {
     Nyse: 'NYSE',
     Nasdaq: 'NASDAQ',
-    Arca: 'ARCA'
+    Arca: 'ARCA',
+    Iex: 'IEX',
+    Memx: 'MEMX'
 } as const;
 export type AdvancedInstructionsDestinationEnum = typeof AdvancedInstructionsDestinationEnum[keyof typeof AdvancedInstructionsDestinationEnum];
 

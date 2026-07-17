@@ -418,9 +418,6 @@ export class TradingClient {
     private _clock?: trading.ClockApi;
     private _corporateActions?: trading.CorporateActionsApi;
     private _cryptoFunding?: trading.CryptoFundingApi;
-    private _cryptoPerpetualsAccountVitals?: trading.CryptoPerpetualsAccountVitalsBetaApi;
-    private _cryptoPerpetualsFunding?: trading.CryptoPerpetualsFundingBetaApi;
-    private _cryptoPerpetualsLeverage?: trading.CryptoPerpetualsLeverageBetaApi;
     private _events?: trading.EventsApi;
     private _locates?: trading.LocatesApi;
     private _orders?: OrdersApi;
@@ -464,15 +461,6 @@ export class TradingClient {
     }
     get cryptoFunding(): trading.CryptoFundingApi {
         return (this._cryptoFunding ??= new trading.CryptoFundingApi(this.config));
-    }
-    get cryptoPerpetualsAccountVitals(): trading.CryptoPerpetualsAccountVitalsBetaApi {
-        return (this._cryptoPerpetualsAccountVitals ??= new trading.CryptoPerpetualsAccountVitalsBetaApi(this.config));
-    }
-    get cryptoPerpetualsFunding(): trading.CryptoPerpetualsFundingBetaApi {
-        return (this._cryptoPerpetualsFunding ??= new trading.CryptoPerpetualsFundingBetaApi(this.config));
-    }
-    get cryptoPerpetualsLeverage(): trading.CryptoPerpetualsLeverageBetaApi {
-        return (this._cryptoPerpetualsLeverage ??= new trading.CryptoPerpetualsLeverageBetaApi(this.config));
     }
     get events(): trading.EventsApi {
         return (this._events ??= new trading.EventsApi(this.config));

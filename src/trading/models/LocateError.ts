@@ -46,7 +46,8 @@ export const LocateErrorCodeEnum = {
     SecurityNotFound: 'security_not_found',
     InsufficientBuyingPower: 'insufficient_buying_power',
     EasyToBorrow: 'easy_to_borrow',
-    ThresholdSecurity: 'threshold_security'
+    ThresholdSecurity: 'threshold_security',
+    IdempotencyKeyConflict: 'idempotency_key_conflict'
 } as const;
 export type LocateErrorCodeEnum = typeof LocateErrorCodeEnum[keyof typeof LocateErrorCodeEnum];
 
