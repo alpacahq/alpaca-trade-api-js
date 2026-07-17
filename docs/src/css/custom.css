@@ -1,6 +1,6 @@
 /**
  * Minimal theme overrides. Docusaurus' default Infima palette is fine for an
- * alpha docs site; tweak the brand color here if/when we have official tokens.
+ * SDK docs site; tweak the brand color here if/when we have official tokens.
  */
 :root {
     --ifm-color-primary: #1a73e8;

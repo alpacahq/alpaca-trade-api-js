@@ -1,8 +1,7 @@
 # Migration guide: `3.x` → `4.0`
 
 This guide moves you from **`@alpacahq/alpaca-trade-api@3.x`** to the rewritten
-**`4.x`** SDK. Version `4.0` is currently a prerelease published on the
-**`alpha`** dist-tag; the stable guidance below applies after `4.0.0` publishes.
+stable **`4.x`** SDK.
 
 > **TL;DR**
 > - The package name is **unchanged** (`@alpacahq/alpaca-trade-api`). Only the
@@ -61,25 +60,16 @@ This guide moves you from **`@alpacahq/alpaca-trade-api@3.x`** to the rewritten
   you relied on a `.env` file.
 ## Install 4.0
 
-While `4.0` remains a prerelease, install the current alpha explicitly:
-
-```bash
-npm install @alpacahq/alpaca-trade-api@alpha
-```
-
-After stable `4.0.0` publishes, install the stable `4.x` line:
+Install the stable `4.x` line:
 
 ```bash
 npm install @alpacahq/alpaca-trade-api@^4
 ```
 
 If you need both major versions temporarily, install the current release under
-an alias. Use `@alpha` now, then change the alias target to `@^4` after stable
-`4.0.0` publishes:
+an alias:
 
 ```bash
-npm install alpaca-v4@npm:@alpacahq/alpaca-trade-api@alpha
-# after stable 4.0.0:
 npm install alpaca-v4@npm:@alpacahq/alpaca-trade-api@^4
 ```
 
