@@ -8,11 +8,8 @@ title: Getting started
 ## Install
 
 ```bash
-npm install @alpacahq/alpaca-trade-api@alpha
+npm install @alpacahq/alpaca-trade-api
 ```
-
-This repository is still in prerelease mode. After stable `4.0.0` publishes,
-install the `4.x` line with `npm install @alpacahq/alpaca-trade-api@^4`.
 
 ## Your first call
 

@@ -13,17 +13,6 @@ redirects), pagination helpers, ergonomic order builders, normalized market-data
 accessors, and real-time WebSocket streaming. Dual ESM + CJS build; requires
 Node ≥ 20.
 
-:::note 4.0 alpha
-This site documents the **4.0 alpha** line. Install it with the `alpha` dist-tag:
-
-```bash
-npm install @alpacahq/alpaca-trade-api@alpha
-```
-
-After stable `4.0.0` publishes, install the `4.x` line with
-`npm install @alpacahq/alpaca-trade-api@^4`.
-:::
-
 ## How the docs are organized
 
 - **[Getting started](./getting-started.md)** — install, first call, order builders, and workflow helpers.

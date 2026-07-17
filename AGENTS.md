@@ -87,17 +87,14 @@ Releases and `CHANGELOG.md` are managed with [Changesets](https://github.com/cha
 Changelog entries are **human-authored**, decoupled from commit messages — every
 user-facing change ships with a changeset file describing it and its semver bump.
 
-**This `ts-alpha` branch is the `4.0` alpha line.** It is a near-full rewrite of
-the published `@alpacahq/alpaca-trade-api` package and is currently in Changesets
-**prerelease mode** (`.changeset/pre.json`, tag `alpha`). While in pre mode,
-`changeset version` produces `4.0.0-alpha.N` versions and `changeset publish`
-publishes them under the **`alpha`** npm dist-tag. The default (`latest`) tag
-still serves the current stable `3.x` SDK on the default branch.
+Stable releases are published from `master` to the npm **`latest`** dist-tag.
+The repository uses the standard Changesets flow; release publishing is
+performed by GitHub Actions, not from a contributor laptop.
 
 ```bash
 npm run changeset          # add a changeset: pick patch/minor/major + write the summary
-npm run changeset:version  # consume changesets -> bump version (alpha.N) + update CHANGELOG.md
-npm run release            # build, then `changeset publish` (publishes to the `alpha` dist-tag)
+npm run changeset:version  # consume changesets -> bump version + update CHANGELOG.md
+npm run release            # build, then `changeset publish`
 ```
 
 Workflow:
@@ -106,13 +103,11 @@ Workflow:
    write a one-line, user-facing summary. Commit the generated `.changeset/*.md`
    file alongside the code change. Internal-only changes (CI, tooling, refactors
    with no consumer impact) need no changeset.
-2. **Cut a prerelease (manual, rarely needed)**: the dedicated alpha-release
-   workflow has been removed — no further alphas are planned before the stable
-   `4.0.0`. If a prerelease is still required while pre mode is active, publish it
-   by hand: `npm run changeset:version` then `npm run release` (publishes to the
-   `alpha` dist-tag). Otherwise, exit pre mode and use the stable release flow
-   below.
-3. **Local dry run**: `npm run changeset:version` then inspect the computed version
+2. **Merge to `master`**: `.github/workflows/release.yaml` opens or updates the
+   dedicated **"chore: version packages"** PR when unreleased changesets exist.
+3. **Publish**: merging the version PR runs `npm run release` and publishes the
+   new version to the **`latest`** dist-tag.
+4. **Local dry run**: `npm run changeset:version` then inspect the computed version
    and `CHANGELOG.md` before discarding (the release workflow is the source of
    truth for real publishes).
 
@@ -125,14 +120,10 @@ Notes:
   provides this automatically.
 - `access` is `public` in `.changeset/config.json` (the package is scoped
   `@alpacahq/*`).
-- **Exiting alpha for the stable `4.0.0`**: run `npx changeset pre exit`, commit
-  the removal of `.changeset/pre.json`, then let the stable release flow below
-  land the release on the `latest` dist-tag.
 
-### Stable release flow (post-merge, on `master`)
+### Automated release flow on `master`
 
-Once `ts-alpha` merges to `master` and pre mode is exited, releases are automated
-by GitHub Actions — no manual publishing from a laptop:
+Releases are automated by GitHub Actions:
 
 - **`.github/workflows/release.yaml`** runs on every push to `master` via the
   [`changesets/action`](https://github.com/changesets/action). When unreleased

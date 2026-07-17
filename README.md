@@ -6,12 +6,6 @@ package, fronted by a unified `Alpaca` client with typed errors, resilience
 (retry / timeout / rate limiting), pagination helpers, ergonomic order builders,
 and real-time streaming.
 
-> **Alpha pre-release.** This is a preview of the next major version. Install it explicitly with the `alpha` dist-tag:
-> ```bash
-> npm install @alpacahq/alpaca-trade-api@alpha
-> ```
-> The default (`latest`) tag still installs the current stable 3.x SDK.
->
 > **Upgrading from 3.x?** See the [Migration guide](./MIGRATION.md) — it maps
 > every endpoint old → new, explains the ergonomic layer, and ships a
 > [codemod](./codemods/alpaca-v3-to-v4.js) that automates most of the work.
@@ -57,13 +51,10 @@ REST-only entrypoint are consolidated on the docs site:
 ## Install
 
 ```bash
-npm install @alpacahq/alpaca-trade-api@alpha
+npm install @alpacahq/alpaca-trade-api
 ```
 
-After stable `4.0.0` publishes, install the `4.x` line with
-`npm install @alpacahq/alpaca-trade-api@^4`.
-
-Migrating from the stable `3.x` release? Follow the
+Migrating from `3.x`? Follow the
 [Migration guide](./MIGRATION.md).
 
 ## Documentation

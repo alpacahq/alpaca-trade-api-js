@@ -43,14 +43,18 @@ describe("docs migration generator", () => {
         expect(lines[examplesIndex + 1]).toBe("docs/docs/migration.md");
     });
 
-    it("preserves honest prerelease and future stable install guidance", () => {
+    it("preserves stable 4.x install guidance", () => {
         const source = readFileSync(resolve(import.meta.dirname, "..", "MIGRATION.md"), "utf8");
         const generated = renderDocsMigration(source);
 
         for (const guide of [source, generated]) {
-            expect(guide).toContain("npm install @alpacahq/alpaca-trade-api@alpha");
             expect(guide).toContain("npm install @alpacahq/alpaca-trade-api@^4");
-            expect(guide).toContain("After stable `4.0.0` publishes");
+            expect(guide).toContain(
+                "npm install alpaca-v4@npm:@alpacahq/alpaca-trade-api@^4",
+            );
+            expect(guide).not.toContain("@alpha");
+            expect(guide).not.toContain("prerelease");
+            expect(guide).not.toContain("After stable `4.0.0` publishes");
         }
     });
 });
