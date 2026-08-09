@@ -70,6 +70,18 @@ the same `idRaw`, so ids you backfill over REST match the ones you receive live
 — see [Trade-id precision](./market-data.md#trade-id-precision) in the
 market-data guide.
 
+## Crypto taker side
+
+Crypto trades carry the aggressor side — who crossed the spread to make the
+trade happen:
+
+- `takerSide?: string` — `"B"` (buyer-initiated) or `"S"` (seller-initiated).
+
+Crypto only: equities trade messages carry no taker side on the wire, so the
+field stays `undefined` there. The REST canonical accessor (`getCryptoTrades`)
+exposes the same field, so taker sides you backfill over REST match the ones
+you receive live.
+
 ## Shared lifecycle
 
 Every stream exposes:

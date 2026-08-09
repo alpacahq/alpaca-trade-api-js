@@ -226,6 +226,34 @@ describe('StockDataStream (market data)', () => {
         expect(bars[0].volume).toBe(9_007_199_254_740_992);
     });
 
+    it('surfaces the crypto taker side (tks) as takerSide, absent on equities trades', () => {
+        const sock = new FakeSocket();
+        const stream = new streaming.CryptoDataStream({
+            credentials: CREDS,
+            pingIntervalMs: 0,
+            wsFactory: () => sock,
+        });
+        const trades: streaming.StreamTrade[] = [];
+        stream.onTrade((t) => trades.push(t));
+        stream.connect();
+        authenticateMd(sock);
+
+        const ts = new Date('2026-01-02T15:04:05Z');
+        sock.emitEvent(
+            'message',
+            mpEncode([
+                // Crypto trade wire shape per the real-time crypto docs: tks present.
+                { T: 't', S: 'AVAX/USD', i: 42, p: 47.299, s: 29.205707815, t: ts, tks: 'S' },
+                // Equities-shaped trade: no tks on the wire -> no takerSide mapped.
+                { T: 't', S: 'BTC/USD', i: 43, x: 'V', p: 187.25, s: 100, t: ts, c: ['@'], z: 'C' },
+            ]),
+        );
+
+        expect(trades).toHaveLength(2);
+        expect(trades[0].takerSide).toBe('S');
+        expect(trades[1].takerSide).toBeUndefined();
+    });
+
     it('maps numeric error codes to messages', () => {
         const sock = new FakeSocket();
         const stream = new streaming.StockDataStream({
