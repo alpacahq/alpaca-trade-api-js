@@ -137,7 +137,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.0",
     "@changesets/changelog-github": "^0.7.0",
-    "@changesets/cli": "^2.31.0",
+    "@changesets/cli": "^3.0.0",
     "@microsoft/api-extractor": "^7.58.9",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
