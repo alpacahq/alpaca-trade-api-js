@@ -105,6 +105,12 @@ Post-placement workflow failures reject with `SubmitAndWaitError`. Its
 and `cause` identify what is known. If placement remains ambiguous, reconcile
 the client ID before deciding whether another submission is safe.
 
+## Support
+
+- **Library / SDK issues:** Bugs, feature requests, or questions specific to this TypeScript library → [GitHub Issues](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
+- **General Alpaca support & API discussion:** Account questions, platform issues, or broader API topics → [Alpaca Community Forum](https://forum.alpaca.markets/).
+- **Slack community:** Chat with other developers and the Alpaca community on [Slack](https://alpaca.markets/slack).
+
 ## Next steps
 
 - Upgrading from 3.x? Follow the local **[Migration guide](./migration.md)** and
