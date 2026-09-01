@@ -94,6 +94,15 @@ try {
         projectRoot,
     );
     const packedPackage = join(unpackRoot, "package");
+    const packedMetadata = JSON.parse(
+        readFileSync(join(packedPackage, "package.json"), "utf8"),
+    );
+    if (packedMetadata.engines?.node !== ">=20") {
+        fail(
+            "Node compatibility",
+            `expected packed engines.node to be ">=20", got ${JSON.stringify(packedMetadata.engines?.node)}`,
+        );
+    }
 
     for (const bundle of ["index.mjs", "index.js", "rest.mjs", "rest.js"]) {
         const contents = readFileSync(

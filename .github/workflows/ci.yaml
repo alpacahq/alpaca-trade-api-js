@@ -21,10 +21,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Verify Changesets configuration
+        run: npm exec -- changeset status
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
@@ -35,7 +37,12 @@ jobs:
         run: npm run verify:codemod
       - name: Build
         run: npm run build
-      - name: Verify packed package consumers
+      # Build with the repository toolchain, then execute the packed SDK with
+      # the minimum Node version promised to consumers.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify packed package consumers on Node 20
         run: npm run verify:package
 
   docs:
@@ -45,7 +52,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - name: Install SDK dependencies
         run: npm ci
@@ -63,7 +70,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - uses: actions/setup-java@v4
         with:

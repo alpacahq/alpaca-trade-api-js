@@ -17,9 +17,12 @@ and real-time streaming.
 
 ## Requirements
 
-- **Node.js** >= 20 (developed against v24) — the REST transport uses the
-  platform-global `fetch`, `Headers`, `URL`, and `AbortController`. (Node 18
-  reached end-of-life in April 2025; the package declares `engines.node >=20`.)
+- **SDK consumers:** Node.js >= 20 — the REST transport uses the platform-global
+  `fetch`, `Headers`, `URL`, and `AbortController`. (Node 18 reached end-of-life
+  in April 2025; the package declares `engines.node >=20`.)
+- **Repository contributors:** Node.js >= 24 (see `.nvmrc`). Build, docs,
+  generation, and release tooling run on Node 24; CI separately executes the
+  packed SDK on Node 20 to preserve the consumer compatibility floor.
 - Strict Node TypeScript projects may omit DOM libs; the REST declarations are
   portable and do not require `"dom"` in the consumer `tsconfig`.
 

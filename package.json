@@ -136,10 +136,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.0",
-    "@changesets/changelog-github": "^0.7.0",
+    "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "^3.0.0",
     "@microsoft/api-extractor": "^7.58.9",
-    "@types/node": "^22.0.0",
+    "@types/node": "^20.19.43",
     "@types/ws": "^8.18.1",
     "jscodeshift": "17.4.0",
     "tsup": "^8.5.1",
