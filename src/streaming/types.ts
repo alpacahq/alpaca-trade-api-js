@@ -80,6 +80,8 @@ export interface RawTrade {
     t: unknown;
     c?: string[];
     z?: string;
+    /** Taker side ("B" buyer / "S" seller). Crypto trades only. */
+    tks?: string;
 }
 
 /**
@@ -107,6 +109,7 @@ export function mapTrade(raw: RawTrade): StreamTrade {
         timestampRaw: toRawTs(raw.t),
         conditions: raw.c ?? [],
         tape: raw.z,
+        takerSide: raw.tks,
     };
 }
 
