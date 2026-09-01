@@ -27,6 +27,11 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      # Pull request checkouts do not create a local base branch, but Changesets
+      # resolves `baseBranch: master` through that local ref.
+      - name: Expose base branch to Changesets
+        if: github.event_name == 'pull_request'
+        run: git show-ref --verify --quiet refs/heads/master || git branch master origin/master
       - name: Verify Changesets configuration
         run: npm exec -- changeset status
       - name: Typecheck
