@@ -1,5 +1,11 @@
 # @alpacahq/alpaca-trade-api
 
+## 4.0.2
+
+### Patch Changes
+
+- [#310](https://github.com/alpacahq/alpaca-trade-api-js/pull/310) [`23057a0`](https://github.com/alpacahq/alpaca-trade-api-js/commit/23057a0e2072c01c952a225164732eec84dff933) Thanks [@jaketrimble](https://github.com/jaketrimble)! - Surface the crypto trade taker side on stream trades: `mapTrade` now maps the wire's `tks` field to `StreamTrade.takerSide` ("B"/"S", crypto only). Previously the field was dropped by the stream mapper even though the v1beta3 crypto stream delivers it and the REST `CryptoTrade` path already exposed it.
+
 ## 4.0.1
 
 ### Patch Changes
