@@ -19,12 +19,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - name: Install dependencies
         run: npm ci
+      # Pull request checkouts do not create a local base branch, but Changesets
+      # resolves `baseBranch: master` through that local ref.
+      - name: Expose base branch to Changesets
+        if: github.event_name == 'pull_request'
+        run: git show-ref --verify --quiet refs/heads/master || git branch master origin/master
+      - name: Verify Changesets configuration
+        run: npm exec -- changeset status
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
@@ -35,7 +44,12 @@ jobs:
         run: npm run verify:codemod
       - name: Build
         run: npm run build
-      - name: Verify packed package consumers
+      # Build with the repository toolchain, then execute the packed SDK with
+      # the minimum Node version promised to consumers.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify packed package consumers on Node 20
         run: npm run verify:package
 
   docs:
@@ -45,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - name: Install SDK dependencies
         run: npm ci
@@ -63,7 +77,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - uses: actions/setup-java@v4
         with:

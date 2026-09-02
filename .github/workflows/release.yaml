@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
       - name: Install dependencies
@@ -34,16 +34,16 @@ jobs:
       # When that PR is merged (no changesets left, versions bumped), it builds
       # and publishes to the `latest` dist-tag via `npm run release`.
       - name: Create release PR or publish
-        # Pinned to an immutable commit SHA (v1.9.0) — this workflow holds
+        # Pinned to an immutable commit SHA (v2.1.1) — this workflow holds
         # publish credentials, so a floating tag is a supply-chain risk.
-        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        uses: changesets/action@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
         with:
-          version: npm run changeset:version
-          publish: npm run release
-          commit: "chore: version packages"
-          title: "chore: version packages"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version-script: npm run changeset:version
+          publish-script: npm run release
+          commit-message: "chore: version packages"
+          pr-title: "chore: version packages"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_KEY }}
           NPM_TOKEN: ${{ secrets.NPM_KEY }}
           NPM_CONFIG_PROVENANCE: "true"

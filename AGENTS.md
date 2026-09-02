@@ -65,6 +65,10 @@ when editing:
 
 ## Commands
 
+Repository development, documentation, generation, and release tooling require
+Node.js 24 (see `.nvmrc`). The published SDK remains compatible with Node.js 20
+and CI verifies the packed package on that minimum version.
+
 ```bash
 npm install            # also builds via the `prepare` script
 npm run build          # tsup -> dist/ (dual ESM + CJS)
