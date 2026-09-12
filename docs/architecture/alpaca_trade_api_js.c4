@@ -1,0 +1,174 @@
+// generated_by: claude-opus-5 / layered-docs 2026-09
+// source_commit: d9bf929886238c16dc790501432c9e3cd7c0f8e2   source_branch: docs/layered-2026-09   generated_at: 2026-09-12T00:00:00+00:00
+// confidence: medium   review_status: draft-needs-review
+model {
+  alpaca_trade_api_js = system 'Alpaca Trade API JS SDK' {
+    #generated
+    description '
+      Node.js TypeScript SDK for the Alpaca Trading API and Market Data API,
+      published to npm as the @alpacahq/alpaca-trade-api package. It bundles
+      generated REST clients, a shared HTTP transport, ergonomic order helpers
+      and real-time WebSocket streams behind one Alpaca client.
+      Evidence: package.json, README.md, AGENTS.md, src/client.ts
+    '
+    technology 'TypeScript / Node.js >= 20'
+    link https://github.com/alpacahq/alpaca-trade-api-js 'Repository'
+    metadata {
+      okf 'docs/okf/system.md'
+      allium 'none: no accepted spec'
+      evidence 'package.json, README.md, AGENTS.md, tsup.config.ts'
+    }
+
+    sdk = container 'SDK package' {
+      #generated #entrypoint
+      description 'The published library: generated Trading and Market Data REST clients, shared transport, ergonomic facade and streaming. Built with tsup into dual CJS and ESM bundles. Evidence: package.json, tsup.config.ts, src/index.ts, src/rest.ts'
+      technology 'TypeScript, tsup, ws, @msgpack/msgpack, lossless-json'
+      link https://github.com/alpacahq/alpaca-trade-api-js/tree/master/src 'Source'
+      metadata {
+        okf 'docs/okf/system.md'
+        allium 'none: no accepted spec'
+        evidence 'package.json, tsup.config.ts, src/index.ts, src/client.ts'
+      }
+
+      transport = component 'Shared HTTP transport' {
+        #generated
+        description 'Retry/backoff, request timeouts, rate limiting, typed ApiError, middleware, querystring and response wrappers, shared by both API groups. Evidence: src/core/runtime.ts, src/middleware.ts, src/rate-limit.ts, src/errors.ts, AGENTS.md'
+        technology 'TypeScript, global fetch'
+      }
+      trading_client = component 'Trading REST client' {
+        #generated
+        description 'OpenAPI-generated Api classes and models for the Trading API, plus a thin runtime shim holding the paper and live host constants, selected by the paper flag. Evidence: src/trading/apis/, src/trading/models/, src/trading/runtime.ts:26-30'
+        technology 'openapi-generator typescript-fetch'
+      }
+      market_data_client = component 'Market Data REST client' {
+        #generated
+        description 'OpenAPI-generated Api classes and models for the Market Data API, plus a runtime shim. The shim is not purely host constants: besides the production and sandbox hosts (selected by the sandbox flag, not paper) it overrides JSONApiResponse to parse bodies with lossless-json, so market-data integer ids beyond 2^53 survive as exact strings; the trading transport is unaffected. Evidence: src/market-data/apis/, src/market-data/models/, src/market-data/runtime.ts:8-12, src/market-data/runtime.ts:46-68'
+        technology 'openapi-generator typescript-fetch'
+      }
+      streaming = component 'WebSocket streaming clients' {
+        #generated
+        description 'Trading-updates and market-data stream clients over WebSocket, excluded from the REST-only entrypoint. Evidence: src/streaming/websocket.ts, src/streaming/tradingStream.ts, src/streaming/marketDataStream.ts, src/rest.ts'
+        technology 'ws, msgpack'
+      }
+      facade = component 'Alpaca client facade' {
+        #generated
+        description 'Hand-written ergonomic layer over the generated clients: the Alpaca constructor, order builders, pagination, normalized market-data shapes and the capability map. Evidence: src/client.ts, src/orders.ts, src/pagination.ts, src/marketDataShapes.ts, src/capabilities.ts'
+        technology 'TypeScript'
+      }
+
+      testing_support = component 'Testing entrypoint' {
+        #generated #entrypoint
+        description 'Published ./testing subpath: test doubles and helpers for consumers, shipped as its own exports entry, typesVersions entry and tsup build entry alongside . and ./rest. Evidence: src/testing.ts, package.json (exports, typesVersions), tsup.config.ts'
+        technology 'TypeScript'
+      }
+
+      testing_support -[uses]-> facade 'exercises the published client surface'
+      facade -[uses]-> trading_client 'exposes the trading namespace'
+      facade -[uses]-> market_data_client 'exposes the marketData namespace'
+      facade -[uses]-> streaming 'creates stream factories'
+      trading_client -[uses]-> transport 'shim re-exports the shared runtime'
+      market_data_client -[uses]-> transport 'shim re-exports the shared runtime'
+    }
+
+    codegen_tooling = container 'OpenAPI regeneration pipeline' {
+      #generated
+      description 'Private, standalone package that regenerates the REST trees reproducibly from pinned OpenAPI specs using forked Mustache templates and JSON Patch overlays. Evidence: tooling/package.json, tooling/GENERATION.md, tooling/src/run.ts, tooling/config/'
+      technology 'TypeScript, openapi-generator (JDK 17), vitest'
+      link https://github.com/alpacahq/alpaca-trade-api-js/tree/master/tooling 'Source'
+      metadata {
+        okf 'docs/okf/system.md'
+        allium 'none: no accepted spec'
+        evidence 'tooling/GENERATION.md, tooling/package.json, tooling/src/run.ts'
+      }
+    }
+
+    docs_site = container 'Documentation site' {
+      #generated
+      description 'Docusaurus site with hand-written guides plus an API reference, examples and migration pages generated from the SDK at build time. Its generated input includes the tracked examples/ and migrated_examples/ trees, which are typechecked in CI (tsconfig.examples.json) and rendered by scripts/gen-docs-examples.ts; they are folded into this container rather than modelled separately. Evidence: docs/package.json, docs/docusaurus.config.ts, scripts/gen-docs-api-reference.ts, scripts/gen-docs-examples.ts, tsconfig.examples.json, examples/, migrated_examples/'
+      technology 'Docusaurus 3, React 19'
+      link https://github.com/alpacahq/alpaca-trade-api-js/tree/master/docs 'Source'
+      metadata {
+        okf 'docs/okf/system.md'
+        allium 'none: no accepted spec'
+        evidence 'docs/package.json, docs/docusaurus.config.ts, .github/workflows/docs.yaml'
+      }
+    }
+
+    codemod = container 'Migration codemod' {
+      #generated
+      description 'jscodeshift codemod that rewrites 3.x call sites to the 4.x API, shipped inside the published package alongside the migration guide. Evidence: codemods/alpaca-v3-to-v4.js, MIGRATION.md, package.json'
+      technology 'jscodeshift'
+      link https://github.com/alpacahq/alpaca-trade-api-js/tree/master/codemods 'Source'
+      metadata {
+        okf 'docs/okf/system.md'
+        allium 'none: no accepted spec'
+        evidence 'codemods/alpaca-v3-to-v4.js, codemods/README.md, package.json'
+      }
+    }
+
+    agent_skills = container 'Agent skill bundles' {
+      #generated
+      description 'Skill documents and a starter dashboard template distributed with the repository to teach coding agents the SDK idioms. Evidence: skills/alpaca-trade-api-sdk/SKILL.md, skills/starter-dashboard/SKILL.md, skills/starter-dashboard/template/package.json'
+      technology 'Markdown, Next.js template'
+      link https://github.com/alpacahq/alpaca-trade-api-js/tree/master/skills 'Source'
+      metadata {
+        okf 'docs/okf/system.md'
+        allium 'none: no accepted spec'
+        evidence 'skills/alpaca-trade-api-sdk/SKILL.md, skills/starter-dashboard/scripts/scaffold.ts'
+      }
+    }
+
+    docs_site -[uses]-> sdk 'generates the API reference from the capability maps'
+    codegen_tooling -[writes]-> sdk 'regenerates the trading and market-data trees'
+    codemod -[uses]-> sdk 'rewrites consumer code onto the 4.x surface'
+    agent_skills -[uses]-> sdk 'documents and scaffolds against the package'
+  }
+
+  ext_alpaca_trading_api = external 'Alpaca Trading API' {
+    #generated #external
+    description 'Trading REST hosts (paper and live) and the trading-updates WebSocket stream. Evidence: src/trading/runtime.ts, src/streaming/tradingStream.ts'
+  }
+  ext_alpaca_market_data_api = external 'Alpaca Market Data API' {
+    #generated #external
+    description 'Market-data REST hosts (production and sandbox) and the market-data WebSocket stream. Evidence: src/market-data/runtime.ts, src/streaming/marketDataStream.ts'
+  }
+  ext_alpaca_openapi_specs = external 'Alpaca OpenAPI spec source' {
+    #generated #external
+    description 'Canonical OpenAPI documents fetched by the regeneration pipeline. Evidence: tooling/src/fetchSpecs.ts, tooling/specs/'
+  }
+  ext_npm = external 'npm registry' {
+    #generated #external
+    description 'Publication target for the scoped package, published with provenance from CI. Evidence: .npmrc, package.json, .github/workflows/release.yaml'
+  }
+  ext_github = external 'GitHub' {
+    #generated #external
+    description 'Actions CI, the release automation that opens the version PR, and Pages hosting for the documentation site. Evidence: .github/workflows/ci.yaml, .github/workflows/release.yaml, .github/workflows/docs.yaml'
+  }
+
+  alpaca_trade_api_js.sdk -[calls]-> ext_alpaca_trading_api 'REST and WebSocket calls for accounts, orders, positions and trade updates'
+  alpaca_trade_api_js.sdk -[calls]-> ext_alpaca_market_data_api 'REST and WebSocket calls for bars, quotes, trades and snapshots'
+  alpaca_trade_api_js.codegen_tooling -[reads]-> ext_alpaca_openapi_specs 'fetches and pins the specs the clients are generated from'
+  alpaca_trade_api_js.sdk -[uses]-> ext_npm 'published as the scoped SDK package'
+  alpaca_trade_api_js.sdk -[uses]-> ext_github 'typechecked, linted, tested, built and consumer-verified by Actions; released to npm with provenance from the Changesets workflow. Evidence: .github/workflows/ci.yaml, .github/workflows/release.yaml'
+  alpaca_trade_api_js.docs_site -[uses]-> ext_github 'site build-verified on every PR and deployed to Pages on path-filtered pushes to the default branch. Evidence: .github/workflows/ci.yaml, .github/workflows/docs.yaml'
+  alpaca_trade_api_js.codegen_tooling -[uses]-> ext_github 'regeneration invariant enforced in CI'
+
+  app_developer = person 'Application developer' {
+    description 'Builds trading or market-data applications on top of the package. Evidence: README.md, examples/, skills/alpaca-trade-api-sdk/SKILL.md'
+  }
+  app_developer -[uses]-> alpaca_trade_api_js.sdk 'imports the Alpaca client from the npm package'
+  app_developer -[uses]-> alpaca_trade_api_js.docs_site 'reads guides, API reference and examples'
+}
+
+views {
+  view alpaca_trade_api_js_context {
+    title 'Alpaca Trade API JS SDK — context'
+    include alpaca_trade_api_js, app_developer, ext_alpaca_trading_api, ext_alpaca_market_data_api, ext_alpaca_openapi_specs, ext_npm, ext_github
+    autoLayout TopBottom
+  }
+  view alpaca_trade_api_js_containers of alpaca_trade_api_js {
+    title 'Alpaca Trade API JS SDK — containers'
+    include *
+    autoLayout LeftRight
+  }
+}
