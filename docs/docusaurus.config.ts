@@ -20,7 +20,7 @@ const config: Config = {
     // `detect` parses `.md` as CommonMark so the generated API reference pages
     // (raw `<details>` blocks and `{...}` inside code fences) aren't mis-parsed
     // as MDX/JSX, while still allowing `.mdx` where we want components.
-    markdown: { format: "detect", hooks: { onBrokenMarkdownLinks: "warn" } },
+    markdown: { format: "detect", hooks: { onBrokenMarkdownLinks: "throw" } },
     i18n: { defaultLocale: "en", locales: ["en"] },
 
     presets: [
@@ -41,8 +41,8 @@ const config: Config = {
 
     // The API reference under `docs/docs/api/` is generated from the SDK's
     // capability maps by `scripts/gen-docs-api-reference.ts` (run by the docs
-    // `prebuild`), giving the same curated, example-driven reference as the
-    // README rather than verbose machine output.
+    // `prebuild`) as a site-only, curated facade reference with descriptions
+    // and examples.
 
     themeConfig: {
         announcementBar: {
@@ -58,6 +58,12 @@ const config: Config = {
                     sidebarId: "docsSidebar",
                     position: "left",
                     label: "Docs",
+                },
+                {
+                    type: "docSidebar",
+                    sidebarId: "apiSidebar",
+                    position: "left",
+                    label: "API Reference",
                 },
                 {
                     type: "doc",

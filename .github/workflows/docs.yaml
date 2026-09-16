@@ -9,6 +9,9 @@ on:
       - "src/**"
       - "examples/**"
       - "scripts/**"
+      - "MIGRATION.md"
+      - "package.json"
+      - "package-lock.json"
       - ".github/workflows/docs.yaml"
   workflow_dispatch:
 
