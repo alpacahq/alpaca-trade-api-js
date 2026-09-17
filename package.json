@@ -10,7 +10,7 @@
   "bugs": {
     "url": "https://github.com/alpacahq/alpaca-trade-api-js/issues"
   },
-  "homepage": "https://alpaca.markets/",
+  "homepage": "https://alpacahq.github.io/alpaca-trade-api-js/",
   "keywords": [
     "Alpaca",
     "Trading"
@@ -101,6 +101,7 @@
   "files": [
     "dist",
     "src",
+    "CONTRIBUTING.md",
     "LICENSE",
     "MIGRATION.md",
     "codemods/README.md",
@@ -115,8 +116,7 @@
     "verify:package": "node scripts/verify-package.mjs",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
-    "docs:api": "tsx scripts/gen-api-reference.ts",
-    "docs:api-site": "tsx scripts/gen-docs-api-reference.ts",
+    "docs:api": "tsx scripts/gen-docs-api-reference.ts",
     "docs:examples-site": "tsx scripts/gen-docs-examples.ts",
     "docs:migration-site": "tsx scripts/gen-docs-migration.ts",
     "generate": "npm --prefix tooling run generate --",

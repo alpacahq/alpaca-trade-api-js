@@ -1,9 +1,8 @@
 ---
-sidebar_position: 2
-title: Getting started
+title: Getting Started
 ---
 
-# Getting started
+# Getting Started
 
 ## Install
 
@@ -13,97 +12,61 @@ npm install @alpacahq/alpaca-trade-api
 
 ## Your first call
 
-Construct the unified `Alpaca` client once with credentials, then reach any
-sub-API through it:
+Create a paper-trading client and make an authenticated account call:
 
 ```ts
 import { Alpaca } from "@alpacahq/alpaca-trade-api";
 
-const alpaca = new Alpaca({ keyId: "YOUR_KEY", secret: "YOUR_SECRET" });
+const alpaca = new Alpaca({
+  keyId: process.env.APCA_API_KEY_ID,
+  secret: process.env.APCA_API_SECRET_KEY,
+  paper: true,
+});
 
-// Trading API
 const account = await alpaca.trading.account.getAccount();
 console.log(account.status, account.buyingPower);
-
-// Market Data API
-const bars = await alpaca.marketData.getStockBars({
-  symbols: ["AAPL"],
-  timeframe: "1Day",
-});
 ```
 
-## Placing an order
+`paper: true` is the default, but keeping it explicit makes the environment easy
+to audit. Set `paper: false` only in code paths intended for live trading.
 
-`alpaca.trading.orders` adds a typed **order builder** per order kind on top of
-the generated `OrdersApi.postOrder` — one verb method each, with required fields
-enforced at compile time. The raw `postOrder` (see the **Trading API** reference)
-is always still available.
+## The two-layer facade
+
+The `Alpaca` client bundles the SDK behind `.trading` and `.marketData`. Within
+those namespaces:
+
+1. Generated REST methods are always available at
+   `alpaca.<group>.<resource>.<method>(...)`.
+2. Hand-written helpers add typed order builders, workflows, normalized data,
+   and pagination without hiding the generated layer.
+
+For example, `alpaca.trading.orders.market(...)` is an ergonomic builder. Its
+raw generated escape hatch remains
+`alpaca.trading.orders.postOrder({ postOrderRequest: ... })`. This rule applies
+throughout the SDK: when no helper fits, call the generated method.
+
+## Place one paper order
+
+This sends a real order to your paper account. A stable, unique
+`clientOrderId` lets you correlate logs and reconcile an ambiguous network
+outcome:
 
 ```ts
-// Market / limit / stop / stop-limit (exactly one of `qty` / `notional`)
-await alpaca.trading.orders.market({
+const clientOrderId = `getting-started-${crypto.randomUUID()}`;
+
+const order = await alpaca.trading.orders.market({
   symbol: "AAPL",
   side: "buy",
   qty: 1,
-  clientOrderId: `getting-started-${crypto.randomUUID()}`,
-});
-await alpaca.trading.orders.limit({ symbol: "AAPL", side: "buy", qty: 1, limitPrice: 150 });
-await alpaca.trading.orders.stop({ symbol: "AAPL", side: "sell", qty: 1, stopPrice: 140 });
-await alpaca.trading.orders.stopLimit({
-  symbol: "AAPL",
-  side: "sell",
-  qty: 1,
-  stopPrice: 140,
-  limitPrice: 139,
+  clientOrderId,
 });
 
-// Trailing stop (one of `trailPrice` / `trailPercent`)
-await alpaca.trading.orders.trailingStop({ symbol: "AAPL", side: "sell", qty: 1, trailPercent: 5 });
-
-// Multi-leg: bracket (entry + take-profit + stop-loss), OCO, OTO
-await alpaca.trading.orders.bracket({
-  symbol: "AAPL",
-  side: "buy",
-  qty: 1,
-  takeProfit: { limitPrice: 160 },
-  stopLoss: { stopPrice: 140 },
-});
+console.log(order.id, order.status, order.clientOrderId);
 ```
 
-Use a stable, unique `clientOrderId` for every real order. It gives your logs an
-auditable correlation key and lets you look up the order after an ambiguous
-transport failure before deciding whether any further submission is safe.
-
-For shapes the typed builders don't cover (e.g. `mleg`), `orders.submit({ ... })`
-is the generic escape hatch.
-
-## Workflow helpers
-
-A few high-level flows that would otherwise be boilerplate live directly on
-`alpaca.trading`:
-
-```ts
-// Wait for server acknowledgement of the trade-updates subscription, submit
-// once, and resolve on a terminal state without re-placing on reconnect.
-const filled = await alpaca.trading.submitAndWait(
-  {
-    type: "market",
-    symbol: "AAPL",
-    side: "buy",
-    qty: 1,
-    clientOrderId: `getting-started-workflow-${crypto.randomUUID()}`,
-  },
-  { timeoutMs: 30_000 },
-);
-
-// Flatten the account: close every open position, optionally cancelling orders first.
-await alpaca.trading.closeAllPositions({ cancelOrders: true });
-```
-
-Post-placement workflow failures reject with `SubmitAndWaitError`. Its
-`clientOrderId`, optional confirmed `orderId`, `phase`, `placementAmbiguous`,
-and `cause` identify what is known. If placement remains ambiguous, reconcile
-the client ID before deciding whether another submission is safe.
+Do not automatically resubmit a placement after a timeout or `FetchError`.
+Follow the reconciliation workflow in
+[Trading](./trading.md#stable-client-order-ids-and-reconciliation) first.
 
 ## Support
 
@@ -113,10 +76,14 @@ the client ID before deciding whether another submission is safe.
 
 ## Next steps
 
-- Upgrading from 3.x? Follow the local **[Migration guide](./migration.md)** and
-  its package-shipped codemod.
-- Configure credentials and environments in **[Authentication](./authentication.md)**.
-- Tune retries, timeouts, and rate limiting in **[Resilience & configuration](./resilience.md)**.
-- Fetch normalized prices and bars in **[Market data](./market-data.md)**.
-- Stream live data in **[Streaming](./streaming.md)**.
-- Page through large histories in **[Pagination](./pagination.md)**.
+- Build account, asset, order, and position workflows in
+  **[Trading](./trading.md)**.
+- Fetch historical and latest prices in
+  **[Market Data](./market-data.md)**.
+- Consume real-time updates in
+  **[Streaming & Events](./streaming.md)**.
+- Configure credentials and environments in
+  **[Authentication](./authentication.md)**.
+- Tune retries, timeouts, logging, and rate limiting in
+  **[Resilience & configuration](./resilience.md)**.
+- Upgrading from 3.x? Follow the **[Migration guide](./migration.md)**.

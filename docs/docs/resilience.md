@@ -1,5 +1,4 @@
 ---
-sidebar_position: 4
 title: Resilience & configuration
 ---
 
@@ -13,8 +12,18 @@ const alpaca = new Alpaca({
   keyId,
   secret,
   timeoutMs: 30_000,
-  retry: { maxRetries: 2, retryDelayMs: 250 },
-  rateLimit: { maxRequests: 200, intervalMs: 60_000 },
+  retry: {
+    maxRetries: 2,
+    retryDelayMs: 250,
+    maxDelayMs: 5_000,
+    retryableStatuses: [408, 425, 429, 500, 502, 503, 504],
+    respectRetryAfter: true,
+  },
+  rateLimit: {
+    maxRequests: 200,
+    intervalMs: 60_000,
+    maxConcurrent: 16,
+  },
   redirect: "error",
 });
 ```
@@ -110,7 +119,8 @@ proxy.
 
 The `Alpaca` client enables a safe default token bucket (~200 req/min, applied
 independently to the trading and market-data hosts). Tune it with a `rateLimit`
-config or pass `rateLimit: false` to opt out.
+config or pass `rateLimit: false` to opt out. Raw API classes created from a
+bare `Configuration` do not enable a limiter unless you configure one.
 
 ## Typed errors & response headers
 
@@ -129,3 +139,47 @@ res.status;               // 200
 res.headers.get("X-Request-ID");
 res.rateLimit?.remaining;
 ```
+
+The response body is consumed once; use `res.data` instead of reading the raw
+body again.
+
+## Middleware observability
+
+The SDK provides logging and metrics middleware on top of the transport's
+`pre`/`post`/`onError` hooks. They observe each request attempt without changing
+its response, compose with retries, and isolate logger, metrics-sink, and
+request-ID-generator failures.
+
+```ts
+import { Alpaca, middleware } from "@alpacahq/alpaca-trade-api";
+
+const alpaca = new Alpaca({
+  keyId,
+  secret,
+  middleware: [
+    middleware.loggingMiddleware({
+      logger: console,
+      level: "info",
+    }),
+    middleware.metricsMiddleware({
+      onRequest: (metric) => {
+        statsd.timing("alpaca.request", metric.durationMs, {
+          method: metric.method,
+          status: metric.status,
+        });
+      },
+    }),
+  ],
+});
+```
+
+`loggingMiddleware` emits method, URL, status, duration, and a generated request
+ID for each attempt. Headers are omitted unless `logHeaders: true`; when
+included, `APCA-API-KEY-ID`, `APCA-API-SECRET-KEY`, and `Authorization` are
+redacted by default. Keep those defaults, or provide an equally strict
+`redactHeaders` list when extending them.
+
+Both built-in middleware accept `genRequestId: () => string` for your own
+correlation IDs. The default uses `crypto.randomUUID()` when available and a
+counter fallback otherwise. If a custom generator throws, the built-in
+generator is used so observability cannot fail the request.

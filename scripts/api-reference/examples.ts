@@ -1,15 +1,17 @@
 /**
- * Hand-maintained source of truth for the generated README API reference.
+ * Hand-maintained source of truth for the generated docs-site API reference.
  *
  * One entry per facade `accessor.method` (and per streaming factory accessor):
  * a one-line `description` and a short `ts` `example`. `scripts/api-reference/
  * render.ts` joins these with the capability maps in `src/capabilities.ts` to
- * emit the `<!-- API-REFERENCE -->` block in the README; a vitest drift guard
+ * render the pages under `docs/docs/api/`; a vitest drift guard
  * (`test/api-reference.test.ts`) asserts the keys here exactly match every
  * method across `capabilities`, `streamingCapabilities` and
- * `ergonomicCapabilities`. Run `npm run docs:api` after editing.
+ * `ergonomicCapabilities`. Run `npm run docs:api` after editing to regenerate
+ * the site reference.
  *
- * Examples assume `const alpaca = new Alpaca({ keyId, secret })` in scope.
+ * Examples assume `const alpaca = new Alpaca({ keyId, secret })` and the
+ * package's exported `TimeFrame` presets are in scope.
  */
 
 export interface ApiReferenceExample {
@@ -168,7 +170,7 @@ const trading: ApiReferenceExamples = {
     },
     "trading.portfolioHistory.getAccountPortfolioHistory": {
         description: "Time series of account equity and profit/loss.",
-        example: 'await alpaca.trading.portfolioHistory.getAccountPortfolioHistory({ period: "1M", timeframe: "1D" });',
+        example: 'const portfolioTimeframe = "1D";\nawait alpaca.trading.portfolioHistory.getAccountPortfolioHistory({ period: "1M", timeframe: portfolioTimeframe });',
     },
     "trading.positions.getAllOpenPositions": {
         description: "List all open positions.",
@@ -259,7 +261,7 @@ const trading: ApiReferenceExamples = {
 const marketData: ApiReferenceExamples = {
     "marketData.stocks.stockBars": {
         description: "Historical bars for one or more stocks (paginated).",
-        example: 'await alpaca.marketData.stocks.stockBars({ symbols: "AAPL,MSFT", timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'await alpaca.marketData.stocks.stockBars({ symbols: "AAPL,MSFT", timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.stocks.stockTrades": {
         description: "Historical trades for one or more stocks (paginated).",
@@ -299,7 +301,7 @@ const marketData: ApiReferenceExamples = {
     },
     "marketData.crypto.cryptoBars": {
         description: "Historical crypto bars (paginated); `loc` selects the data region.",
-        example: 'await alpaca.marketData.crypto.cryptoBars({ loc: "us", symbols: "BTC/USD,ETH/USD", timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'await alpaca.marketData.crypto.cryptoBars({ loc: "us", symbols: "BTC/USD,ETH/USD", timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.crypto.cryptoTrades": {
         description: "Historical crypto trades (paginated).",
@@ -359,7 +361,7 @@ const marketData: ApiReferenceExamples = {
     },
     "marketData.forex.rates": {
         description: "Historical forex rates for currency pairs (paginated).",
-        example: 'await alpaca.marketData.forex.rates({ currencyPairs: "EUR/USD", timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'await alpaca.marketData.forex.rates({ currencyPairs: "EUR/USD", timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.forex.latestRates": {
         description: "Latest forex rates for one or more currency pairs.",
@@ -383,7 +385,7 @@ const marketData: ApiReferenceExamples = {
     },
     "marketData.options.optionBars": {
         description: "Historical option bars (paginated).",
-        example: 'await alpaca.marketData.options.optionBars({ symbols: "AAPL250117C00150000", timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'await alpaca.marketData.options.optionBars({ symbols: "AAPL250117C00150000", timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.options.optionTrades": {
         description: "Historical option trades (paginated).",
@@ -585,15 +587,15 @@ const ergonomic: ApiReferenceExamples = {
     },
     "marketData.getStockBars": {
         description: "Historical stock bars as canonical `Bar`s, auto-paginated and keyed by symbol.",
-        example: 'const bars = await alpaca.marketData.getStockBars({ symbols: ["AAPL"], timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bars = await alpaca.marketData.getStockBars({ symbols: ["AAPL"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.getCryptoBars": {
         description: "Historical crypto bars as canonical `Bar`s, keyed by symbol.",
-        example: 'const bars = await alpaca.marketData.getCryptoBars({ loc: "us", symbols: ["BTC/USD"], timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bars = await alpaca.marketData.getCryptoBars({ loc: "us", symbols: ["BTC/USD"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.getOptionBars": {
         description: "Historical option bars as canonical `Bar`s, keyed by symbol.",
-        example: 'const bars = await alpaca.marketData.getOptionBars({ symbols: ["AAPL250117C00150000"], timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bars = await alpaca.marketData.getOptionBars({ symbols: ["AAPL250117C00150000"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.getStockTrades": {
         description: "Historical stock trades as canonical `Trade`s, keyed by symbol.",
@@ -621,23 +623,23 @@ const ergonomic: ApiReferenceExamples = {
     },
     "marketData.getStockCandles": {
         description: "Historical stock bars as chart-ready columnar `Candles`, keyed by symbol.",
-        example: 'const candles = await alpaca.marketData.getStockCandles({ symbols: ["AAPL"], timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const candles = await alpaca.marketData.getStockCandles({ symbols: ["AAPL"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.getCryptoCandles": {
         description: "Historical crypto bars as chart-ready columnar `Candles`, keyed by symbol.",
-        example: 'const candles = await alpaca.marketData.getCryptoCandles({ loc: "us", symbols: ["BTC/USD"], timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const candles = await alpaca.marketData.getCryptoCandles({ loc: "us", symbols: ["BTC/USD"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.getStockBarsFor": {
         description: "Exact-key stock bars as canonical `Bar[]`; returns `[]` when the requested symbol is absent.",
-        example: 'const bars = await alpaca.marketData.getStockBarsFor("AAPL", { timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bars = await alpaca.marketData.getStockBarsFor("AAPL", { timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.getCryptoBarsFor": {
         description: "Exact-key crypto bars as canonical `Bar[]`; returns `[]` when the requested pair is absent.",
-        example: 'const bars = await alpaca.marketData.getCryptoBarsFor("BTC/USD", { loc: "us", timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bars = await alpaca.marketData.getCryptoBarsFor("BTC/USD", { loc: "us", timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.getOptionBarsFor": {
         description: "Exact-key option bars as canonical `Bar[]`; returns `[]` when the requested contract is absent.",
-        example: 'const bars = await alpaca.marketData.getOptionBarsFor("AAPL250117C00150000", { timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bars = await alpaca.marketData.getOptionBarsFor("AAPL250117C00150000", { timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.getStockTradesFor": {
         description: "Exact-key stock trades as canonical `Trade[]`; never substitutes another symbol.",
@@ -657,19 +659,19 @@ const ergonomic: ApiReferenceExamples = {
     },
     "marketData.getStockCandlesFor": {
         description: "Exact-key stock `Candles`; returns empty columns when the requested symbol is absent.",
-        example: 'const candles = await alpaca.marketData.getStockCandlesFor("AAPL", { timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const candles = await alpaca.marketData.getStockCandlesFor("AAPL", { timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.getCryptoCandlesFor": {
         description: "Exact-key crypto `Candles`; returns empty columns when the requested pair is absent.",
-        example: 'const candles = await alpaca.marketData.getCryptoCandlesFor("BTC/USD", { loc: "us", timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const candles = await alpaca.marketData.getCryptoCandlesFor("BTC/USD", { loc: "us", timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.iterateStockBars": {
         description: "Lazily yield `{ symbol, value }` stock-bar records across symbols and pages.",
-        example: 'for await (const { symbol, value } of alpaca.marketData.iterateStockBars({ symbols: ["AAPL"], timeframe: "1Day", start: new Date("2024-01-01") })) console.log(symbol, value.c);',
+        example: 'for await (const { symbol, value } of alpaca.marketData.iterateStockBars({ symbols: ["AAPL"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") })) console.log(symbol, value.c);',
     },
     "marketData.collectStockBarsBySymbol": {
         description: "Collect stock bars merged into a `{ [symbol]: StockBar[] }` map.",
-        example: 'const bySymbol = await alpaca.marketData.collectStockBarsBySymbol({ symbols: ["AAPL", "MSFT"], timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bySymbol = await alpaca.marketData.collectStockBarsBySymbol({ symbols: ["AAPL", "MSFT"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.iterateStockTrades": {
         description: "Lazily yield stock-trade records across symbols and pages.",
@@ -697,11 +699,11 @@ const ergonomic: ApiReferenceExamples = {
     },
     "marketData.iterateCryptoBars": {
         description: "Lazily yield crypto-bar records across symbols and pages.",
-        example: 'for await (const { symbol, value } of alpaca.marketData.iterateCryptoBars({ loc: "us", symbols: ["BTC/USD"], timeframe: "1Day", start: new Date("2024-01-01") })) console.log(symbol, value.c);',
+        example: 'for await (const { symbol, value } of alpaca.marketData.iterateCryptoBars({ loc: "us", symbols: ["BTC/USD"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") })) console.log(symbol, value.c);',
     },
     "marketData.collectCryptoBarsBySymbol": {
         description: "Collect crypto bars merged into a `{ [symbol]: CryptoBar[] }` map.",
-        example: 'const bySymbol = await alpaca.marketData.collectCryptoBarsBySymbol({ loc: "us", symbols: ["BTC/USD"], timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bySymbol = await alpaca.marketData.collectCryptoBarsBySymbol({ loc: "us", symbols: ["BTC/USD"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.iterateCryptoTrades": {
         description: "Lazily yield crypto-trade records across symbols and pages.",
@@ -721,11 +723,11 @@ const ergonomic: ApiReferenceExamples = {
     },
     "marketData.iterateOptionBars": {
         description: "Lazily yield option-bar records across symbols and pages.",
-        example: 'for await (const { symbol, value } of alpaca.marketData.iterateOptionBars({ symbols: ["AAPL250117C00150000"], timeframe: "1Day", start: new Date("2024-01-01") })) console.log(symbol, value.c);',
+        example: 'for await (const { symbol, value } of alpaca.marketData.iterateOptionBars({ symbols: ["AAPL250117C00150000"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") })) console.log(symbol, value.c);',
     },
     "marketData.collectOptionBarsBySymbol": {
         description: "Collect option bars merged into a `{ [symbol]: OptionBar[] }` map.",
-        example: 'const bySymbol = await alpaca.marketData.collectOptionBarsBySymbol({ symbols: ["AAPL250117C00150000"], timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bySymbol = await alpaca.marketData.collectOptionBarsBySymbol({ symbols: ["AAPL250117C00150000"], timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.iterateOptionTrades": {
         description: "Lazily yield option-trade records across symbols and pages.",
@@ -769,11 +771,11 @@ const ergonomic: ApiReferenceExamples = {
     },
     "marketData.iterateStockBarSingle": {
         description: "Lazily yield a single symbol's stock bars across all pages.",
-        example: 'for await (const bar of alpaca.marketData.iterateStockBarSingle({ symbol: "AAPL", timeframe: "1Day", start: new Date("2024-01-01") })) console.log(bar.c);',
+        example: 'for await (const bar of alpaca.marketData.iterateStockBarSingle({ symbol: "AAPL", timeframe: TimeFrame.Day, start: new Date("2024-01-01") })) console.log(bar.c);',
     },
     "marketData.collectStockBarSingle": {
         description: "Collect a single symbol's stock bars into one `StockBar[]` array.",
-        example: 'const bars = await alpaca.marketData.collectStockBarSingle({ symbol: "AAPL", timeframe: "1Day", start: new Date("2024-01-01") });',
+        example: 'const bars = await alpaca.marketData.collectStockBarSingle({ symbol: "AAPL", timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
     },
     "marketData.iterateStockTradeSingle": {
         description: "Lazily yield a single symbol's stock trades across all pages.",

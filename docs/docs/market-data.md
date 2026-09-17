@@ -1,16 +1,15 @@
 ---
-sidebar_position: 5
-title: Market data
+title: Market Data
 ---
 
-# Market data
+# Market Data
 
 The Market Data API has two layers. The raw, generated endpoints
 (`alpaca.marketData.stocks.stockBars`, `alpaca.marketData.crypto.cryptoTrades`,
-…) are enumerated in the **Market Data API** reference. On top of them the SDK
-adds a small, ergonomic layer of **normalized accessors** that handle pagination
-and return canonical, symbol-keyed shapes — unified with the streaming layer so
-a historical `Bar` and a live `Bar` are the same type.
+…) remain available for complete API coverage. The ergonomic
+**normalized accessors** auto-paginate and return canonical, symbol-keyed shapes
+that match the streaming layer, so a historical `Bar` and a live `Bar` share
+one type.
 
 ## Normalized accessors
 
@@ -18,10 +17,14 @@ a historical `Bar` and a live `Bar` are the same type.
 `Quote` data keyed by symbol:
 
 ```ts
+import { Alpaca, TimeFrame } from "@alpacahq/alpaca-trade-api";
+
+const alpaca = new Alpaca({ keyId, secret });
+
 // Symbol-keyed map: { AAPL: Bar[], MSFT: Bar[] }
 const bars = await alpaca.marketData.getStockBars({
   symbols: ["AAPL", "MSFT"],
-  timeframe: "1Day",
+  timeframe: TimeFrame.Day,
   start: new Date("2024-01-01"),
 });
 
@@ -37,7 +40,7 @@ unwrapped value (an array, not a symbol map):
 
 ```ts
 const aapl = await alpaca.marketData.getStockBarsFor("AAPL", {
-  timeframe: "1Day",
+  timeframe: TimeFrame.Day,
   start: new Date("2024-01-01"),
 });
 ```
@@ -47,9 +50,11 @@ key is absent it returns `[]`; it never substitutes data from another symbol.
 The candle variants return an empty `Candles` object (empty column arrays) when
 the requested symbol is absent.
 
-The same exists for trades and quotes — `getStockTrades` / `getCryptoTrades`,
-`getStockQuotes` / `getCryptoQuotes`, and their `*For` variants — across stocks,
-crypto, and options (`getOptionBars` / `getOptionBarsFor`).
+The normalized layer includes stock, crypto, and option bars; stock and crypto
+trades and quotes; index values; and stock auctions. Corresponding chart-ready
+candle and single-symbol variants are available where applicable. Browse the
+complete helper inventory in the
+[Ergonomic Helpers Reference](./api/ergonomic-helpers.md).
 
 ### Timestamp precision
 
@@ -90,6 +95,9 @@ t.idRaw; // e.g. "8857581800245878123" — exact; use this to compare/store/key
 > `getCryptoTrades` accessor, or treat the raw `.i` as the exact string. Other
 > numeric fields (sizes, volumes, counts, stock/option/news ids) are unaffected.
 
+See [Values & types](./types-and-values.md#timestamps-and-64-bit-ids) for the
+general precision rule.
+
 ### Chart-ready candles
 
 `get<Asset>Candles` (and `get<Asset>CandlesFor`) return the same data in a
@@ -99,9 +107,23 @@ of an array of objects:
 ```ts
 const candles = await alpaca.marketData.getStockCandles({
   symbols: ["AAPL"],
-  timeframe: "1Day",
+  timeframe: TimeFrame.Day,
   start: new Date("2024-01-01"),
 });
+```
+
+Pure helpers also reshape a canonical `Bar[]` for plotting libraries:
+
+```ts
+import {
+  toCandles,
+  toCandlestickSeries,
+  toLineSeries,
+} from "@alpacahq/alpaca-trade-api";
+
+toCandles(bars.AAPL);
+toCandlestickSeries(bars.AAPL);
+toLineSeries(bars.AAPL, "close");
 ```
 
 ## Latest price
@@ -113,8 +135,36 @@ const candles = await alpaca.marketData.getStockCandles({
 const price = await alpaca.marketData.getLatestPrice("AAPL");
 ```
 
+## Feeds and the free-tier delay
+
+Feed access comes from your Alpaca data subscription, not from paper versus live
+trading:
+
+- US-equity REST endpoints accept `feed`: `iex` is the free feed; `sip` covers
+  all US exchanges and requires the corresponding subscription; `otc` and
+  `boats` are also supported where the endpoint allows them.
+- REST helpers do not force a feed. When omitted, Alpaca selects the best feed
+  your subscription allows, which is normally `iex` on the free plan.
+- Stock streaming defaults to `feed: "iex"` so free-plan credentials work
+  without extra configuration. Request `sip` explicitly only when entitled.
+- On the free plan, recent SIP data inside the last 15 minutes is restricted.
+  An explicit recent `sip` query can return a guided 403. With `iex`, the
+  trailing window can be sparse or empty; if you need a reliably populated
+  historical window, set `end` at least 15 minutes in the past.
+
+The SDK does not silently clamp `end`, because that would hide recent data from
+paid subscribers.
+
+The `paper` option is irrelevant to market data. It switches trading hosts, but
+market-data REST and stream calls continue to use the market-data service.
+Entitlements depend on the subscription and `feed`.
+
 ## Next steps
 
-- Stream the same canonical shapes live in **[Streaming](./streaming.md)**.
-- Iterate or collect large histories with the helpers in **[Pagination](./pagination.md)**.
-- Browse every raw endpoint in the **Market Data API** reference (sidebar).
+- Browse generated endpoints and facade methods in the
+  **[Market Data API Reference](./api/market-data.md)**.
+- Stream the same canonical shapes in
+  **[Streaming & Events](./streaming.md)**.
+- Bound or fan out large histories with **[Pagination](./pagination.md)**.
+- Review precision and timeframe conventions in
+  **[Values & types](./types-and-values.md)**.

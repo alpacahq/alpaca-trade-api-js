@@ -60,8 +60,10 @@ found: `brew install openjdk`.
 6. **Stale-file cleanup** — delete committed `apis/`/`models/` files that the new
    `.openapi-generator/FILES` manifest no longer lists (`src/staleClean.ts`);
    `runtime.ts` is protected.
-7. **Safety gate** — run the SDK's `typecheck`, `lint`, `test`, `docs:api`, plus
-   the tooling's own `typecheck` + `test`.
+7. **Safety gate** — run the SDK's `typecheck`, `lint`, `test`, `docs:api`
+   (generates the documentation site's API reference under `docs/docs/api/` via
+   `scripts/gen-docs-api-reference.ts`), plus the tooling's own `typecheck` +
+   `test`.
 8. **Orphan report** — diff normalized `apis/index.ts` + `models/index.ts`
    snapshots before/after (`src/exportsSnapshot.ts`), including both
    `export * from` modules and named/type/aliased re-exported symbols. Dry runs

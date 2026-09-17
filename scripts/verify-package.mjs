@@ -64,6 +64,7 @@ try {
     const [packInfo] = parseNpmPackJson(packed.stdout);
     const packedFiles = new Set(packInfo.files.map(({ path }) => path));
     for (const required of [
+        "CONTRIBUTING.md",
         "MIGRATION.md",
         "codemods/alpaca-v3-to-v4.js",
     ]) {

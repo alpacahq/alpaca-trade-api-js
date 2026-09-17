@@ -15,10 +15,12 @@ description: >-
 This is a **map, not the territory.** It gives you the mental model, the idioms
 agents most often get wrong, and where to look — it deliberately omits the full
 API surface. Whenever you need specifics (exact method names, parameters,
-response fields), **open the package README and grep the API reference**: the
-README is ~2750 lines and its second half is an auto-generated, per-method
-reference. Do not guess method signatures from this file alone — confirm in the
-README or the source.
+response fields), start with the hosted
+[API Reference](https://alpacahq.github.io/alpaca-trade-api-js/api), then
+**confirm the complete surface, signatures, and response models** in the
+installed package's TypeScript declarations (`dist/*.d.ts`), your editor's type
+information, or the `src/` source. Do not guess method signatures from this
+file alone.
 
 ## Where the source of truth lives
 
@@ -28,8 +30,9 @@ published tarball).
 
 | You need… | Read / search |
 | --- | --- |
-| The full per-method API (all REST methods, streams, ergonomic helpers) | `README.md` → the `## API reference` section (search the heading, then grep for the method name) |
-| The narrative docs & idioms | `README.md` → sections before `## API reference` (`Quick start`, `Placing orders`, `Pagination`, `Values & types`, `Normalized market-data shapes`, `Real-time streaming`, …) |
+| Curated per-method descriptions and examples | Hosted [API Reference](https://alpacahq.github.io/alpaca-trade-api-js/api) — start at the index, then the relevant section ([Trading](https://alpacahq.github.io/alpaca-trade-api-js/api/trading), [Market data](https://alpacahq.github.io/alpaca-trade-api-js/api/market-data), [Streaming](https://alpacahq.github.io/alpaca-trade-api-js/api/streaming), [Ergonomic helpers](https://alpacahq.github.io/alpaca-trade-api-js/api/ergonomic-helpers)). |
+| The complete API surface, exact signatures, and model fields | Installed `dist/*.d.ts`, your editor's type information, or `src/`. |
+| The narrative docs & idioms | Hosted guides — [Getting started](https://alpacahq.github.io/alpaca-trade-api-js/getting-started), [Trading](https://alpacahq.github.io/alpaca-trade-api-js/trading), [Market data](https://alpacahq.github.io/alpaca-trade-api-js/market-data), [Streaming & events](https://alpacahq.github.io/alpaca-trade-api-js/streaming), [Pagination](https://alpacahq.github.io/alpaca-trade-api-js/pagination), [Values & types](https://alpacahq.github.io/alpaca-trade-api-js/types-and-values), [Examples](https://alpacahq.github.io/alpaca-trade-api-js/examples), … |
 | Runnable end-to-end examples | `examples/trading-bot.ts`, `examples/marketdata-backend.ts` |
 | The unified client / facade wiring | `src/client.ts` |
 | Order builders | `src/orders.ts` |
@@ -39,7 +42,8 @@ published tarball).
 | Streaming clients | `src/streaming/` |
 
 When unsure where a method lives, prefer the programmatic lookups (below) over
-guessing, then confirm against the README.
+guessing, then confirm against the hosted API Reference and TypeScript
+declarations.
 
 ## Mental model: a two-layer facade
 
@@ -208,7 +212,7 @@ findErgonomic("market");        // ergonomic: is there a helper, and where
 ```
 
 `capabilities` / `ergonomicCapabilities` / `streamingCapabilities` are the full
-maps. Use these (or grep the README `## API reference`) to answer "where does X
+maps. Use these (or search the hosted [API Reference](https://alpacahq.github.io/alpaca-trade-api-js/api)) to answer "where does X
 live?" instead of guessing.
 
 ## Testing integrations
@@ -219,7 +223,4 @@ it so unit tests never hit Alpaca.
 
 ## When you're unsure
 
-Don't stop at this file. Open `README.md` and read the relevant `##` section, or
-grep the `## API reference` for the exact method, or read the `src/` module in
-the table above. This skill points the way; the README and source are
-authoritative.
+Don't stop at this file. Open the relevant guide on the [documentation site](https://alpacahq.github.io/alpaca-trade-api-js/), search the [API Reference](https://alpacahq.github.io/alpaca-trade-api-js/api) for the exact method, or read the `src/` module in the table above. This skill points the way; the docs site and source are authoritative.
