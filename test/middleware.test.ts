@@ -20,6 +20,11 @@ function fetchThrowing(error: Error): trading.FetchAPI {
     }) as unknown as trading.FetchAPI;
 }
 
+function requestIdOf(init: RequestInit | undefined): string | undefined {
+    const h = init?.headers as Record<string, string> | undefined;
+    return h?.["X-Request-ID"] ?? h?.["x-request-id"];
+}
+
 describe('metricsMiddleware', () => {
     it('emits a metric for a successful request', async () => {
         const metrics: RequestMetric[] = [];
@@ -139,6 +144,89 @@ describe('metricsMiddleware', () => {
 
         expect(metrics).toHaveLength(1);
         expect(metrics[0].requestId).toBeTruthy();
+    });
+
+    it('sends genRequestId as X-Request-ID for logs and metrics', async () => {
+        const captured: RequestInit[] = [];
+        const metrics: RequestMetric[] = [];
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: (async (url, init) => {
+                if (init) captured.push(init);
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(url, init);
+            }) as trading.FetchAPI,
+            middleware: [
+                loggingMiddleware({ genRequestId: () => 'from-logging' }),
+                metricsMiddleware({ genRequestId: () => 'from-metrics', onRequest: (m) => metrics.push(m) }),
+            ],
+        });
+
+        await alpaca.trading.account.getAccount();
+        expect(requestIdOf(captured[0])).toBe('from-logging');
+        expect(metrics[0].requestId).toBe('from-logging');
+    });
+
+    it('overwrites X-Request-ID from client headers', async () => {
+        const captured: RequestInit[] = [];
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            headers: { 'x-request-id': 'client-supplied' },
+            fetchApi: (async (url, init) => {
+                if (init) captured.push(init);
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(url, init);
+            }) as trading.FetchAPI,
+            middleware: [metricsMiddleware({ genRequestId: () => 'from-metrics', onRequest: () => {} })],
+        });
+
+        await alpaca.trading.account.getAccount();
+        expect(requestIdOf(captured[0])).toBe('from-metrics');
+    });
+
+    it('surfaces the outbound X-Request-ID on ApiError when echoed', async () => {
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            retry: false,
+            fetchApi: (async (_url, init) =>
+                new Response(JSON.stringify({ code: 40010000, message: 'bad' }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json', 'X-Request-ID': requestIdOf(init) ?? '' },
+                })) as trading.FetchAPI,
+            middleware: [loggingMiddleware({ genRequestId: () => 'err-id-1' })],
+        });
+
+        await expect(alpaca.trading.account.getAccount()).rejects.toMatchObject({
+            name: 'ValidationError',
+            requestId: 'err-id-1',
+        });
+    });
+
+    it('reuses X-Request-ID across retries', async () => {
+        const ids: string[] = [];
+        let generated = 0;
+        let n = 0;
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            retry: { maxRetries: 2, retryDelayMs: 1 },
+            fetchApi: (async (_url, init) => {
+                ids.push(requestIdOf(init) ?? '');
+                n++;
+                return new Response(
+                    JSON.stringify(
+                        n < 3 ? { message: 'unavailable' } : { id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' },
+                    ),
+                    { status: n < 3 ? 503 : 200, headers: { 'Content-Type': 'application/json' } },
+                );
+            }) as trading.FetchAPI,
+            middleware: [metricsMiddleware({ genRequestId: () => `retry-id-${++generated}`, onRequest: () => {} })],
+        });
+
+        await alpaca.trading.account.getAccount();
+        expect(generated).toBe(1);
+        expect(ids).toEqual(['retry-id-1', 'retry-id-1', 'retry-id-1']);
     });
 });
 

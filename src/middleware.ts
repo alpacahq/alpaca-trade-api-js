@@ -5,11 +5,10 @@
  * The runtime passes the same `init` object reference to `pre`, `post`, and
  * `onError` within a single request attempt, so we correlate timing and a
  * generated request id across the three callbacks via a {@link WeakMap} keyed by
- * `init` (no mutation of caller objects, auto-GC'd).
- *
- * Both middleware are pure observers: they never return an alternative response,
- * and failures from user-provided loggers, metrics sinks, or request-ID
- * generators are isolated so observability can never change a request outcome.
+ * `init` (auto-GC'd). On `pre`, we stamp `X-Request-ID` so logs, Alpaca, and
+ * `ApiError.requestId` share one id (a value copied from client `headers` is
+ * overwritten). Logger, metrics-sink, and generator failures are isolated so
+ * they cannot fail the request.
  */
 import type { Middleware } from "./trading";
 
@@ -38,8 +37,10 @@ export interface LoggingMiddlewareOptions {
     /** Header names to mask when `logHeaders` is on. Default {@link DEFAULT_REDACTED_HEADERS}. */
     redactHeaders?: string[];
     /**
-     * Generate the per-request id. Default: `crypto.randomUUID()` or a counter.
-     * Falls back to the default generator if this callback throws.
+     * Generate `X-Request-ID` for the request. Overwrites a header already
+     * present (e.g. from the client `headers` option). Default:
+     * `crypto.randomUUID()` or a counter. Falls back to the default generator
+     * if this callback throws.
      */
     genRequestId?: () => string;
 }
@@ -66,8 +67,10 @@ export interface MetricsMiddlewareOptions {
      */
     onRequest: (metric: RequestMetric) => void;
     /**
-     * Generate the per-request id. Default: `crypto.randomUUID()` or a counter.
-     * Falls back to the default generator if this callback throws.
+     * Generate `X-Request-ID` for the request. Overwrites a header already
+     * present (e.g. from the client `headers` option). Default:
+     * `crypto.randomUUID()` or a counter. Falls back to the default generator
+     * if this callback throws.
      */
     genRequestId?: () => string;
 }
@@ -117,6 +120,25 @@ function safeIdGenerator(custom?: () => string): () => string {
             return fallback();
         }
     };
+}
+
+const REQUEST_ID_HEADER = "X-Request-ID";
+/** Ids already stamped onto a transport headers object (shared across middleware + retries). */
+const stampedRequestIds = new WeakMap<object, string>();
+
+/** Transport headers are a plain object (`Object.assign` in createFetchParams). */
+function ensureRequestId(init: RequestInit, genId: () => string): string {
+    const headers = (init.headers ?? {}) as Record<string, string>;
+    init.headers = headers;
+    const stamped = stampedRequestIds.get(headers);
+    if (stamped) return stamped;
+    const id = genId();
+    for (const key of Object.keys(headers)) {
+        if (key.toLowerCase() === "x-request-id") delete headers[key];
+    }
+    headers[REQUEST_ID_HEADER] = id;
+    stampedRequestIds.set(headers, id);
+    return id;
 }
 
 function now(): number {
@@ -174,7 +196,7 @@ export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middl
 
     return {
         async pre(context) {
-            const id = genId();
+            const id = ensureRequestId(context.init, genId);
             tracked.set(context.init, { id, start: now() });
             const meta: Record<string, unknown> = { requestId: id, method: methodOf(context.init), url: context.url };
             if (options.logHeaders) meta.headers = readHeaders(context.init, redact);
@@ -215,8 +237,8 @@ export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middl
 
 /**
  * Emits a {@link RequestMetric} per request attempt to your callback - wire it
- * into Prometheus, StatsD, OpenTelemetry, etc. Callback failures are swallowed;
- * this observer never alters the request.
+ * into Prometheus, StatsD, OpenTelemetry, etc. Callback failures are swallowed.
+ * Stamps `X-Request-ID` on each request.
  */
 export function metricsMiddleware(options: MetricsMiddlewareOptions): Middleware {
     const genId = safeIdGenerator(options.genRequestId);
@@ -227,7 +249,7 @@ export function metricsMiddleware(options: MetricsMiddlewareOptions): Middleware
 
     return {
         async pre(context) {
-            tracked.set(context.init, { id: genId(), start: now() });
+            tracked.set(context.init, { id: ensureRequestId(context.init, genId), start: now() });
         },
         async post(context) {
             const tracking = tracked.get(context.init);

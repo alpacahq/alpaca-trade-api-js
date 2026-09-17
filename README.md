@@ -862,8 +862,8 @@ method), see the generated [API reference](#api-reference) below.
 ## Observability
 
 Built-in middleware for logging and metrics, layered on the transport's
-`pre`/`post`/`onError` hooks. Pass them via `middleware`; they observe only
-(never alter the request), so they compose with retries and with each other.
+`pre`/`post`/`onError` hooks. Pass them via `middleware`. They stamp
+`X-Request-ID` so log/metric `requestId` matches Alpaca.
 
 ```ts
 import { Alpaca, middleware } from "@alpacahq/alpaca-trade-api";
@@ -885,7 +885,7 @@ const alpaca = new Alpaca({
 
 `loggingMiddleware` redacts the `APCA-*` and `Authorization` headers by default
 (and only includes headers at all when `logHeaders: true`). Both accept a
-`genRequestId` to supply your own correlation ids.
+`genRequestId` to supply `X-Request-ID` (overwrites a value from client `headers`).
 
 ## Dependencies
 
