@@ -95,10 +95,9 @@ function runObserver(callback: () => unknown): void {
 }
 
 const REQUEST_ID_HEADER = "X-Request-ID";
-/** Ids already stamped onto a transport headers object (shared across middleware + retries). */
+/** Ids already stamped onto the per-request headers object (shared across middleware + retries). */
 const stampedRequestIds = new WeakMap<object, string>();
 
-/** Transport headers are a plain object (`Object.assign` in createFetchParams). */
 function ensureRequestId(init: RequestInit): string {
     const headers = (init.headers ?? {}) as Record<string, string>;
     init.headers = headers;

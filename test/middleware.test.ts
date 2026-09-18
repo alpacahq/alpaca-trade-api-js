@@ -214,6 +214,48 @@ describe('metricsMiddleware', () => {
         expect(ids[0]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
         expect(ids).toEqual([ids[0], ids[0], ids[0]]);
     });
+
+    it('does not reuse X-Request-ID when the caller reuses a headers object', async () => {
+        const ids: string[] = [];
+        const headers = { 'X-Trace': 'caller' };
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: (async (_url, init) => {
+                ids.push(requestIdOf(init) ?? '');
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(_url, init);
+            }) as trading.FetchAPI,
+            middleware: [metricsMiddleware({ onRequest: () => {} })],
+        });
+
+        await alpaca.trading.account.getAccount({ headers });
+        await alpaca.trading.account.getAccount({ headers });
+
+        expect(ids).toHaveLength(2);
+        expect(ids[0]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+        expect(ids[1]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+        expect(ids[0]).not.toBe(ids[1]);
+        expect(headers).toEqual({ 'X-Trace': 'caller' });
+    });
+
+    it('stamps a frozen caller headers object without mutating it', async () => {
+        const ids: string[] = [];
+        const headers = Object.freeze({ 'X-Trace': 'frozen' });
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: (async (_url, init) => {
+                ids.push(requestIdOf(init) ?? '');
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(_url, init);
+            }) as trading.FetchAPI,
+            middleware: [metricsMiddleware({ onRequest: () => {} })],
+        });
+
+        await expect(alpaca.trading.account.getAccount({ headers })).resolves.toMatchObject({ id: 'acct-1' });
+        expect(ids[0]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+        expect(headers).toEqual({ 'X-Trace': 'frozen' });
+        expect(Object.isFrozen(headers)).toBe(true);
+    });
 });
 
 describe('loggingMiddleware', () => {
