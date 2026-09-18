@@ -114,6 +114,26 @@ for (const { name, rt } of RUNTIMES) {
             await call(cfg, 'GET');
             expect(headerValue(seen, 'User-Agent')).toBe('my-app/9.9');
         });
+
+        it('copies a Headers-like object that fails instanceof Headers', async () => {
+            const pairs: Array<[string, string]> = [['X-Foreign', 'cross-realm']];
+            const foreign = {
+                *[Symbol.iterator]() {
+                    yield* pairs;
+                },
+            };
+            expect(foreign instanceof Headers).toBe(false);
+
+            let seen: RequestInit | undefined;
+            const cfg = new rt.Configuration({
+                fetchApi: async (_url, init) => {
+                    seen = init;
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+            await call(cfg, 'GET', { headers: foreign as HeadersInit });
+            expect(headerValue(seen, 'X-Foreign')).toBe('cross-realm');
+        });
     });
 
     describe(`[${name}] redirect hardening`, () => {

@@ -167,7 +167,15 @@ function ensureRequestId(init: RequestInit, generate: () => string): string {
     const existing = headers instanceof Headers
         ? headers.get(REQUEST_ID_HEADER)
         : Object.entries(headers).find(([name]) => name.toLowerCase() === "x-request-id")?.[1];
-    if (isUuid(existing)) return existing;
+    if (isUuid(existing)) {
+        if (!(headers instanceof Headers)) {
+            for (const name of Object.keys(headers)) {
+                if (name.toLowerCase() === "x-request-id") delete headers[name];
+            }
+            headers[REQUEST_ID_HEADER] = existing;
+        }
+        return existing;
+    }
 
     const id = generate();
     if (headers instanceof Headers) {

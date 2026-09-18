@@ -356,10 +356,10 @@ describe('alpaca.trading.orders helper methods', () => {
             clientOrderId: 'stable-order-123',
         });
 
-        const headers = seen?.headers as Record<string, string>;
-        expect(headers['Idempotency-Key']).toBeUndefined();
-        expect(headers['APCA-API-KEY-ID']).toBe('AKTEST');
-        expect(headers['APCA-API-SECRET-KEY']).toBe('sekret');
+        const headers = new Headers(seen?.headers);
+        expect(headers.get('Idempotency-Key')).toBeNull();
+        expect(headers.get('APCA-API-KEY-ID')).toBe('AKTEST');
+        expect(headers.get('APCA-API-SECRET-KEY')).toBe('sekret');
     });
 
     it('getAllOrders() joins a symbols[] and passes a typed side', async () => {

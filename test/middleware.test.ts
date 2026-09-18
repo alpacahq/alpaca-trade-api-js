@@ -226,6 +226,31 @@ describe('metricsMiddleware', () => {
         expect(generate).not.toHaveBeenCalled();
     });
 
+    it('canonicalizes differently cased X-Request-ID keys when preserving a caller UUID', async () => {
+        const requestId = '550e8400-e29b-41d4-a716-446655440001';
+        const generate = vi.fn(() => '550e8400-e29b-41d4-a716-446655440002');
+        const mw = metricsMiddleware({ genRequestId: generate, onRequest: () => {} });
+        const init: RequestInit = {
+            headers: {
+                'x-request-id': requestId,
+                'X-Request-ID': 'not-a-uuid',
+            },
+        };
+
+        await mw.pre?.({
+            url: 'https://paper-api.alpaca.markets/v2/account',
+            init,
+            fetch: fetch as never,
+        });
+
+        const headers = init.headers as Record<string, string>;
+        expect(headers['X-Request-ID']).toBe(requestId);
+        expect(Object.keys(headers).filter((name) => name.toLowerCase() === 'x-request-id')).toEqual([
+            'X-Request-ID',
+        ]);
+        expect(generate).not.toHaveBeenCalled();
+    });
+
     it('replaces an invalid caller-supplied X-Request-ID', async () => {
         const requestId = '550e8400-e29b-41d4-a716-446655440002';
         let seen: RequestInit | undefined;

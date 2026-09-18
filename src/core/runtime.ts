@@ -480,10 +480,9 @@ export class BaseAPI {
             body,
             // Give middleware a request-owned, mutable header collection that
             // is shared by every retry attempt without mutating caller input.
-            headers:
-                overriddenInit.headers instanceof Headers || Array.isArray(overriddenInit.headers)
-                    ? new Headers(overriddenInit.headers)
-                    : { ...overriddenInit.headers },
+            // `new Headers(...)` accepts every HeadersInit form and copies
+            // another-realm Headers objects that fail `instanceof Headers`.
+            headers: new Headers(overriddenInit.headers),
         };
 
         return { url, init };
