@@ -478,7 +478,7 @@ export class BaseAPI {
         const init: RequestInit = {
             ...overriddenInit,
             body,
-            headers: Object.assign({}, overriddenInit.headers),
+            headers: new Headers(overriddenInit.headers),
         };
 
         return { url, init };

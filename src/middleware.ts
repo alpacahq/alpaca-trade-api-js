@@ -95,19 +95,16 @@ function runObserver(callback: () => unknown): void {
 }
 
 const REQUEST_ID_HEADER = "X-Request-ID";
-/** Ids already stamped onto the per-request headers object (shared across middleware + retries). */
-const stampedRequestIds = new WeakMap<object, string>();
+const stampedRequestIds = new WeakMap<Headers, string>();
 
 function ensureRequestId(init: RequestInit): string {
-    const headers = (init.headers ?? {}) as Record<string, string>;
+    const headers = init.headers instanceof Headers ? init.headers : new Headers(init.headers);
     init.headers = headers;
     const stamped = stampedRequestIds.get(headers);
     if (stamped) return stamped;
+
     const id = nextRequestId();
-    for (const key of Object.keys(headers)) {
-        if (key.toLowerCase() === "x-request-id") delete headers[key];
-    }
-    headers[REQUEST_ID_HEADER] = id;
+    headers.set(REQUEST_ID_HEADER, id);
     stampedRequestIds.set(headers, id);
     return id;
 }

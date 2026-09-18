@@ -21,8 +21,7 @@ function fetchThrowing(error: Error): trading.FetchAPI {
 }
 
 function requestIdOf(init: RequestInit | undefined): string | undefined {
-    const h = init?.headers as Record<string, string> | undefined;
-    return h?.["X-Request-ID"] ?? h?.["x-request-id"];
+    return new Headers(init?.headers).get("X-Request-ID") ?? undefined;
 }
 
 describe('metricsMiddleware', () => {
@@ -255,6 +254,29 @@ describe('metricsMiddleware', () => {
         expect(ids[0]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
         expect(headers).toEqual({ 'X-Trace': 'frozen' });
         expect(Object.isFrozen(headers)).toBe(true);
+    });
+
+    it.each([
+        ['Headers', new Headers({ Authorization: 'Bearer tok' })],
+        ['tuple array', [['Authorization', 'Bearer tok']] as [string, string][]],
+    ])('copies %s headers before stamping X-Request-ID', async (_name, headers) => {
+        let seen: RequestInit | undefined;
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: (async (_url, init) => {
+                seen = init;
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(_url, init);
+            }) as trading.FetchAPI,
+            middleware: [metricsMiddleware({ onRequest: () => {} })],
+        });
+
+        await alpaca.trading.account.getAccount({ headers });
+
+        const outbound = new Headers(seen?.headers);
+        expect(outbound.get('Authorization')).toBe('Bearer tok');
+        expect(outbound.get('X-Request-ID')).toBeTruthy();
+        expect(new Headers(headers).has('X-Request-ID')).toBe(false);
     });
 });
 
