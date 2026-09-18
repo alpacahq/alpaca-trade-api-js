@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { loggingMiddleware, metricsMiddleware, type RequestMetric } from '../src/middleware';
 import { Alpaca } from '../src/client';
@@ -18,6 +18,10 @@ function fetchThrowing(error: Error): trading.FetchAPI {
     return (async () => {
         throw error;
     }) as unknown as trading.FetchAPI;
+}
+
+function requestIdOf(init: RequestInit | undefined): string | undefined {
+    return new Headers(init?.headers).get('X-Request-ID') ?? undefined;
 }
 
 describe('metricsMiddleware', () => {
@@ -121,10 +125,14 @@ describe('metricsMiddleware', () => {
 
     it('falls back to an internal request id when the custom generator throws', async () => {
         const metrics: RequestMetric[] = [];
+        let seen: RequestInit | undefined;
         const alpaca = new Alpaca({
             ...CREDS,
             rateLimit: false,
-            fetchApi: fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' }),
+            fetchApi: (async (url, init) => {
+                seen = init;
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(url, init);
+            }) as trading.FetchAPI,
             middleware: [
                 metricsMiddleware({
                     genRequestId: () => {
@@ -138,7 +146,199 @@ describe('metricsMiddleware', () => {
         await alpaca.trading.account.getAccount();
 
         expect(metrics).toHaveLength(1);
-        expect(metrics[0].requestId).toBeTruthy();
+        expect(metrics[0].requestId).toMatch(/^[0-9a-f-]{36}$/i);
+        expect(requestIdOf(seen)).toBe(metrics[0].requestId);
+    });
+
+    it('falls back to a UUID when the custom generator returns a non-UUID', async () => {
+        let seen: RequestInit | undefined;
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: (async (url, init) => {
+                seen = init;
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(url, init);
+            }) as trading.FetchAPI,
+            middleware: [
+                metricsMiddleware({
+                    genRequestId: () => 'local-correlation-id',
+                    onRequest: () => {},
+                }),
+            ],
+        });
+
+        await alpaca.trading.account.getAccount();
+
+        expect(requestIdOf(seen)).toMatch(/^[0-9a-f-]{36}$/i);
+        expect(requestIdOf(seen)).not.toBe('local-correlation-id');
+    });
+
+    it('sends a valid custom UUID as X-Request-ID', async () => {
+        const requestId = '550e8400-e29b-41d4-a716-446655440000';
+        const metrics: RequestMetric[] = [];
+        let seen: RequestInit | undefined;
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: (async (url, init) => {
+                seen = init;
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(url, init);
+            }) as trading.FetchAPI,
+            middleware: [
+                metricsMiddleware({
+                    genRequestId: () => requestId,
+                    onRequest: (metric) => metrics.push(metric),
+                }),
+            ],
+        });
+
+        await alpaca.trading.account.getAccount();
+
+        expect(requestIdOf(seen)).toBe(requestId);
+        expect(metrics[0].requestId).toBe(requestId);
+    });
+
+    it('preserves a valid caller-supplied X-Request-ID', async () => {
+        const requestId = '550e8400-e29b-41d4-a716-446655440001';
+        const generate = vi.fn(() => '550e8400-e29b-41d4-a716-446655440002');
+        const metrics: RequestMetric[] = [];
+        let seen: RequestInit | undefined;
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            headers: { 'x-request-id': requestId },
+            fetchApi: (async (url, init) => {
+                seen = init;
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(url, init);
+            }) as trading.FetchAPI,
+            middleware: [
+                metricsMiddleware({
+                    genRequestId: generate,
+                    onRequest: (metric) => metrics.push(metric),
+                }),
+            ],
+        });
+
+        await alpaca.trading.account.getAccount();
+
+        expect(requestIdOf(seen)).toBe(requestId);
+        expect(metrics[0].requestId).toBe(requestId);
+        expect(generate).not.toHaveBeenCalled();
+    });
+
+    it('replaces an invalid caller-supplied X-Request-ID', async () => {
+        const requestId = '550e8400-e29b-41d4-a716-446655440002';
+        let seen: RequestInit | undefined;
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            headers: { 'X-Request-ID': 'not-a-uuid' },
+            fetchApi: (async (url, init) => {
+                seen = init;
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(url, init);
+            }) as trading.FetchAPI,
+            middleware: [
+                metricsMiddleware({
+                    genRequestId: () => requestId,
+                    onRequest: () => {},
+                }),
+            ],
+        });
+
+        await alpaca.trading.account.getAccount();
+
+        expect(requestIdOf(seen)).toBe(requestId);
+    });
+
+    it.each([
+        ['frozen object', Object.freeze({ 'X-Trace': 'frozen' })],
+        ['Headers', new Headers({ 'X-Trace': 'headers' })],
+        ['tuple array', [['X-Trace', 'tuples']] as [string, string][]],
+    ])('copies reusable %s headers before stamping a per-request UUID', async (_name, headers) => {
+        const ids: string[] = [];
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: (async (url, init) => {
+                ids.push(requestIdOf(init) ?? '');
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(url, init);
+            }) as trading.FetchAPI,
+            middleware: [metricsMiddleware({ onRequest: () => {} })],
+        });
+
+        await alpaca.trading.account.getAccount({ headers });
+        await alpaca.trading.account.getAccount({ headers });
+
+        expect(ids).toHaveLength(2);
+        expect(ids[0]).toMatch(/^[0-9a-f-]{36}$/i);
+        expect(ids[1]).toMatch(/^[0-9a-f-]{36}$/i);
+        expect(ids[0]).not.toBe(ids[1]);
+        expect(new Headers(headers).has('X-Request-ID')).toBe(false);
+    });
+
+    it('generates a valid fallback UUID when crypto.randomUUID fails', async () => {
+        const randomUUID = vi.spyOn(globalThis.crypto, 'randomUUID').mockImplementation(() => {
+            throw new Error('randomUUID unavailable');
+        });
+        try {
+            let seen: RequestInit | undefined;
+            const alpaca = new Alpaca({
+                ...CREDS,
+                rateLimit: false,
+                fetchApi: (async (url, init) => {
+                    seen = init;
+                    return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(url, init);
+                }) as trading.FetchAPI,
+                middleware: [metricsMiddleware({ onRequest: () => {} })],
+            });
+
+            await alpaca.trading.account.getAccount();
+
+            expect(requestIdOf(seen)).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+        } finally {
+            randomUUID.mockRestore();
+        }
+    });
+
+    it('shares one UUID across middleware, retries, and an echoed ApiError', async () => {
+        const requestId = '550e8400-e29b-41d4-a716-446655440003';
+        const generate = vi.fn(() => requestId);
+        const outboundIds: string[] = [];
+        const metrics: RequestMetric[] = [];
+        let calls = 0;
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            retry: { maxRetries: 1, retryDelayMs: 1 },
+            fetchApi: (async (_url, init) => {
+                calls++;
+                const outboundId = requestIdOf(init) ?? '';
+                outboundIds.push(outboundId);
+                return new Response(
+                    JSON.stringify({ code: 50010000, message: 'unavailable' }),
+                    {
+                        status: 500,
+                        headers: { 'Content-Type': 'application/json', 'X-Request-ID': outboundId },
+                    },
+                );
+            }) as trading.FetchAPI,
+            middleware: [
+                loggingMiddleware({ logger: {}, genRequestId: generate }),
+                metricsMiddleware({
+                    genRequestId: () => '550e8400-e29b-41d4-a716-446655440004',
+                    onRequest: (metric) => metrics.push(metric),
+                }),
+            ],
+        });
+
+        await expect(alpaca.trading.account.getAccount()).rejects.toMatchObject({
+            requestId,
+        });
+
+        expect(calls).toBe(2);
+        expect(generate).toHaveBeenCalledTimes(1);
+        expect(outboundIds).toEqual([requestId, requestId]);
+        expect(metrics.map((metric) => metric.requestId)).toEqual([requestId, requestId]);
     });
 });
 

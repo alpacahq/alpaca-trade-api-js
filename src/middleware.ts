@@ -5,11 +5,12 @@
  * The runtime passes the same `init` object reference to `pre`, `post`, and
  * `onError` within a single request attempt, so we correlate timing and a
  * generated request id across the three callbacks via a {@link WeakMap} keyed by
- * `init` (no mutation of caller objects, auto-GC'd).
+ * `init` (no mutation of caller objects, auto-GC'd). A valid generated UUID is
+ * also sent as `X-Request-ID`, allowing Alpaca to echo the same id for support
+ * and error correlation.
  *
- * Both middleware are pure observers: they never return an alternative response,
- * and failures from user-provided loggers, metrics sinks, or request-ID
- * generators are isolated so observability can never change a request outcome.
+ * Failures from user-provided loggers, metrics sinks, or request-ID generators
+ * are isolated so observability can never change a request outcome.
  */
 import type { Middleware } from "./trading";
 
@@ -38,8 +39,8 @@ export interface LoggingMiddlewareOptions {
     /** Header names to mask when `logHeaders` is on. Default {@link DEFAULT_REDACTED_HEADERS}. */
     redactHeaders?: string[];
     /**
-     * Generate the per-request id. Default: `crypto.randomUUID()` or a counter.
-     * Falls back to the default generator if this callback throws.
+     * Generate the per-request UUID sent as `X-Request-ID`. Invalid values and
+     * thrown errors fall back to the default generator.
      */
     genRequestId?: () => string;
 }
@@ -66,8 +67,8 @@ export interface MetricsMiddlewareOptions {
      */
     onRequest: (metric: RequestMetric) => void;
     /**
-     * Generate the per-request id. Default: `crypto.randomUUID()` or a counter.
-     * Falls back to the default generator if this callback throws.
+     * Generate the per-request UUID sent as `X-Request-ID`. Invalid values and
+     * thrown errors fall back to the default generator.
      */
     genRequestId?: () => string;
 }
@@ -78,13 +79,39 @@ interface InFlight {
 }
 
 function defaultIdGenerator(): () => string {
-    const cryptoObj = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-    if (cryptoObj?.randomUUID) {
-        const randomUUID = cryptoObj.randomUUID.bind(cryptoObj);
-        return () => randomUUID();
-    }
-    let counter = 0;
-    return () => `req-${Date.now().toString(36)}-${(counter++).toString(36)}`;
+    const cryptoObj = (globalThis as {
+        crypto?: {
+            randomUUID?: () => string;
+            getRandomValues?: (array: Uint8Array) => Uint8Array;
+        };
+    }).crypto;
+    return () => {
+        try {
+            const uuid = cryptoObj?.randomUUID?.();
+            if (isUuid(uuid)) return uuid;
+        } catch {
+            // Fall through to byte-based UUID generation.
+        }
+
+        const bytes = new Uint8Array(16);
+        try {
+            if (cryptoObj?.getRandomValues) {
+                cryptoObj.getRandomValues(bytes);
+            } else {
+                for (let i = 0; i < bytes.length; i++) {
+                    bytes[i] = Math.floor(Math.random() * 256);
+                }
+            }
+        } catch {
+            for (let i = 0; i < bytes.length; i++) {
+                bytes[i] = Math.floor(Math.random() * 256);
+            }
+        }
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    };
 }
 
 /**
@@ -106,17 +133,56 @@ function runObserver(callback: () => unknown): void {
     }
 }
 
-/** Fall back to the built-in request ID when a custom generator fails. */
+const REQUEST_ID_HEADER = "X-Request-ID";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: unknown): value is string {
+    return typeof value === "string" && UUID_PATTERN.test(value);
+}
+
+/** Fall back to the built-in request ID when a custom generator fails or returns a non-UUID. */
 function safeIdGenerator(custom?: () => string): () => string {
     const fallback = defaultIdGenerator();
     if (!custom) return fallback;
     return () => {
         try {
-            return custom();
+            const id = custom();
+            if (isUuid(id)) return id;
         } catch {
-            return fallback();
+            // Fall through to the built-in generator.
         }
+        return fallback();
     };
+}
+
+/**
+ * Reuse a valid caller-supplied UUID or stamp the generated one on a
+ * request-owned header collection.
+ */
+function ensureRequestId(init: RequestInit, generate: () => string): string {
+    const headers = init.headers instanceof Headers
+        ? init.headers
+        : (init.headers ??= {}) as Record<string, string>;
+
+    const existing = headers instanceof Headers
+        ? headers.get(REQUEST_ID_HEADER)
+        : Object.entries(headers).find(([name]) => name.toLowerCase() === "x-request-id")?.[1];
+    if (isUuid(existing)) return existing;
+
+    const id = generate();
+    if (headers instanceof Headers) {
+        if (isUuid(id)) {
+            headers.set(REQUEST_ID_HEADER, id);
+        } else {
+            headers.delete(REQUEST_ID_HEADER);
+        }
+    } else {
+        for (const name of Object.keys(headers)) {
+            if (name.toLowerCase() === "x-request-id") delete headers[name];
+        }
+        if (isUuid(id)) headers[REQUEST_ID_HEADER] = id;
+    }
+    return id;
 }
 
 function now(): number {
@@ -174,7 +240,7 @@ export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middl
 
     return {
         async pre(context) {
-            const id = genId();
+            const id = ensureRequestId(context.init, genId);
             tracked.set(context.init, { id, start: now() });
             const meta: Record<string, unknown> = { requestId: id, method: methodOf(context.init), url: context.url };
             if (options.logHeaders) meta.headers = readHeaders(context.init, redact);
@@ -227,7 +293,7 @@ export function metricsMiddleware(options: MetricsMiddlewareOptions): Middleware
 
     return {
         async pre(context) {
-            tracked.set(context.init, { id: genId(), start: now() });
+            tracked.set(context.init, { id: ensureRequestId(context.init, genId), start: now() });
         },
         async post(context) {
             const tracking = tracked.get(context.init);

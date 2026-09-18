@@ -477,7 +477,13 @@ export class BaseAPI {
 
         const init: RequestInit = {
             ...overriddenInit,
-            body
+            body,
+            // Give middleware a request-owned, mutable header collection that
+            // is shared by every retry attempt without mutating caller input.
+            headers:
+                overriddenInit.headers instanceof Headers || Array.isArray(overriddenInit.headers)
+                    ? new Headers(overriddenInit.headers)
+                    : { ...overriddenInit.headers },
         };
 
         return { url, init };
