@@ -5,9 +5,9 @@
  * The runtime passes the same `init` object reference to `pre`, `post`, and
  * `onError` within a single request attempt, so we correlate timing and a
  * generated request id across the three callbacks via a {@link WeakMap} keyed by
- * `init` (auto-GC'd). On `pre`, we stamp `X-Request-ID` so logs, Alpaca, and
- * `ApiError.requestId` share one id (a value copied from client `headers` is
- * overwritten). Logger, metrics-sink, and generator failures are isolated so
+ * `init` (auto-GC'd). On `pre`, we stamp a UUID `X-Request-ID` so logs, Alpaca,
+ * and `ApiError.requestId` share one ASCII-safe id (a value copied from client
+ * `headers` is overwritten). Logger and metrics-sink failures are isolated so
  * they cannot fail the request.
  */
 import type { Middleware } from "./trading";
@@ -36,13 +36,6 @@ export interface LoggingMiddlewareOptions {
     logHeaders?: boolean;
     /** Header names to mask when `logHeaders` is on. Default {@link DEFAULT_REDACTED_HEADERS}. */
     redactHeaders?: string[];
-    /**
-     * Generate `X-Request-ID` for the request. Overwrites a header already
-     * present (e.g. from the client `headers` option). Default:
-     * `crypto.randomUUID()` or a counter. Falls back to the default generator
-     * if this callback throws.
-     */
-    genRequestId?: () => string;
 }
 
 /** A single completed (or failed) request, passed to {@link MetricsMiddlewareOptions.onRequest}. */
@@ -66,13 +59,6 @@ export interface MetricsMiddlewareOptions {
      * successful API request or replace its original error.
      */
     onRequest: (metric: RequestMetric) => void;
-    /**
-     * Generate `X-Request-ID` for the request. Overwrites a header already
-     * present (e.g. from the client `headers` option). Default:
-     * `crypto.randomUUID()` or a counter. Falls back to the default generator
-     * if this callback throws.
-     */
-    genRequestId?: () => string;
 }
 
 interface InFlight {
@@ -80,14 +66,13 @@ interface InFlight {
     start: number;
 }
 
-function defaultIdGenerator(): () => string {
-    const cryptoObj = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-    if (cryptoObj?.randomUUID) {
-        const randomUUID = cryptoObj.randomUUID.bind(cryptoObj);
-        return () => randomUUID();
-    }
-    let counter = 0;
-    return () => `req-${Date.now().toString(36)}-${(counter++).toString(36)}`;
+let fallbackIdCounter = 0;
+
+/** ASCII `X-Request-ID`: UUID when `crypto.randomUUID` exists, else a hex-ish fallback. */
+function nextRequestId(): string {
+    const uuid = globalThis.crypto?.randomUUID?.();
+    if (typeof uuid === "string") return uuid;
+    return `req-${Date.now().toString(36)}-${(fallbackIdCounter++).toString(36)}`;
 }
 
 /**
@@ -109,30 +94,17 @@ function runObserver(callback: () => unknown): void {
     }
 }
 
-/** Fall back to the built-in request ID when a custom generator fails. */
-function safeIdGenerator(custom?: () => string): () => string {
-    const fallback = defaultIdGenerator();
-    if (!custom) return fallback;
-    return () => {
-        try {
-            return custom();
-        } catch {
-            return fallback();
-        }
-    };
-}
-
 const REQUEST_ID_HEADER = "X-Request-ID";
 /** Ids already stamped onto a transport headers object (shared across middleware + retries). */
 const stampedRequestIds = new WeakMap<object, string>();
 
 /** Transport headers are a plain object (`Object.assign` in createFetchParams). */
-function ensureRequestId(init: RequestInit, genId: () => string): string {
+function ensureRequestId(init: RequestInit): string {
     const headers = (init.headers ?? {}) as Record<string, string>;
     init.headers = headers;
     const stamped = stampedRequestIds.get(headers);
     if (stamped) return stamped;
-    const id = genId();
+    const id = nextRequestId();
     for (const key of Object.keys(headers)) {
         if (key.toLowerCase() === "x-request-id") delete headers[key];
     }
@@ -173,14 +145,12 @@ function readHeaders(init: RequestInit | undefined, redact: Set<string>): Record
 /**
  * Logs one line per request attempt: method, url, status, duration, and a
  * generated request id (errors are logged at `error` level). Secrets in headers
- * are redacted; headers are only included when `logHeaders` is set. Logger and
- * request-ID-generator failures are swallowed so logging never changes the
- * request's result.
+ * are redacted; headers are only included when `logHeaders` is set. Logger
+ * failures are swallowed so logging never changes the request's result.
  */
 export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middleware {
     const logger = options.logger ?? console;
     const level = options.level ?? "info";
-    const genId = safeIdGenerator(options.genRequestId);
     const redact = new Set((options.redactHeaders ?? DEFAULT_REDACTED_HEADERS).map((h) => h.toLowerCase()));
     const tracked = new WeakMap<RequestInit, InFlight>();
 
@@ -196,7 +166,7 @@ export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middl
 
     return {
         async pre(context) {
-            const id = ensureRequestId(context.init, genId);
+            const id = ensureRequestId(context.init);
             tracked.set(context.init, { id, start: now() });
             const meta: Record<string, unknown> = { requestId: id, method: methodOf(context.init), url: context.url };
             if (options.logHeaders) meta.headers = readHeaders(context.init, redact);
@@ -241,7 +211,6 @@ export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middl
  * Stamps `X-Request-ID` on each request.
  */
 export function metricsMiddleware(options: MetricsMiddlewareOptions): Middleware {
-    const genId = safeIdGenerator(options.genRequestId);
     const tracked = new WeakMap<RequestInit, InFlight>();
     const emit = (metric: RequestMetric): void => {
         runObserver(() => options.onRequest(metric));
@@ -249,7 +218,7 @@ export function metricsMiddleware(options: MetricsMiddlewareOptions): Middleware
 
     return {
         async pre(context) {
-            tracked.set(context.init, { id: ensureRequestId(context.init, genId), start: now() });
+            tracked.set(context.init, { id: ensureRequestId(context.init), start: now() });
         },
         async post(context) {
             const tracking = tracked.get(context.init);

@@ -884,8 +884,9 @@ const alpaca = new Alpaca({
 ```
 
 `loggingMiddleware` redacts the `APCA-*` and `Authorization` headers by default
-(and only includes headers at all when `logHeaders: true`). Both accept a
-`genRequestId` to supply `X-Request-ID` (overwrites a value from client `headers`).
+(and only includes headers at all when `logHeaders: true`). Both stamp a UUID
+`X-Request-ID` per request (overwriting a value from client `headers`) so logs
+and `ApiError.requestId` match.
 
 ## Dependencies
 

@@ -2,4 +2,4 @@
 "@alpacahq/alpaca-trade-api": patch
 ---
 
-Stamp `X-Request-ID` from logging/metrics `genRequestId` on each request (overwriting a client `headers` value) so logs and `ApiError.requestId` match.
+Stamp a UUID `X-Request-ID` from logging/metrics middleware on each request (overwriting a client `headers` value) so logs and `ApiError.requestId` match.
