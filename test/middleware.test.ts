@@ -123,6 +123,50 @@ describe('metricsMiddleware', () => {
         });
     });
 
+    it('stamps a custom request id and reports it in metrics', async () => {
+        let seen: RequestInit | undefined;
+        const metrics: RequestMetric[] = [];
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: (async (_url, init) => {
+                seen = init;
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(_url, init);
+            }) as trading.FetchAPI,
+            middleware: [
+                metricsMiddleware({
+                    genRequestId: () => 'custom-id',
+                    onRequest: (metric) => metrics.push(metric),
+                }),
+            ],
+        });
+
+        await alpaca.trading.account.getAccount();
+
+        expect(requestIdOf(seen)).toBe('custom-id');
+        expect(metrics[0].requestId).toBe('custom-id');
+    });
+
+    it.each([
+        ['throws', () => { throw new Error('generator unavailable'); }],
+        ['returns an invalid header value', () => 'bad\nid'],
+    ])('falls back to a UUID when the custom generator %s', async (_case, genRequestId) => {
+        let seen: RequestInit | undefined;
+        const alpaca = new Alpaca({
+            ...CREDS,
+            rateLimit: false,
+            fetchApi: (async (_url, init) => {
+                seen = init;
+                return fetchReturning({ id: 'acct-1', account_number: 'PA1', status: 'ACTIVE' })(_url, init);
+            }) as trading.FetchAPI,
+            middleware: [loggingMiddleware({ genRequestId })],
+        });
+
+        await alpaca.trading.account.getAccount();
+
+        expect(requestIdOf(seen)).toMatch(/^[0-9a-f-]{36}$/i);
+    });
+
     it('stamps a UUID X-Request-ID shared by logs and metrics', async () => {
         const captured: RequestInit[] = [];
         const metrics: RequestMetric[] = [];

@@ -36,6 +36,8 @@ export interface LoggingMiddlewareOptions {
     logHeaders?: boolean;
     /** Header names to mask when `logHeaders` is on. Default {@link DEFAULT_REDACTED_HEADERS}. */
     redactHeaders?: string[];
+    /** Generate the per-request id. Invalid values and thrown errors fall back to the default. */
+    genRequestId?: () => string;
 }
 
 /** A single completed (or failed) request, passed to {@link MetricsMiddlewareOptions.onRequest}. */
@@ -59,6 +61,8 @@ export interface MetricsMiddlewareOptions {
      * successful API request or replace its original error.
      */
     onRequest: (metric: RequestMetric) => void;
+    /** Generate the per-request id. Invalid values and thrown errors fall back to the default. */
+    genRequestId?: () => string;
 }
 
 interface InFlight {
@@ -97,13 +101,20 @@ function runObserver(callback: () => unknown): void {
 const REQUEST_ID_HEADER = "X-Request-ID";
 const stampedRequestIds = new WeakMap<Headers, string>();
 
-function ensureRequestId(init: RequestInit): string {
+function ensureRequestId(init: RequestInit, generate?: () => string): string {
     const headers = init.headers instanceof Headers ? init.headers : new Headers(init.headers);
     init.headers = headers;
     const stamped = stampedRequestIds.get(headers);
     if (stamped) return stamped;
 
-    const id = nextRequestId();
+    let id: string | undefined;
+    try {
+        const generated = generate?.();
+        if (generated && /^[\x20-\x7E]+$/.test(generated)) id = generated.trim();
+    } catch {
+        // Fall through to the built-in generator.
+    }
+    id ||= nextRequestId();
     headers.set(REQUEST_ID_HEADER, id);
     stampedRequestIds.set(headers, id);
     return id;
@@ -162,7 +173,7 @@ export function loggingMiddleware(options: LoggingMiddlewareOptions = {}): Middl
 
     return {
         async pre(context) {
-            const id = ensureRequestId(context.init);
+            const id = ensureRequestId(context.init, options.genRequestId);
             tracked.set(context.init, { id, start: now() });
             const meta: Record<string, unknown> = { requestId: id, method: methodOf(context.init), url: context.url };
             if (options.logHeaders) meta.headers = readHeaders(context.init, redact);
@@ -214,7 +225,7 @@ export function metricsMiddleware(options: MetricsMiddlewareOptions): Middleware
 
     return {
         async pre(context) {
-            tracked.set(context.init, { id: ensureRequestId(context.init), start: now() });
+            tracked.set(context.init, { id: ensureRequestId(context.init, options.genRequestId), start: now() });
         },
         async post(context) {
             const tracking = tracked.get(context.init);
