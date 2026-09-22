@@ -5,7 +5,9 @@ title: Resilience & configuration
 # Resilience & configuration
 
 All resilience features are configured on the `Alpaca` client (or a raw
-`Configuration`).
+`Configuration`). The `Alpaca` facade enables the defaults described below.
+Bare generated API clients built from a low-level `Configuration` have retries
+off (`maxRetries: 0`) unless you configure them.
 
 ```ts
 const alpaca = new Alpaca({
@@ -36,7 +38,8 @@ status set `408, 425, 429, 500, 502, 503, 504`. Only safe/idempotent verbs
 (`GET/HEAD/OPTIONS/TRACE`) and transient network failures are retried — a
 non-idempotent `POST`/`PATCH`/etc. is never auto-retried, so an order can't be
 silently replayed by the transport. A `Retry-After` header is honored over the
-computed delay for eligible requests.
+computed delay for eligible requests: it replaces the computed backoff, but is
+still capped by `maxDelayMs`.
 
 ### Observability
 
@@ -101,10 +104,27 @@ and successful or error response-body consumption.
 
 Retry backoff is outside the finished attempt's budget; the next attempt gets a
 new full deadline. A caller `AbortSignal` spans the whole operation and can
-cancel an active attempt or its retry backoff. Cancellation from any phase
-rejects with `FetchError`, whose `cause` is an `AbortError` for caller
-cancellation or a `TimeoutError` for the attempt deadline. Neither cancellation
-kind is retried, and `POST` remains excluded from automatic retry.
+cancel an active attempt or its retry backoff. Pass it through a generated
+method's `initOverrides`: it follows the request-parameters object when a method
+has one, and is the first argument for parameterless methods:
+
+```ts
+const controller = new AbortController();
+const request = alpaca.trading.orders.getAllOrders(
+  {},
+  { signal: controller.signal },
+);
+
+controller.abort();
+await request;
+```
+
+Cancellation from any phase rejects with `FetchError`. A default abort from
+`controller.abort()` has an `AbortError` cause. A custom reason that is an
+`Error` or `DOMException` remains the cause; primitive custom reasons are
+normalized to an `AbortError` rather than exposed as raw values. An attempt
+deadline has a `TimeoutError` cause. Neither cancellation kind is retried, and
+`POST` remains excluded from automatic retry.
 
 ## Redirects
 
@@ -127,8 +147,53 @@ bare `Configuration` do not enable a limiter unless you configure one.
 Non-2xx responses reject with a typed `ApiError` (subclasses: `AuthError` 401,
 `PermissionError` 403, `NotFoundError` 404, `ValidationError` 400/422,
 `RateLimitError` 429), each carrying `status`, `code`, `rateLimit`, and
-`requestId`. For metadata on a **successful** call, wrap the generated `*Raw`
-method with `withResponse`:
+`requestId`. Handle API responses separately from transport failures:
+
+```ts
+import {
+  ApiError,
+  FetchError,
+  orders,
+} from "@alpacahq/alpaca-trade-api";
+
+const clientOrderId = `resilient-order-${crypto.randomUUID()}`;
+const postOrderRequest = orders.buildMarketOrder({
+  symbol: "AAPL",
+  side: "buy",
+  qty: 1,
+  clientOrderId,
+});
+
+try {
+  await alpaca.trading.orders.postOrder({ postOrderRequest });
+} catch (error) {
+  if (error instanceof ApiError) {
+    console.error({
+      status: error.status,
+      code: error.code,
+      message: error.message,
+      requestId: error.requestId,
+      rateLimit: error.rateLimit,
+    });
+  } else if (error instanceof FetchError) {
+    // DNS, connection, timeout, or cancellation failure; inspect the cause.
+    console.error("transport failed", error.cause);
+    // For a POST order, the outcome may be ambiguous: reconcile the stable
+    // clientOrderId before resubmitting.
+  } else {
+    throw error;
+  }
+}
+```
+
+An `ApiError` proves that Alpaca returned an HTTP response. A `FetchError`
+instead wraps the underlying transport `cause`; for a submitted POST, that
+transport failure can be ambiguous because the server may have accepted the
+request before the response was lost. Reconcile by stable `clientOrderId`
+before resubmitting an order.
+
+For metadata on a **successful** call, wrap the generated `*Raw` method with
+`withResponse`:
 
 ```ts
 import { withResponse } from "@alpacahq/alpaca-trade-api";

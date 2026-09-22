@@ -46,6 +46,16 @@ describe("alpaca-v3-to-v4 codemod", () => {
         );
     });
 
+    it("migrates the actual v3 client-order lookup name", () => {
+        const result = transform(`import Alpaca from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca({ keyId: "key", secretKey: "secret" });
+alpaca.getOrderByClientId(clientOrderId);`);
+
+        expect(result.source).toContain(
+            "alpaca.trading.orders.getOrderByClientOrderId({\n  clientOrderId: clientOrderId\n});",
+        );
+    });
+
     it("keeps reassigned and assignment-proven bindings unchanged", () => {
         const result = transform(fixture("flow-input.js"));
         expect(result.source).toBe(fixture("flow-output.js"));

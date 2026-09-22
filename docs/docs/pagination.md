@@ -23,8 +23,9 @@ for await (const activity of alpaca.trading.iterateActivities({ activityTypes: [
 const contracts = await alpaca.trading.collectOptionsContracts({ underlyingSymbols: "AAPL" });
 ```
 
-Market data exposes the same shape across every paginated endpoint. The
-`collect*BySymbol` variants merge pages into a `{ [symbol]: T[] }` map:
+The common historical bar, trade, quote, and auction helpers yield
+`{ symbol, value }` records. Their `collect*BySymbol` variants merge pages into
+symbol-keyed arrays:
 
 ```ts
 import { TimeFrame } from "@alpacahq/alpaca-trade-api";
@@ -46,8 +47,16 @@ const bySymbol = await alpaca.marketData.collectStockBarsBySymbol({
 });
 ```
 
-These cover bars/trades/quotes/auctions for stocks, crypto and options, plus
-index values, forex rates, option snapshots/chains, news, and corporate actions.
+The exact collected shape follows the endpoint:
+
+- **Symbol-keyed arrays** cover stock bars/trades/quotes/auctions, crypto
+  bars/trades/quotes, option bars/trades, index values, and forex rates.
+- **Symbol-keyed objects** cover option snapshots and option chains, where each
+  symbol has one snapshot rather than an array.
+- **Top-level arrays** cover news and the single-symbol stock
+  bar/trade/quote/auction endpoints.
+- Corporate actions use a **corporate-action envelope** whose typed action
+  arrays are merged across pages.
 
 Every token- and cursor-based helper tracks the full traversal history. If an
 endpoint returns any previously visited token/cursor — including a longer cycle
@@ -81,6 +90,30 @@ In every case the next page is requested only as you consume the current one, so
 large histories stream lazily instead of buffering everything in memory. The
 same full-history cycle guard applies to these generic helpers.
 
+Cursor-based endpoints use `pagination.paginateCursor` with a cursor extracted
+from the last item. It provides the same lazy backpressure: it fetches the next
+page only after the current page has been consumed.
+
+```ts
+import { pagination, trading } from "@alpacahq/alpaca-trade-api";
+
+const cursorOptions: pagination.CursorOptions<
+  trading.GetAccountActivities200ResponseInner
+> = {
+  fetchPage: (pageToken) =>
+    alpaca.trading.accountActivities.getAccountActivities({
+      pageToken,
+      pageSize: 100,
+    }),
+  getCursor: (activity) => activity.id,
+  pageSize: 100,
+};
+
+for await (const activity of pagination.paginateCursor(cursorOptions)) {
+  console.log(activity.id);
+}
+```
+
 ## Bounding large fetches
 
 Eager collection can consume substantial memory. Multi-symbol
@@ -102,7 +135,57 @@ const recent = await alpaca.marketData.getStockBars(
 By default, every symbol is multiplexed into one request and its page-token
 chain is followed sequentially. The generic `pagination.collect` and
 `pagination.collectCursor` accept `maxItems`; `pagination.collectBySymbol`
-accepts `maxPerSymbol`.
+accepts `maxPerSymbol`. Supply the expected `symbols` to `collectBySymbol` so it
+can stop fetching as soon as every requested symbol reaches that bound:
+
+```ts
+import {
+  marketData,
+  pagination,
+  TimeFrame,
+  trading,
+} from "@alpacahq/alpaca-trade-api";
+
+const cursorOptions: pagination.CursorOptions<
+  trading.GetAccountActivities200ResponseInner
+> = {
+  fetchPage: (pageToken) =>
+    alpaca.trading.accountActivities.getAccountActivities({
+      pageToken,
+      pageSize: 100,
+    }),
+  getCursor: (activity) => activity.id,
+  pageSize: 100,
+};
+
+const activities = await pagination.collectCursor(cursorOptions, {
+  maxItems: 500,
+});
+
+const fetchBarsPage: pagination.SymbolMapPageFetcher<marketData.StockBar> =
+  async (pageToken) => {
+    const response = await alpaca.marketData.stocks.stockBars({
+      symbols: "AAPL,MSFT",
+      timeframe: TimeFrame.Day,
+      start: new Date("2024-01-01"),
+      pageToken,
+    });
+    return {
+      data: response.bars ?? {},
+      nextPageToken: response.nextPageToken,
+    };
+  };
+
+const bars = await pagination.collectBySymbol(fetchBarsPage, {
+  symbols: ["AAPL", "MSFT"],
+  maxPerSymbol: 1_000,
+});
+```
+
+`collectCursor` and `collectBySymbol` are eager collectors, so set these bounds
+when the full history might not fit comfortably in memory. Without expected
+symbols, `collectBySymbol` still caps each array but must follow the token chain
+to completion because a new symbol could appear on a later page.
 
 ## Controlled fan-out
 
@@ -133,3 +216,26 @@ For custom fan-out, `pagination.chunk(items, size)` creates consecutive groups,
 and `pagination.mapConcurrent(items, concurrency, worker)` preserves input
 order while keeping at most the requested number of workers in flight. Its
 first rejection rejects the whole operation.
+
+```ts
+import {
+  Alpaca,
+  pagination,
+  TimeFrame,
+} from "@alpacahq/alpaca-trade-api";
+
+const alpaca = new Alpaca({
+  keyId: process.env.APCA_API_KEY_ID,
+  secret: process.env.APCA_API_SECRET_KEY,
+});
+const bigList = ["AAPL", "MSFT", "GOOG", "AMZN"];
+const start = new Date("2024-01-01");
+const groups = pagination.chunk(bigList, 25);
+const results = await pagination.mapConcurrent(groups, 4, async (symbols) => {
+  return alpaca.marketData.getStockBars({
+    symbols,
+    timeframe: TimeFrame.Day,
+    start,
+  });
+});
+```

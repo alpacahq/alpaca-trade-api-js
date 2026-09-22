@@ -41,15 +41,19 @@ npm run generate           # fetch latest specs, preview diff, adopt with care
 
 Behavior, ergonomics, streaming, pagination, and shared transport live in
 hand-written modules (`src/client.ts`, `src/orders.ts`, `src/core/runtime.ts`,
-`src/streaming/`, …). See [AGENTS.md](./AGENTS.md) and
-[tooling/GENERATION.md](./tooling/GENERATION.md) for the full rules.
+`src/streaming/`, …). See
+[AGENTS.md](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/AGENTS.md)
+and
+[tooling/GENERATION.md](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/tooling/GENERATION.md)
+for the full rules.
 
 ## Documentation
 
 The **[documentation site](https://alpacahq.github.io/alpaca-trade-api-js/)**
 is the canonical user-facing reference.
 
-- **Authored guides** live under [`docs/docs/`](./docs/docs/).
+- **Authored guides** live under
+  [`docs/docs/`](https://github.com/alpacahq/alpaca-trade-api-js/tree/master/docs/docs/).
 - **Generated pages** — API reference, examples, and the migration page — are
   produced during the docs build from the SDK capability maps, repository
   examples, and root [`MIGRATION.md`](./MIGRATION.md).
@@ -71,4 +75,5 @@ npm run changeset
 Pick the semver bump and write a one-line, user-facing summary. Commit the
 generated `.changeset/*.md` file with your change. Merging to `master` opens a
 version PR; publishing to npm **`latest`** happens after that PR merges. See
-[AGENTS.md](./AGENTS.md) for the release workflow.
+[AGENTS.md](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/AGENTS.md)
+for the release workflow.

@@ -1,3 +1,13 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import {
+    createProgram,
+    flattenDiagnosticMessageText,
+    ModuleKind,
+    ModuleResolutionKind,
+    ScriptTarget,
+} from 'typescript';
 import { describe, it, expect } from 'vitest';
 
 import { examples } from '../scripts/api-reference/examples';
@@ -6,6 +16,50 @@ import {
     referenceKeys,
     renderApiReferenceSitePages,
 } from '../scripts/api-reference/render';
+
+function compileExample(
+    directory: string,
+    sdkEntry: string,
+    key: string,
+    index: number,
+    example: string,
+): string[] {
+    const safeKey = key.replaceAll(/[^a-zA-Z0-9_$]/g, '_');
+    const filename = join(directory, `${index}_${safeKey}.ts`);
+    const source = [
+        `import { Alpaca, TimeFrame } from ${JSON.stringify(sdkEntry)};`,
+        'const alpaca = new Alpaca({ keyId: "key", secret: "secret" });',
+        '',
+        'async function example() {',
+        ...example.split('\n').map((line) => `    ${line}`),
+        '}',
+        '',
+    ].join('\n');
+
+    writeFileSync(filename, source);
+    const program = createProgram([filename], {
+        target: ScriptTarget.ES2022,
+        module: ModuleKind.CommonJS,
+        moduleResolution: ModuleResolutionKind.Node10,
+        strict: true,
+        noEmit: true,
+        skipLibCheck: true,
+        types: ['node'],
+    });
+    const sourceFile = program.getSourceFile(filename);
+    if (!sourceFile) {
+        return [`${key}: temporary module was not added to its TypeScript program`];
+    }
+
+    return [
+        ...program.getSyntacticDiagnostics(sourceFile),
+        ...program.getSemanticDiagnostics(sourceFile),
+    ]
+        .map(
+            (diagnostic) =>
+                `${key}: ${flattenDiagnosticMessageText(diagnostic.messageText, '\n')}`,
+        );
+}
 
 describe('API reference generation', () => {
     it('documents exactly every capability method (no missing, no stray)', () => {
@@ -29,6 +83,55 @@ describe('API reference generation', () => {
             invalid,
             `examples with plain timeframe string literals: ${invalid.join(', ')}`,
         ).toEqual([]);
+    });
+
+    it('subscribes to order/trade updates before connecting', () => {
+        const { description, example } = examples['trading.stream'];
+        const subscribe = example.indexOf('updates.subscribeTradeUpdates();');
+        const connect = example.indexOf('updates.connect();');
+
+        expect(description).toContain('order/trade');
+        expect(description).not.toContain('order/account');
+        expect(subscribe).toBeGreaterThan(-1);
+        expect(connect).toBeGreaterThan(subscribe);
+        expect(example).not.toMatch(/onConnect\([^)]*subscribeTradeUpdates/s);
+    });
+
+    it('compiles each capability example in an isolated TypeScript program', () => {
+        const source = readFileSync(import.meta.filename, 'utf8');
+
+        expect(source).toMatch(/^function compileExample\(/m);
+        expect(source).toMatch(
+            /^function compileExample\([\s\S]*?createProgram\(\[filename\]/m,
+        );
+    });
+
+    it(
+        'type-checks every example against the SDK surface',
+        () => {
+            const directory = mkdtempSync(join(tmpdir(), 'alpaca-api-reference-'));
+            const sdkEntry = resolve(import.meta.dirname, '..', 'src', 'index');
+
+            try {
+                const diagnostics = Object.entries(examples).flatMap(
+                    ([key, entry], index) =>
+                        compileExample(directory, sdkEntry, key, index, entry.example),
+                );
+
+                expect(diagnostics, diagnostics.join('\n')).toEqual([]);
+            } finally {
+                rmSync(directory, { recursive: true, force: true });
+            }
+        },
+        120_000,
+    );
+
+    it('describes submitAndWait as returning a terminal order', () => {
+        const example = examples['trading.submitAndWait'].example;
+
+        expect(example).toContain('const terminalOrder = await alpaca.trading.submitAndWait');
+        expect(example).toContain('if (terminalOrder.status === "filled")');
+        expect(example).not.toContain('const filled =');
     });
 
     it('every documentation key is unique', () => {

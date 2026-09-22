@@ -8,8 +8,9 @@ stable **`4.x`** SDK.
 >   API surface changed.
 > - One flat client (`alpaca.getAccount()`) became **two namespaces**:
 >   `alpaca.trading.*` and `alpaca.marketData.*`.
-> - Every call now takes **a single options object** (no positional args) and
->   uses **camelCase** fields (`timeInForce`, not `time_in_force`).
+> - Every generated REST call takes **a single options object** and uses
+>   **camelCase** fields (`timeInForce`, not `time_in_force`). Ergonomic helpers
+>   may use intentional positional symbol/options arguments.
 > - There are **two layers**: an **ergonomic layer** that mirrors the old
 >   ergonomics (`alpaca.trading.orders.market({...})`, auto-paginating
 >   `alpaca.marketData.getStockBars({...})`) and the lower-level **generated
@@ -104,7 +105,7 @@ await alpaca.marketData.getStockBarsFor("AAPL", { timeframe: TimeFrame.Day, star
 
 `alpaca.data` is an alias for `alpaca.marketData`.
 
-### 2. A single options object (no positional args)
+### 2. Generated REST methods use a single options object
 
 ```ts
 // 3.x — positional
@@ -115,6 +116,10 @@ await alpaca.getPosition("AAPL");
 await alpaca.trading.orders.getOrderByOrderID({ orderId });
 await alpaca.trading.positions.getOpenPosition({ symbolOrAssetId: "AAPL" });
 ```
+
+Ergonomic helpers can use deliberate positional arguments where that reads
+better, for example `getLatestPrice("AAPL")` and
+`getStockBarsFor("AAPL", { timeframe, start })`.
 
 ### 3. camelCase fields
 
@@ -192,7 +197,7 @@ const alpaca = new Alpaca({
 | `secretKey` | **`secret`** | renamed (env `APCA_API_SECRET_KEY`) |
 | `oauth` | `accessToken` | env renamed `APCA_API_OAUTH` → `APCA_API_OAUTH_TOKEN`; OAuth clients are REST-only (no streaming) |
 | `paper` | `paper` | **default flipped to `true`**. Pass `paper: false` for live. |
-| `baseUrl` / `dataBaseUrl` | derived from `paper`/`sandbox` | override per-request via `initOverrides` or `headers`/middleware; you rarely set base URLs now |
+| `baseUrl` / `dataBaseUrl` | no facade equivalent | The `Alpaca` facade selects hosts from `paper`/`sandbox` and has no `basePath`; `initOverrides` and headers cannot rewrite a URL. For a custom host, use a low-level `trading.Configuration` or `marketData.Configuration` with `basePath`, or a custom `fetchApi` or middleware that rewrites the request URL. |
 | `dataStreamUrl` | `stockStream({ url })` etc. | per-stream `url` override (any stream, market-data included) for proxy/gateway routing |
 | `apiVersion` | _(removed)_ | endpoints are versioned in the spec |
 | `feed` (ctor) | per-call `feed` / `stockStream({ feed })` | the feed is no longer global state on the client |
@@ -364,11 +369,11 @@ const hist = await alpaca.getPortfolioHistory({
 
 // 4.x — namespaced + camelCase keys
 const hist = await alpaca.trading.portfolioHistory.getAccountPortfolioHistory({
-  start: "2024-01-01",       // was date_start
-  end: "2024-02-01",         // was date_end
+  start: new Date("2024-01-01"), // was date_start
+  end: new Date("2024-02-01"),   // was date_end
   period: "1M",
   timeframe: "1D",
-  extendedHours: true,       // was extended_hours
+  extendedHours: "true",         // was extended_hours
 });
 ```
 
@@ -397,11 +402,12 @@ await alpaca.createOrder({
 });
 
 // 4.x — market (ergonomic)
+const marketClientOrderId = crypto.randomUUID();
 await alpaca.trading.orders.market({
   symbol: "AAPL",
   side: "buy",
   qty: 1,
-  clientOrderId: "rebalance-2026-07-16-aapl-1",
+  clientOrderId: marketClientOrderId,
 });
 ```
 
@@ -413,8 +419,10 @@ await alpaca.createOrder({
 });
 
 // 4.x — limit (ergonomic)
+const limitClientOrderId = crypto.randomUUID();
 await alpaca.trading.orders.limit({
   symbol: "AAPL", side: "buy", qty: 1, limitPrice: 150, timeInForce: "gtc",
+  clientOrderId: limitClientOrderId,
 });
 ```
 
@@ -444,19 +452,23 @@ await alpaca.createOrder({
 });
 
 // 4.x
+const bracketClientOrderId = crypto.randomUUID();
 await alpaca.trading.orders.bracket({
   symbol: "AAPL", side: "buy", qty: 1, limitPrice: 150, timeInForce: "gtc",
   takeProfit: { limitPrice: 200 },
   stopLoss: { stopPrice: 140, limitPrice: 138 },
+  clientOrderId: bracketClientOrderId,
 });
 ```
 
 **Generated fallback** (if you need a field the builder doesn't expose):
 
 ```ts
+const rawClientOrderId = crypto.randomUUID();
 await alpaca.trading.orders.postOrder({
   postOrderRequest: {
     symbol: "AAPL", side: "buy", qty: "1", type: "market", timeInForce: "day",
+    clientOrderId: rawClientOrderId,
   },
 });
 ```
@@ -496,7 +508,7 @@ alpaca.getOrders({ status: "open", limit: 50 })
 alpaca.getOrder(id)
   → alpaca.trading.orders.getOrderByOrderID({ orderId: id })
 
-alpaca.getOrderByClientOrderId(cid)
+alpaca.getOrderByClientId(cid)
   → alpaca.trading.orders.getOrderByClientOrderId({ clientOrderId: cid })
 
 alpaca.replaceOrder(id, { qty: 2, limit_price: 151 })
@@ -518,7 +530,7 @@ New ergonomic helper — wait for the server's trade-updates listening
 acknowledgement, submit one order, and resolve once it reaches a terminal state:
 
 ```ts
-const filled = await alpaca.trading.submitAndWait(
+const terminalOrder = await alpaca.trading.submitAndWait(
   {
     type: "market",
     symbol: "AAPL",
@@ -528,6 +540,11 @@ const filled = await alpaca.trading.submitAndWait(
   },
   { timeoutMs: 30_000 },
 );
+if (terminalOrder.status === "filled") {
+  console.log("filled at", terminalOrder.filledAvgPrice);
+} else {
+  console.log("terminal order status", terminalOrder.status);
+}
 ```
 
 One deadline covers connect, authentication, subscription, REST placement, and
@@ -580,10 +597,17 @@ Options-contract discovery also lives under `trading.assets`
 await alpaca.getCalendar({ start: "2024-01-01", end: "2024-01-31" });
 
 // 4.x — drop-in (v2-compatible)
-await alpaca.trading.calendar.legacyCalendar({ start: "2024-01-01", end: "2024-01-31" });
+await alpaca.trading.calendar.legacyCalendar({
+  start: new Date("2024-01-01"),
+  end: new Date("2024-01-31"),
+});
 
 // 4.x — newer v3 endpoint (requires a market)
-await alpaca.trading.calendar.calendar({ market: "us_equity", start: "2024-01-01", end: "2024-01-31" });
+await alpaca.trading.calendar.calendar({
+  market: "NYSE",
+  start: new Date("2024-01-01"),
+  end: new Date("2024-01-31"),
+});
 ```
 
 ### Clock
@@ -610,7 +634,7 @@ alpaca.getWatchlist(id)
 
 alpaca.addWatchlist("My list", ["AAPL", "MSFT"])
   → alpaca.trading.watchlists.postWatchlist({
-      updateWatchlistRequest: { name: "My list", symbols: ["AAPL", "MSFT"] },
+      createWatchlistRequest: { name: "My list", symbols: ["AAPL", "MSFT"] },
     })
 
 alpaca.addToWatchlist(id, "AAPL")
@@ -672,7 +696,7 @@ for await (const b of alpaca.getBarsV2("AAPL", {
 
 // 4.x — single symbol, returns Bar[] (already paginated)
 const bars = await alpaca.marketData.getStockBarsFor("AAPL", {
-  start: "2024-04-01", end: "2024-04-02",
+  start: new Date("2024-04-01"), end: new Date("2024-04-02"),
   timeframe: timeFrame(30, TimeFrameUnit.Minute),
 });
 ```
@@ -702,8 +726,10 @@ const aapl = bySymbol["AAPL"];
 For very large pulls, stream instead of buffering:
 
 ```ts
-for await (const page of alpaca.marketData.iterateStockBars({ symbols, timeframe, start })) {
-  // page is one symbol-keyed chunk
+for await (const { symbol, value } of alpaca.marketData.iterateStockBars({
+  symbols, timeframe, start,
+})) {
+  console.log(symbol, value);
 }
 ```
 
@@ -733,18 +759,22 @@ alpaca.getSnapshots(["TSLA"])
   → alpaca.marketData.stocks.stockSnapshots({ symbols: ["TSLA"] })
 ```
 
-> The `feed` (`iex`/`sip`/`delayed_sip`) is now a per-call field (e.g.
-> `{ symbols, feed: "sip" }`) instead of client-wide constructor state.
+> The `feed` is now a per-call field instead of client-wide constructor state.
+> Historical stock feeds are `iex`, `sip`, `otc`, and `boats` (for example,
+> `{ symbols, feed: "sip" }`). `delayed_sip` is supported only where explicitly
+> typed, such as streaming and latest-data calls; it is not a generic historical
+> feed.
 
 ### Crypto data
 
 Same generator-→-object change as stocks, **plus** a required `loc` (location,
-e.g. `"us"`) parameter on the generated methods.
+e.g. `"us"`) parameter on crypto requests, including ergonomic
+`getCryptoBars`.
 
 ```ts
 // 3.x → 4.x
 alpaca.getCryptoBars(["BTC/USD"], { start, end, timeframe })   // AsyncGenerator
-  → alpaca.marketData.getCryptoBars({ symbols: ["BTC/USD"], start, end, timeframe })
+  → alpaca.marketData.getCryptoBars({ loc: "us", symbols: ["BTC/USD"], start, end, timeframe })
     // -> { [symbol]: Bar[] }, auto-paginated
 
 alpaca.getLatestCryptoTrades(["BTC/USD"])                      // Map
@@ -813,10 +843,12 @@ precision). `timestamp` remains a millisecond `Date`, so no migration is require
 canonical **index-value** (`getIndexValues`) and **stock-auction**
 (`getStockAuctions`) accessors carry the same `timestampRaw`.
 
-Trade ids are 64-bit integers that can exceed JavaScript's safe integer range
-(`2^53`) — notably crypto trade ids. Both the live market-data stream **and** the
-REST canonical trade accessors now expose an exact string alongside the numeric
-field — additive, so no migration is required:
+Some API integer tokens can exceed JavaScript's safe integer range. Crypto trade
+ids are common, but not exclusive. The REST market-data lossless parser converts
+any unsafe integer token beyond
+`Number.MAX_SAFE_INTEGER` to a string, regardless of field. Both the live
+market-data stream **and** the REST canonical trade accessors expose an exact
+string alongside numeric ID fields — additive, so no migration is required:
 
 - REST canonical trades (`getStockTrades`/`getCryptoTrades`): `idRaw?: string`
   next to `id: number`.
@@ -824,13 +856,12 @@ field — additive, so no migration is required:
 - Stream corrections: `originalIdRaw?` / `correctedIdRaw?` next to the numeric ids.
 - Stream news: `idRaw?: string` next to `id: number`.
 
-Use `idRaw` when you compare, store, or key on an id. The REST market-data
-transport now parses JSON losslessly to make this possible; the one runtime
-consequence is that on the **raw** generated models an id past `2^53` (in
-practice a crypto trade `.i`) surfaces as a `string` rather than a lossy
-`number`. Prefer the canonical accessors (both `id` and `idRaw`), or read the raw
-`.i` as the exact string; stock/option ids, news ids, sizes, volumes, and counts
-are unaffected.
+Use `idRaw` when you compare, store, or key on an id. On **raw** generated
+market-data models, any field whose JSON integer token is unsafe can therefore
+surface as a `string` rather than a lossy `number`; this is not limited to a
+particular schema or property name. Prefer the canonical accessors (both `id`
+and `idRaw` where available), and handle raw integer fields as `number | string`
+when consuming the generated response directly.
 
 ## Real-time streaming
 
@@ -913,7 +944,7 @@ disconnect emits once. Malformed/decode/mapper failures and trading
 `action: "error"` frames surface through `onError` / `CLIENT_ERROR` without
 crashing the process.
 
-### Trade updates (account stream)
+### Order/trade updates
 
 ```ts
 // 3.x
@@ -924,10 +955,14 @@ tws.connect();
 
 // 4.x
 const tws = alpaca.trading.stream();
-tws.onConnect(() => tws.subscribeTradeUpdates());
 tws.onTradeUpdate((u) => console.log(u.event, u.order.symbol)); // u.order is a typed Order
+tws.subscribeTradeUpdates();
 tws.connect();
 ```
+
+Register the initial trading subscription before `connect()`. Authentication
+fires `onConnect` before automatic subscription dispatch, so subscribing inside
+`onConnect` duplicates the initial listen frame.
 
 > Streaming requires `keyId` + `secret` (OAuth-only clients can't stream), and
 > runs on Node/Bun only.
@@ -944,8 +979,11 @@ import {
   ValidationError, RateLimitError, FetchError,
 } from "@alpacahq/alpaca-trade-api";
 
+const clientOrderId = crypto.randomUUID();
 try {
-  await alpaca.trading.orders.market({ symbol: "AAPL", side: "buy", qty: 1 });
+  await alpaca.trading.orders.market({
+    symbol: "AAPL", side: "buy", qty: 1, clientOrderId,
+  });
 } catch (err) {
   if (err instanceof RateLimitError) {
     // err.retryAfterMs, err.rateLimit
@@ -956,7 +994,11 @@ try {
   } else if (err instanceof ApiError) {
     // any other non-2xx: err.status, err.code, err.requestId
   } else if (err instanceof FetchError) {
-    // network/abort, no HTTP response
+    // The placement outcome is ambiguous. Reconcile this ID before resubmitting.
+    const existing = await alpaca.trading.orders.getOrderByClientOrderId({
+      clientOrderId,
+    });
+    console.log("placement reached Alpaca", existing.id);
   }
 }
 ```
@@ -1039,11 +1081,15 @@ const account = await alpaca.trading.account.getAccount();
 console.log("buying power", account.buyingPower);
 
 // submit and wait for a terminal state in one call:
-const filled = await alpaca.trading.submitAndWait({
+const terminalOrder = await alpaca.trading.submitAndWait({
   type: "market", symbol: "AAPL", side: "buy", qty: 1,
-  clientOrderId: "buy-and-watch-aapl-1",
+  clientOrderId: `buy-and-watch-${crypto.randomUUID()}`,
 });
-console.log("filled at", filled.filledAvgPrice);
+if (terminalOrder.status === "filled") {
+  console.log("filled at", terminalOrder.filledAvgPrice);
+} else {
+  console.log("terminal order status", terminalOrder.status);
+}
 ```
 
 ## Troubleshooting & FAQ
@@ -1107,7 +1153,7 @@ Ergonomic call is listed where one exists; otherwise the generated method.
 | `createOrder({order_class:"bracket",...})` | `trading.orders.bracket({...})` |
 | `getOrders(o)` | `trading.orders.getAllOrders(o)` |
 | `getOrder(id)` | `trading.orders.getOrderByOrderID({ orderId: id })` |
-| `getOrderByClientOrderId(c)` | `trading.orders.getOrderByClientOrderId({ clientOrderId: c })` |
+| `getOrderByClientId(c)` | `trading.orders.getOrderByClientOrderId({ clientOrderId: c })` |
 | `replaceOrder(id, b)` | `trading.orders.patchOrderByOrderId({ orderId: id, patchOrderRequest: b' })` |
 | `cancelOrder(id)` | `trading.orders.deleteOrderByOrderID({ orderId: id })` |
 | `cancelAllOrders()` | `trading.orders.deleteAllOrders()` |
@@ -1121,7 +1167,7 @@ Ergonomic call is listed where one exists; otherwise the generated method.
 | `getClock()` | `trading.clock.legacyClock()` |
 | `getWatchlists()` | `trading.watchlists.getWatchlists()` |
 | `getWatchlist(id)` | `trading.watchlists.getWatchlistById({ watchlistId: id })` |
-| `addWatchlist(n, s)` | `trading.watchlists.postWatchlist({ updateWatchlistRequest: { name: n, symbols: s } })` |
+| `addWatchlist(n, s)` | `trading.watchlists.postWatchlist({ createWatchlistRequest: { name: n, symbols: s } })` |
 | `addToWatchlist(id, sym)` | `trading.watchlists.addAssetToWatchlist({ watchlistId: id, addAssetToWatchlistRequest: { symbol: sym } })` |
 | `updateWatchlist(id, b)` | `trading.watchlists.updateWatchlistById({ watchlistId: id, updateWatchlistRequest: b })` |
 | `deleteWatchlist(id)` | `trading.watchlists.deleteWatchlistById({ watchlistId: id })` |
@@ -1142,7 +1188,7 @@ Ergonomic call is listed where one exists; otherwise the generated method.
 | `getLatestQuote(s)` / `getLatestQuotes(ss)` | `stocks.stockLatestQuoteSingle` / `stockLatestQuotes` |
 | `getLatestBar(s)` / `getLatestBars(ss)` | `stocks.stockLatestBarSingle` / `stockLatestBars` |
 | `getSnapshot(s)` / `getSnapshots(ss)` | `stocks.stockSnapshotSingle` / `stockSnapshots` |
-| `getCryptoBars(ss, o)` | `marketData.getCryptoBars({ symbols: ss, ...o' })` |
+| `getCryptoBars(ss, o)` | `marketData.getCryptoBars({ loc: "us", symbols: ss, ...o' })` |
 | `getLatestCryptoTrades(ss)` | `marketData.crypto.cryptoLatestTrades({ loc, symbols: ss })` |
 | `getLatestCryptoQuotes` / `getLatestCryptoBars` | `crypto.cryptoLatestQuotes` / `cryptoLatestBars` |
 | `getCryptoSnapshots(ss)` | `crypto.cryptoSnapshots({ loc, symbols: ss })` |

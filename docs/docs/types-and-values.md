@@ -89,7 +89,7 @@ timestamps, belongs in [Market Data](./market-data.md#timestamp-precision) and
 
 ## Discovering capabilities
 
-The facade publishes maps for all three layers:
+The facade publishes representative, curated maps for all three layers:
 
 - `capabilities.capabilities` lists generated REST accessors and methods.
 - `ergonomicCapabilities` lists hand-written helpers and what they wrap.
@@ -111,6 +111,7 @@ findErgonomic("getStockBars");
 // [{ accessor: "marketData", kind: "normalized", ... }]
 ```
 
-For the complete inventory and examples, use the
-[API Reference](./api/index.md). Exact request and response types remain in the
-published declarations surfaced by TypeScript and your editor.
+For curated inventories and examples, use the
+[API Reference](./api/index.md). The published TypeScript declarations surfaced
+by your editor are the authority for the complete installed surface, including
+exact request and response types.

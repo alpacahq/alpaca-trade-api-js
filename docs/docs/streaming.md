@@ -5,7 +5,7 @@ title: Streaming & Events
 # Streaming & Events
 
 WebSocket clients for market data (stocks, crypto, options, news) and a trading
-stream (order/account updates). Both authenticate automatically, reconnect with
+stream (order/trade updates). Both authenticate automatically, reconnect with
 backoff, dispatch their current subscriptions after reconnect authentication,
 and ping/pong. The API is a typed Node-style `EventEmitter`: register listeners,
 then `connect()`.
@@ -19,9 +19,12 @@ stocks.connect();
 
 const updates = alpaca.trading.stream();
 updates.onTradeUpdate((u) => console.log(u.event, u.order.symbol));
-updates.onConnect(() => updates.subscribeTradeUpdates());
+updates.subscribeTradeUpdates();
 updates.connect();
 ```
+
+Set the trading subscription before `connect()` so the authenticated connection
+sends one initial listen frame and reconnects restore the same subscription.
 
 ## Available streams
 
@@ -29,7 +32,7 @@ All five factories return a stream sharing the lifecycle below:
 
 | Factory | Stream | Data |
 | --- | --- | --- |
-| `alpaca.trading.stream()` | `TradingStream` | Order/account updates (JSON) |
+| `alpaca.trading.stream()` | `TradingStream` | Order/trade updates (JSON) |
 | `alpaca.marketData.stockStream()` | `StockDataStream` | US-equity bars/trades/quotes (msgpack) |
 | `alpaca.marketData.cryptoStream()` | `CryptoDataStream` | Crypto market data (msgpack) |
 | `alpaca.marketData.optionStream()` | `OptionDataStream` | Options market data (msgpack) |
@@ -153,6 +156,7 @@ In addition to `feed`/`paper`/`sandbox`: `reconnect`, `maxReconnectAttempts`
 `initialReconnectMs`, `maxReconnectMs`, `reconnectJitter`, `pingIntervalMs`,
 `pongWaitMs`, `url`, and `callbackExecutor`.
 
-For the complete factory and event inventory, see the
-[Streaming API Reference](./api/streaming.md). For historical/live shape
+For a curated factory and event overview, see the
+[Streaming API Reference](./api/streaming.md); the published TypeScript
+declarations are the complete surface. For historical/live shape
 interoperability, see [Market Data](./market-data.md).

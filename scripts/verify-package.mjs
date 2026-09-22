@@ -16,6 +16,10 @@ import {
     forbiddenExternalSpecifiers,
     parseNpmPackJson,
 } from "./bundle-specifiers.mjs";
+import {
+    findPackedDocumentLinkFailures,
+    packedMarkdownDocuments,
+} from "./package-document-links.mjs";
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const fixturesRoot = join(projectRoot, "test", "package-fixtures");
@@ -64,6 +68,7 @@ try {
     const [packInfo] = parseNpmPackJson(packed.stdout);
     const packedFiles = new Set(packInfo.files.map(({ path }) => path));
     for (const required of [
+        "README.md",
         "CONTRIBUTING.md",
         "MIGRATION.md",
         "codemods/alpaca-v3-to-v4.js",
@@ -84,6 +89,15 @@ try {
             "packed files",
             `codemod test artifacts shipped: ${shippedCodemodTests.join(", ")}`,
         );
+    }
+    for (const document of packedMarkdownDocuments(packedFiles)) {
+        for (const failure of findPackedDocumentLinkFailures(
+            document,
+            readFileSync(join(projectRoot, document), "utf8"),
+            packedFiles,
+        )) {
+            fail("packed document links", failure);
+        }
     }
 
     const unpackRoot = join(tempRoot, "unpacked");

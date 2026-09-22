@@ -56,6 +56,47 @@ candle and single-symbol variants are available where applicable. Browse the
 complete helper inventory in the
 [Ergonomic Helpers Reference](./api/ergonomic-helpers.md).
 
+### Normalize generated endpoint results manually
+
+If you call generated endpoints directly, use the exported `marketDataShapes`
+helpers to convert their raw symbol maps into the same canonical records used by
+the facade and streaming clients:
+
+```ts
+import {
+  Alpaca,
+  marketDataShapes,
+  TimeFrame,
+} from "@alpacahq/alpaca-trade-api";
+
+const alpaca = new Alpaca({
+  keyId: process.env.APCA_API_KEY_ID,
+  secret: process.env.APCA_API_SECRET_KEY,
+});
+
+const rawBars = await alpaca.marketData.stocks.stockBars({
+  symbols: "AAPL,MSFT",
+  timeframe: TimeFrame.Day,
+});
+const barsBySymbol = marketDataShapes.toBarsBySymbol(rawBars.bars ?? {});
+
+const rawTrades = await alpaca.marketData.stocks.stockTrades({ symbols: "AAPL" });
+const tradesBySymbol = marketDataShapes.toTradesBySymbol(
+  rawTrades.trades ?? {},
+  marketDataShapes.toStockTrade,
+);
+
+const rawQuotes = await alpaca.marketData.stocks.stockQuotes({ symbols: "AAPL" });
+const quotesBySymbol = marketDataShapes.toQuotesBySymbol(
+  rawQuotes.quotes ?? {},
+  marketDataShapes.toStockQuote,
+);
+```
+
+Choose the asset-specific trade or quote mapper (`toStockTrade`,
+`toCryptoTrade`, `toStockQuote`, and so on). These pure helpers stamp the symbol
+from each map key and normalize fields without another network request.
+
 ### Timestamp precision
 
 Canonical `Bar` / `Trade` / `Quote` records include `timestampRaw?: string` —
@@ -77,10 +118,11 @@ silently truncate to milliseconds when you reach for the canonical shape.
 ### Trade-id precision
 
 Trade ids are 64-bit integers that can exceed JavaScript's safe integer range
-(`2^53`) — notably crypto trade ids. The market-data REST transport parses JSON
-losslessly, so canonical `Trade` records expose `idRaw?: string` (exact)
-alongside `id: number` (convenient, but lossy past `2^53`) — identical to the
-live stream, so historical and real-time ids match.
+(`2^53`) — notably crypto trade ids. The lossless market-data REST parser
+converts any integer token beyond `2^53` to a string at runtime. Canonical trade
+IDs then receive dedicated `idRaw` normalization: `Trade` records expose
+`idRaw?: string` (exact) alongside `id: number` (convenient, but lossy past
+`2^53`) — identical to the live stream, so historical and real-time ids match.
 
 ```ts
 const trades = await alpaca.marketData.getCryptoTrades({ symbols: "BTC/USD", loc: "us" });
@@ -89,11 +131,11 @@ t.id;    // number — fine to display, lossy past 2^53
 t.idRaw; // e.g. "8857581800245878123" — exact; use this to compare/store/key
 ```
 
-> Note: on the **raw** generated models an id past `2^53` arrives as a `string`
-> at runtime (e.g. `alpaca.marketData.crypto.cryptoTrades(...).trades[sym][i].i`)
-> even though the generated type says `number`. Use the canonical
-> `getCryptoTrades` accessor, or treat the raw `.i` as the exact string. Other
-> numeric fields (sizes, volumes, counts, stock/option/news ids) are unaffected.
+> Note: on **raw** generated models any unsafe integer can therefore arrive as a
+> `string` at runtime even when the generated type says `number` (for example,
+> `alpaca.marketData.crypto.cryptoTrades(...).trades[sym][i].i`). Use the
+> canonical accessors for dedicated ID normalization, and treat any raw unsafe
+> integer as its exact string.
 
 See [Values & types](./types-and-values.md#timestamps-and-64-bit-ids) for the
 general precision rule.
@@ -161,8 +203,9 @@ Entitlements depend on the subscription and `feed`.
 
 ## Next steps
 
-- Browse generated endpoints and facade methods in the
-  **[Market Data API Reference](./api/market-data.md)**.
+- Browse the curated generated-endpoint and facade overview in the
+  **[Market Data API Reference](./api/market-data.md)**. For the complete
+  installed surface, use the published TypeScript declarations and your editor.
 - Stream the same canonical shapes in
   **[Streaming & Events](./streaming.md)**.
 - Bound or fan out large histories with **[Pagination](./pagination.md)**.

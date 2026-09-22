@@ -106,6 +106,31 @@ The same facade also provides `oco` and `oto`. Market orders require exactly one
 of `qty` or `notional`; trailing stops require exactly one of `trailPrice` or
 `trailPercent`.
 
+### Build first, submit explicitly
+
+The exported `orders` namespace also exposes every builder as a pure function.
+This separates request construction from placement:
+
+```ts
+import { orders } from "@alpacahq/alpaca-trade-api";
+
+const postOrderRequest = orders.buildLimitOrder({
+  symbol: "AAPL",
+  side: "buy",
+  qty: 1,
+  limitPrice: 150,
+  clientOrderId: `limit-${crypto.randomUUID()}`,
+});
+
+// The network request happens only here.
+const order = await paper.trading.orders.postOrder({ postOrderRequest });
+```
+
+`orders.buildLimitOrder` (and the market, stop, stop-limit, trailing-stop,
+bracket, OCO, and OTO equivalents) validates and normalizes the request without
+performing a network call. Pure builders are useful in tests, for inspection,
+and for composition before an explicit `postOrder`.
+
 ### Generic and raw escape hatches
 
 For shapes without a dedicated builder, such as multi-leg option orders, use the
@@ -180,7 +205,7 @@ never places again after reconnect, and uses one deadline for connection,
 authentication, subscription, placement, and terminal-event waiting.
 
 ```ts
-const filled = await paper.trading.submitAndWait(
+const terminalOrder = await paper.trading.submitAndWait(
   {
     type: "market",
     symbol: "AAPL",
@@ -191,8 +216,19 @@ const filled = await paper.trading.submitAndWait(
   { timeoutMs: 30_000 },
 );
 
-console.log(filled.id, filled.status, filled.filledAvgPrice);
+if (terminalOrder.status === "filled") {
+  console.log(terminalOrder.id, terminalOrder.filledAvgPrice);
+} else {
+  console.warn(terminalOrder.id, terminalOrder.status);
+}
 ```
+
+The promise resolves for any event this workflow treats as terminal, not
+necessarily a fill. `filled`, `canceled`, `rejected`, and `expired` settle the
+order lifecycle. `done_for_day` only pauses execution until the next trading day
+and an eligible order can resume then. Treat it as a terminal wait outcome, not
+proof that the order lifecycle is over, and check `status === "filled"` before
+using fill fields.
 
 After an ambiguous placement `FetchError`, this workflow makes one
 `getOrderByClientOrderId` request and continues waiting when appropriate. It
@@ -216,11 +252,12 @@ behind explicit application authorization and observability.
 
 ## Reference and related guides
 
-- Browse every facade method in the
-  **[Trading API Reference](./api/trading.md)**.
+- Browse the curated facade overview in the
+  **[Trading API Reference](./api/trading.md)**. For the complete installed
+  surface, use the published TypeScript declarations and your editor.
 - Configure environments and OAuth in
   **[Authentication](./authentication.md)**.
 - Understand retry and error behavior in
   **[Resilience & configuration](./resilience.md)**.
-- Consume order/account events in
+- Consume order/trade updates in
   **[Streaming & Events](./streaming.md)**.

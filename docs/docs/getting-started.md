@@ -10,6 +10,16 @@ title: Getting Started
 npm install @alpacahq/alpaca-trade-api
 ```
 
+Before your first call, create or access a paper account and obtain its paper
+credentials. See Alpaca's
+[paper-trading documentation](https://docs.alpaca.markets/docs/paper-trading),
+then export the key and secret in your shell:
+
+```bash
+export APCA_API_KEY_ID="YOUR_PAPER_KEY"
+export APCA_API_SECRET_KEY="YOUR_PAPER_SECRET"
+```
+
 ## Your first call
 
 Create a paper-trading client and make an authenticated account call:

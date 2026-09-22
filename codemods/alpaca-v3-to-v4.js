@@ -531,7 +531,7 @@ module.exports = function transformer(file, api, options) {
         },
         getOrders: { to: ["trading", "orders", "getAllOrders"], args: passthrough },
         getOrder: { to: ["trading", "orders", "getOrderByOrderID"], args: wrap1("orderId") },
-        getOrderByClientOrderId: { to: ["trading", "orders", "getOrderByClientOrderId"], args: wrap1("clientOrderId") },
+        getOrderByClientId: { to: ["trading", "orders", "getOrderByClientOrderId"], args: wrap1("clientOrderId") },
         replaceOrder: {
             to: ["trading", "orders", "patchOrderByOrderId"],
             args: (a) => [objExpr([["orderId", a[0]], ["patchOrderRequest", a[1] || objExpr([])]])],

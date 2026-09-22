@@ -37,7 +37,7 @@ published tarball).
 | The unified client / facade wiring | `src/client.ts` |
 | Order builders | `src/orders.ts` |
 | Normalized bar/trade/quote shapes + chart helpers | `src/marketDataShapes.ts` |
-| Programmatic capability maps | `src/capabilities.ts` |
+| Curated, representative discovery maps | `src/capabilities.ts` |
 | Shared transport (retry/timeout/rate-limit/errors) | `src/core/runtime.ts` |
 | Streaming clients | `src/streaming/` |
 
@@ -127,11 +127,12 @@ const alpaca = new Alpaca({
   `ValidationError` 400/422, `RateLimitError` 429). Branch on the subclass, not
   magic numbers. Always log `err.requestId` (Alpaca's `X-Request-ID`) — it can't
   be looked up later. Network/abort failures reject with `FetchError`.
-- **Resilience is opt-in but conservative.** `timeoutMs`, `retry`
-  (`maxRetries > 0` to enable; non-idempotent POSTs are never auto-retried),
-  `rateLimit` (the `Alpaca` client enables a safe ~200/min default; raw `Api`
-  classes do not), and `userAgent` are all top-level client options. The
-  default User-Agent is
+- **Resilience defaults depend on the entry point.** The `Alpaca` facade
+  defaults to 2 retries (3 attempts total) for eligible idempotent requests;
+  bare generated Configuration retries are off unless configured.
+  Non-idempotent `POST`s are never auto-retried. `timeoutMs`, `retry`,
+  `rateLimit` (the facade enables a safe ~200/min default; raw `Api` classes do
+  not), and `userAgent` are top-level client options. The default User-Agent is
   `APCA-NODE/<sdk-version> <Runtime>/<runtime-version>`; override it with
   `userAgent`, or set `userAgent: ""` to disable it. The `retry`
   config also takes `onRetry`/`onGiveUp` observability hooks (each fired with a
@@ -173,7 +174,19 @@ stocks.connect();
 ```
 
 `cryptoStream()`, `optionStream()`, `newsStream()`, and the trading
-`alpaca.trading.stream()` (order/account updates) share the same surface. The
+`alpaca.trading.stream()` (order/trade updates) share the same surface. Register
+the trading subscription before connecting; its authenticated `onConnect`
+callback runs before automatic subscription dispatch, so subscribing there
+duplicates the initial listen frame:
+
+```ts
+const updates = alpaca.trading.stream();
+updates.onTradeUpdate((update) => console.log(update.event, update.order.symbol));
+updates.subscribeTradeUpdates();
+updates.connect();
+```
+
+The
 `submitAndWait` workflow helper waits for the server's `listening`
 acknowledgement, then issues one placement per invocation and resolves on a
 terminal update. It preserves a supplied client ID or creates one once, never
@@ -211,9 +224,11 @@ findCapabilities("getAccount"); // generated: which Api / accessor hosts it
 findErgonomic("market");        // ergonomic: is there a helper, and where
 ```
 
-`capabilities` / `ergonomicCapabilities` / `streamingCapabilities` are the full
-maps. Use these (or search the hosted [API Reference](https://alpacahq.github.io/alpaca-trade-api-js/api)) to answer "where does X
-live?" instead of guessing.
+`capabilities` / `ergonomicCapabilities` / `streamingCapabilities` and the
+hosted [API Reference](https://alpacahq.github.io/alpaca-trade-api-js/api) are
+curated, representative discovery aids, not exhaustive inventories. Use them to
+answer "where does X live?" when they contain a match; confirm the complete
+surface in the installed TypeScript declarations or generated source.
 
 ## Testing integrations
 
@@ -223,4 +238,4 @@ it so unit tests never hit Alpaca.
 
 ## When you're unsure
 
-Don't stop at this file. Open the relevant guide on the [documentation site](https://alpacahq.github.io/alpaca-trade-api-js/), search the [API Reference](https://alpacahq.github.io/alpaca-trade-api-js/api) for the exact method, or read the `src/` module in the table above. This skill points the way; the docs site and source are authoritative.
+Don't stop at this file. Open the relevant guide on the [documentation site](https://alpacahq.github.io/alpaca-trade-api-js/), search the curated [API Reference](https://alpacahq.github.io/alpaca-trade-api-js/api), then confirm exact methods and models in the installed TypeScript declarations or generated source. Those declarations and generated sources are the complete API inventory.

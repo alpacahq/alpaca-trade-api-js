@@ -11,8 +11,8 @@ timeout / rate limiting), pagination helpers, ergonomic order builders, and
 real-time streaming.
 
 > **Upgrading from 3.x?** See the [migration guide](./MIGRATION.md) (also on the
-> [docs site](https://alpacahq.github.io/alpaca-trade-api-js/migration)) — it
-> maps every endpoint old → new and ships a
+> [docs site](https://alpacahq.github.io/alpaca-trade-api-js/migration)) — it maps
+> common 3.x calls and workflows to their 4.x equivalents and ships a
 > [codemod](./codemods/alpaca-v3-to-v4.js) that automates most of the work.
 
 ## Requirements
@@ -47,7 +47,8 @@ Legend: ✅ supported · ❌ not supported.
   on Node or Bun.
 - **Browser: technically works, but discouraged.** Calling Alpaca directly from a
   browser ships your `APCA_API_SECRET_KEY` to the client. Prefer a server or
-  proxy (see [`examples/marketdata-backend.ts`](./examples/marketdata-backend.ts))
+  proxy (see
+  [`examples/marketdata-backend.ts`](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/marketdata-backend.ts))
   rather than embedding credentials in front-end code.
 
 ESM and CJS module formats, edge export conditions, and the REST-only entrypoint
@@ -86,14 +87,15 @@ The **[documentation site](https://alpacahq.github.io/alpaca-trade-api-js/)** is
 the canonical reference. Key guides:
 
 - [Getting started](https://alpacahq.github.io/alpaca-trade-api-js/getting-started)
-- [Authentication](https://alpacahq.github.io/alpaca-trade-api-js/authentication)
 - [Trading](https://alpacahq.github.io/alpaca-trade-api-js/trading)
 - [Market data](https://alpacahq.github.io/alpaca-trade-api-js/market-data)
 - [Streaming](https://alpacahq.github.io/alpaca-trade-api-js/streaming)
+- [Authentication](https://alpacahq.github.io/alpaca-trade-api-js/authentication)
+- [Resilience & configuration](https://alpacahq.github.io/alpaca-trade-api-js/resilience)
 - [Pagination](https://alpacahq.github.io/alpaca-trade-api-js/pagination)
-- [Runtime & module compatibility](https://alpacahq.github.io/alpaca-trade-api-js/runtime-compatibility)
 - [Values & types](https://alpacahq.github.io/alpaca-trade-api-js/types-and-values)
 - [Testing your integration](https://alpacahq.github.io/alpaca-trade-api-js/testing)
+- [Runtime & module compatibility](https://alpacahq.github.io/alpaca-trade-api-js/runtime-compatibility)
 - [Examples](https://alpacahq.github.io/alpaca-trade-api-js/examples)
 - [Migration from 3.x](https://alpacahq.github.io/alpaca-trade-api-js/migration)
 - [API reference](https://alpacahq.github.io/alpaca-trade-api-js/api)
@@ -110,8 +112,9 @@ npm run lint
 npm test
 ```
 
-Runnable examples live in [`examples/`](./examples). To preview the docs site
-locally:
+Runnable examples live in
+[`examples/`](https://github.com/alpacahq/alpaca-trade-api-js/tree/master/examples).
+To preview the docs site locally:
 
 ```bash
 npm --prefix docs install   # first time only
@@ -121,7 +124,8 @@ npm --prefix docs start     # http://localhost:3000/alpaca-trade-api-js/
 ## Releases
 
 Stable versions are published to npm on the **`latest`** dist-tag. See
-[CHANGELOG.md](./CHANGELOG.md) for release notes.
+[CHANGELOG.md](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/CHANGELOG.md)
+for release notes.
 
 ## Support
 

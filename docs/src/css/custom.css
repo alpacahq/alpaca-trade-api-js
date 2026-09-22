@@ -1,24 +1,28 @@
-/**
- * Minimal theme overrides. Docusaurus' default Infima palette is fine for an
- * SDK docs site; tweak the brand color here if/when we have official tokens.
- */
 :root {
-    --ifm-color-primary: #1a73e8;
-    --ifm-color-primary-dark: #1668d1;
-    --ifm-color-primary-darker: #1561c5;
-    --ifm-color-primary-darkest: #1150a2;
-    --ifm-color-primary-light: #2f80ea;
-    --ifm-color-primary-lighter: #3a87eb;
-    --ifm-color-primary-lightest: #5c9ef0;
+    --ifm-color-primary: #196f6b;
+    --ifm-color-primary-dark: #16645f;
+    --ifm-color-primary-darker: #155e5a;
+    --ifm-color-primary-darkest: #114d4a;
+    --ifm-color-primary-light: #1c7a76;
+    --ifm-color-primary-lighter: #1d817c;
+    --ifm-color-primary-lightest: #21928d;
     --ifm-code-font-size: 95%;
+    --ifm-font-family-base: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --ifm-heading-letter-spacing: 0;
 }
 
 [data-theme="dark"] {
-    --ifm-color-primary: #5c9ef0;
-    --ifm-color-primary-dark: #3a87eb;
-    --ifm-color-primary-darker: #2f80ea;
-    --ifm-color-primary-darkest: #1561c5;
-    --ifm-color-primary-light: #7eb2f3;
-    --ifm-color-primary-lighter: #8fbcf5;
-    --ifm-color-primary-lightest: #c2dafa;
+    --ifm-color-primary: #39bdb5;
+    --ifm-color-primary-dark: #2aa7a1;
+    --ifm-color-primary-darker: #249b95;
+    --ifm-color-primary-darkest: #21928d;
+    --ifm-color-primary-light: #4bcac2;
+    --ifm-color-primary-lighter: #65d6cf;
+    --ifm-color-primary-lightest: #78ddd7;
+}
+
+.navbar__title,
+.theme-doc-markdown h1 {
+    letter-spacing: 0;
 }

@@ -87,7 +87,9 @@ console.log("connected as", check.account.id);
   for live trading. Honored only by hosts that distinguish the two (e.g. trading).
 - **`sandbox`** selects the market-data sandbox host where supported. Crypto and
   news streams are **production-only** (no sandbox endpoint).
-- An explicit `basePath` always overrides the `paper` / `sandbox` selection.
+- **`basePath`** applies only to a low-level generated `Configuration`, where it
+  overrides that configuration's host. It is not an `Alpaca` facade option;
+  select facade hosts with `paper`, `sandbox`, or a stream's `url` option.
 
 ```ts
 const live = new Alpaca({ keyId, secret, paper: false });

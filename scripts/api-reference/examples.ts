@@ -63,7 +63,7 @@ const trading: ApiReferenceExamples = {
     },
     "trading.calendar.calendar": {
         description: "Market calendar (sessions) for a market and date range.",
-        example: 'await alpaca.trading.calendar.calendar({ market: "us_equity", start: new Date("2024-01-01"), end: new Date("2024-01-31") });',
+        example: 'await alpaca.trading.calendar.calendar({ market: "NYSE", start: new Date("2024-01-01"), end: new Date("2024-01-31") });',
     },
     "trading.calendar.legacyCalendar": {
         description: "Legacy market-calendar endpoint (prefer `calendar`).",
@@ -210,7 +210,7 @@ const trading: ApiReferenceExamples = {
     },
     "trading.tokenization.postTokenizationMint": {
         description: "Submit a tokenization mint request.",
-        example: 'await alpaca.trading.tokenization.postTokenizationMint({ tokenizationMintRequest: { underlyingSymbol: "AAPL", quantity: "1" } });',
+        example: 'await alpaca.trading.tokenization.postTokenizationMint({ tokenizationMintRequest: { issuer: "xstocks", network: "solana", qty: "1", underlyingSymbol: "AAPL", walletAddress: "wallet-address" } });',
     },
     "trading.watchlists.getWatchlists": {
         description: "List all watchlists.",
@@ -431,11 +431,11 @@ const marketData: ApiReferenceExamples = {
 
 const streaming: ApiReferenceExamples = {
     "trading.stream": {
-        description: "Open the trading-updates WebSocket (order/account events, JSON).",
+        description: "Open the trading-updates WebSocket (order/trade events, JSON).",
         example: [
             "const updates = alpaca.trading.stream();",
             "updates.onTradeUpdate((u) => console.log(u.event, u.order.symbol));",
-            "updates.onConnect(() => updates.subscribeTradeUpdates());",
+            "updates.subscribeTradeUpdates();",
             "updates.connect();",
         ].join("\n"),
     },
@@ -550,7 +550,8 @@ const ergonomic: ApiReferenceExamples = {
         description: "After server listening acknowledgement, place once and await a terminal update under one workflow deadline.",
         example: [
             "const clientOrderId = crypto.randomUUID();",
-            'const filled = await alpaca.trading.submitAndWait({ type: "market", symbol: "AAPL", side: "buy", qty: 1, clientOrderId }, { timeoutMs: 30_000 });',
+            'const terminalOrder = await alpaca.trading.submitAndWait({ type: "market", symbol: "AAPL", side: "buy", qty: 1, clientOrderId }, { timeoutMs: 30_000 });',
+            'if (terminalOrder.status === "filled") console.log(terminalOrder.filledAvgPrice);',
         ].join("\n"),
     },
     "trading.closeAllPositions": {
