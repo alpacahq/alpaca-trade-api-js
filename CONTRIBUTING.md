@@ -49,8 +49,9 @@ for the full rules.
 
 ## Documentation
 
-The **[documentation site](https://alpacahq.github.io/alpaca-trade-api-js/)**
-is the canonical user-facing reference.
+The hosted guides are canonical for workflows, conventions, and safety. The
+curated API Reference supports discovery and examples; installed TypeScript
+declarations are authoritative for exact signatures and models.
 
 - **Authored guides** live under
   [`docs/docs/`](https://github.com/alpacahq/alpaca-trade-api-js/tree/master/docs/docs/).
@@ -59,6 +60,20 @@ is the canonical user-facing reference.
   examples, and root [`MIGRATION.md`](./MIGRATION.md).
 - **Production build:** `npm --prefix docs run build` (runs generators first,
   then Docusaurus). CI and the GitHub Pages deploy use this path.
+
+See the
+[documentation development guide](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/docs/README.md)
+for local preview, generated-page boundaries, validation, and deployment.
+
+For AI-consumer guidance, `LLMS.md` is authored and
+`skills/alpaca-trade-api-sdk/SKILL.md` is generated. Edit `LLMS.md`, then run:
+
+```bash
+npm run agent:skill
+npm run agent:skill:check
+```
+
+Commit the regenerated Skill with its source.
 
 When you add ergonomic helpers, keep [`src/capabilities.ts`](./src/capabilities.ts)
 in sync — a test asserts every listed helper exists on the facade.

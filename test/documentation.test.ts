@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { renderAgentSkill } from '../scripts/gen-agent-guidance.mjs';
+
 const projectRoot = resolve(import.meta.dirname, '..');
 
 describe('canonical documentation', () => {
@@ -13,6 +15,144 @@ describe('canonical documentation', () => {
         );
 
         expect(config).toMatch(/onBrokenMarkdownLinks:\s*["']throw["']/);
+    });
+
+    it('separates repository, consumer, and docs-site agent guidance', () => {
+        const agents = readFileSync(
+            resolve(projectRoot, 'AGENTS.md'),
+            'utf8',
+        );
+        const docsReadme = readFileSync(
+            resolve(projectRoot, 'docs/README.md'),
+            'utf8',
+        );
+
+        expect(agents).toMatch(/repository-maintenance guidance/i);
+        expect(agents).toContain('LLMS.md');
+        expect(agents).toContain('skills/alpaca-trade-api-sdk/SKILL.md');
+        expect(agents).toContain('docs/README.md');
+        expect(agents).toMatch(
+            /LLMS\.md.*authored.*skills\/alpaca-trade-api-sdk\/SKILL\.md.*generated/is,
+        );
+        expect(agents).toContain('npm run agent:skill');
+        expect(agents).toContain('npm run agent:skill:check');
+        expect(agents).toMatch(/hand-written.*src/is);
+        expect(docsReadme).toContain('npm --prefix docs start');
+        expect(docsReadme).toContain('npm --prefix docs run build');
+        expect(docsReadme).toContain('docs/docs/api/');
+        expect(docsReadme).toContain('docs/docs/examples.md');
+        expect(docsReadme).toContain('docs/docs/migration.md');
+        expect(docsReadme).toMatch(/do not edit.*generated/is);
+    });
+
+    it('keeps packaged LLMS guidance and the installable skill in exact parity', () => {
+        const llms = readFileSync(resolve(projectRoot, 'LLMS.md'), 'utf8');
+        const skill = readFileSync(
+            resolve(projectRoot, 'skills/alpaca-trade-api-sdk/SKILL.md'),
+            'utf8',
+        );
+        const packageJson = JSON.parse(
+            readFileSync(resolve(projectRoot, 'package.json'), 'utf8'),
+        );
+        const readme = readFileSync(
+            resolve(projectRoot, 'README.md'),
+            'utf8',
+        );
+        const intro = readFileSync(
+            resolve(projectRoot, 'docs/docs/intro.md'),
+            'utf8',
+        );
+        const contributing = readFileSync(
+            resolve(projectRoot, 'CONTRIBUTING.md'),
+            'utf8',
+        );
+        const packageVerifier = readFileSync(
+            resolve(projectRoot, 'scripts/verify-package.mjs'),
+            'utf8',
+        );
+        const ci = readFileSync(
+            resolve(projectRoot, '.github/workflows/ci.yaml'),
+            'utf8',
+        );
+        const skillBody = skill.replace(
+            /^---\n[\s\S]*?\n---\n\n?/,
+            '',
+        );
+
+        expect(skill).toBe(renderAgentSkill(llms));
+        expect(skillBody).toBe(llms);
+        expect(renderAgentSkill('body\n\n')).toMatch(/\n\nbody\n\n$/);
+        expect(readme).toContain('[LLMS.md](./LLMS.md)');
+        expect(readme).toContain(
+            'npx skills add alpacahq/alpaca-trade-api-js',
+        );
+        expect(intro).toContain('LLMS.md');
+        expect(intro).toContain(
+            'npx skills add alpacahq/alpaca-trade-api-js',
+        );
+        expect(contributing).toContain('docs/README.md');
+        expect(contributing).toMatch(
+            /LLMS\.md.*authored.*SKILL\.md.*generated/is,
+        );
+        expect(contributing).toContain('npm run agent:skill');
+        expect(contributing).toMatch(
+            /hosted guides.*workflows.*API Reference.*discovery.*declarations.*exact signatures/is,
+        );
+        expect(packageJson.files).toContain('LLMS.md');
+        expect(
+            packageJson.files.some(
+                (entry: string) =>
+                    entry === 'AGENTS.md' ||
+                    entry === 'docs' ||
+                    entry.startsWith('skills'),
+            ),
+        ).toBe(false);
+        expect(packageVerifier).toContain('"LLMS.md"');
+        expect(packageVerifier).toContain('"AGENTS.md"');
+        expect(packageVerifier).toContain('"skills/"');
+        expect(packageVerifier).toContain('"docs/"');
+        expect(ci).toContain('npm run agent:skill:check');
+        expect(packageJson.scripts['agent:skill']).toBe(
+            'node scripts/gen-agent-guidance.mjs',
+        );
+        expect(packageJson.scripts['agent:skill:check']).toBe(
+            'node scripts/gen-agent-guidance.mjs --check',
+        );
+        for (const guidance of [llms, skillBody]) {
+            expect(guidance).toMatch(
+                /Packaged `LLMS\.md` and the installable Agent Skill\s+share this exact guidance body/,
+            );
+            expect(guidance).not.toContain(
+                'This file and the installable Agent Skill',
+            );
+            for (const guide of [
+                '/authentication',
+                '/resilience',
+                '/testing',
+                '/runtime-compatibility',
+                '/migration',
+            ]) {
+                expect(guidance).toContain(guide);
+            }
+            expect(guidance).toContain('clientOrderId');
+            expect(guidance).toContain('Never use `parseFloat` blindly');
+            expect(guidance).toMatch(
+                /Alpaca`?\s+facade.*2 retries.*3 attempts.*eligible idempotent requests/is,
+            );
+            expect(guidance).toMatch(
+                /bare generated `?Configuration`?.*retries.*off.*unless configured/is,
+            );
+            expect(guidance).toContain('order/trade updates');
+            expect(guidance).toMatch(
+                /Only `GET`,\s+`HEAD`, `OPTIONS`, and `TRACE` are automatically retried/,
+            );
+            expect(guidance).toMatch(
+                /`POST`, `PATCH`,\s+`PUT`, and `DELETE` are not automatically retried/,
+            );
+            expect(guidance).toContain(
+                '@alpacahq/alpaca-trade-api/testing',
+            );
+        }
     });
 
     it('uses the shared Alpaca documentation branding', () => {

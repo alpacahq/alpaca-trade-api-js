@@ -84,7 +84,9 @@ bars.connect();
 ## Documentation
 
 The **[documentation site](https://alpacahq.github.io/alpaca-trade-api-js/)** is
-the canonical reference. Key guides:
+the canonical source for workflows, conventions, and curated API discovery.
+Installed TypeScript declarations remain authoritative for exact signatures and
+models. Key guides:
 
 - [Getting started](https://alpacahq.github.io/alpaca-trade-api-js/getting-started)
 - [Trading](https://alpacahq.github.io/alpaca-trade-api-js/trading)
@@ -99,8 +101,11 @@ the canonical reference. Key guides:
 - [Examples](https://alpacahq.github.io/alpaca-trade-api-js/examples)
 - [Migration from 3.x](https://alpacahq.github.io/alpaca-trade-api-js/migration)
 - [API reference](https://alpacahq.github.io/alpaca-trade-api-js/api)
-- **Agent Skill** — for AI coding agents: `npx skills add alpacahq/alpaca-trade-api-js`
-  ([agentskills.io](https://agentskills.io))
+- **AI coding guidance** — choose either equivalent format:
+  - Read the packaged [LLMS.md](./LLMS.md).
+  - Install the Agent Skill:
+    `npx skills add alpacahq/alpaca-trade-api-js`
+    ([agentskills.io](https://agentskills.io)).
 
 ## Build from source
 

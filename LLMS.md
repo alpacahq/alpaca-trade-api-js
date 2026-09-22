@@ -1,15 +1,3 @@
----
-name: alpaca-trade-api-sdk
-description: >-
-  Integrate and build on the @alpacahq/alpaca-trade-api TypeScript SDK for the
-  Alpaca Trading and Market Data APIs (the unified Alpaca client, ergonomic
-  order builders, normalized market-data shapes, pagination, typed errors,
-  resilience, and real-time streaming). Use when writing or reviewing code that
-  imports @alpacahq/alpaca-trade-api, places orders, fetches bars/trades/quotes,
-  opens market-data or trading WebSocket streams, or builds a trading bot,
-  backtester, or market-data backend on top of this SDK.
----
-
 # Building on @alpacahq/alpaca-trade-api
 
 Guidance for LLMs and coding agents writing applications with

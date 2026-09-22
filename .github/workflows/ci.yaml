@@ -27,6 +27,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Verify Agent Skill is current
+        run: npm run agent:skill:check
       - name: Verify pending Changesets
         run: |
           pending_changesets="$(git ls-files -- '.changeset/*.md' ':(exclude).changeset/README.md')"

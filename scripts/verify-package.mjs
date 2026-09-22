@@ -70,12 +70,25 @@ try {
     for (const required of [
         "README.md",
         "CONTRIBUTING.md",
+        "LLMS.md",
         "MIGRATION.md",
         "codemods/alpaca-v3-to-v4.js",
     ]) {
         if (!packedFiles.has(required)) {
             fail("packed files", `missing ${required}`);
         }
+    }
+    const maintenanceOnlyGuidance = [...packedFiles].filter(
+        (path) =>
+            path === "AGENTS.md" ||
+            path.startsWith("skills/") ||
+            path.startsWith("docs/"),
+    );
+    if (maintenanceOnlyGuidance.length > 0) {
+        fail(
+            "packed files",
+            `maintenance-only guidance shipped: ${maintenanceOnlyGuidance.join(", ")}`,
+        );
     }
     const shippedCodemodTests = packInfo.files
         .map(({ path }) => path)

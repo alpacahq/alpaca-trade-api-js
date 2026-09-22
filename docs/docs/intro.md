@@ -58,3 +58,16 @@ The documentation contract is explicit:
   examples.
 - Published TypeScript declarations and your editor own the complete API
   surface, exact signatures, and model fields for the installed version.
+
+## AI coding guidance
+
+The same comprehensive guidance for coding agents is available in two formats:
+
+- Read the packaged
+  [`LLMS.md`](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/LLMS.md)
+  directly.
+- Install the equivalent Agent Skill:
+  `npx skills add alpacahq/alpaca-trade-api-js`.
+
+For repository maintenance rather than application code, use the repo-only
+[`AGENTS.md`](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/AGENTS.md).
