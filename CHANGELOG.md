@@ -1,5 +1,11 @@
 # @alpacahq/alpaca-trade-api
 
+## 4.0.3
+
+### Patch Changes
+
+- [#330](https://github.com/alpacahq/alpaca-trade-api-js/pull/330) [`42ce6ac`](https://github.com/alpacahq/alpaca-trade-api-js/commit/42ce6ac2e1e346784dc4de575e054ccdb2d239c1) Thanks [@Azein](https://github.com/Azein)! - Detailed workflows and the curated API reference now live on the documentation site while README focuses on Node.js setup and compatibility. The package now includes comprehensive `LLMS.md` guidance for coding agents, with an equivalent installable Agent Skill. The v3-to-v4 codemod now correctly migrates `getOrderByClientId`, and package verification checks links in every shipped Markdown document.
+
 ## 4.0.2
 
 ### Patch Changes
