@@ -66,7 +66,7 @@ export function StockAuctionsRespFromJSONTyped(json: any, ignoreDiscriminator: b
     }
     return {
         
-        'auctions': json['auctions'],
+        'auctions': json['auctions'] == null ? {} : json['auctions'],
         'currency': json['currency'] == null ? undefined : json['currency'],
         'nextPageToken': json['next_page_token'],
     };

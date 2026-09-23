@@ -61,7 +61,7 @@ export function ForexRatesRespFromJSONTyped(json: any, ignoreDiscriminator: bool
     return {
         
         'nextPageToken': json['next_page_token'],
-        'rates': json['rates'],
+        'rates': json['rates'] == null ? {} : json['rates'],
     };
 }
 

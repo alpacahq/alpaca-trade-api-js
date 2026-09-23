@@ -21,7 +21,8 @@ JSON Patch overlays, so regeneration reproduces the committed trees byte-for-byt
 See `tooling/GENERATION.md` for the full design. Notable behaviors to preserve
 when editing:
 
-- null-safe array deserialization (no NPE on `null` array fields),
+- null-safe collection deserialization (`null` required arrays/maps become
+  `[]`/`{}`),
 - opt-in retry/backoff (`retry`), request timeouts (`timeoutMs`), default
   `User-Agent`,
 - typed `ApiError` parsing the `{ code, message }` envelope,
@@ -39,13 +40,14 @@ when editing:
   behavior, ergonomics, and fixes live in hand-written modules outside those trees
   (`src/client.ts`, `src/orders.ts`, `src/marketDataShapes.ts`,
   `src/core/runtime.ts`, `src/streaming/`, ...).
-- **Regeneration-safe customizations live in `tooling/`.** Three deviations from
+- **Regeneration-safe customizations live in `tooling/`.** Four deviations from
   stock `typescript-fetch` are encoded declaratively so they survive every
   regeneration: (1) null-safe required-array deserialization — forked
-  `templates/typescript-fetch/modelGeneric.mustache`; (2) undocumented-field
-  passthrough on 6 trading models — `x-ts-passthrough` vendor extension (trading
-  overlay) + forked templates; (3) market-data `feed` enum tightening — market-data
-  overlay. Add new fixes the same way (template or overlay), never as a hand-edit.
+  `templates/typescript-fetch/modelGeneric.mustache`; (2) null-safe required-map
+  deserialization — the same forked template; (3) undocumented-field passthrough
+  on 6 trading models — `x-ts-passthrough` vendor extension (trading overlay) +
+  forked templates; (4) market-data `feed` enum tightening — market-data overlay.
+  Add new fixes the same way (template or overlay), never as a hand-edit.
 - **The transport is shared.** The HTTP transport (retry/backoff, timeouts,
  rate limiting, typed errors, middleware, querystring, response wrappers) lives
  once in `src/core/runtime.ts`. `src/trading/runtime.ts` and

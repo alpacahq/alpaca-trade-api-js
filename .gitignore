@@ -50,3 +50,6 @@ docs/.docusaurus/
 docs/docs/api/
 docs/docs/examples.md
 docs/docs/migration.md
+
+# Local discovery artifacts
+discovery/

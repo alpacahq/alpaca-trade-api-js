@@ -60,7 +60,7 @@ export function StockLatestTradesRespFromJSONTyped(json: any, ignoreDiscriminato
     return {
         
         'currency': json['currency'] == null ? undefined : json['currency'],
-        'trades': (mapValues(json['trades'], StockTradeFromJSON)),
+        'trades': (json['trades'] == null ? {} : mapValues(json['trades'], StockTradeFromJSON)),
     };
 }
 

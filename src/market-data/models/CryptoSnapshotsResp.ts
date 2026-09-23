@@ -53,7 +53,7 @@ export function CryptoSnapshotsRespFromJSONTyped(json: any, ignoreDiscriminator:
     }
     return {
         
-        'snapshots': (mapValues(json['snapshots'], CryptoSnapshotFromJSON)),
+        'snapshots': (json['snapshots'] == null ? {} : mapValues(json['snapshots'], CryptoSnapshotFromJSON)),
     };
 }
 

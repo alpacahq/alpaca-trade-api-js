@@ -8,8 +8,12 @@ import {
     MostActivesRespFromJSON,
     CryptoOrderbookFromJSON,
     StockAuctionsRespSingleFromJSON,
+    StockBarsRespFromJSON,
+    StockLatestBarsRespFromJSON,
     StockBarsRespSingleFromJSON,
+    StockQuotesRespFromJSON,
     StockQuotesRespSingleFromJSON,
+    StockTradesRespFromJSON,
     StockTradesRespSingleFromJSON,
 } from '../src/market-data';
 import {
@@ -98,6 +102,57 @@ describe('G01 null-safe array deserialization', () => {
         });
         expect(result.auctions).toHaveLength(1);
         expect(result.auctions[0].o).toEqual([]);
+    });
+});
+
+// --- G08: null-safe map deserialization ------------------------------------
+
+type G08Case = {
+    name: string;
+    fn: (json: any) => any;
+    mapField: string;
+};
+
+const G08_CASES: G08Case[] = [
+    { name: 'StockBarsResp', fn: StockBarsRespFromJSON, mapField: 'bars' },
+    { name: 'StockTradesResp', fn: StockTradesRespFromJSON, mapField: 'trades' },
+    { name: 'StockQuotesResp', fn: StockQuotesRespFromJSON, mapField: 'quotes' },
+];
+
+describe('G08 null-safe map deserialization', () => {
+    for (const { name, fn, mapField } of G08_CASES) {
+        it(`${name}: null map fields deserialize to {}`, () => {
+            expect(fn({ [mapField]: null })[mapField]).toEqual({});
+        });
+
+        it(`${name}: missing map fields deserialize to {}`, () => {
+            expect(fn({})[mapField]).toEqual({});
+        });
+    }
+
+    it('preserves populated historical symbol maps', () => {
+        const bars = { AAPL: [{ c: 190 }] };
+        expect(StockBarsRespFromJSON({ bars }).bars).toEqual(bars);
+    });
+
+    it('guards object-valued maps before mapValues deserialization', () => {
+        expect(StockLatestBarsRespFromJSON({ bars: null }).bars).toEqual({});
+
+        const result = StockLatestBarsRespFromJSON({
+            bars: {
+                AAPL: {
+                    c: 190,
+                    h: 191,
+                    l: 189,
+                    n: 10,
+                    o: 189.5,
+                    t: '2024-01-02T15:00:00Z',
+                    v: 100,
+                    vw: 190.25,
+                },
+            },
+        });
+        expect(result.bars.AAPL.t).toEqual(new Date('2024-01-02T15:00:00Z'));
     });
 });
 

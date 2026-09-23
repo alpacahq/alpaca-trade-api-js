@@ -60,7 +60,7 @@ export function StockLatestQuotesRespFromJSONTyped(json: any, ignoreDiscriminato
     return {
         
         'currency': json['currency'] == null ? undefined : json['currency'],
-        'quotes': (mapValues(json['quotes'], StockQuoteFromJSON)),
+        'quotes': (json['quotes'] == null ? {} : mapValues(json['quotes'], StockQuoteFromJSON)),
     };
 }
 

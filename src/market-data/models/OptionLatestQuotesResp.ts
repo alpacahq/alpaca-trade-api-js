@@ -53,7 +53,7 @@ export function OptionLatestQuotesRespFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
-        'quotes': (mapValues(json['quotes'], OptionQuoteFromJSON)),
+        'quotes': (json['quotes'] == null ? {} : mapValues(json['quotes'], OptionQuoteFromJSON)),
     };
 }
 

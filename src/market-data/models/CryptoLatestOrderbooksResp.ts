@@ -53,7 +53,7 @@ export function CryptoLatestOrderbooksRespFromJSONTyped(json: any, ignoreDiscrim
     }
     return {
         
-        'orderbooks': (mapValues(json['orderbooks'], CryptoOrderbookFromJSON)),
+        'orderbooks': (json['orderbooks'] == null ? {} : mapValues(json['orderbooks'], CryptoOrderbookFromJSON)),
     };
 }
 

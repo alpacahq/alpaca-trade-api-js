@@ -53,7 +53,7 @@ export function CryptoLatestBarsRespFromJSONTyped(json: any, ignoreDiscriminator
     }
     return {
         
-        'bars': (mapValues(json['bars'], CryptoBarFromJSON)),
+        'bars': (json['bars'] == null ? {} : mapValues(json['bars'], CryptoBarFromJSON)),
     };
 }
 

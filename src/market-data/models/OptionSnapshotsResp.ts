@@ -61,7 +61,7 @@ export function OptionSnapshotsRespFromJSONTyped(json: any, ignoreDiscriminator:
     return {
         
         'nextPageToken': json['next_page_token'],
-        'snapshots': (mapValues(json['snapshots'], OptionSnapshotFromJSON)),
+        'snapshots': (json['snapshots'] == null ? {} : mapValues(json['snapshots'], OptionSnapshotFromJSON)),
     };
 }
 

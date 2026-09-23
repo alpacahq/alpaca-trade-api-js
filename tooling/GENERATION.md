@@ -75,7 +75,7 @@ found: `brew install openjdk`.
 
 ## Durability mechanisms (the regeneration-safe patches)
 
-The generated trees are frozen output; we never hand-edit them. The three classes
+The generated trees are frozen output; we never hand-edit them. The four classes
 of deviation we need are encoded as follows:
 
 ### 1. Null-safe required arrays — forked template
@@ -87,7 +87,17 @@ in a payload throws. `templates/typescript-fetch/modelGeneric.mustache` adds a
 and `Set`/`uniqueItems` forms). This applies to every current and future required
 array automatically — no per-model spec changes. Reproduces 15 model files.
 
-### 2. Undocumented-field passthrough — vendor extension + forked template
+### 2. Null-safe required maps — forked template
+
+Alpaca can return `null` for a required symbol-keyed map when no requested
+symbols have matching data. Stock `typescript-fetch` either passes that value
+through despite a non-nullable type or calls `mapValues(null, ...)` and throws.
+`templates/typescript-fetch/modelGeneric.mustache` normalizes required,
+non-nullable maps and free-form objects to `{}` before either path. This applies
+to every current and future required map automatically and reproduces 27
+market-data model files.
+
+### 3. Undocumented-field passthrough — vendor extension + forked template
 
 Six trading models keep unknown fields (`...json` spread + `extends
 Record<string, unknown>`) so undocumented API fields survive round-trips. This is
@@ -97,7 +107,7 @@ Models: `Account`, `Order`, `AccountConfigurations`, `OptionContract`, plus the
 two inline response-item models `GetAccountActivities200ResponseInner` and
 `GetV2CorporateActionsAnnouncements200ResponseInner`.
 
-### 3. Feed enum tightening — spec overlay
+### 4. Feed enum tightening — spec overlay
 
 The market-data `stock_auction_feed` parameter is an untyped `string` upstream.
 `overlays/market-data.patch.json` retargets it to the existing

@@ -60,7 +60,7 @@ export function CryptoBarsRespFromJSONTyped(json: any, ignoreDiscriminator: bool
     }
     return {
         
-        'bars': json['bars'],
+        'bars': json['bars'] == null ? {} : json['bars'],
         'nextPageToken': json['next_page_token'],
     };
 }

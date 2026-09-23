@@ -62,6 +62,11 @@ If you call generated endpoints directly, use the exported `marketDataShapes`
 helpers to convert their raw symbol maps into the same canonical records used by
 the facade and streaming clients:
 
+Required symbol-map fields are always objects after deserialization. If Alpaca
+returns `null` or omits one of these maps when no data matches, the generated
+client normalizes it to `{}`. Individual requested symbols may still be absent
+from a populated map.
+
 ```ts
 import {
   Alpaca,
@@ -78,17 +83,17 @@ const rawBars = await alpaca.marketData.stocks.stockBars({
   symbols: "AAPL,MSFT",
   timeframe: TimeFrame.Day,
 });
-const barsBySymbol = marketDataShapes.toBarsBySymbol(rawBars.bars ?? {});
+const barsBySymbol = marketDataShapes.toBarsBySymbol(rawBars.bars);
 
 const rawTrades = await alpaca.marketData.stocks.stockTrades({ symbols: "AAPL" });
 const tradesBySymbol = marketDataShapes.toTradesBySymbol(
-  rawTrades.trades ?? {},
+  rawTrades.trades,
   marketDataShapes.toStockTrade,
 );
 
 const rawQuotes = await alpaca.marketData.stocks.stockQuotes({ symbols: "AAPL" });
 const quotesBySymbol = marketDataShapes.toQuotesBySymbol(
-  rawQuotes.quotes ?? {},
+  rawQuotes.quotes,
   marketDataShapes.toStockQuote,
 );
 ```

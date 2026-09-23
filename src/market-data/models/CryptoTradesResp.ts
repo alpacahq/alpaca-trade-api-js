@@ -61,7 +61,7 @@ export function CryptoTradesRespFromJSONTyped(json: any, ignoreDiscriminator: bo
     return {
         
         'nextPageToken': json['next_page_token'],
-        'trades': json['trades'],
+        'trades': json['trades'] == null ? {} : json['trades'],
     };
 }
 

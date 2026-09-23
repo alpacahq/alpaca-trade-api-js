@@ -68,7 +68,7 @@ export function StockQuotesRespFromJSONTyped(json: any, ignoreDiscriminator: boo
         
         'currency': json['currency'] == null ? undefined : json['currency'],
         'nextPageToken': json['next_page_token'],
-        'quotes': json['quotes'],
+        'quotes': json['quotes'] == null ? {} : json['quotes'],
     };
 }
 

@@ -99,7 +99,11 @@ export async function collect<T>(fetchPage: PageFetcher<T>, options: CollectOpti
 
 /** A page whose payload is a `{ [symbol]: T[] }` map plus an optional token. */
 export interface SymbolMapPage<T> {
-    /** Per-symbol arrays for this page. */
+    /**
+     * Per-symbol arrays for this page. Pagination still treats a nullish value
+     * as empty for custom fetchers and malformed payloads, even though generated
+     * response deserializers normalize required maps to `{}`.
+     */
     data: { [symbol: string]: T[] };
     /** Token for the next page; `null`/`undefined`/`""` means no more pages. */
     nextPageToken?: string | null;
