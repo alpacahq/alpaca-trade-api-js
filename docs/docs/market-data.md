@@ -1,16 +1,15 @@
 ---
-sidebar_position: 5
-title: Market data
+title: Market Data
 ---
 
-# Market data
+# Market Data
 
 The Market Data API has two layers. The raw, generated endpoints
 (`alpaca.marketData.stocks.stockBars`, `alpaca.marketData.crypto.cryptoTrades`,
-…) are enumerated in the **Market Data API** reference. On top of them the SDK
-adds a small, ergonomic layer of **normalized accessors** that handle pagination
-and return canonical, symbol-keyed shapes — unified with the streaming layer so
-a historical `Bar` and a live `Bar` are the same type.
+…) remain available for complete API coverage. The ergonomic
+**normalized accessors** auto-paginate and return canonical, symbol-keyed shapes
+that match the streaming layer, so a historical `Bar` and a live `Bar` share
+one type.
 
 ## Normalized accessors
 
@@ -18,10 +17,14 @@ a historical `Bar` and a live `Bar` are the same type.
 `Quote` data keyed by symbol:
 
 ```ts
+import { Alpaca, TimeFrame } from "@alpacahq/alpaca-trade-api";
+
+const alpaca = new Alpaca({ keyId, secret });
+
 // Symbol-keyed map: { AAPL: Bar[], MSFT: Bar[] }
 const bars = await alpaca.marketData.getStockBars({
   symbols: ["AAPL", "MSFT"],
-  timeframe: "1Day",
+  timeframe: TimeFrame.Day,
   start: new Date("2024-01-01"),
 });
 
@@ -37,7 +40,7 @@ unwrapped value (an array, not a symbol map):
 
 ```ts
 const aapl = await alpaca.marketData.getStockBarsFor("AAPL", {
-  timeframe: "1Day",
+  timeframe: TimeFrame.Day,
   start: new Date("2024-01-01"),
 });
 ```
@@ -47,9 +50,52 @@ key is absent it returns `[]`; it never substitutes data from another symbol.
 The candle variants return an empty `Candles` object (empty column arrays) when
 the requested symbol is absent.
 
-The same exists for trades and quotes — `getStockTrades` / `getCryptoTrades`,
-`getStockQuotes` / `getCryptoQuotes`, and their `*For` variants — across stocks,
-crypto, and options (`getOptionBars` / `getOptionBarsFor`).
+The normalized layer includes stock, crypto, and option bars; stock and crypto
+trades and quotes; index values; and stock auctions. Corresponding chart-ready
+candle and single-symbol variants are available where applicable. Browse the
+complete helper inventory in the
+[Ergonomic Helpers Reference](./api/ergonomic-helpers.md).
+
+### Normalize generated endpoint results manually
+
+If you call generated endpoints directly, use the exported `marketDataShapes`
+helpers to convert their raw symbol maps into the same canonical records used by
+the facade and streaming clients:
+
+```ts
+import {
+  Alpaca,
+  marketDataShapes,
+  TimeFrame,
+} from "@alpacahq/alpaca-trade-api";
+
+const alpaca = new Alpaca({
+  keyId: process.env.APCA_API_KEY_ID,
+  secret: process.env.APCA_API_SECRET_KEY,
+});
+
+const rawBars = await alpaca.marketData.stocks.stockBars({
+  symbols: "AAPL,MSFT",
+  timeframe: TimeFrame.Day,
+});
+const barsBySymbol = marketDataShapes.toBarsBySymbol(rawBars.bars ?? {});
+
+const rawTrades = await alpaca.marketData.stocks.stockTrades({ symbols: "AAPL" });
+const tradesBySymbol = marketDataShapes.toTradesBySymbol(
+  rawTrades.trades ?? {},
+  marketDataShapes.toStockTrade,
+);
+
+const rawQuotes = await alpaca.marketData.stocks.stockQuotes({ symbols: "AAPL" });
+const quotesBySymbol = marketDataShapes.toQuotesBySymbol(
+  rawQuotes.quotes ?? {},
+  marketDataShapes.toStockQuote,
+);
+```
+
+Choose the asset-specific trade or quote mapper (`toStockTrade`,
+`toCryptoTrade`, `toStockQuote`, and so on). These pure helpers stamp the symbol
+from each map key and normalize fields without another network request.
 
 ### Timestamp precision
 
@@ -72,10 +118,11 @@ silently truncate to milliseconds when you reach for the canonical shape.
 ### Trade-id precision
 
 Trade ids are 64-bit integers that can exceed JavaScript's safe integer range
-(`2^53`) — notably crypto trade ids. The market-data REST transport parses JSON
-losslessly, so canonical `Trade` records expose `idRaw?: string` (exact)
-alongside `id: number` (convenient, but lossy past `2^53`) — identical to the
-live stream, so historical and real-time ids match.
+(`2^53`) — notably crypto trade ids. The lossless market-data REST parser
+converts any integer token beyond `2^53` to a string at runtime. Canonical trade
+IDs then receive dedicated `idRaw` normalization: `Trade` records expose
+`idRaw?: string` (exact) alongside `id: number` (convenient, but lossy past
+`2^53`) — identical to the live stream, so historical and real-time ids match.
 
 ```ts
 const trades = await alpaca.marketData.getCryptoTrades({ symbols: "BTC/USD", loc: "us" });
@@ -84,11 +131,14 @@ t.id;    // number — fine to display, lossy past 2^53
 t.idRaw; // e.g. "8857581800245878123" — exact; use this to compare/store/key
 ```
 
-> Note: on the **raw** generated models an id past `2^53` arrives as a `string`
-> at runtime (e.g. `alpaca.marketData.crypto.cryptoTrades(...).trades[sym][i].i`)
-> even though the generated type says `number`. Use the canonical
-> `getCryptoTrades` accessor, or treat the raw `.i` as the exact string. Other
-> numeric fields (sizes, volumes, counts, stock/option/news ids) are unaffected.
+> Note: on **raw** generated models any unsafe integer can therefore arrive as a
+> `string` at runtime even when the generated type says `number` (for example,
+> `alpaca.marketData.crypto.cryptoTrades(...).trades[sym][i].i`). Use the
+> canonical accessors for dedicated ID normalization, and treat any raw unsafe
+> integer as its exact string.
+
+See [Values & types](./types-and-values.md#timestamps-and-64-bit-ids) for the
+general precision rule.
 
 ### Chart-ready candles
 
@@ -99,9 +149,23 @@ of an array of objects:
 ```ts
 const candles = await alpaca.marketData.getStockCandles({
   symbols: ["AAPL"],
-  timeframe: "1Day",
+  timeframe: TimeFrame.Day,
   start: new Date("2024-01-01"),
 });
+```
+
+Pure helpers also reshape a canonical `Bar[]` for plotting libraries:
+
+```ts
+import {
+  toCandles,
+  toCandlestickSeries,
+  toLineSeries,
+} from "@alpacahq/alpaca-trade-api";
+
+toCandles(bars.AAPL);
+toCandlestickSeries(bars.AAPL);
+toLineSeries(bars.AAPL, "close");
 ```
 
 ## Latest price
@@ -113,8 +177,37 @@ const candles = await alpaca.marketData.getStockCandles({
 const price = await alpaca.marketData.getLatestPrice("AAPL");
 ```
 
+## Feeds and the free-tier delay
+
+Feed access comes from your Alpaca data subscription, not from paper versus live
+trading:
+
+- US-equity REST endpoints accept `feed`: `iex` is the free feed; `sip` covers
+  all US exchanges and requires the corresponding subscription; `otc` and
+  `boats` are also supported where the endpoint allows them.
+- REST helpers do not force a feed. When omitted, Alpaca selects the best feed
+  your subscription allows, which is normally `iex` on the free plan.
+- Stock streaming defaults to `feed: "iex"` so free-plan credentials work
+  without extra configuration. Request `sip` explicitly only when entitled.
+- On the free plan, recent SIP data inside the last 15 minutes is restricted.
+  An explicit recent `sip` query can return a guided 403. With `iex`, the
+  trailing window can be sparse or empty; if you need a reliably populated
+  historical window, set `end` at least 15 minutes in the past.
+
+The SDK does not silently clamp `end`, because that would hide recent data from
+paid subscribers.
+
+The `paper` option is irrelevant to market data. It switches trading hosts, but
+market-data REST and stream calls continue to use the market-data service.
+Entitlements depend on the subscription and `feed`.
+
 ## Next steps
 
-- Stream the same canonical shapes live in **[Streaming](./streaming.md)**.
-- Iterate or collect large histories with the helpers in **[Pagination](./pagination.md)**.
-- Browse every raw endpoint in the **Market Data API** reference (sidebar).
+- Browse the curated generated-endpoint and facade overview in the
+  **[Market Data API Reference](./api/market-data.md)**. For the complete
+  installed surface, use the published TypeScript declarations and your editor.
+- Stream the same canonical shapes in
+  **[Streaming & Events](./streaming.md)**.
+- Bound or fan out large histories with **[Pagination](./pagination.md)**.
+- Review precision and timeframe conventions in
+  **[Values & types](./types-and-values.md)**.

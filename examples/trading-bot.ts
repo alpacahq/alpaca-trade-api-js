@@ -43,7 +43,7 @@ async function main(): Promise<void> {
     const price = await alpaca.marketData.getLatestPrice("AAPL");
     console.log(`AAPL last trade: ${price ?? "n/a"}`);
 
-    // Stream order/account updates in the background.
+    // Stream order/trade updates in the background.
     const updates = alpaca.trading.stream();
     updates.onTradeUpdate((u) => console.log(`trade update: ${u.event} ${u.order.symbol} -> ${u.order.status}`));
     updates.onError((msg) => console.error("stream error:", msg));
@@ -51,7 +51,7 @@ async function main(): Promise<void> {
     updates.onReconnecting((attempt) => console.warn(`stream reconnecting (attempt ${attempt})`));
     // This means re-subscription was dispatched, not acknowledged by the server.
     updates.onReconnected(() => console.info("stream reconnected; subscriptions dispatched"));
-    updates.onConnect(() => updates.subscribeTradeUpdates());
+    updates.subscribeTradeUpdates();
     updates.connect();
 
     // Await the authentication handshake (typed result; never throws). Bail out

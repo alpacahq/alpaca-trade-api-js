@@ -20,6 +20,20 @@ it. Use the `keyId` / `secret` pair (or an OAuth token). The SDK throws a guided
 error if you pass `apiKey` as a string.
 :::
 
+When composing a low-level generated `Configuration`, use the exported helper
+to map the pair to the correct headers:
+
+```ts
+import { auth, trading } from "@alpacahq/alpaca-trade-api";
+
+const config = new trading.Configuration({
+  apiKey: auth.apiKeyAuth({ keyId, secret }),
+});
+```
+
+`apiKey` also accepts an asynchronous resolver when credentials need to be
+loaded or refreshed from an external secret store.
+
 ## OAuth
 
 Provide an `accessToken` instead of a key pair to authenticate via OAuth (sent as
@@ -73,8 +87,14 @@ console.log("connected as", check.account.id);
   for live trading. Honored only by hosts that distinguish the two (e.g. trading).
 - **`sandbox`** selects the market-data sandbox host where supported. Crypto and
   news streams are **production-only** (no sandbox endpoint).
-- An explicit `basePath` always overrides the `paper` / `sandbox` selection.
+- **`basePath`** applies only to a low-level generated `Configuration`, where it
+  overrides that configuration's host. It is not an `Alpaca` facade option;
+  select facade hosts with `paper`, `sandbox`, or a stream's `url` option.
 
 ```ts
 const live = new Alpaca({ keyId, secret, paper: false });
 ```
+
+The REST host constants are exported for integrations that need to construct or
+validate URLs directly: `trading.TRADING_PAPER_HOST`,
+`trading.TRADING_LIVE_HOST`, and `marketData.MARKET_DATA_HOST`.

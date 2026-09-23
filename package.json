@@ -10,7 +10,7 @@
   "bugs": {
     "url": "https://github.com/alpacahq/alpaca-trade-api-js/issues"
   },
-  "homepage": "https://alpaca.markets/",
+  "homepage": "https://alpacahq.github.io/alpaca-trade-api-js/",
   "keywords": [
     "Alpaca",
     "Trading"
@@ -101,6 +101,8 @@
   "files": [
     "dist",
     "src",
+    "CONTRIBUTING.md",
+    "LLMS.md",
     "LICENSE",
     "MIGRATION.md",
     "codemods/README.md",
@@ -115,8 +117,9 @@
     "verify:package": "node scripts/verify-package.mjs",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
-    "docs:api": "tsx scripts/gen-api-reference.ts",
-    "docs:api-site": "tsx scripts/gen-docs-api-reference.ts",
+    "agent:skill": "node scripts/gen-agent-guidance.mjs",
+    "agent:skill:check": "node scripts/gen-agent-guidance.mjs --check",
+    "docs:api": "tsx scripts/gen-docs-api-reference.ts",
     "docs:examples-site": "tsx scripts/gen-docs-examples.ts",
     "docs:migration-site": "tsx scripts/gen-docs-migration.ts",
     "generate": "npm --prefix tooling run generate --",
@@ -142,6 +145,9 @@
     "@types/node": "^20.19.43",
     "@types/ws": "^8.18.1",
     "jscodeshift": "17.4.0",
+    "mdast-util-from-markdown": "^2.0.3",
+    "parse-srcset": "^1.0.2",
+    "parse5": "^7.3.0",
     "tsup": "^8.5.1",
     "tsx": "^4.22.4",
     "typescript": "^5.4.0",

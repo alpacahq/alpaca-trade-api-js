@@ -1,7 +1,12 @@
 # AGENTS.md
 
-Instructions for AI agents and contributors working in the `@alpacahq/alpaca-trade-api`
-package.
+Repository-maintenance guidance for AI agents and contributors working on the
+`@alpacahq/alpaca-trade-api` package.
+
+For application code that consumes this SDK, read [`LLMS.md`](LLMS.md) or install
+the equivalent [`skills/alpaca-trade-api-sdk/SKILL.md`](skills/alpaca-trade-api-sdk/SKILL.md).
+For documentation-site authoring and local preview, read
+[`docs/README.md`](docs/README.md).
 
 ## Overview
 
@@ -51,7 +56,12 @@ when editing:
  trees but are hand-maintained transport code, protected from regeneration by
  `.openapi-generator-ignore`; treat them as the hand-written exceptions inside
  those otherwise generator-owned trees.
-- **Edit `src/` directly** for behavior changes.
+- **Agent guidance has one authored source.** `LLMS.md` is authored;
+  `skills/alpaca-trade-api-sdk/SKILL.md` is generated. Edit `LLMS.md`, run
+  `npm run agent:skill`, and commit both files. `npm run agent:skill:check`
+  verifies full generated-file parity.
+- **Edit hand-written `src/` modules directly** for behavior changes; use the
+  generation pipeline for the generated trees described above.
 - **Keep the capability maps in sync.** When you add an ergonomic helper to
   `TradingClient` / `MarketDataClient` / `OrdersApi` (`src/client.ts`), add it to
   `ergonomicCapabilities` in `src/capabilities.ts` — a test in
@@ -76,9 +86,14 @@ npm run typecheck      # tsc --noEmit (the type authority)
 npm test               # vitest
 npm run lint           # biome lint (hand-written code; generated apis/models are ignored)
 npm run lint:fix       # biome lint --write (apply safe autofixes)
+npm run agent:skill    # regenerate the installable Skill from LLMS.md
+npm run agent:skill:check  # fail if the generated Skill is stale
 npm run generate       # regenerate REST trees: fetch latest specs, diff, confirm, generate
 npm run generate:offline  # reproduce the trees from pinned specs (no network)
 ```
+
+Documentation-specific commands, authored/generated page boundaries, and the
+deployment flow are documented in `docs/README.md`.
 
 Regeneration lives in `tooling/` (a separate private package with its own deps
 and tests). It needs a real JDK (auto-detected; `brew install openjdk` if

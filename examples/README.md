@@ -28,7 +28,7 @@ export APCA_API_SECRET_KEY="your-secret"
 A paper trading bot: reads the account (formatting money with the `values`
 helpers), looks up the latest price, places a resting limit order with the
 ergonomic `orders.limit` builder and an explicit, auditable `clientOrderId`
-(then cancels it), streams order/account updates (awaiting the typed auth
+(then cancels it), streams order/trade updates (awaiting the typed auth
 handshake and logging the reconnect lifecycle), and places a market order with
 `submitAndWait`.
 

@@ -1,12 +1,11 @@
 /**
- * Pure renderer for the README API reference block.
+ * Pure renderers for the docs-site API reference.
  *
  * Joins the capability maps in `src/capabilities.ts` with the hand-maintained
- * examples in `./examples.ts` and emits the markdown that lives between the
- * `<!-- API-REFERENCE:START -->` / `<!-- API-REFERENCE:END -->` markers. The
- * writer (`scripts/gen-api-reference.ts`) and the drift guard
- * (`test/api-reference.test.ts`) both call into here, so the generated output
- * and the test can never disagree.
+ * examples in `./examples.ts`, then renders the `/api` landing page and one
+ * markdown page per reference section. The writer
+ * (`scripts/gen-docs-api-reference.ts`) only manages the generated output
+ * directory.
  *
  * Examples are authored as compact one-liners in `examples.ts`; this module
  * pretty-prints any that exceed {@link MAX_WIDTH} into a multi-line form so the
@@ -21,11 +20,6 @@ import {
     type ErgonomicHelperEntry,
 } from "../../src/capabilities.ts";
 import { examples } from "./examples.ts";
-
-/** Opening marker that fences the generated block in the README. */
-export const START_MARKER = "<!-- API-REFERENCE:START -->";
-/** Closing marker that fences the generated block in the README. */
-export const END_MARKER = "<!-- API-REFERENCE:END -->";
 
 /** Wrap examples whose single-line form is wider than this many columns. */
 const MAX_WIDTH = 76;
@@ -156,7 +150,7 @@ function lookup(key: string): { description: string; example: string } {
     const entry = examples[key];
     if (!entry) {
         throw new Error(
-            `Missing API-reference example for "${key}". Add it to scripts/api-reference/examples.ts, then run \`npm run docs:api\`.`,
+            `Missing docs-site API-reference example for "${key}". Add it to scripts/api-reference/examples.ts, then run \`npm run docs:api\`.`,
         );
     }
     return entry;
@@ -233,17 +227,13 @@ export interface ApiReferenceSection {
     title: string;
     /**
      * Rendered markdown lines for the group. The first line is the
-     * `### {title}` heading; consumers that render the group as its own page
-     * (e.g. the docs site) strip it in favor of a page title.
+     * `### {title}` heading; the site page renderer strips it in favor of the
+     * page title.
      */
     lines: string[];
 }
 
-/**
- * The API reference split into its four top-level groups, in render order.
- * {@link renderApiReference} concatenates these for the single-page README
- * block; the docs-site generator emits one page per section instead.
- */
+/** The API reference split into its four top-level groups, in render order. */
 export function apiReferenceSections(): ApiReferenceSection[] {
     const trading = capabilities.filter((c) => c.group === "trading");
     const marketData = capabilities.filter((c) => c.group === "marketData");
@@ -255,32 +245,114 @@ export function apiReferenceSections(): ApiReferenceSection[] {
     ];
 }
 
-/**
- * Render the full API reference markdown block (without the surrounding
- * markers). Throws if any documented method lacks an examples entry.
- */
-export function renderApiReference(): string {
-    return apiReferenceSections()
-        .flatMap((section) => section.lines)
-        .join("\n")
-        .trimEnd();
+/** Metadata and rendered markdown for one generated docs-site page. */
+export interface ApiReferenceSitePage {
+    /** Docusaurus document ID, matching `docs/sidebars.ts`. */
+    id: string;
+    /** Filename relative to `docs/docs/api/`. */
+    filename: string;
+    /** Public route under the docs site's route base. */
+    route: string;
+    /** Human-readable page title. */
+    title: string;
+    /** Complete markdown file contents, including front matter. */
+    contents: string;
 }
 
-/**
- * Splice {@link renderApiReference} between the markers in a README string,
- * returning the updated document. Idempotent: applying it to an in-sync README
- * yields the same string (this is what the drift guard asserts). Throws if
- * either marker is absent or out of order.
- */
-export function applyReference(readme: string): string {
-    const startIdx = readme.indexOf(START_MARKER);
-    const endIdx = readme.indexOf(END_MARKER);
-    if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
-        throw new Error(
-            `README is missing the ${START_MARKER} / ${END_MARKER} markers (in order).`,
-        );
+const SITE_SECTIONS = [
+    { title: "Trading API", slug: "trading", position: 2 },
+    { title: "Market Data API", slug: "market-data", position: 3 },
+    { title: "Real-time streaming", slug: "streaming", position: 4 },
+    { title: "Ergonomic helpers", slug: "ergonomic-helpers", position: 5 },
+] as const;
+
+/** Add stable anchors to facade method headings referenced by operation links. */
+function withExplicitAnchors(lines: string[]): string[] {
+    return lines.map((line) => {
+        const match = line.match(/^##### `alpaca\.(.+)`$/);
+        if (!match) return line;
+        return `${line} {#${headingSlug(`alpaca.${match[1]}`)}}`;
+    });
+}
+
+/** Drop the section heading because each generated file supplies a page title. */
+function stripSectionHeading(section: ApiReferenceSection): string[] {
+    const body = [...section.lines];
+    if (body[0] === `### ${section.title}`) {
+        body.shift();
+        if (body[0] === "") body.shift();
     }
-    const before = readme.slice(0, startIdx + START_MARKER.length);
-    const after = readme.slice(endIdx);
-    return `${before}\n\n${renderApiReference()}\n\n${after}`;
+    return body;
+}
+
+function renderLandingPage(): ApiReferenceSitePage {
+    const contents = [
+        "---",
+        "title: API Reference",
+        "sidebar_position: 1",
+        "slug: /api",
+        "custom_edit_url: null",
+        "---",
+        "",
+        "# API Reference",
+        "",
+        "The API Reference is a curated, example-driven facade reference for `@alpacahq/alpaca-trade-api`.",
+        "",
+        "The published TypeScript declarations and your editor are authoritative for the complete API surface, exact method signatures, and request and response models.",
+        "",
+        "Examples using `TimeFrame` import it from `@alpacahq/alpaca-trade-api` alongside `Alpaca`.",
+        "",
+        "- [Trading API](./trading.md)",
+        "- [Market Data API](./market-data.md)",
+        "- [Real-time streaming](./streaming.md)",
+        "- [Ergonomic helpers](./ergonomic-helpers.md)",
+        "",
+    ].join("\n");
+
+    return {
+        id: "api/index",
+        filename: "index.md",
+        route: "/api",
+        title: "API Reference",
+        contents,
+    };
+}
+
+/** Render the `/api` landing page followed by all four reference pages. */
+export function renderApiReferenceSitePages(): ApiReferenceSitePage[] {
+    const sections = new Map(
+        apiReferenceSections().map((section) => [section.title, section]),
+    );
+    const pages: ApiReferenceSitePage[] = [renderLandingPage()];
+
+    for (const metadata of SITE_SECTIONS) {
+        const section = sections.get(metadata.title);
+        if (!section) {
+            throw new Error(`Missing API-reference section "${metadata.title}".`);
+        }
+        const route = `/api/${metadata.slug}`;
+        const body = withExplicitAnchors(stripSectionHeading(section));
+        const contents = [
+            "---",
+            `title: ${metadata.title}`,
+            `sidebar_position: ${metadata.position}`,
+            `slug: ${route}`,
+            "custom_edit_url: null",
+            "---",
+            "",
+            `# ${metadata.title}`,
+            "",
+            ...body,
+            "",
+        ].join("\n");
+        pages.push({
+            id: `api/${metadata.slug}`,
+            filename: `${metadata.slug}.md`,
+            route,
+            title: metadata.title,
+            contents,
+        });
+    }
+
+    return pages;
 }

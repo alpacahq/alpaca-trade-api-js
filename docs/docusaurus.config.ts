@@ -9,8 +9,9 @@ const url = process.env.DOCUSAURUS_URL ?? "https://alpacahq.github.io";
 const baseUrl = process.env.DOCUSAURUS_BASE_URL ?? "/alpaca-trade-api-js/";
 
 const config: Config = {
-    title: "@alpacahq/alpaca-trade-api",
+    title: "Alpaca Node.js Client",
     tagline: "TypeScript SDK for the Alpaca Trading & Market Data APIs",
+    favicon: "img/alpaca-symbol-yellow.png",
     url,
     baseUrl,
     organizationName: "alpacahq",
@@ -20,7 +21,7 @@ const config: Config = {
     // `detect` parses `.md` as CommonMark so the generated API reference pages
     // (raw `<details>` blocks and `{...}` inside code fences) aren't mis-parsed
     // as MDX/JSX, while still allowing `.mdx` where we want components.
-    markdown: { format: "detect", hooks: { onBrokenMarkdownLinks: "warn" } },
+    markdown: { format: "detect", hooks: { onBrokenMarkdownLinks: "throw" } },
     i18n: { defaultLocale: "en", locales: ["en"] },
 
     presets: [
@@ -41,8 +42,8 @@ const config: Config = {
 
     // The API reference under `docs/docs/api/` is generated from the SDK's
     // capability maps by `scripts/gen-docs-api-reference.ts` (run by the docs
-    // `prebuild`), giving the same curated, example-driven reference as the
-    // README rather than verbose machine output.
+    // `prebuild`) as a site-only, curated facade reference with descriptions
+    // and examples.
 
     themeConfig: {
         announcementBar: {
@@ -51,13 +52,25 @@ const config: Config = {
             isCloseable: true,
         },
         navbar: {
-            title: "alpaca-trade-api",
+            title: "Alpaca Node.js Client",
+            logo: {
+                alt: "Alpaca",
+                src: "img/alpaca-symbol-yellow.png",
+                width: 32,
+                height: 32,
+            },
             items: [
                 {
                     type: "docSidebar",
                     sidebarId: "docsSidebar",
                     position: "left",
                     label: "Docs",
+                },
+                {
+                    type: "docSidebar",
+                    sidebarId: "apiSidebar",
+                    position: "left",
+                    label: "API Reference",
                 },
                 {
                     type: "doc",
@@ -72,9 +85,46 @@ const config: Config = {
                 },
             ],
         },
+        footer: {
+            style: "dark",
+            links: [
+                {
+                    title: "Alpaca",
+                    items: [
+                        {
+                            label: "Alpaca Docs",
+                            href: "https://alpaca.markets/docs/",
+                        },
+                        {
+                            label: "Alpaca Markets",
+                            href: "https://alpaca.markets/",
+                        },
+                    ],
+                },
+                {
+                    title: "Community",
+                    items: [
+                        {
+                            label: "Slack",
+                            href: "https://alpaca.markets/slack",
+                        },
+                        {
+                            label: "Forum",
+                            href: "https://forum.alpaca.markets/",
+                        },
+                    ],
+                },
+            ],
+            copyright: `Copyright © ${new Date().getFullYear()} Alpaca. Built with Docusaurus.`,
+        },
         prism: {
             theme: prismThemes.github,
             darkTheme: prismThemes.dracula,
+        },
+        colorMode: {
+            defaultMode: "light",
+            disableSwitch: false,
+            respectPrefersColorScheme: true,
         },
     } satisfies Preset.ThemeConfig,
 };
