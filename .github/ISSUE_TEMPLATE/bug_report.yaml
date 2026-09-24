@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Report SDK behavior here in English. For account-specific help, contact [Alpaca Support](https://alpaca.markets/support). For general API or platform incidents, use the [Alpaca Community Forum](https://forum.alpaca.markets/).
+        Report SDK behavior here in English. For account-specific help, contact [Alpaca Support](https://alpaca.markets/support). For API endpoint behavior or platform incidents, use the [Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose). For general API or platform discussion, use the [Alpaca Community Forum](https://forum.alpaca.markets/).
 
         Do not disclose suspected security vulnerabilities publicly. Follow the private reporting process in our [Security Policy](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/SECURITY.md).
 
@@ -20,7 +20,7 @@ body:
       options:
         - label: I searched existing issues and tested the latest applicable SDK release.
           required: true
-        - label: This report concerns SDK behavior rather than account-specific support or a general platform incident.
+        - label: This report concerns JavaScript/TypeScript SDK behavior rather than account-specific support or Alpaca API behavior.
           required: true
 
   - type: dropdown
