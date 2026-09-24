@@ -17,6 +17,24 @@ describe('canonical documentation', () => {
         expect(config).toMatch(/onBrokenMarkdownLinks:\s*["']throw["']/);
     });
 
+    it('routes Alpaca API behavior and specification issues to the API tracker', () => {
+        const routingFiles = [
+            'CONTRIBUTING.md',
+            'README.md',
+            'docs/docs/getting-started.md',
+            '.github/ISSUE_TEMPLATE/config.yml',
+            '.github/ISSUE_TEMPLATE/bug_report.yaml',
+            '.github/ISSUE_TEMPLATE/feature-request.yml',
+            '.github/ISSUE_TEMPLATE/question.yaml',
+        ];
+
+        for (const file of routingFiles) {
+            expect(readFileSync(resolve(projectRoot, file), 'utf8')).toContain(
+                'https://github.com/alpacahq/Alpaca-API/issues/new/choose',
+            );
+        }
+    });
+
     it('separates repository, consumer, and docs-site agent guidance', () => {
         const agents = readFileSync(
             resolve(projectRoot, 'AGENTS.md'),

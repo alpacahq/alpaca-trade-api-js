@@ -11,6 +11,9 @@ agree to follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
   reporting process in our [Security Policy](./SECURITY.md).
 - **Account-specific questions:** contact
   [Alpaca Support](https://alpaca.markets/support) privately.
+- **Alpaca API behavior, missing capabilities, or specification defects:**
+  search or open an issue in the
+  [Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose).
 - **General Alpaca API or platform discussion:** use the
   [Alpaca Community Forum](https://forum.alpaca.markets/).
 - **General community discussion:** join the
@@ -38,11 +41,12 @@ broad refactor, or third-party integration. Early discussion helps confirm that
 the proposal fits the SDK's scope and avoids duplicated or unusable work.
 
 Missing or incorrect API behavior and OpenAPI specification defects must be
-fixed upstream, not patched in this SDK. Report the gap in an issue so
-maintainers can track it and coordinate the upstream resolution. Maintainers
-alone update pinned specifications and run the generation pipeline. Changes to
-specifications, overlays, templates, generator tooling, generated clients,
-models, or types are out of scope for external contributions. See
+fixed in the Alpaca API, not patched in this SDK. Report the gap in the
+[Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose)
+so the owning API team can track and resolve it. Maintainers alone update pinned
+specifications and run the generation pipeline. Changes to specifications,
+overlays, templates, generator tooling, generated clients, models, or types are
+out of scope for external contributions. See
 [Generated vs hand-written code](#generated-vs-hand-written-code) for work that
 can be proposed in this repository.
 
@@ -148,19 +152,21 @@ REST clients and models under `src/trading/{apis,models,index.ts}` and
 Generated files and their generation sources—including pinned specifications,
 overlays, templates, and generator tooling—are maintained by project
 maintainers and are out of scope for external contributions. Maintainers are
-responsible for keeping the SDK aligned with upstream specifications, running
+responsible for keeping the SDK aligned with Alpaca API specifications, running
 the generation pipeline, and committing the resulting clients, models, and
 types.
 
-Contributors should report missing or incorrect API coverage rather than patch
-generated output. After maintainers adopt an upstream fix, contributors may
-help with tests, documentation, examples, or hand-written ergonomics.
+Contributors should report missing or incorrect API coverage in the
+[Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose)
+rather than patch generated output. After maintainers adopt the resolved API
+specification, contributors may help with tests, documentation, examples, or
+hand-written ergonomics.
 
 Anyone may run safe generation checks locally for testing or diagnostics:
 
 ```bash
 npm run generate:offline             # reproduce trees from pinned specs
-npm run generate -- --dry-run --yes  # preview upstream changes without writes
+npm run generate -- --dry-run --yes  # preview latest API spec without writes
 ```
 
 Local generation does not make generated changes part of a contribution.

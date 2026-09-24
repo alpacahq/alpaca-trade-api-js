@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Ask SDK-specific questions here in English. For private account help, contact [Alpaca Support](https://alpaca.markets/support). For general API or platform discussion, use the [Alpaca Community Forum](https://forum.alpaca.markets/).
+        Ask SDK-specific questions here in English. For private account help, contact [Alpaca Support](https://alpaca.markets/support). For API behavior or feature requests, use the [Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose). For general API or platform discussion, use the [Alpaca Community Forum](https://forum.alpaca.markets/).
 
         Never include API keys, account details, or other secrets.
 

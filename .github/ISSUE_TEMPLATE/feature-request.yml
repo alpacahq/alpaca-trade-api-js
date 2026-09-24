@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Propose SDK-specific work here in English. For general API or platform requests, use the [Alpaca Community Forum](https://forum.alpaca.markets/).
+        Propose SDK-specific work here in English. For API capabilities or platform feature requests, use the [Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose). For general API or platform discussion, use the [Alpaca Community Forum](https://forum.alpaca.markets/).
 
         Read the [contribution policy](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/CONTRIBUTING.md#contribution-policy) before implementing substantial work or a third-party integration.
 

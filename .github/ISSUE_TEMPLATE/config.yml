@@ -6,6 +6,9 @@ contact_links:
   - name: Report a security vulnerability
     url: https://alpaca.markets/security
     about: Follow Alpaca's private vulnerability-disclosure process.
+  - name: Alpaca API issue tracker
+    url: https://github.com/alpacahq/Alpaca-API/issues/new/choose
+    about: Report API behavior, missing capabilities, specification defects, or platform feature requests.
   - name: Alpaca Community Forum
     url: https://forum.alpaca.markets/
     about: Discuss general Alpaca API and platform questions.
