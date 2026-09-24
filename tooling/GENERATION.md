@@ -12,12 +12,20 @@ the committed `src/trading/{apis,models,index.ts}` and
 `typescript-fetch` output is encoded declaratively — in forked Mustache
 templates or JSON Patch overlays — never as a hand-edit of generated files.
 
+The pipeline is maintainer-owned, but anyone may run offline reproduction or
+dry-run previews locally for testing and diagnostics. Only maintainers adopt
+pinned specifications or commit changes to generation inputs and generated
+trees.
+
 ## Quick start
 
 ```bash
 # From the SDK repo root:
-npm run generate            # interactive: fetch latest specs, show diff, confirm, regenerate
-npm run generate:offline    # reproduce trees from the pinned specs (no network)
+npm run generate:offline             # safe local reproduction from pinned specs
+npm run generate -- --dry-run --yes  # safe live preview without writes
+
+# Maintainer-only adoption:
+npm run generate                     # fetch, diff, confirm, adopt, and regenerate
 
 # Useful flags (after `--`):
 npm run generate -- --target trading      # one target only

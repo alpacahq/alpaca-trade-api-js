@@ -18,7 +18,7 @@ body:
       options:
         - label: I searched the documentation and existing issues.
           required: true
-        - label: My question is specific to this TypeScript SDK.
+        - label: My question is specific to the JavaScript/TypeScript SDK.
           required: true
         - label: My question is not asking for a trading strategy, algorithm design, or investment advice.
           required: true
