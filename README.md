@@ -172,10 +172,11 @@ for release notes.
   [GitHub Issues](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
 - **Security vulnerabilities:** Do not report them publicly. Follow our
   [Security Policy](./SECURITY.md).
-- **Alpaca API bugs:** Bugs in the Alpaca API itself, its OpenAPI specs, or its
-  documentation →
-  [alpacahq/alpaca-api](https://github.com/alpacahq/alpaca-api/issues/new/choose).
-- **Community:** API feature requests, general questions, and dashboard bugs →
+- **Alpaca API behavior, missing capabilities, specification or documentation
+  defects, and platform feature requests:**
+  Search or open an issue in the
+  [Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose).
+- **General Alpaca API and platform discussion:** Use the
   [Alpaca Community Forum](https://forum.alpaca.markets/) or
   [Slack](https://alpaca.markets/slack).
 - **Account help:** Questions about your account, funding, or orders →
