@@ -81,7 +81,9 @@ Follow the reconciliation workflow in
 ## Support
 
 - **Library / SDK issues:** Bugs, feature requests, or questions specific to this TypeScript library → [GitHub Issues](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
-- **General Alpaca support & API discussion:** Account questions, platform issues, or broader API topics → [Alpaca Community Forum](https://forum.alpaca.markets/).
+- **Security vulnerabilities:** Do not report them publicly. Follow Alpaca's [vulnerability-disclosure process](https://alpaca.markets/security).
+- **Account-specific questions:** Contact [Alpaca Support](https://alpaca.markets/support) privately.
+- **General Alpaca API & platform discussion:** Broader API or platform topics → [Alpaca Community Forum](https://forum.alpaca.markets/).
 - **Slack community:** Chat with other developers and the Alpaca community on [Slack](https://alpaca.markets/slack).
 
 ## Next steps

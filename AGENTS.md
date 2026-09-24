@@ -104,7 +104,8 @@ and how to adopt upstream spec changes.
 
 Releases and `CHANGELOG.md` are managed with [Changesets](https://github.com/changesets/changesets).
 Changelog entries are **human-authored**, decoupled from commit messages — every
-user-facing change ships with a changeset file describing it and its semver bump.
+SDK-consumer-facing change ships with a changeset file describing it and its
+semver bump.
 
 Stable releases are published from `master` to the npm **`latest`** dist-tag.
 The repository uses the standard Changesets flow; release publishing is
@@ -120,8 +121,8 @@ Workflow:
 
 1. **Per change**: run `npm run changeset`, choose the bump (patch/minor/major), and
    write a one-line, user-facing summary. Commit the generated `.changeset/*.md`
-   file alongside the code change. Internal-only changes (CI, tooling, refactors
-   with no consumer impact) need no changeset.
+   file alongside the code change. Governance-only documentation, CI, tooling,
+   and internal refactors with no SDK-consumer impact need no changeset.
 2. **Merge to `master`**: `.github/workflows/release.yaml` opens or updates the
    dedicated **"chore: version packages"** PR when unreleased changesets exist.
 3. **Publish**: merging the version PR runs `npm run release` and publishes the

@@ -101,10 +101,12 @@
   "files": [
     "dist",
     "src",
+    "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
     "LLMS.md",
     "LICENSE",
     "MIGRATION.md",
+    "SECURITY.md",
     "codemods/README.md",
     "codemods/alpaca-v3-to-v4.js"
   ],

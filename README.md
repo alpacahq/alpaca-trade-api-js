@@ -137,8 +137,11 @@ for release notes.
 - **Library / SDK issues:** Bugs, feature requests, or questions specific to this
   TypeScript library →
   [GitHub Issues](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
-- **General Alpaca support & API discussion:** Account questions, platform issues,
-  or broader API topics →
+- **Security vulnerabilities:** Do not report them publicly. Follow our
+  [Security Policy](./SECURITY.md).
+- **Account-specific questions:** Contact
+  [Alpaca Support](https://alpaca.markets/support) privately.
+- **General Alpaca API & platform discussion:** Broader API or platform topics →
   [Alpaca Community Forum](https://forum.alpaca.markets/).
 - **Slack community:** Chat with other developers and the Alpaca community on
   [Slack](https://alpaca.markets/slack).
@@ -146,4 +149,6 @@ for release notes.
 ## Contributing
 
 Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup,
-generated-code boundaries, documentation workflow, and release notes conventions.
+contribution scope, generated-code boundaries, quality requirements, and the
+pull-request workflow. Participation is governed by our
+[Code of Conduct](./CODE_OF_CONDUCT.md).
