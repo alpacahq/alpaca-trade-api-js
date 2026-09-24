@@ -5,7 +5,7 @@ title: Introduction
 
 # @alpacahq/alpaca-trade-api
 
-`@alpacahq/alpaca-trade-api` is the Node.js and TypeScript SDK for Alpaca's
+`@alpacahq/alpaca-trade-api` is the Alpaca JavaScript/TypeScript SDK for the
 **Trading API** and **Market Data API**. One package exposes one `Alpaca` client
 with two primary namespaces:
 

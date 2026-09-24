@@ -1,7 +1,12 @@
 # AGENTS.md
 
-Repository-maintenance guidance for AI agents and contributors working on the
-`@alpacahq/alpaca-trade-api` package.
+Repository-maintenance guidance for project maintainers and AI agents acting on
+their behalf on the `@alpacahq/alpaca-trade-api` package. External contributors
+should start with [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+Anyone may run the generation pipeline locally to verify reproducibility or
+preview upstream changes. Maintainers own adoption of pinned specifications and
+all committed changes to generation inputs or generated output.
 
 For application code that consumes this SDK, read [`LLMS.md`](LLMS.md) or install
 the equivalent [`skills/alpaca-trade-api-sdk/SKILL.md`](skills/alpaca-trade-api-sdk/SKILL.md).
@@ -10,9 +15,10 @@ For documentation-site authoring and local preview, read
 
 ## Overview
 
-`@alpacahq/alpaca-trade-api` is a TypeScript SDK for the Alpaca **Trading API**
-and **Market Data API**. The REST clients/models are generated with OpenAPI
-Generator via the **reproducible pipeline in `tooling/`** (`npm run generate`);
+`@alpacahq/alpaca-trade-api` is the Alpaca JavaScript/TypeScript SDK for the
+**Trading API** and **Market Data API**. The REST clients/models are generated
+with OpenAPI Generator via the **reproducible pipeline in `tooling/`**
+(`npm run generate`);
 they stay a faithful snapshot of Alpaca's OpenAPI spec, and every convenience is
 hand-written in separate modules (see the first convention below). Crucially,
 the generated trees are **never hand-edited** — every required deviation from
@@ -33,9 +39,10 @@ when editing:
 - **Generated vs hand-written — never hand-edit the generated trees.** The
   `src/trading/{apis,models,index.ts}` and `src/market-data/{apis,models,index.ts}`
   trees are generator output, reproduced by `npm run generate` (see `tooling/`).
-  Treat them as derived artifacts: **never hand-edit them**. If you need to change
-  generated output, change the spec/overlay/template in `tooling/` and regenerate
-  — `npm run generate:offline` must reproduce the trees byte-for-byte. All
+  Treat them as derived artifacts: **never hand-edit them**. Maintainer-owned
+  changes to generated output must update the relevant spec, overlay, or template
+  in `tooling/` and regenerate — `npm run generate:offline` must reproduce the
+  trees byte-for-byte. All
   behavior, ergonomics, and fixes live in hand-written modules outside those trees
   (`src/client.ts`, `src/orders.ts`, `src/marketDataShapes.ts`,
   `src/core/runtime.ts`, `src/streaming/`, ...).
@@ -88,8 +95,9 @@ npm run lint           # biome lint (hand-written code; generated apis/models ar
 npm run lint:fix       # biome lint --write (apply safe autofixes)
 npm run agent:skill    # regenerate the installable Skill from LLMS.md
 npm run agent:skill:check  # fail if the generated Skill is stale
-npm run generate       # regenerate REST trees: fetch latest specs, diff, confirm, generate
 npm run generate:offline  # reproduce the trees from pinned specs (no network)
+npm run generate -- --dry-run --yes  # preview latest spec changes without writing
+npm run generate       # maintainer-only: adopt specs and regenerate REST trees
 ```
 
 Documentation-specific commands, authored/generated page boundaries, and the

@@ -1,7 +1,7 @@
 {
   "name": "@alpacahq/alpaca-trade-api",
   "version": "4.0.3",
-  "description": "TypeScript SDK for the Alpaca Trading and Market Data APIs.",
+  "description": "Alpaca JavaScript/TypeScript SDK for the Trading and Market Data APIs.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

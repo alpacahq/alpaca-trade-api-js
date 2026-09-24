@@ -9,8 +9,8 @@ const url = process.env.DOCUSAURUS_URL ?? "https://alpacahq.github.io";
 const baseUrl = process.env.DOCUSAURUS_BASE_URL ?? "/alpaca-trade-api-js/";
 
 const config: Config = {
-    title: "Alpaca Node.js Client",
-    tagline: "TypeScript SDK for the Alpaca Trading & Market Data APIs",
+    title: "Alpaca JavaScript/TypeScript SDK",
+    tagline: "Alpaca JavaScript/TypeScript SDK for the Trading and Market Data APIs",
     favicon: "img/alpaca-symbol-yellow.png",
     url,
     baseUrl,
@@ -52,7 +52,7 @@ const config: Config = {
             isCloseable: true,
         },
         navbar: {
-            title: "Alpaca Node.js Client",
+            title: "Alpaca JavaScript/TypeScript SDK",
             logo: {
                 alt: "Alpaca",
                 src: "img/alpaca-symbol-yellow.png",
@@ -98,6 +98,14 @@ const config: Config = {
                         {
                             label: "Alpaca Markets",
                             href: "https://alpaca.markets/",
+                        },
+                        {
+                            label: "Support",
+                            href: "https://alpaca.markets/support",
+                        },
+                        {
+                            label: "Security",
+                            href: "https://alpaca.markets/security",
                         },
                     ],
                 },

@@ -165,12 +165,14 @@ describe('canonical documentation', () => {
             'utf8',
         );
 
-        expect(config).toContain('Alpaca Node.js Client');
+        expect(config).toContain('Alpaca JavaScript/TypeScript SDK');
         expect(config).toContain('favicon: "img/alpaca-symbol-yellow.png"');
         expect(config).toContain('src: "img/alpaca-symbol-yellow.png"');
         expect(config).toContain('alt: "Alpaca"');
         expect(config).toContain('footer:');
         expect(config).toContain('https://alpaca.markets/docs/');
+        expect(config).toContain('https://alpaca.markets/support');
+        expect(config).toContain('https://alpaca.markets/security');
         expect(config).toContain('https://alpaca.markets/slack');
         expect(config).toContain('https://forum.alpaca.markets/');
         expect(css).toContain('--ifm-color-primary: #196f6b');

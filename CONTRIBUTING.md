@@ -156,9 +156,22 @@ Contributors should report missing or incorrect API coverage rather than patch
 generated output. After maintainers adopt an upstream fix, contributors may
 help with tests, documentation, examples, or hand-written ergonomics.
 
+Anyone may run safe generation checks locally for testing or diagnostics:
+
+```bash
+npm run generate:offline             # reproduce trees from pinned specs
+npm run generate -- --dry-run --yes  # preview upstream changes without writes
+```
+
+Local generation does not make generated changes part of a contribution.
+External contributors must discard changes to pinned specifications, generation
+sources, and generated trees before opening a pull request. Maintainer-led
+generation updates are handled separately.
+
 Behavior, ergonomics, streaming, pagination, and shared transport live in
 hand-written modules (`src/client.ts`, `src/orders.ts`, `src/core/runtime.ts`,
-`src/streaming/`, and similar modules). See
+`src/streaming/`, and similar modules). Maintainers and AI agents acting on
+their behalf should see
 [AGENTS.md](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/AGENTS.md)
 and
 [tooling/GENERATION.md](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/tooling/GENERATION.md)
@@ -220,7 +233,7 @@ Before requesting review, confirm that:
 
 - the change is focused, explained, and linked to prior discussion when needed;
 - generated clients, models, types, specifications, and generation sources are
-  unchanged;
+  unchanged, unless this is a maintainer-led generation update;
 - new or changed behavior has focused tests;
 - tests are deterministic and credential-free and cannot place live orders;
 - trading examples default to paper trading and fixtures contain only synthetic

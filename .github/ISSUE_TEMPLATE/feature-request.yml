@@ -82,4 +82,12 @@ body:
       label: Additional context
       description: Add examples, prior discussion, or other relevant details.
 
+  - type: checkboxes
+    id: sensitive_data
+    attributes:
+      label: Sensitive-data check
+      options:
+        - label: I removed API keys, credentials, account details, request or trace IDs, and other sensitive information.
+          required: true
+
 

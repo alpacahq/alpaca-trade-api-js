@@ -1,4 +1,4 @@
-# Alpaca Node.js Client Docs
+# Alpaca JavaScript/TypeScript SDK Docs
 
 Local Docusaurus site for `@alpacahq/alpaca-trade-api`.
 

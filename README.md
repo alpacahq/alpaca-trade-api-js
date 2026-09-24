@@ -4,7 +4,8 @@
 
 # @alpacahq/alpaca-trade-api
 
-A Node.js TypeScript SDK for the Alpaca **Trading API** and **Market Data API**.
+The Alpaca JavaScript/TypeScript SDK for the **Trading API** and **Market Data
+API**.
 Both APIs live under their own namespace (`trading` / `marketData`) in one package,
 fronted by a unified `Alpaca` client with typed errors, resilience (retry /
 timeout / rate limiting), pagination helpers, ergonomic order builders, and
@@ -134,8 +135,8 @@ for release notes.
 
 ## Support
 
-- **Library / SDK issues:** Bugs, feature requests, or questions specific to this
-  TypeScript library →
+- **Library / SDK issues:** Bugs, feature requests, or questions specific to the
+  SDK →
   [GitHub Issues](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
 - **Security vulnerabilities:** Do not report them publicly. Follow our
   [Security Policy](./SECURITY.md).
