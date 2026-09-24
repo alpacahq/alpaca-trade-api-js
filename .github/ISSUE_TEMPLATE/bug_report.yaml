@@ -1,75 +1,104 @@
 name: 🐞 Bug report
-description: Create a bug report to help us improve the SDK
+description: Report reproducible behavior in @alpacahq/alpaca-trade-api
 title: "[Bug]: "
-labels: [kind/bug]
-assignees:
--
+labels: [bug]
+assignees: []
 body:
-- type: markdown
-  attributes:
-    value: |
-      Thanks for taking the time to fill out this bug report! Please fill the form in English!
-- type: checkboxes
-  attributes:
-    label: Is there an existing issue for this?
-    description: Please search to see if an issue already exists for the bug you encountered.
-    options:
-    - label: I have searched the existing issues
+  - type: markdown
+    attributes:
+      value: |
+        Report SDK behavior here in English. For account-specific help, contact [Alpaca Support](https://alpaca.markets/support). For general API or platform incidents, use the [Alpaca Community Forum](https://forum.alpaca.markets/).
+
+        Do not disclose suspected security vulnerabilities publicly. Follow the private reporting process in our [Security Policy](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/SECURITY.md).
+
+        Never include API keys, account details, or other secrets.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues and tested the latest applicable SDK release.
+          required: true
+        - label: This report concerns SDK behavior rather than account-specific support or a general platform incident.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: SDK area
+      description: Which SDK surface is affected?
+      options:
+        - Trading REST
+        - Market Data REST
+        - Trading WebSocket stream
+        - Market Data WebSocket stream
+        - Packaging or runtime compatibility
+        - Documentation or examples
+        - Other
+    validations:
       required: true
-- type: textarea
-  attributes:
-    label: Current Behavior
-    description: A concise description of what you're experiencing.
-    placeholder: |
-      When I do <X>, <Y> happens and I see the error message attached below:
-      ```...```
-  validations:
-    required: true
 
-- type: textarea
-  attributes:
-    label: Expected Behavior
-    description: A concise description of what you expected to happen.
-    placeholder: When I do <X>, <Z> should happen instead.
-  validations:
-    required: false
+  - type: input
+    id: sdk_version
+    attributes:
+      label: SDK version
+      description: Provide the exact installed version.
+      placeholder: "@alpacahq/alpaca-trade-api 4.x.x"
+    validations:
+      required: true
 
-- type: textarea
-  attributes:
-    label: SDK Version I encountered this issue in
-    description: |
-      What versions of the SDK have you tried in which the issue is present. 
-      Before opening an issue please make sure you try the latest version of the SDK in case a fix has already been made.
-    placeholder: | 
-      alpaca-trade-api version: 2.x.x
-  validations:
-    required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime, OS, and architecture
+      description: Include runtime version, operating system, and CPU architecture because module loading, networking, and WebSocket behavior can differ.
+      placeholder: Node.js 24.15.0 on macOS 26 arm64, Bun 1.x on Linux x64, or Cloudflare Workers
+    validations:
+      required: true
 
-- type: textarea
-  attributes:
-    label: Steps To Reproduce
-    description: Steps to reproduce the behavior.
-    placeholder: |
-      1. In this environment...
-      2. With this config...
-      3. Run '...'
-      4. See error...
-    render: markdown
-  validations:
-    required: true
+  - type: input
+    id: module_entrypoint
+    attributes:
+      label: Module system and entrypoint
+      description: State how the SDK is loaded.
+      placeholder: ESM root import, CommonJS require, or @alpacahq/alpaca-trade-api/rest
 
-- type: checkboxes
-  attributes:
-    label: Filled out the Steps to Reproduce section?
-    description: Please verify you have filled out the above section in regards to attaching steps or code that can reproduce your issue so that Alpaca developers can investigate. Not filling out the section will have your issue flagged as invalid and might not be investigated.
-    options:
-      - label: I have entered valid steps to reproduce my issue or have attached a minimally reproducible case in code that shows my issue happening; and understand that without this my issue will be flagged as invalid and closed after 30 days.
-        required: true
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: Current behavior
+      description: Describe what happens, including safe error output.
+    validations:
+      required: true
 
-- type: textarea
-  attributes:
-    label: Anything else?
-    description: |
-      Links? References? Anything that will give us more context about the issue you are encountering!
-  validations:
-    required: false
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest runnable example and exact steps.
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add sanitized logs or other non-sensitive context. Do not post request IDs, trace IDs, account identifiers, or private diagnostics; share those privately through [Alpaca Support](https://alpaca.markets/support) or the [Security Policy](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/SECURITY.md) when appropriate.
+
+  - type: checkboxes
+    id: sensitive_data
+    attributes:
+      label: Sensitive-data check
+      options:
+        - label: I removed API keys, credentials, account details, request or trace IDs, and other sensitive information.
+          required: true
