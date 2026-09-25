@@ -21,6 +21,7 @@ coverage/
 .npm/
 .eslintcache
 .scratch/
+discovery/
 
 # Secrets / local environment — the examples read APCA_API_KEY_ID / APCA_API_SECRET_KEY.
 # Never commit real credentials; commit a `.env.example` instead.

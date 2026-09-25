@@ -86,5 +86,7 @@ a fetch-compatible function, for example to pass as a `fetchApi` option to a
 raw `Configuration`.
 
 Keep these tests focused on your application's request construction, response
-handling, and failure policies. Use paper trading separately for integration
-tests that intentionally exercise Alpaca's live service behavior.
+handling, and failure policies. Use a paper account separately for manual
+integration testing that intentionally exercises real Alpaca API behavior.
+Repository tests must remain deterministic and credential-free, and must never
+place live-market orders.

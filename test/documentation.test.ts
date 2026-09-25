@@ -17,6 +17,24 @@ describe('canonical documentation', () => {
         expect(config).toMatch(/onBrokenMarkdownLinks:\s*["']throw["']/);
     });
 
+    it('routes Alpaca API behavior and specification issues to the API tracker', () => {
+        const routingFiles = [
+            'CONTRIBUTING.md',
+            'README.md',
+            'docs/docs/getting-started.md',
+            '.github/ISSUE_TEMPLATE/config.yml',
+            '.github/ISSUE_TEMPLATE/bug_report.yaml',
+            '.github/ISSUE_TEMPLATE/feature-request.yml',
+            '.github/ISSUE_TEMPLATE/question.yaml',
+        ];
+
+        for (const file of routingFiles) {
+            expect(readFileSync(resolve(projectRoot, file), 'utf8')).toContain(
+                'https://github.com/alpacahq/Alpaca-API/issues/new/choose',
+            );
+        }
+    });
+
     it('separates repository, consumer, and docs-site agent guidance', () => {
         const agents = readFileSync(
             resolve(projectRoot, 'AGENTS.md'),
@@ -165,12 +183,14 @@ describe('canonical documentation', () => {
             'utf8',
         );
 
-        expect(config).toContain('Alpaca Node.js Client');
+        expect(config).toContain('Alpaca JavaScript/TypeScript SDK');
         expect(config).toContain('favicon: "img/alpaca-symbol-yellow.png"');
         expect(config).toContain('src: "img/alpaca-symbol-yellow.png"');
         expect(config).toContain('alt: "Alpaca"');
         expect(config).toContain('footer:');
         expect(config).toContain('https://alpaca.markets/docs/');
+        expect(config).toContain('https://alpaca.markets/support');
+        expect(config).toContain('https://alpaca.markets/security');
         expect(config).toContain('https://alpaca.markets/slack');
         expect(config).toContain('https://forum.alpaca.markets/');
         expect(css).toContain('--ifm-color-primary: #196f6b');
