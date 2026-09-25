@@ -48,6 +48,10 @@ reject comments, commits, code, wiki edits, issues, and other contributions
 that are not aligned with this Code of Conduct. They will communicate reasons
 for moderation decisions when appropriate.
 
+When corrective action requires permissions that project maintainers do not
+have, they will escalate the matter to authorized Alpaca organization or
+community moderators.
+
 ## Scope
 
 This Code of Conduct applies in project spaces, including this repository,
@@ -86,32 +90,33 @@ behavior was inappropriate. A public apology may be requested.
 **Community impact:** A violation through a single incident or series of
 actions.
 
-**Consequence:** A warning with consequences for continued behavior. No
-interaction with the people involved, including unsolicited interaction with
-those enforcing the Code of Conduct, for a specified period of time. This
-includes avoiding interactions in community spaces as well as external
-channels like social media. Violating these terms may lead to a temporary or
-permanent ban.
+**Consequence:** A written warning that identifies the behavior and the
+consequences of continued violations. The participant may be directed not to
+contact the people involved through project or Alpaca community channels for a
+specified period. Continued violations may lead to a temporary participation
+restriction.
 
-### 3. Temporary ban
+### 3. Temporary participation restriction
 
 **Community impact:** A serious violation of community standards, including
 sustained inappropriate behavior.
 
-**Consequence:** A temporary ban from any sort of interaction or public
-communication with the community for a specified period of time. No public or
-private interaction with the people involved, including unsolicited
-interaction with those enforcing the Code of Conduct, is allowed during this
-period. Violating these terms may lead to a permanent ban.
+**Consequence:** Participation in covered project or community spaces is
+restricted for a specified period. Maintainers may remove or hide content,
+lock conversations, and close or reject contributions. Authorized Alpaca
+organization or community moderators may use available platform controls,
+including a temporary block. Continued violations may lead to a permanent
+participation restriction.
 
-### 4. Permanent ban
+### 4. Permanent participation restriction
 
 **Community impact:** Demonstrating a pattern of violation of community
 standards, including sustained inappropriate behavior, harassment of an
 individual, or aggression toward or disparagement of classes of individuals.
 
-**Consequence:** A permanent ban from any sort of public interaction within
-the community.
+**Consequence:** Participation in covered project or community spaces is
+permanently restricted. Authorized Alpaca organization or community moderators
+may permanently block the participant where the platform supports it.
 
 ## Attribution
 
