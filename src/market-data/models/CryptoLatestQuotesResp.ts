@@ -53,7 +53,7 @@ export function CryptoLatestQuotesRespFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
-        'quotes': (mapValues(json['quotes'], CryptoQuoteFromJSON)),
+        'quotes': (json['quotes'] == null ? {} : mapValues(json['quotes'], CryptoQuoteFromJSON)),
     };
 }
 

@@ -53,7 +53,7 @@ export function FixedIncomeLatestQuotesRespFromJSONTyped(json: any, ignoreDiscri
     }
     return {
         
-        'quotes': (mapValues(json['quotes'], FixedIncomeQuoteFromJSON)),
+        'quotes': (json['quotes'] == null ? {} : mapValues(json['quotes'], FixedIncomeQuoteFromJSON)),
     };
 }
 

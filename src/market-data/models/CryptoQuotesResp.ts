@@ -61,7 +61,7 @@ export function CryptoQuotesRespFromJSONTyped(json: any, ignoreDiscriminator: bo
     return {
         
         'nextPageToken': json['next_page_token'],
-        'quotes': json['quotes'],
+        'quotes': json['quotes'] == null ? {} : json['quotes'],
     };
 }
 

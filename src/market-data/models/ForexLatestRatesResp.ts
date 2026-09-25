@@ -53,7 +53,7 @@ export function ForexLatestRatesRespFromJSONTyped(json: any, ignoreDiscriminator
     }
     return {
         
-        'rates': (mapValues(json['rates'], ForexRateFromJSON)),
+        'rates': (json['rates'] == null ? {} : mapValues(json['rates'], ForexRateFromJSON)),
     };
 }
 

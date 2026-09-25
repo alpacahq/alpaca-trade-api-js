@@ -53,7 +53,7 @@ export function FixedIncomeLatestPricesRespFromJSONTyped(json: any, ignoreDiscri
     }
     return {
         
-        'prices': (mapValues(json['prices'], FixedIncomePriceFromJSON)),
+        'prices': (json['prices'] == null ? {} : mapValues(json['prices'], FixedIncomePriceFromJSON)),
     };
 }
 

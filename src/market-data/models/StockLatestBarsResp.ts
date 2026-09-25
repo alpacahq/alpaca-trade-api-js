@@ -59,7 +59,7 @@ export function StockLatestBarsRespFromJSONTyped(json: any, ignoreDiscriminator:
     }
     return {
         
-        'bars': (mapValues(json['bars'], StockBarFromJSON)),
+        'bars': (json['bars'] == null ? {} : mapValues(json['bars'], StockBarFromJSON)),
         'currency': json['currency'] == null ? undefined : json['currency'],
     };
 }

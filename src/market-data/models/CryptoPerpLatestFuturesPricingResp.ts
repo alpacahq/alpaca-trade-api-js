@@ -53,7 +53,7 @@ export function CryptoPerpLatestFuturesPricingRespFromJSONTyped(json: any, ignor
     }
     return {
         
-        'pricing': (mapValues(json['pricing'], CryptoPerpFuturesPricingFromJSON)),
+        'pricing': (json['pricing'] == null ? {} : mapValues(json['pricing'], CryptoPerpFuturesPricingFromJSON)),
     };
 }
 

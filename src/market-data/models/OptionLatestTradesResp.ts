@@ -53,7 +53,7 @@ export function OptionLatestTradesRespFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
-        'trades': (mapValues(json['trades'], OptionTradeFromJSON)),
+        'trades': (json['trades'] == null ? {} : mapValues(json['trades'], OptionTradeFromJSON)),
     };
 }
 

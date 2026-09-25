@@ -66,7 +66,7 @@ export function StockBarsRespFromJSONTyped(json: any, ignoreDiscriminator: boole
     }
     return {
         
-        'bars': json['bars'],
+        'bars': json['bars'] == null ? {} : json['bars'],
         'currency': json['currency'] == null ? undefined : json['currency'],
         'nextPageToken': json['next_page_token'],
     };

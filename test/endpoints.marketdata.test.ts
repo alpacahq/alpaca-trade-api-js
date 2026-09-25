@@ -397,6 +397,27 @@ describe('Market Data API surface (per-endpoint)', () => {
     runEndpointCases('marketData', cases);
 });
 
+describe('Market Data API response normalization', () => {
+    it('normalizes a null stock bars map before returning from the raw generated method', async () => {
+        const alpaca = createMockAlpaca([
+            {
+                method: 'GET',
+                path: '/v2/stocks/bars',
+                body: { bars: null, next_page_token: null },
+            },
+        ]);
+
+        const response = await alpaca.marketData.stocks.stockBars({
+            symbols: 'AAPL,MSFT',
+            timeframe: '1Day',
+        });
+
+        expect(response.bars).toEqual({});
+        expect(response.nextPageToken).toBeNull();
+        expect(Object.entries(response.bars)).toEqual([]);
+    });
+});
+
 describe('Market data streaming surface', () => {
     const factories: Array<{ name: string; open: (a: ReturnType<typeof createMockAlpaca>) => unknown; ctor: unknown }> = [
         {

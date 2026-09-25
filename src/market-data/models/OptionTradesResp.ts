@@ -68,7 +68,7 @@ export function OptionTradesRespFromJSONTyped(json: any, ignoreDiscriminator: bo
         
         'currency': json['currency'] == null ? undefined : json['currency'],
         'nextPageToken': json['next_page_token'],
-        'trades': json['trades'],
+        'trades': json['trades'] == null ? {} : json['trades'],
     };
 }
 

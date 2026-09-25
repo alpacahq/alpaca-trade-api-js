@@ -61,7 +61,7 @@ export function IndexValuesRespFromJSONTyped(json: any, ignoreDiscriminator: boo
     return {
         
         'nextPageToken': json['next_page_token'],
-        'values': json['values'],
+        'values': json['values'] == null ? {} : json['values'],
     };
 }
 

@@ -53,7 +53,7 @@ export function IndexLatestValuesRespFromJSONTyped(json: any, ignoreDiscriminato
     }
     return {
         
-        'values': (mapValues(json['values'], IndexValueFromJSON)),
+        'values': (json['values'] == null ? {} : mapValues(json['values'], IndexValueFromJSON)),
     };
 }
 

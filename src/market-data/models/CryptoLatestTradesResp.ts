@@ -53,7 +53,7 @@ export function CryptoLatestTradesRespFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
-        'trades': (mapValues(json['trades'], CryptoTradeFromJSON)),
+        'trades': (json['trades'] == null ? {} : mapValues(json['trades'], CryptoTradeFromJSON)),
     };
 }
 

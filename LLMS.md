@@ -116,10 +116,12 @@ const alpaca = new Alpaca({
   `getStockBars`, `getCryptoTrades`, single-symbol `*For(symbol)` variants, and
   chart-ready `get*Candles` return the same `Bar`, `Trade`, or `Quote` type that
   streams emit. Raw generated map responses keep Alpaca's compact wire keys and
-  may carry ISO-string timestamps; prefer normalized accessors or
-  `marketDataShapes.toBar` and related helpers. A single-symbol `*For` reads only
-  the exact requested key; absent data is `[]` or empty `Candles`, never another
-  symbol's value.
+  may carry ISO-string timestamps. Required raw map fields normalize an
+  unexpected `null` or missing wire value to `{}`, matching their non-nullable
+  generated types; individual symbol keys can still be absent. Prefer normalized
+  accessors or `marketDataShapes.toBar` and related helpers. A single-symbol
+  `*For` reads only the exact requested key; absent data is `[]` or empty
+  `Candles`, never another symbol's value.
 - **Errors are typed.** Non-2xx responses reject with `ApiError` and
   status-specific subclasses: `AuthError` (401), `PermissionError` (403),
   `NotFoundError` (404), `ValidationError` (400/422), and `RateLimitError`

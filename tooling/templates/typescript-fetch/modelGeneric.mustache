@@ -75,7 +75,7 @@ export function {{classname}}FromJSONTyped(json: any, ignoreDiscriminator: boole
         {{/isDateTimeType}}
         {{^isDateType}}
         {{^isDateTimeType}}
-        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}json['{{baseName}}'],
+        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}{{^isNullable}}{{#isMap}}json['{{baseName}}'] == null ? {} : {{/isMap}}{{#isFreeFormObject}}json['{{baseName}}'] == null ? {} : {{/isFreeFormObject}}{{/isNullable}}{{/required}}json['{{baseName}}'],
         {{/isDateTimeType}}
         {{/isDateType}}
         {{/isArray}}
@@ -90,7 +90,7 @@ export function {{classname}}FromJSONTyped(json: any, ignoreDiscriminator: boole
         {{/uniqueItems}}
         {{/isArray}}
         {{#isMap}}
-        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}({{#required}}{{#isNullable}}json['{{baseName}}'] == null ? null : {{/isNullable}}{{/required}}mapValues(json['{{baseName}}'], {{#items}}{{datatype}}{{/items}}FromJSON)),
+        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}({{#required}}{{#isNullable}}json['{{baseName}}'] == null ? null : {{/isNullable}}{{^isNullable}}json['{{baseName}}'] == null ? {} : {{/isNullable}}{{/required}}mapValues(json['{{baseName}}'], {{#items}}{{datatype}}{{/items}}FromJSON)),
         {{/isMap}}
         {{^isArray}}
         {{^isMap}}
@@ -98,7 +98,7 @@ export function {{classname}}FromJSONTyped(json: any, ignoreDiscriminator: boole
         '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{datatype}}FromJSON(json['{{baseName}}']),
         {{/isFreeFormObject}}
         {{#isFreeFormObject}}
-        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}json['{{baseName}}'],
+        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}{{^isNullable}}json['{{baseName}}'] == null ? {} : {{/isNullable}}{{/required}}json['{{baseName}}'],
         {{/isFreeFormObject}}
         {{/isMap}}
         {{/isArray}}
