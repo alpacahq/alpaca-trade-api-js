@@ -1,5 +1,11 @@
 # @alpacahq/alpaca-trade-api
 
+## 4.0.4
+
+### Patch Changes
+
+- [#336](https://github.com/alpacahq/alpaca-trade-api-js/pull/336) [`8c7b809`](https://github.com/alpacahq/alpaca-trade-api-js/commit/8c7b809d3ad732390ee05f0d6e41454454c2ecb9) Thanks [@Azein](https://github.com/Azein)! - Normalize unexpected null market-data response maps to empty objects.
+
 ## 4.0.3
 
 ### Patch Changes
