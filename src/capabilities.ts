@@ -381,7 +381,12 @@ export function findCapabilities(methodName: string): CapabilityEntry[] {
 }
 
 /** Which kind of ergonomic helper an {@link ErgonomicHelperEntry} groups. */
-export type ErgonomicKind = "orderBuilder" | "workflow" | "normalized" | "pagination";
+export type ErgonomicKind =
+    | "orderBuilder"
+    | "workflow"
+    | "sse"
+    | "normalized"
+    | "pagination";
 
 /**
  * One row of the ergonomic (layer 2) map: a group of hand-written convenience
@@ -429,6 +434,14 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
     {
         accessor: "trading",
         group: "trading",
+        kind: "sse",
+        summary: "Typed, resumable async account-activity subscription.",
+        wraps: "EventsApi.subscribeToActivitiesSSE",
+        methods: ["subscribeActivities"],
+    },
+    {
+        accessor: "trading",
+        group: "trading",
         kind: "pagination",
         summary: "Auto-paginated iterate/collect helpers for option contracts and account activities.",
         methods: [
@@ -448,6 +461,14 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
         kind: "workflow",
         summary: "High-level market-data flows that would otherwise be boilerplate.",
         methods: ["getLatestPrice"],
+    },
+    {
+        accessor: "marketData",
+        group: "marketData",
+        kind: "sse",
+        summary: "Typed, resumable async corporate-action subscription.",
+        wraps: "CorporateActionsApi.subscribeToCorporateActionsEventsSSE",
+        methods: ["subscribeCorporateActions"],
     },
     {
         accessor: "marketData",

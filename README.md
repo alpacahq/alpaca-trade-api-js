@@ -28,7 +28,7 @@ real-time streaming.
 
 ## Runtime compatibility
 
-| Runtime | REST / generated SSE | WebSockets | Notes |
+| Runtime | REST / fetch-based SSE | WebSockets | Notes |
 | --- | :---: | :---: | --- |
 | **Node.js** >= 20 | ✅ | ✅ | Primary target. |
 | **Bun** | ✅ | ✅ | Node-compatible (`ws` runs). |
@@ -42,7 +42,7 @@ Legend: ✅ supported · ❌ not supported.
 - **WebSocket streaming is Node/Bun only.** Those clients use Node-compatible
   streaming modules, which don't run on edge or in the browser. On those targets
   the package's export conditions transparently resolve the root import to the
-  WebSocket-free REST build, so REST and generated fetch-based SSE work while the
+  WebSocket-free REST build, so REST and fetch-based SSE work while the
   stream factories (`stockStream`, `stream`, …) plus `submitAndWait` throw if
   called. For WebSocket streaming, run on Node or Bun.
 - **Browser: technically works, but discouraged.** Calling Alpaca directly from a
@@ -80,6 +80,32 @@ bars.onBar((b) => console.log(b.symbol, b.close));
 bars.onConnect(() => bars.subscribeForBars(["AAPL", "MSFT"]));
 bars.connect();
 ```
+
+### Server-Sent Events
+
+The facade provides typed async SSE subscriptions with cancellation,
+reconnection, and `Last-Event-ID` resumption:
+
+```ts
+const controller = new AbortController();
+const activities = await alpaca.trading.subscribeActivities(
+  {},
+  { signal: controller.signal },
+);
+
+try {
+  for await (const activity of activities) {
+    console.log(activity.activityType, activity.details);
+  }
+} finally {
+  activities.close();
+}
+```
+
+Corporate-action mutations are available from
+`alpaca.marketData.subscribeCorporateActions()`. The longer generated operation
+names remain available under `trading.events` and
+`marketData.corporateActions`; see the [streaming guide](https://alpacahq.github.io/alpaca-trade-api-js/streaming).
 
 ## Documentation
 

@@ -19,7 +19,10 @@ const values: [Auction?, DailyAuctions?] = [];
 const sseOptions: SseOptions = { reconnect: false };
 const events: Promise<SseSubscription<trading.ActivityEventV2>> =
     client.trading.events.subscribeToActivitiesSSE({}, sseOptions);
+const ergonomicEvents: Promise<SseSubscription<trading.ActivityEventV2>> =
+    client.trading.subscribeActivities({}, sseOptions);
 
 void client;
 void events;
+void ergonomicEvents;
 void values;

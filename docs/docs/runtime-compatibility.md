@@ -22,7 +22,7 @@ targets, the REST-only entrypoint, and the runtime dependencies.
 
 ## Support matrix
 
-| Runtime | REST / generated SSE | WebSockets | Notes |
+| Runtime | REST / fetch-based SSE | WebSockets | Notes |
 | --- | :---: | :---: | --- |
 | **Node.js ≥ 20** | ✅ | ✅ | Primary target. |
 | **Bun** | ✅ | ✅ | Node-compatible (`ws` runs). |
@@ -38,12 +38,14 @@ Legend: ✅ supported · ❌ not supported.
   On those targets the package's
   [export conditions](#edge--browser-runtimes) transparently resolve the root
   import to the WebSocket-free [REST build](#rest-only-entrypoint), so REST and
-  generated SSE work
+  fetch-based SSE work
   and the stream factories (`stockStream`, `stream`, ...) plus `submitAndWait`
   throw if called. For WebSocket streaming, run on Node or Bun.
-- **Generated SSE is portable fetch.** The activity and corporate-action SSE
-  methods remain available from the REST build and use `AsyncIterable` rather
-  than the Node WebSocket/EventEmitter clients.
+- **SSE is portable fetch.** `trading.subscribeActivities()` and
+  `marketData.subscribeCorporateActions()` remain available from the REST build
+  and return typed `AsyncIterable` subscriptions rather than Node
+  WebSocket/EventEmitter clients. Their raw generated methods remain available
+  under `trading.events` and `marketData.corporateActions`.
 - **Browser: technically works, but discouraged.** Calling Alpaca directly from a
   browser ships your `APCA_API_SECRET_KEY` to the client. Prefer a server or
   proxy (see the [market-data backend example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/marketdata-backend.ts))
@@ -89,8 +91,8 @@ To keep the root import working there, the package `exports` map declares
 automatically — so a plain `import { Alpaca } from "@alpacahq/alpaca-trade-api"`
 builds and runs on those targets without loading the streaming implementation.
 
-The trade-off is the same as importing `/rest` directly: REST and generated SSE
-work unchanged,
+The trade-off is the same as importing `/rest` directly: REST and fetch-based
+SSE work unchanged,
 but the stream factories (`stockStream`, `stream`, ...) and `submitAndWait`
 throw. For WebSocket streaming, run on Node and import the root entry there.
 

@@ -220,10 +220,11 @@ In version 4, `subscribeToActivitiesSSE()` was generated as
 inherited the ordinary request deadline.
 
 Version 5 replaces it with `Promise<SseSubscription<ActivityEventV2>>`; the new
-corporate-actions SSE method uses the same shape:
+corporate-actions SSE method uses the same shape. Prefer the short facade
+helpers for application code:
 
 ```ts
-const events = await alpaca.trading.events.subscribeToActivitiesSSE();
+const events = await alpaca.trading.subscribeActivities();
 
 try {
   for await (const event of events) {
@@ -234,6 +235,12 @@ try {
 }
 ```
 
+The corresponding corporate-action helper is
+`alpaca.marketData.subscribeCorporateActions()`. Both delegate to the raw
+generated methods, which remain available as
+`trading.events.subscribeToActivitiesSSE()` and
+`marketData.corporateActions.subscribeToCorporateActionsEventsSSE()`.
+
 The generated `*Raw` siblings now return `SSEApiResponse<T>` rather than
 `JSONApiResponse<T[]>`.
 
@@ -242,7 +249,7 @@ at the top level for source compatibility, while new code can group them under
 `requestInit`:
 
 ```ts
-await alpaca.trading.events.subscribeToActivitiesSSE(
+await alpaca.trading.subscribeActivities(
   {},
   {
     signal: controller.signal,

@@ -3,6 +3,7 @@ import {
     type AlpacaClientOptions,
     type Auction,
     type DailyAuctions,
+    type SseSubscription,
     type trading,
 } from "@alpacahq/alpaca-trade-api";
 
@@ -25,8 +26,11 @@ const travelRuleInfo: trading.TravelRuleInfo = {
 const invalidTravelRuleInfo: trading.TravelRuleInfo = {};
 const client = new Alpaca(options);
 const values: [Auction?, DailyAuctions?] = [];
+const activities: Promise<SseSubscription<trading.ActivityEventV2>> =
+    client.trading.subscribeActivities({}, { reconnect: false });
 
 void client;
+void activities;
 void invalidTravelRuleInfo;
 void transport;
 void travelRuleInfo;

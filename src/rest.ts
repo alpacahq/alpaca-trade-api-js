@@ -7,10 +7,11 @@
  * REST-only services, serverless/edge bundles, and faster cold starts.
  *
  * The `Alpaca` facade is the same class as the main entrypoint, so all REST
- * methods and generated fetch-based SSE subscriptions work unchanged. The
- * WebSocket factories (`stockStream`, `stream`, ...) and `submitAndWait` exist
- * but throw if called, since `streaming` is not loaded here; import from
- * `@alpacahq/alpaca-trade-api` if you need WebSocket streams.
+ * methods and fetch-based SSE helpers (`subscribeActivities`,
+ * `subscribeCorporateActions`, and their raw generated operations) work
+ * unchanged. The WebSocket factories (`stockStream`, `stream`, ...) and
+ * `submitAndWait` exist but throw if called, since `streaming` is not loaded
+ * here; import from `@alpacahq/alpaca-trade-api` if you need WebSocket streams.
  */
 export * as trading from './trading';
 export * as marketData from './market-data';

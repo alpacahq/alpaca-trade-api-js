@@ -28,18 +28,18 @@ sends one initial listen frame and reconnects restore the same subscription.
 
 ## Server-Sent Events
 
-The generated Trading and Market Data clients also expose fetch-based, typed
-SSE subscriptions:
+The facade exposes two short, fetch-based SSE helpers:
 
-- `alpaca.trading.events.subscribeToActivitiesSSE()`
-- `alpaca.marketData.corporateActions.subscribeToCorporateActionsEventsSSE()`
+- `alpaca.trading.subscribeActivities()`
+- `alpaca.marketData.subscribeCorporateActions()`
 
-They return a single-consumer `SseSubscription<T>`, which is an
-`AsyncIterable<T>`:
+They delegate to the generated operations, inherit the client's credentials and
+environment selection, and return the same single-consumer
+`SseSubscription<T>` async iterable:
 
 ```ts
 const controller = new AbortController();
-const activities = await alpaca.trading.events.subscribeToActivitiesSSE(
+const activities = await alpaca.trading.subscribeActivities(
   {},
   { signal: controller.signal },
 );
@@ -52,6 +52,16 @@ try {
   activities.close();
 }
 ```
+
+The raw generated methods remain available when you want the operation names
+directly:
+
+- `alpaca.trading.events.subscribeToActivitiesSSE()`
+- `alpaca.marketData.corporateActions.subscribeToCorporateActionsEventsSSE()`
+
+Account-activity SSE is not the Trading WebSocket `trade_updates` channel.
+Continue using `alpaca.trading.stream()` for real-time order status updates and
+workflows such as `submitAndWait`.
 
 Marked live subscriptions reconnect automatically until cancelled. Reconnects
 carry the latest event id in `Last-Event-ID` and honor the server's `retry:`
@@ -82,7 +92,17 @@ hooks because those hooks receive a cloned response, and cloning a long-lived
 body can buffer or stall the stream. Use `onOpen` for response status/header
 observability and `onComment` / `onReconnect` for stream diagnostics.
 
-## Available streams
+### Available SSE subscriptions
+
+| Facade helper | Raw generated method | Events |
+| --- | --- | --- |
+| `alpaca.trading.subscribeActivities()` | `trading.events.subscribeToActivitiesSSE()` | Account activities |
+| `alpaca.marketData.subscribeCorporateActions()` | `marketData.corporateActions.subscribeToCorporateActionsEventsSSE()` | Corporate-action mutations |
+
+Both helpers are available from the main package and
+`@alpacahq/alpaca-trade-api/rest`.
+
+## Available WebSocket streams
 
 All five factories return a stream sharing the lifecycle below:
 

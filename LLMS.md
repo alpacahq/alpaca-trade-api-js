@@ -53,8 +53,9 @@ constructor, reached via the `.trading` and `.marketData` namespaces.
    `alpaca.trading.assets.getV2Assets()` and
    `alpaca.marketData.stocks.stockBars(...)`. Nothing is hidden.
 2. **Ergonomic (additive, never replaces layer 1).** Hand-written conveniences
-   sit on top: order builders, normalized market-data accessors, pagination, and
-   workflow helpers. The raw method each one wraps remains available.
+   sit on top: order builders, normalized market-data accessors, pagination,
+   typed SSE subscriptions, and workflow helpers. The raw method each one wraps
+   remains available.
 
 **The rule:** if there is no ergonomic helper for what you need, use the raw
 generated method. You never have to choose between the two layers.
@@ -141,7 +142,7 @@ const alpaca = new Alpaca({
   and covers rate-limit waits, middleware, fetch, and response-body reads.
   Backoff is outside that attempt budget; caller abort spans the entire
   operation and backoff. Every cancellation phase throws `FetchError` with an
-  `AbortError` or `TimeoutError` cause. For generated SSE methods, `timeoutMs`
+  `AbortError` or `TimeoutError` cause. For SSE methods, `timeoutMs`
   ends after validated response headers; use SSE `idleTimeoutMs` or
   `maxDurationMs` only when you deliberately want to bound the live body.
 - **Redirects reject by default.** Requests use `redirect: "error"` so secret
@@ -152,10 +153,11 @@ const alpaca = new Alpaca({
   `{ data, status, headers, rateLimit }` as `AlpacaApiResponse<T>`.
 - **REST-only builds:** import `@alpacahq/alpaca-trade-api/rest` to keep `ws` and
   `@msgpack/msgpack` out of the module graph. Stream factories and
-  `submitAndWait` throw from this entrypoint. Fetch-based generated SSE remains
-  available. Edge and browser runtimes resolve the root import to this build;
-  direct browser API use is still discouraged because it exposes credentials
-  and depends on API CORS.
+  `submitAndWait` throw from this entrypoint. Fetch-based SSE, including
+  `subscribeActivities` and `subscribeCorporateActions`, remains available.
+  Edge and browser runtimes resolve the root import to this build; direct
+  browser API use is still discouraged because it exposes credentials and
+  depends on API CORS.
 - **ESM and CJS:** do not load the SDK through both `import` and `require` in one
   process if you rely on `instanceof` against classes such as `ApiError`; the
   process may contain two class copies.
@@ -195,11 +197,11 @@ placement, and waiting. Only this helper performs one client-ID lookup after an
 ambiguous `FetchError`; generic builders do not reconcile automatically. It
 does not guarantee exactly-once execution or eventual lookup visibility.
 
-Generated activity and corporate-action SSE methods use a different,
-fetch-based shape:
+Activity and corporate-action SSE use a different, fetch-based shape. Prefer
+the short facade helpers:
 
 ```ts
-const events = await alpaca.trading.events.subscribeToActivitiesSSE(
+const events = await alpaca.trading.subscribeActivities(
   {},
   { signal: controller.signal },
 );
@@ -208,8 +210,7 @@ for await (const event of events) {
 }
 ```
 
-`subscribeToActivitiesSSE` and
-`subscribeToCorporateActionsEventsSSE` return single-consumer
+`subscribeActivities` and `subscribeCorporateActions` return single-consumer
 `SseSubscription<T>` async iterables. Live queries reconnect by default with
 `Last-Event-ID`; initial opening defaults to two retries while reconnects after
 opening remain unlimited. Pass `reconnect: false` or reconnect limits to
@@ -221,7 +222,14 @@ envelope, `.closed` to distinguish EOF/abort/error, and callbacks such as
 `onComment` / `onReconnect` for diagnostics. SSE middleware runs `pre` and
 `onError`, but intentionally skips response-cloning `post` hooks.
 
-Every stream also exposes:
+The raw generated
+`trading.events.subscribeToActivitiesSSE` and
+`marketData.corporateActions.subscribeToCorporateActionsEventsSSE` operations
+remain available. Account-activity SSE is not the Trading WebSocket
+`trade_updates` channel and must not replace `trading.stream()` or
+`submitAndWait`.
+
+Every WebSocket stream also exposes:
 
 - **Awaitable authentication:** `await stream.whenAuthenticated()` returns
   `StreamAuthResult { status, authenticated, code?, message }` and never

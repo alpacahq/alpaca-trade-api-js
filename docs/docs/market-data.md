@@ -181,6 +181,29 @@ toLineSeries(bars.AAPL, "close");
 const price = await alpaca.marketData.getLatestPrice("AAPL");
 ```
 
+## Corporate-action events
+
+Subscribe to typed corporate-action mutations through the fetch-based SSE
+facade:
+
+```ts
+const controller = new AbortController();
+const actions = await alpaca.marketData.subscribeCorporateActions(
+  { region: "us" },
+  { signal: controller.signal },
+);
+
+for await (const event of actions) {
+  console.log(event.action, event.ca);
+}
+```
+
+The helper inherits market-data sandbox selection and delegates to the raw
+generated
+`marketData.corporateActions.subscribeToCorporateActionsEventsSSE()` method.
+See [Streaming & Events](./streaming.md) for reconnect, replay, cancellation,
+and resource-lifecycle guidance.
+
 ## Feeds and the free-tier delay
 
 Feed access comes from your Alpaca data subscription, not from paper versus live

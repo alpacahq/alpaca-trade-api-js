@@ -5,6 +5,7 @@ import {
     SseDeserializationError,
     SseProtocolError,
 } from '../src/trading';
+import { Alpaca } from '../src/client';
 import * as trading from '../src/trading';
 import * as marketData from '../src/market-data';
 
@@ -1203,4 +1204,68 @@ describe('generated SSE operation metadata', () => {
             stream.close();
         },
     );
+});
+
+describe('ergonomic SSE facade', () => {
+    it('forwards trading activity filters and SSE options to the generated operation', async () => {
+        let seenUrl = '';
+        let seenInit: RequestInit | undefined;
+        const alpaca = new Alpaca({
+            keyId: 'AKTEST',
+            secret: 'sekret',
+            fetchApi: async (url, init) => {
+                seenUrl = String(url);
+                seenInit = init;
+                return chunkedResponse([]);
+            },
+        });
+        const since = new Date('2026-01-02T03:04:05.000Z');
+
+        const stream = await alpaca.trading.subscribeActivities(
+            { since },
+            {
+                headers: { 'X-Correlation-ID': 'correlation-1' },
+                reconnect: false,
+            },
+        );
+
+        const url = new URL(seenUrl);
+        expect(url.pathname).toBe('/v2beta1/events/activities');
+        expect(url.searchParams.get('since')).toBe(since.toISOString());
+        const headers = new Headers(seenInit?.headers);
+        expect(headers.get('X-Correlation-ID')).toBe('correlation-1');
+        expect(headers.get('APCA-API-KEY-ID')).toBe('AKTEST');
+        expect(headers.get('APCA-API-SECRET-KEY')).toBe('sekret');
+        stream.close();
+    });
+
+    it('forwards corporate-action filters and inherits sandbox host selection', async () => {
+        let seenUrl = '';
+        const alpaca = new Alpaca({
+            keyId: 'AKTEST',
+            secret: 'sekret',
+            sandbox: true,
+            fetchApi: async (url) => {
+                seenUrl = String(url);
+                return chunkedResponse([]);
+            },
+        });
+
+        const stream = await alpaca.marketData.subscribeCorporateActions(
+            {
+                region: 'us',
+                type: ['cash_dividend_corporateaction_event'],
+            },
+            { reconnect: false },
+        );
+
+        const url = new URL(seenUrl);
+        expect(url.origin).toBe('https://stream.data.sandbox.alpaca.markets');
+        expect(url.pathname).toBe('/v1beta1/events/corporate-actions');
+        expect(url.searchParams.get('region')).toBe('us');
+        expect(url.searchParams.get('type')).toBe(
+            'cash_dividend_corporateaction_event',
+        );
+        stream.close();
+    });
 });

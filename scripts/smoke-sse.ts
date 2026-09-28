@@ -59,14 +59,14 @@ async function main(): Promise<void> {
 
     await assertFirstEvent(
         "trading activities SSE",
-        await alpaca.trading.events.subscribeToActivitiesSSE(
+        await alpaca.trading.subscribeActivities(
             { since: activitySince, until: activityUntil },
             options,
         ),
     );
     await assertFirstEvent(
         "corporate actions SSE",
-        await alpaca.marketData.corporateActions.subscribeToCorporateActionsEventsSSE(
+        await alpaca.marketData.subscribeCorporateActions(
             { since: corporateSince, until: corporateUntil },
             options,
         ),

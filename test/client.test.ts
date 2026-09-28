@@ -584,7 +584,7 @@ describe('Capability map', () => {
     });
 
     it('every ergonomic entry is well-formed', () => {
-        const kinds = new Set(['orderBuilder', 'workflow', 'normalized', 'pagination']);
+        const kinds = new Set(['orderBuilder', 'workflow', 'sse', 'normalized', 'pagination']);
         for (const entry of ergonomicCapabilities) {
             expect(entry.accessor).toMatch(/^(trading|marketData)(\.[a-zA-Z]+)?$/);
             expect(entry.group === 'trading' || entry.group === 'marketData', entry.accessor).toBe(true);
@@ -618,5 +618,13 @@ describe('Capability map', () => {
         const stockBars = findErgonomic('getStockBars');
         expect(stockBars[0].accessor).toBe('marketData');
         expect(stockBars[0].kind).toBe('normalized');
+
+        const activities = findErgonomic('subscribeActivities');
+        expect(activities[0].accessor).toBe('trading');
+        expect(activities[0].kind).toBe('sse');
+
+        const corporateActions = findErgonomic('subscribeCorporateActions');
+        expect(corporateActions[0].accessor).toBe('marketData');
+        expect(corporateActions[0].kind).toBe('sse');
     });
 });

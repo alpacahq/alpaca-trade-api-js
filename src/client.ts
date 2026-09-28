@@ -49,6 +49,7 @@ import * as pagination from "./pagination";
 import * as orders from "./orders";
 import * as values from "./values";
 import * as marketDataShapes from "./marketDataShapes";
+import type { SseOptions, SseSubscription } from "./core/sse";
 
 /**
  * Live trading host. Paper trading uses the package default (`paper-api`).
@@ -428,8 +429,9 @@ export class TradingClient {
 
     constructor(options: AlpacaClientOptions) {
         const creds = resolveCredentials(options);
-        // Streaming authenticates with a key/secret pair; OAuth-only clients
-        // resolve to empty values here and cannot open streams.
+        // WebSocket streaming authenticates with a key/secret pair; OAuth-only
+        // clients resolve to empty values here and cannot open WebSockets.
+        // Fetch-based SSE uses the REST configuration below and supports OAuth.
         this.credentials = { keyId: creds.keyId ?? "", secret: creds.secret ?? "" };
         this.paper = options.paper ?? true;
         this.config = new trading.Configuration({
@@ -482,6 +484,36 @@ export class TradingClient {
     }
     get watchlists(): trading.WatchlistsApi {
         return (this._watchlists ??= new trading.WatchlistsApi(this.config));
+    }
+
+    /**
+     * Subscribe to typed account-activity events over SSE.
+     *
+     * This is the short ergonomic form of
+     * {@link trading.EventsApi.subscribeToActivitiesSSE}; request filters and
+     * {@link SseOptions} are forwarded unchanged. The returned subscription is
+     * a single-consumer async iterable. Breaking or completing iteration closes
+     * its active response; call `close()` if you open it without iterating.
+     *
+     * Account activities are distinct from the WebSocket `trade_updates`
+     * channel exposed by {@link stream}.
+     *
+     * @example
+     * ```ts
+     * const activities = await alpaca.trading.subscribeActivities(
+     *   { since: new Date("2026-01-01") },
+     *   { signal: controller.signal },
+     * );
+     * for await (const activity of activities) {
+     *   console.log(activity.activityType, activity.details);
+     * }
+     * ```
+     */
+    subscribeActivities(
+        request: trading.SubscribeToActivitiesSSERequest = {},
+        options: SseOptions = {},
+    ): Promise<SseSubscription<trading.ActivityEventV2>> {
+        return this.events.subscribeToActivitiesSSE(request, options);
     }
 
     /**
@@ -896,17 +928,20 @@ function collectSymbolMap<T>(
  *   2. **Ergonomic (additive).** Hand-written conveniences on top: the
  *      normalized `get<Asset><Thing>` / `get<Asset>Candles` accessors (canonical
  *      symbol-keyed shapes, unified with streaming), the `getLatestPrice`
- *      workflow helper, and the `iterate*` / `collect*` pagination helpers.
- *      These never replace a raw method.
+ *      workflow helper, the typed `subscribeCorporateActions` SSE helper, and
+ *      the `iterate*` / `collect*` pagination helpers. These never replace a raw
+ *      method.
  *
  * The ergonomic helpers on this client are enumerated in `ergonomicCapabilities`
  * (find one with `findErgonomic`); the generated accessors in `capabilities`
  * (find one with `findCapabilities`).
  *
  * The `paper` option is accepted (it shares {@link AlpacaClientOptions} with the
- * trading client) but has no effect here: market data always uses
- * `data.alpaca.markets`. Free vs paid data is selected by your subscription and
- * the per-request `feed` parameter (`iex` is the only feed available for free).
+ * trading client) but has no effect here. Market-data REST requests use
+ * `data.alpaca.markets`, while corporate-action SSE uses
+ * `stream.data.alpaca.markets`; `sandbox: true` selects each host's sandbox
+ * equivalent. Free vs paid data is selected by your subscription and the
+ * per-request `feed` parameter (`iex` is the only feed available for free).
  */
 export class MarketDataClient {
     private readonly config: marketData.Configuration;
@@ -925,8 +960,9 @@ export class MarketDataClient {
 
     constructor(options: AlpacaClientOptions) {
         const creds = resolveCredentials(options);
-        // Streaming authenticates with a key/secret pair; OAuth-only clients
-        // resolve to empty values here and cannot open streams.
+        // WebSocket streaming authenticates with a key/secret pair; OAuth-only
+        // clients resolve to empty values here and cannot open WebSockets.
+        // Fetch-based SSE uses the REST configuration below and supports OAuth.
         this.credentials = { keyId: creds.keyId ?? "", secret: creds.secret ?? "" };
         this.sandbox = options.sandbox ?? false;
         this.config = new marketData.Configuration(sharedRestConfig(options, creds));
@@ -958,6 +994,37 @@ export class MarketDataClient {
     }
     get corporateActions(): marketData.CorporateActionsApi {
         return (this._corporateActions ??= new marketData.CorporateActionsApi(this.config));
+    }
+
+    /**
+     * Subscribe to typed corporate-action mutations over SSE.
+     *
+     * This is the short ergonomic form of
+     * {@link marketData.CorporateActionsApi.subscribeToCorporateActionsEventsSSE};
+     * filters and {@link SseOptions} are forwarded unchanged. The returned
+     * subscription is a single-consumer async iterable with automatic live
+     * reconnection and `Last-Event-ID` resumption by default. Finite `until` /
+     * `untilId` requests complete without reconnecting.
+     *
+     * @example
+     * ```ts
+     * const actions = await alpaca.marketData.subscribeCorporateActions(
+     *   { region: "us" },
+     *   { signal: controller.signal },
+     * );
+     * for await (const event of actions) {
+     *   console.log(event.eventType, event.action);
+     * }
+     * ```
+     */
+    subscribeCorporateActions(
+        request: marketData.SubscribeToCorporateActionsEventsSSERequest = {},
+        options: SseOptions = {},
+    ): Promise<SseSubscription<marketData.CorporateActionEvent>> {
+        return this.corporateActions.subscribeToCorporateActionsEventsSSE(
+            request,
+            options,
+        );
     }
 
     /** Open a real-time US-equities data stream. */
@@ -1506,9 +1573,11 @@ export class Alpaca {
     }
 
     /**
-     * Market-data APIs and the market-data streams. The `paper` flag does not
-     * apply here — every call targets `data.alpaca.markets`; free vs paid data
-     * is governed by your subscription and the `feed` parameter.
+     * Market-data APIs and streams. The `paper` flag does not apply here.
+     * REST requests use `data.alpaca.markets`, while corporate-action SSE uses
+     * `stream.data.alpaca.markets`; `sandbox: true` selects their sandbox
+     * equivalents. Free vs paid data is governed by your subscription and the
+     * `feed` parameter.
      */
     get marketData(): MarketDataClient {
         return (this._marketData ??= new MarketDataClient(this.options));

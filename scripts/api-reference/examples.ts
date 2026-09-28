@@ -556,6 +556,14 @@ const ergonomic: ApiReferenceExamples = {
         description: "Close every open position (optionally cancel open orders first).",
         example: 'await alpaca.trading.closeAllPositions({ cancelOrders: true });',
     },
+    "trading.subscribeActivities": {
+        description: "Open a typed, resumable account-activity SSE subscription through the ergonomic facade.",
+        example: [
+            "const controller = new AbortController();",
+            'const activities = await alpaca.trading.subscribeActivities({}, { signal: controller.signal });',
+            "for await (const activity of activities) console.log(activity.activityType, activity.details);",
+        ].join("\n"),
+    },
     "trading.iterateOptionsContracts": {
         description: "Lazily yield option contracts across all pages.",
         example: 'for await (const contract of alpaca.trading.iterateOptionsContracts({ underlyingSymbols: "AAPL" })) console.log(contract.symbol);',
@@ -583,6 +591,14 @@ const ergonomic: ApiReferenceExamples = {
     "marketData.getLatestPrice": {
         description: "Latest trade price for a symbol as a `number` (or `undefined`).",
         example: 'const price = await alpaca.marketData.getLatestPrice("AAPL");',
+    },
+    "marketData.subscribeCorporateActions": {
+        description: "Open a typed, resumable corporate-action SSE subscription through the ergonomic facade.",
+        example: [
+            "const controller = new AbortController();",
+            'const actions = await alpaca.marketData.subscribeCorporateActions({ region: "us" }, { signal: controller.signal });',
+            "for await (const event of actions) console.log(event.action, event.ca);",
+        ].join("\n"),
     },
     "marketData.getStockBars": {
         description: "Historical stock bars as canonical `Bar`s, auto-paginated and keyed by symbol.",

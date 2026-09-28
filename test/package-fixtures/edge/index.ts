@@ -12,7 +12,9 @@ const events = client.marketData.corporateActions.subscribeToCorporateActionsEve
     {},
     options,
 );
+const ergonomicEvents = client.marketData.subscribeCorporateActions({}, options);
 
 void client;
 void events;
+void ergonomicEvents;
 void values;
