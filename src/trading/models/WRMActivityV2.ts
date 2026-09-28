@@ -56,6 +56,12 @@ export interface WRMActivityV2 {
      */
     cusip: string;
     /**
+     * The ISIN of the security involved with the activity
+     * @type {string}
+     * @memberof WRMActivityV2
+     */
+    isin?: string;
+    /**
      * The removed quantity
      * @type {string}
      * @memberof WRMActivityV2
@@ -97,6 +103,7 @@ export function WRMActivityV2FromJSONTyped(json: any, ignoreDiscriminator: boole
         'positionDate': (new Date(json['position_date'])),
         'reorgId': json['reorg_id'] == null ? undefined : json['reorg_id'],
         'cusip': json['cusip'],
+        'isin': json['isin'] == null ? undefined : json['isin'],
         'removedQty': json['removed_qty'],
         'symbol': json['symbol'],
     };
@@ -119,6 +126,7 @@ export function WRMActivityV2ToJSONTyped(value?: WRMActivityV2 | null, ignoreDis
         'position_date': ((value['positionDate']).toISOString().substring(0,10)),
         'reorg_id': value['reorgId'],
         'cusip': value['cusip'],
+        'isin': value['isin'],
         'removed_qty': value['removedQty'],
         'symbol': value['symbol'],
     };

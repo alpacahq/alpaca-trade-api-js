@@ -86,6 +86,12 @@ export interface OpcaMAActivityV2 {
      */
     acquireeCusip: string;
     /**
+     * ISIN of the acquiree
+     * @type {string}
+     * @memberof OpcaMAActivityV2
+     */
+    acquireeIsin?: string;
+    /**
      * Rate of the acquiree
      * @type {string}
      * @memberof OpcaMAActivityV2
@@ -103,6 +109,12 @@ export interface OpcaMAActivityV2 {
      * @memberof OpcaMAActivityV2
      */
     acquirerCusip?: string;
+    /**
+     * ISIN of the acquirer
+     * @type {string}
+     * @memberof OpcaMAActivityV2
+     */
+    acquirerIsin?: string;
     /**
      * Rate of the acquirer
      * @type {string}
@@ -165,9 +177,11 @@ export function OpcaMAActivityV2FromJSONTyped(json: any, ignoreDiscriminator: bo
         'oldQty': json['old_qty'] == null ? undefined : json['old_qty'],
         'qty': json['qty'] == null ? undefined : json['qty'],
         'acquireeCusip': json['acquiree_cusip'],
+        'acquireeIsin': json['acquiree_isin'] == null ? undefined : json['acquiree_isin'],
         'acquireeRate': json['acquiree_rate'] == null ? undefined : json['acquiree_rate'],
         'acquireeSymbol': json['acquiree_symbol'],
         'acquirerCusip': json['acquirer_cusip'] == null ? undefined : json['acquirer_cusip'],
+        'acquirerIsin': json['acquirer_isin'] == null ? undefined : json['acquirer_isin'],
         'acquirerRate': json['acquirer_rate'] == null ? undefined : json['acquirer_rate'],
         'acquirerSymbol': json['acquirer_symbol'] == null ? undefined : json['acquirer_symbol'],
         'effectiveDate': (new Date(json['effective_date'])),
@@ -197,9 +211,11 @@ export function OpcaMAActivityV2ToJSONTyped(value?: OpcaMAActivityV2 | null, ign
         'old_qty': value['oldQty'],
         'qty': value['qty'],
         'acquiree_cusip': value['acquireeCusip'],
+        'acquiree_isin': value['acquireeIsin'],
         'acquiree_rate': value['acquireeRate'],
         'acquiree_symbol': value['acquireeSymbol'],
         'acquirer_cusip': value['acquirerCusip'],
+        'acquirer_isin': value['acquirerIsin'],
         'acquirer_rate': value['acquirerRate'],
         'acquirer_symbol': value['acquirerSymbol'],
         'effective_date': ((value['effectiveDate']).toISOString().substring(0,10)),

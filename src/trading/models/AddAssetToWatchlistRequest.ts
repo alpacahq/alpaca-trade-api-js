@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * 
+ * Request format used for appending an asset to an existing watchlist.
  * @export
  * @interface AddAssetToWatchlistRequest
  */

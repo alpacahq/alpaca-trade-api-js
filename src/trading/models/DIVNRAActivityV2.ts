@@ -49,6 +49,20 @@ export interface DIVNRAActivityV2 {
      * @memberof DIVNRAActivityV2
      */
     symbol: string;
+    /**
+     * Tax country used as the primary jurisdiction when determining withholding treatment for the dividend. Other factors may affect the final withholding rate.
+     * The value is an [ISO 3166-1 alpha-3](https://www.iso.org/iso-3166-country-codes.html) country code.
+     * 
+     * @type {string}
+     * @memberof DIVNRAActivityV2
+     */
+    taxCountry?: string;
+    /**
+     * The tax withholding rate applied to the dividend, represented as a value between 0 and 1
+     * @type {string}
+     * @memberof DIVNRAActivityV2
+     */
+    taxRate?: string;
 }
 
 /**
@@ -77,6 +91,8 @@ export function DIVNRAActivityV2FromJSONTyped(json: any, ignoreDiscriminator: bo
         'cusip': json['cusip'],
         'parentId': json['parent_id'],
         'symbol': json['symbol'],
+        'taxCountry': json['tax_country'] == null ? undefined : json['tax_country'],
+        'taxRate': json['tax_rate'] == null ? undefined : json['tax_rate'],
     };
 }
 
@@ -96,6 +112,8 @@ export function DIVNRAActivityV2ToJSONTyped(value?: DIVNRAActivityV2 | null, ign
         'cusip': value['cusip'],
         'parent_id': value['parentId'],
         'symbol': value['symbol'],
+        'tax_country': value['taxCountry'],
+        'tax_rate': value['taxRate'],
     };
 }
 

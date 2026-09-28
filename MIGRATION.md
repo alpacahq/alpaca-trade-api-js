@@ -3,6 +3,12 @@
 This guide moves you from **`@alpacahq/alpaca-trade-api@3.x`** to the rewritten
 stable **`4.x`** SDK.
 
+> Not sure which version you are starting from? Use the
+> [migration guide index](MIGRATIONS.md).
+
+> Already using 4.x? See the separate
+> [4.x → 5.0 migration guide](MIGRATION_V5.md).
+
 > **TL;DR**
 > - The package name is **unchanged** (`@alpacahq/alpaca-trade-api`). Only the
 >   API surface changed.

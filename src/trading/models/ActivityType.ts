@@ -33,7 +33,7 @@
  *   Crypto fee
  * 
  * - CGD
- *   Capital gain distribution
+ *   Capital gains distribution
  * 
  * - CSD
  *   Cash deposit(+)
@@ -45,10 +45,10 @@
  *   Dividends
  * 
  * - DIVCGL
- *   Dividend (capital gain long term)
+ *   Dividend (capital gains long term)
  * 
  * - DIVCGS
- *   Dividend (capital gain short term)
+ *   Dividend (capital gains short term)
  * 
  * - DIVFEE
  *   Dividend fee
@@ -119,8 +119,11 @@
  * - PTR
  *   Pass Thru Rebate
  * 
+ * - REO
+ *   Reorganization
+ * 
  * - REORG
- *   Reorg CA
+ *   Worthless removal CA
  * 
  * - SPIN
  *   Stock spinoff
@@ -130,6 +133,9 @@
  * 
  * - FOPT
  *   Free of Payment Transfers
+ * 
+ * - OCT
+ *   On chain transactions (blockchain deposits/withdrawals)
  * @export
  */
 export const ActivityType = {
@@ -168,10 +174,12 @@ export const ActivityType = {
     Optrd: 'OPTRD',
     Ptc: 'PTC',
     Ptr: 'PTR',
+    Reo: 'REO',
     Reorg: 'REORG',
     Spin: 'SPIN',
     Split: 'SPLIT',
-    Fopt: 'FOPT'
+    Fopt: 'FOPT',
+    Oct: 'OCT'
 } as const;
 export type ActivityType = typeof ActivityType[keyof typeof ActivityType];
 

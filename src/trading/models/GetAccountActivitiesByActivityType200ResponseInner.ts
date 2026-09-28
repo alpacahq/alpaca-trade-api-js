@@ -34,6 +34,46 @@ import {
  */
 export type GetAccountActivitiesByActivityType200ResponseInner = NonTradeActivities | TradingActivities;
 
+function containsInvalidDate(value: unknown): boolean {
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime());
+    }
+    if (Array.isArray(value)) {
+        return value.some(containsInvalidDate);
+    }
+    if (value !== null && typeof value === 'object') {
+        return Object.values(value).some(containsInvalidDate);
+    }
+    return false;
+}
+
+function selectMostSpecific<T>(values: T[]): T | undefined {
+    let selected: T | undefined;
+    let selectedScore = -1;
+    for (const value of values) {
+        const score =
+            value !== null && typeof value === 'object'
+                ? Object.values(value).filter((item) => item !== undefined).length
+                : 0;
+        if (score > selectedScore) {
+            selected = value;
+            selectedScore = score;
+        }
+    }
+    return selected;
+}
+
+/**
+ * Check if a given object implements one of the GetAccountActivitiesByActivityType200ResponseInner variants.
+ */
+export function instanceOfGetAccountActivitiesByActivityType200ResponseInner(value: object): value is GetAccountActivitiesByActivityType200ResponseInner {
+    return (
+        instanceOfNonTradeActivities(value) ||
+        instanceOfTradingActivities(value) ||
+        false
+    );
+}
+
 export function GetAccountActivitiesByActivityType200ResponseInnerFromJSON(json: any): GetAccountActivitiesByActivityType200ResponseInner {
     return GetAccountActivitiesByActivityType200ResponseInnerFromJSONTyped(json, false);
 }
@@ -42,17 +82,24 @@ export function GetAccountActivitiesByActivityType200ResponseInnerFromJSONTyped(
     if (json == null) {
         return json;
     }
+    const candidates: any[] = [];
     if (typeof json !== 'object') {
         return json;
     }
-    if (instanceOfNonTradeActivities(json)) {
-        return NonTradeActivitiesFromJSONTyped(json, true);
+    {
+        const value = NonTradeActivitiesFromJSONTyped(json, true);
+        if (instanceOfNonTradeActivities(value) && !containsInvalidDate(value)) {
+            candidates.push(value);
+        }
     }
-    if (instanceOfTradingActivities(json)) {
-        return TradingActivitiesFromJSONTyped(json, true);
+    {
+        const value = TradingActivitiesFromJSONTyped(json, true);
+        if (instanceOfTradingActivities(value) && !containsInvalidDate(value)) {
+            candidates.push(value);
+        }
     }
 
-    return {} as any;
+    return selectMostSpecific(candidates) ?? json;
 }
 
 export function GetAccountActivitiesByActivityType200ResponseInnerToJSON(json: any): any {
@@ -63,16 +110,17 @@ export function GetAccountActivitiesByActivityType200ResponseInnerToJSONTyped(va
     if (value == null) {
         return value;
     }
+    const candidates: any[] = [];
     if (typeof value !== 'object') {
         return value;
     }
     if (instanceOfNonTradeActivities(value)) {
-        return NonTradeActivitiesToJSON(value as NonTradeActivities);
+        candidates.push(NonTradeActivitiesToJSON(value as NonTradeActivities));
     }
     if (instanceOfTradingActivities(value)) {
-        return TradingActivitiesToJSON(value as TradingActivities);
+        candidates.push(TradingActivitiesToJSON(value as TradingActivities));
     }
 
-    return {};
+    return selectMostSpecific(candidates) ?? value;
 }
 

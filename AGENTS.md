@@ -40,14 +40,21 @@ when editing:
   behavior, ergonomics, and fixes live in hand-written modules outside those trees
   (`src/client.ts`, `src/orders.ts`, `src/marketDataShapes.ts`,
   `src/core/runtime.ts`, `src/streaming/`, ...).
-- **Regeneration-safe customizations live in `tooling/`.** Four deviations from
+- **Regeneration-safe customizations live in `tooling/`.** Eight deviations from
   stock `typescript-fetch` are encoded declaratively so they survive every
   regeneration: (1) null-safe required-array deserialization — forked
   `templates/typescript-fetch/modelGeneric.mustache`; (2) null-safe required-map
   deserialization — the same forked template; (3) undocumented-field passthrough
   on 6 trading models — `x-ts-passthrough` vendor extension (trading overlay) +
-  forked templates; (4) market-data `feed` enum tightening — market-data overlay.
-  Add new fixes the same way (template or overlay), never as a hand-edit.
+  forked templates; (4) market-data `feed` enum tightening — market-data overlay;
+  (5) binary logo response preservation — market-data overlay; (6) complete,
+  lossless `oneOf` imports/type guards/conversion — forked
+  `templates/typescript-fetch/modelOneOf.mustache`; (7) typed SSE generation —
+  explicit overlay metadata + a fail-closed validator + forked
+  `templates/typescript-fetch/apis.mustache`; (8) valid Travel Rule destination
+  and identity combinations — `x-ts-travel-rule-info` (trading overlay) + forked
+  generic model templates. Add new fixes the same way (template or overlay),
+  never as a hand-edit.
 - **The transport is shared.** The HTTP transport (retry/backoff, timeouts,
  rate limiting, typed errors, middleware, querystring, response wrappers) lives
  once in `src/core/runtime.ts`. `src/trading/runtime.ts` and

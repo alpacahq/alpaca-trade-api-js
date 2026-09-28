@@ -12,10 +12,34 @@
  *
  * Hand-maintained: edit this file directly for transport behavior changes.
  */
-import { buildApiError, FetchError } from "../errors";
+import { buildApiError, FetchError, ResponseError } from "../errors";
 import { RateLimiter } from "../rate-limit";
 import type { RateLimitConfig } from "../rate-limit";
 import { formatUserAgent } from "./runtimeIdentity";
+import type {
+    SseConnection,
+    SseOperationMetadata,
+    SseOptions,
+} from "./sse";
+
+export {
+    SSEApiResponse,
+    SseDeserializationError,
+    SseProtocolError,
+    SseSubscription,
+} from "./sse";
+export type {
+    SseConnection,
+    SseConnectionInfo,
+    SseClosedInfo,
+    SseCloseReason,
+    SseMessage,
+    SseOperationMetadata,
+    SseOptions,
+    SseReconnectEvent,
+    SseReconnectOptions,
+    SseServer,
+} from "./sse";
 
 declare const __ALPACA_PACKAGE_VERSION__: string;
 
@@ -152,6 +176,15 @@ export class BaseConfiguration {
         return this.defaultBasePath();
     }
 
+    /** Explicit caller override, excluding the package-specific default host. */
+    get configuredBasePath(): string | undefined {
+        return this.configuration.basePath;
+    }
+
+    get sandbox(): boolean {
+        return this.configuration.sandbox === true;
+    }
+
     get fetchApi(): FetchAPI | undefined {
         return this.configuration.fetchApi;
     }
@@ -270,6 +303,51 @@ export class BaseConfiguration {
  * `Configuration`, so this is only a fallback for a no-argument API instance.
  */
 export const DefaultConfig = new BaseConfiguration();
+
+const SSE_ONLY_OPTION_KEYS = [
+    "requestInit",
+    "connectTimeoutMs",
+    "idleTimeoutMs",
+    "maxDurationMs",
+    "basePath",
+    "serverIndex",
+    "reconnect",
+    "maxLineBytes",
+    "maxEventBytes",
+    "maxErrorBodyBytes",
+    "onOpen",
+    "onComment",
+    "onReconnect",
+] as const;
+
+function sseRequestInit(options: SseOptions): RequestInit {
+    const compatibleRequestInit = {
+        ...options,
+    } as Record<string, unknown>;
+    for (const key of SSE_ONLY_OPTION_KEYS) {
+        delete compatibleRequestInit[key];
+    }
+    return {
+        ...(compatibleRequestInit as RequestInit),
+        ...options.requestInit,
+        headers: mergeRequestHeaders(
+            compatibleRequestInit.headers as HeadersInit | undefined,
+            options.requestInit?.headers,
+        ),
+        signal: options.signal ?? options.requestInit?.signal,
+    };
+}
+
+function mergeRequestHeaders(
+    generated: HeadersInit | undefined,
+    overrides: HeadersInit | undefined,
+): Headers {
+    const headers = new Headers(generated);
+    new Headers(overrides).forEach((value, name) => {
+        headers.set(name, value);
+    });
+    return headers;
+}
 
 /**
  * This is the base class for all generated API classes.
@@ -409,8 +487,183 @@ export class BaseAPI {
         }
     }
 
-    private async createFetchParams(context: RequestOpts, initOverrides?: RequestInit | InitOverrideFunction) {
-        let url = this.configuration.basePath + context.path;
+    /**
+     * Open one validated SSE connection without REST retries, post-middleware
+     * response clones, or a whole-body deadline.
+     */
+    protected async requestSse(
+        context: RequestOpts,
+        options: SseOptions = {},
+        metadata: SseOperationMetadata = {},
+        lastEventId?: string,
+        resolveAttemptHeaders?: (
+            overrideHeaders: Headers,
+            signal?: AbortSignal,
+        ) => Promise<HTTPHeaders>,
+    ): Promise<SseConnection> {
+        const servers = metadata.servers ?? [];
+        const defaultServerIndex =
+            this.configuration.sandbox && metadata.sandboxServerIndex !== undefined
+                ? metadata.sandboxServerIndex
+                : 0;
+        const serverIndex = options.serverIndex ?? defaultServerIndex;
+        const usesOperationServer =
+            options.basePath === undefined &&
+            this.configuration.configuredBasePath === undefined;
+        if (
+            usesOperationServer &&
+            (options.serverIndex !== undefined || servers.length > 0) &&
+            (
+                !Number.isInteger(serverIndex) ||
+                serverIndex < 0 ||
+                serverIndex >= servers.length
+            )
+        ) {
+            throw new RangeError(
+                `SSE serverIndex ${serverIndex} is outside the operation server range`,
+            );
+        }
+        const basePath =
+            options.basePath ??
+            this.configuration.configuredBasePath ??
+            servers[serverIndex]?.url ??
+            this.configuration.basePath;
+        const initOverrides = sseRequestInit(options);
+        const deadline = new AttemptDeadline(
+            options.connectTimeoutMs ?? this.configuration.timeoutMs,
+            initOverrides.signal,
+        );
+        let attemptContext = context;
+        let url: string;
+        let init: RequestInit;
+        try {
+            let attemptHeaders = context.headers;
+            if (resolveAttemptHeaders) {
+                attemptHeaders = await deadline.race(
+                    resolveAttemptHeaders(
+                        new Headers(initOverrides.headers),
+                        deadline.signal,
+                    ),
+                );
+            }
+            attemptContext = {
+                ...context,
+                headers: Object.fromEntries(
+                    mergeRequestHeaders(
+                        attemptHeaders,
+                        initOverrides.headers,
+                    ).entries(),
+                ),
+            };
+            ({ url, init } = await deadline.race(
+                this.createFetchParams(
+                    attemptContext,
+                    async ({ init }) => {
+                        const headers = mergeRequestHeaders(
+                            init.headers,
+                            initOverrides.headers,
+                        );
+                        if (lastEventId === "") {
+                            headers.delete("Last-Event-ID");
+                        } else if (lastEventId !== undefined) {
+                            headers.set("Last-Event-ID", lastEventId);
+                        }
+                        return {
+                            ...initOverrides,
+                            headers,
+                        };
+                    },
+                    basePath,
+                ),
+            ));
+        } catch (error) {
+            deadline.cancel();
+            throw error;
+        }
+        let response: Response | undefined;
+        let release: (() => void) | undefined;
+        try {
+            const acquire = this.configuration.rateLimiter?.acquire(deadline.signal);
+            if (acquire) {
+                release = await deadline.race(
+                    acquire,
+                    (lateRelease) => lateRelease(),
+                );
+            }
+            response = await deadline.race(
+                this.fetchSseApi(
+                    url,
+                    deadline.signal ? { ...init, signal: deadline.signal } : init,
+                ),
+                (lateResponse) => discardResponse(lateResponse),
+            );
+        } finally {
+            release?.();
+        }
+
+        if (response.status === 200 || response.status === 204) {
+            if (response.status !== 204) {
+                const contentType = response.headers
+                    .get("Content-Type")
+                    ?.split(";", 1)[0]
+                    ?.trim()
+                    .toLowerCase();
+                if (contentType !== "text/event-stream") {
+                    deadline.cancel();
+                    discardResponse(response);
+                    throw new ResponseError(
+                        response,
+                        `Expected text/event-stream response, received ${contentType ?? "no Content-Type"}`,
+                    );
+                }
+                if (!response.body) {
+                    deadline.cancel();
+                    throw new ResponseError(
+                        response,
+                        "SSE response did not include a readable body",
+                    );
+                }
+            }
+            // End only the connect timer. The composed signal continues
+            // forwarding subscription cancellation to the live body.
+            deadline.stopTimer();
+            return { response, url };
+        }
+        if (response.status >= 200 && response.status < 300) {
+            deadline.cancel();
+            discardResponse(response);
+            throw new ResponseError(
+                response,
+                `Expected SSE status 200 or 204, received ${response.status}`,
+            );
+        }
+
+        try {
+            const maxBytes = options.maxErrorBodyBytes ?? 64 * 1024;
+            throw await buildApiError(
+                response,
+                (body) =>
+                    deadline.race(
+                        readBoundedText(body, maxBytes, deadline.signal),
+                        undefined,
+                        () => discardResponse(response!),
+                    ),
+                {
+                    preserveBody: false,
+                    preserveTypedErrorOnBodyTimeout: true,
+                },
+            );
+        } finally {
+            deadline.cancel();
+        }
+    }
+
+    private async createFetchParams(
+        context: RequestOpts,
+        initOverrides?: RequestInit | InitOverrideFunction,
+        basePath = this.configuration.basePath,
+    ) {
+        let url = basePath + context.path;
         if (context.query !== undefined && Object.keys(context.query).length !== 0) {
             // only add the querystring to the URL if there are query parameters.
             // this is done to avoid urls ending with a "?" character which buggy webservers
@@ -524,6 +777,53 @@ export class BaseAPI {
                     init: fetchParams.init,
                     response: response.clone(),
                 }) || response;
+            }
+        }
+        return response;
+    }
+
+    /** SSE middleware path: pre/onError only, never body-cloning post. */
+    private fetchSseApi = async (url: string, init: RequestInit) => {
+        let fetchParams = { url, init };
+        for (const middleware of this.middleware) {
+            if (middleware.pre) {
+                fetchParams =
+                    (await middleware.pre({
+                        fetch: this.fetchSseApi,
+                        ...fetchParams,
+                    })) || fetchParams;
+            }
+        }
+        let response: Response | undefined;
+        try {
+            response = await (this.configuration.fetchApi || fetch)(
+                fetchParams.url,
+                fetchParams.init,
+            );
+        } catch (error) {
+            for (const middleware of this.middleware) {
+                if (middleware.onError) {
+                    const recovered = await middleware.onError({
+                            fetch: this.fetchSseApi,
+                            url: fetchParams.url,
+                            init: fetchParams.init,
+                            error,
+                            response: undefined,
+                        });
+                    if (recovered) {
+                        response = recovered;
+                        break;
+                    }
+                }
+            }
+            if (response === undefined) {
+                if (error instanceof Error) {
+                    throw new FetchError(
+                        error,
+                        "The SSE connection failed and the interceptors did not return an alternative response",
+                    );
+                }
+                throw error;
             }
         }
         return response;
@@ -706,6 +1006,14 @@ class AttemptDeadline {
         this.stopClock();
     }
 
+    /** Stop only the deadline clock while retaining caller-abort forwarding. */
+    stopTimer(): void {
+        if (this.timer !== undefined) {
+            clearTimeout(this.timer);
+            this.timer = undefined;
+        }
+    }
+
     private stopClock(): void {
         if (this.stopped) {
             return;
@@ -745,6 +1053,47 @@ function discardResponse(response: Response): void {
     } catch {
         // A custom/locked body may not be cancellable; the attempt deadline is
         // still fully detached before retry backoff begins.
+    }
+}
+
+async function readBoundedText(
+    response: Response,
+    maxBytes: number,
+    signal?: AbortSignal,
+): Promise<string> {
+    const body = response.body;
+    if (!body) return "";
+    const reader = body.getReader();
+    const onAbort = (): void => {
+        void reader.cancel(abortReason(signal!)).catch(() => {});
+    };
+    if (signal?.aborted) onAbort();
+    else signal?.addEventListener("abort", onAbort, { once: true });
+    const decoder = new TextDecoder();
+    let text = "";
+    let bytes = 0;
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytes += value.byteLength;
+            if (bytes > maxBytes) {
+                await reader.cancel(
+                    new Error(`Response body exceeded ${maxBytes} bytes`),
+                );
+                break;
+            }
+            text += decoder.decode(value, { stream: true });
+        }
+        text += decoder.decode();
+        return text;
+    } finally {
+        signal?.removeEventListener("abort", onAbort);
+        try {
+            reader.releaseLock();
+        } catch {
+            // A custom reader may release itself after cancellation.
+        }
     }
 }
 
@@ -951,6 +1300,11 @@ export function mapValues(data: any, fn: (item: any) => any) {
         result[key] = fn(data[key]);
     }
     return result;
+}
+
+/** Parse one completed SSE `data:` payload before generated model conversion. */
+export function parseSseJson(data: string): unknown {
+    return JSON.parse(data);
 }
 
 export function canConsumeForm(consumes: Consume[]): boolean {

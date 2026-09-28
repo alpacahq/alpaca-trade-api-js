@@ -195,10 +195,8 @@ describe('Market-data sub-client', () => {
         const { marketData: md } = new Alpaca({ ...CREDS });
         expect(md.stocks).toBeInstanceOf(marketData.StockApi);
         expect(md.crypto).toBeInstanceOf(marketData.CryptoApi);
-        expect(md.cryptoPerpetualFutures).toBeInstanceOf(marketData.CryptoPerpetualFuturesApi);
         expect(md.fixedIncome).toBeInstanceOf(marketData.FixedIncomeApi);
         expect(md.forex).toBeInstanceOf(marketData.ForexApi);
-        expect(md.indices).toBeInstanceOf(marketData.IndexApi);
         expect(md.logos).toBeInstanceOf(marketData.LogosApi);
         expect(md.news).toBeInstanceOf(marketData.NewsApi);
         expect(md.options).toBeInstanceOf(marketData.OptionApi);

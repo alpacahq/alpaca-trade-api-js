@@ -86,6 +86,12 @@ export interface OpcaFSPLITActivityV2 {
      */
     newCusip: string;
     /**
+     * ISIN of the new security after the split
+     * @type {string}
+     * @memberof OpcaFSPLITActivityV2
+     */
+    newIsin?: string;
+    /**
      * Ratio of new shares received
      * @type {string}
      * @memberof OpcaFSPLITActivityV2
@@ -97,6 +103,12 @@ export interface OpcaFSPLITActivityV2 {
      * @memberof OpcaFSPLITActivityV2
      */
     oldCusip: string;
+    /**
+     * ISIN of the old security before the split
+     * @type {string}
+     * @memberof OpcaFSPLITActivityV2
+     */
+    oldIsin?: string;
     /**
      * Ratio of old shares exchanged
      * @type {string}
@@ -172,8 +184,10 @@ export function OpcaFSPLITActivityV2FromJSONTyped(json: any, ignoreDiscriminator
         'oldQty': json['old_qty'] == null ? undefined : json['old_qty'],
         'qty': json['qty'] == null ? undefined : json['qty'],
         'newCusip': json['new_cusip'],
+        'newIsin': json['new_isin'] == null ? undefined : json['new_isin'],
         'newRate': json['new_rate'],
         'oldCusip': json['old_cusip'],
+        'oldIsin': json['old_isin'] == null ? undefined : json['old_isin'],
         'oldRate': json['old_rate'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'dueBillRedemptionDate': json['due_bill_redemption_date'] == null ? undefined : (new Date(json['due_bill_redemption_date'])),
@@ -205,8 +219,10 @@ export function OpcaFSPLITActivityV2ToJSONTyped(value?: OpcaFSPLITActivityV2 | n
         'old_qty': value['oldQty'],
         'qty': value['qty'],
         'new_cusip': value['newCusip'],
+        'new_isin': value['newIsin'],
         'new_rate': value['newRate'],
         'old_cusip': value['oldCusip'],
+        'old_isin': value['oldIsin'],
         'old_rate': value['oldRate'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'due_bill_redemption_date': value['dueBillRedemptionDate'] == null ? undefined : ((value['dueBillRedemptionDate']).toISOString().substring(0,10)),

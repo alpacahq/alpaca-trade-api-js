@@ -169,53 +169,6 @@ const cases: EndpointCase[] = [
         call: (a) => a.marketData.crypto.cryptoLatestOrderbooks({ loc: 'us' as any, symbols: 'BTC/USD' }),
     },
 
-    // --- marketData.cryptoPerpetualFutures ------------------------------
-    {
-        accessor: 'marketData.cryptoPerpetualFutures',
-        method: 'cryptoPerpLatestBars',
-        verb: 'GET',
-        path: /^\/v1beta1\/crypto-perps\/[^/]+\/latest\/bars$/,
-        kind: 'object',
-        body: { bars: {} },
-        call: (a) => a.marketData.cryptoPerpetualFutures.cryptoPerpLatestBars({ loc: 'us' as any, symbols: 'BTC-PERP' }),
-    },
-    {
-        accessor: 'marketData.cryptoPerpetualFutures',
-        method: 'cryptoPerpLatestQuotes',
-        verb: 'GET',
-        path: /^\/v1beta1\/crypto-perps\/[^/]+\/latest\/quotes$/,
-        kind: 'object',
-        body: { quotes: {} },
-        call: (a) => a.marketData.cryptoPerpetualFutures.cryptoPerpLatestQuotes({ loc: 'us' as any, symbols: 'BTC-PERP' }),
-    },
-    {
-        accessor: 'marketData.cryptoPerpetualFutures',
-        method: 'cryptoPerpLatestTrades',
-        verb: 'GET',
-        path: /^\/v1beta1\/crypto-perps\/[^/]+\/latest\/trades$/,
-        kind: 'object',
-        body: { trades: {} },
-        call: (a) => a.marketData.cryptoPerpetualFutures.cryptoPerpLatestTrades({ loc: 'us' as any, symbols: 'BTC-PERP' }),
-    },
-    {
-        accessor: 'marketData.cryptoPerpetualFutures',
-        method: 'cryptoPerpLatestOrderbooks',
-        verb: 'GET',
-        path: /^\/v1beta1\/crypto-perps\/[^/]+\/latest\/orderbooks$/,
-        kind: 'object',
-        body: { orderbooks: {} },
-        call: (a) => a.marketData.cryptoPerpetualFutures.cryptoPerpLatestOrderbooks({ loc: 'us' as any, symbols: 'BTC-PERP' }),
-    },
-    {
-        accessor: 'marketData.cryptoPerpetualFutures',
-        method: 'cryptoPerpLatestFuturesPricing',
-        verb: 'GET',
-        path: /^\/v1beta1\/crypto-perps\/[^/]+\/latest\/pricing$/,
-        kind: 'object',
-        body: { pricing: {} },
-        call: (a) => a.marketData.cryptoPerpetualFutures.cryptoPerpLatestFuturesPricing({ loc: 'us' as any, symbols: 'BTC-PERP' }),
-    },
-
     // --- marketData.fixedIncome -----------------------------------------
     {
         accessor: 'marketData.fixedIncome',
@@ -255,25 +208,6 @@ const cases: EndpointCase[] = [
         call: (a) => a.marketData.forex.latestRates({ currencyPairs: 'EURUSD' }),
     },
 
-    // --- marketData.indices ---------------------------------------------
-    {
-        accessor: 'marketData.indices',
-        method: 'indexValues',
-        verb: 'GET',
-        path: /^\/v1beta1\/indices\/values$/,
-        kind: 'object',
-        call: (a) => a.marketData.indices.indexValues({ symbols: 'SPX' }),
-    },
-    {
-        accessor: 'marketData.indices',
-        method: 'indexLatestValues',
-        verb: 'GET',
-        path: /^\/v1beta1\/indices\/latest\/values$/,
-        kind: 'object',
-        body: { values: {} },
-        call: (a) => a.marketData.indices.indexLatestValues({ symbols: 'SPX' }),
-    },
-
     // --- marketData.logos -----------------------------------------------
     {
         accessor: 'marketData.logos',
@@ -281,7 +215,10 @@ const cases: EndpointCase[] = [
         verb: 'GET',
         path: /^\/v1beta1\/logos\/[^/]+$/,
         kind: 'object',
-        call: (a) => a.marketData.logos.logos({ symbol: 'AAPL' }),
+        call: async (a) => {
+            const logo: Blob = await a.marketData.logos.logos({ symbol: 'AAPL' });
+            return logo;
+        },
     },
 
     // --- marketData.news ------------------------------------------------
@@ -390,6 +327,19 @@ const cases: EndpointCase[] = [
         path: /^\/v1\/corporate-actions$/,
         kind: 'object',
         call: (a) => a.marketData.corporateActions.corporateActions({}),
+    },
+    {
+        accessor: 'marketData.corporateActions',
+        method: 'subscribeToCorporateActionsEventsSSE',
+        verb: 'GET',
+        path: /^\/v1beta1\/events\/corporate-actions$/,
+        kind: 'sse',
+        body: `id: 01J9RPMV5TKB8WX3M4F1KZ7QH2
+event: corporate_action
+data: {"action":"insert","at":"2026-03-20T12:24:58Z","event_id":"01J9RPMV5TKB8WX3M4F1KZ7QH2","region":"us","event_type":"cash_dividend_corporateaction_event","ca":{"id":"ca-1","process_date":"2026-05-15","cusip":"037833100","ex_date":"2026-05-09","foreign":false,"rate":"0.24","special":false,"symbol":"AAPL"}}
+
+`,
+        call: (a) => a.marketData.corporateActions.subscribeToCorporateActionsEventsSSE({}),
     },
 ];
 

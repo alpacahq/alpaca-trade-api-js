@@ -153,13 +153,15 @@ export const capabilities: readonly CapabilityEntry[] = [
             "createWhitelistedAddress",
             "deleteWhitelistedAddress",
             "listWhitelistedAddress",
+            "searchVASPs",
+            "updateWhitelistedAddressTravelRuleInfo",
         ],
     },
     {
         accessor: "trading.events",
         api: "EventsApi",
         group: "trading",
-        summary: "Server-sent event streams for account activity.",
+        summary: "Typed, resumable async SSE stream for account activity.",
         methods: ["subscribeToActivitiesSSE"],
     },
     {
@@ -273,19 +275,6 @@ export const capabilities: readonly CapabilityEntry[] = [
         ],
     },
     {
-        accessor: "marketData.cryptoPerpetualFutures",
-        api: "CryptoPerpetualFuturesApi",
-        group: "marketData",
-        summary: "Crypto perpetual-futures latest market data.",
-        methods: [
-            "cryptoPerpLatestBars",
-            "cryptoPerpLatestQuotes",
-            "cryptoPerpLatestTrades",
-            "cryptoPerpLatestOrderbooks",
-            "cryptoPerpLatestFuturesPricing",
-        ],
-    },
-    {
         accessor: "marketData.fixedIncome",
         api: "FixedIncomeApi",
         group: "marketData",
@@ -298,13 +287,6 @@ export const capabilities: readonly CapabilityEntry[] = [
         group: "marketData",
         summary: "Foreign-exchange historical and latest rates.",
         methods: ["rates", "latestRates"],
-    },
-    {
-        accessor: "marketData.indices",
-        api: "IndexApi",
-        group: "marketData",
-        summary: "Index historical and latest values.",
-        methods: ["indexValues", "indexLatestValues"],
     },
     {
         accessor: "marketData.logos",
@@ -347,8 +329,8 @@ export const capabilities: readonly CapabilityEntry[] = [
         accessor: "marketData.corporateActions",
         api: "CorporateActionsApi",
         group: "marketData",
-        summary: "Historical corporate-action data.",
-        methods: ["corporateActions"],
+        summary: "Historical corporate actions and typed, resumable async SSE updates.",
+        methods: ["corporateActions", "subscribeToCorporateActionsEventsSSE"],
     },
 ] as const;
 
@@ -480,7 +462,6 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
             "getCryptoTrades",
             "getStockQuotes",
             "getCryptoQuotes",
-            "getIndexValues",
             "getStockAuctions",
             "getStockCandles",
             "getCryptoCandles",
@@ -519,8 +500,6 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
             "collectOptionBarsBySymbol",
             "iterateOptionTrades",
             "collectOptionTradesBySymbol",
-            "iterateIndexValues",
-            "collectIndexValuesBySymbol",
             "iterateForexRates",
             "collectForexRatesBySymbol",
             "iterateOptionSnapshots",

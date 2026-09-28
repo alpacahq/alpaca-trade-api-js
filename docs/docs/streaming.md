@@ -26,6 +26,62 @@ updates.connect();
 Set the trading subscription before `connect()` so the authenticated connection
 sends one initial listen frame and reconnects restore the same subscription.
 
+## Server-Sent Events
+
+The generated Trading and Market Data clients also expose fetch-based, typed
+SSE subscriptions:
+
+- `alpaca.trading.events.subscribeToActivitiesSSE()`
+- `alpaca.marketData.corporateActions.subscribeToCorporateActionsEventsSSE()`
+
+They return a single-consumer `SseSubscription<T>`, which is an
+`AsyncIterable<T>`:
+
+```ts
+const controller = new AbortController();
+const activities = await alpaca.trading.events.subscribeToActivitiesSSE(
+  {},
+  { signal: controller.signal },
+);
+
+try {
+  for await (const activity of activities) {
+    console.log(activity.activityType, activity.details);
+  }
+} finally {
+  activities.close();
+}
+```
+
+Marked live subscriptions reconnect automatically until cancelled. Reconnects
+carry the latest event id in `Last-Event-ID` and honor the server's `retry:`
+field and HTTP `Retry-After`. Replay may be inclusive, so consumers that need
+exactly-once effects must deduplicate by event id. Pass `reconnect: false`, or a
+policy such as `{ maxAttempts: 5, maxElapsedMs: 60_000 }`, to bound retries.
+Queries with `until` or `untilId` are finite and end cleanly without reconnecting.
+Opening is bounded to two retries by default so the initial `await` cannot retry
+forever; set `maxInitialAttempts` explicitly (or `Infinity`) to change that
+limit. Once opened, live reconnects remain unlimited unless bounded by policy.
+
+The ordinary SDK `timeoutMs` is only a connect-through-headers deadline for SSE;
+it never terminates a healthy body after 30 seconds. Per-subscription options
+also include `connectTimeoutMs`, opt-in `idleTimeoutMs` / `maxDurationMs`,
+`basePath` / `serverIndex`, resource limits, and `onOpen`, `onComment`, and
+`onReconnect` diagnostics. Use `subscription.messages()` when you need the raw
+SSE envelope (`data`, `event`, `id`, and `retry`) rather than only typed data.
+Breaking iteration, `close()`, `abort()`, or aborting the caller signal releases
+the reader and prevents further reconnects. A subscription has one consumer; if
+you open one but never begin iteration, call `close()` explicitly.
+
+`subscription.closed` distinguishes `{ reason: "eof" }`,
+`{ reason: "aborted" }`, and `{ reason: "error", error }`. Iteration still
+rejects with the terminal parser, deserialization, HTTP, or transport error.
+
+SSE uses middleware `pre` and `onError` hooks. It intentionally skips `post`
+hooks because those hooks receive a cloned response, and cloning a long-lived
+body can buffer or stall the stream. Use `onOpen` for response status/header
+observability and `onComment` / `onReconnect` for stream diagnostics.
+
 ## Available streams
 
 All five factories return a stream sharing the lifecycle below:
@@ -38,8 +94,10 @@ All five factories return a stream sharing the lifecycle below:
 | `alpaca.marketData.optionStream()` | `OptionDataStream` | Options market data (msgpack) |
 | `alpaca.marketData.newsStream()` | `NewsStream` | Real-time news headlines |
 
-Streaming is supported on Node.js and Bun. Edge, browser, and Deno exports are
-REST-only; see
+The five WebSocket factories are supported on Node.js and Bun. Generated SSE is
+fetch-based and remains available in Node/Bun and REST-capable server runtimes.
+Direct browser use is discouraged because it exposes credentials and depends on
+API CORS. See
 [Runtime & module compatibility](./runtime-compatibility.md#edge--browser-runtimes).
 
 ## Timestamp precision

@@ -1256,6 +1256,289 @@ for (const { name, rt } of RUNTIMES) {
             }
         });
     });
+
+    describe(`[${name}] SSE transport isolation`, () => {
+        class RawSseApi extends rt.BaseAPI {
+            exec(
+                options: trading.SseOptions = {},
+                metadata: trading.SseOperationMetadata = {},
+            ): Promise<trading.SseConnection> {
+                return this.requestSse(
+                    {
+                        path: '/events',
+                        method: 'GET',
+                        headers: { Accept: 'text/event-stream' },
+                    },
+                    options,
+                    metadata,
+                );
+            }
+        }
+
+        it('selects the declared sandbox operation server without changing the REST base path', async () => {
+            let seenUrl = '';
+            const cfg = new rt.Configuration({
+                sandbox: true,
+                fetchApi: async (url) => {
+                    seenUrl = String(url);
+                    return new Response('data: {}\n\n', {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    });
+                },
+            });
+            const connection = await new RawSseApi(cfg).exec({}, {
+                servers: [
+                    { url: 'https://stream.example.test' },
+                    { url: 'https://stream.sandbox.example.test' },
+                ],
+                sandboxServerIndex: 1,
+            });
+
+            expect(seenUrl).toBe('https://stream.sandbox.example.test/events');
+            expect(cfg.basePath).not.toContain('stream.sandbox.example.test');
+            await connection.response.body?.cancel();
+        });
+
+        it('rejects an invalid operation server index instead of falling back to the REST host', async () => {
+            const fetchApi = vi.fn();
+            const cfg = new rt.Configuration({ fetchApi });
+
+            await expect(
+                new RawSseApi(cfg).exec(
+                    { serverIndex: 99 },
+                    {
+                        servers: [
+                            { url: 'https://stream.example.test' },
+                        ],
+                    },
+                ),
+            ).rejects.toThrow(
+                'SSE serverIndex 99 is outside the operation server range',
+            );
+            expect(fetchApi).not.toHaveBeenCalled();
+        });
+
+        it('uses pre middleware but skips body-cloning post middleware', async () => {
+            const pre = vi.fn();
+            const post = vi.fn();
+            const cfg = new rt.Configuration({
+                middleware: [
+                    {
+                        pre: async (context) => {
+                            pre();
+                            return { url: context.url, init: context.init };
+                        },
+                        post: async () => {
+                            post();
+                        },
+                    },
+                ],
+                fetchApi: async () =>
+                    new Response('data: {}\n\n', {
+                        headers: { 'Content-Type': 'text/event-stream' },
+                    }),
+            });
+            const connection = await new RawSseApi(cfg).exec();
+
+            expect(pre).toHaveBeenCalledOnce();
+            expect(post).not.toHaveBeenCalled();
+            await connection.response.body?.cancel();
+        });
+
+        it('stops onError middleware after one handler recovers the SSE stream', async () => {
+            const recover = vi.fn(async () =>
+                new Response('data: {}\n\n', {
+                    headers: { 'Content-Type': 'text/event-stream' },
+                }),
+            );
+            const afterRecovery = vi.fn();
+            const cfg = new rt.Configuration({
+                middleware: [
+                    { onError: recover },
+                    { onError: afterRecovery },
+                ],
+                fetchApi: async () => {
+                    throw new Error('connect failed');
+                },
+            });
+
+            const connection = await new RawSseApi(cfg).exec();
+
+            expect(recover).toHaveBeenCalledOnce();
+            expect(afterRecovery).not.toHaveBeenCalled();
+            await connection.response.body?.cancel();
+        });
+
+        it('does not apply the configured REST retry policy to connect failures', async () => {
+            const fetchApi = vi.fn(async () =>
+                jsonResponse(503, { code: 503, message: 'unavailable' }),
+            );
+            const cfg = new rt.Configuration({
+                retry: { maxRetries: 2, retryDelayMs: 0 },
+                fetchApi,
+            });
+
+            await expect(new RawSseApi(cfg).exec()).rejects.toBeInstanceOf(
+                rt.ApiError,
+            );
+            expect(fetchApi).toHaveBeenCalledOnce();
+        });
+
+        it('stops the configured deadline at headers instead of aborting the body', async () => {
+            vi.useFakeTimers();
+            const cancel = vi.fn();
+            try {
+                const cfg = new rt.Configuration({
+                    timeoutMs: 10,
+                    fetchApi: async () =>
+                        new Response(
+                            new ReadableStream({
+                                cancel,
+                            }),
+                            {
+                                headers: {
+                                    'Content-Type': 'text/event-stream',
+                                },
+                            },
+                        ),
+                });
+                const connection = await new RawSseApi(cfg).exec();
+
+                await vi.advanceTimersByTimeAsync(100);
+                expect(cancel).not.toHaveBeenCalled();
+                expect(vi.getTimerCount()).toBe(0);
+                await connection.response.body?.cancel();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('enforces the connect-through-headers timeout', async () => {
+            vi.useFakeTimers();
+            try {
+                const cfg = new rt.Configuration({
+                    timeoutMs: 10,
+                    fetchApi: async (_url, init) =>
+                        new Promise<Response>((_resolve, reject) => {
+                            init?.signal?.addEventListener(
+                                'abort',
+                                () => reject((init.signal as AbortSignal).reason),
+                                { once: true },
+                            );
+                        }),
+                });
+                const pending = new RawSseApi(cfg).exec();
+                const rejection = expect(pending).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(10);
+                await rejection;
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('rejects invalid SSE MIME and cancels its response body', async () => {
+            const cancel = vi.fn();
+            const cfg = new rt.Configuration({
+                fetchApi: async () =>
+                    new Response(new ReadableStream({ cancel }), {
+                        headers: { 'Content-Type': 'application/json' },
+                    }),
+            });
+
+            await expect(new RawSseApi(cfg).exec()).rejects.toMatchObject({
+                name: 'ResponseError',
+            });
+            expect(cancel).toHaveBeenCalledOnce();
+        });
+
+        it('accepts HTTP 204 as the server instruction not to reconnect', async () => {
+            const cfg = new rt.Configuration({
+                fetchApi: async () => new Response(null, { status: 204 }),
+            });
+
+            const connection = await new RawSseApi(cfg).exec();
+            expect(connection.response.status).toBe(204);
+        });
+
+        it('resolves server hosts with stream, configured, selected, then package precedence', async () => {
+            const urls: string[] = [];
+            const response = () =>
+                new Response('data: {}\n\n', {
+                    headers: { 'Content-Type': 'text/event-stream' },
+                });
+            const metadata: trading.SseOperationMetadata = {
+                servers: [
+                    { url: 'https://operation.example.test' },
+                    { url: 'https://staging.example.test' },
+                ],
+            };
+
+            const selected = new RawSseApi(
+                new rt.Configuration({
+                    fetchApi: async (url) => {
+                        urls.push(String(url));
+                        return response();
+                    },
+                }),
+            );
+            await (await selected.exec({ serverIndex: 1 }, metadata)).response.body?.cancel();
+
+            const configured = new RawSseApi(
+                new rt.Configuration({
+                    basePath: 'https://configured.example.test',
+                    fetchApi: async (url) => {
+                        urls.push(String(url));
+                        return response();
+                    },
+                }),
+            );
+            await (await configured.exec({}, metadata)).response.body?.cancel();
+            await (
+                await configured.exec(
+                    { basePath: 'https://stream.example.test' },
+                    metadata,
+                )
+            ).response.body?.cancel();
+
+            expect(urls).toEqual([
+                'https://staging.example.test/events',
+                'https://configured.example.test/events',
+                'https://stream.example.test/events',
+            ]);
+        });
+
+        it('releases a concurrency slot after headers while both bodies stay open', async () => {
+            const fetchApi = vi.fn(async () =>
+                new Response(
+                    new ReadableStream({
+                        start() {
+                            // The body deliberately remains open.
+                        },
+                    }),
+                    { headers: { 'Content-Type': 'text/event-stream' } },
+                ),
+            );
+            const cfg = new rt.Configuration({
+                rateLimit: {
+                    maxRequests: 10,
+                    intervalMs: 60_000,
+                    maxConcurrent: 1,
+                },
+                fetchApi,
+            });
+            const api = new RawSseApi(cfg);
+
+            const [first, second] = await Promise.all([api.exec(), api.exec()]);
+            expect(fetchApi).toHaveBeenCalledTimes(2);
+            await first.response.body?.cancel();
+            await second.response.body?.cancel();
+        });
+    });
 }
 
 describe('paper/live environment switching', () => {

@@ -210,7 +210,7 @@ function sharedRestConfig(options: AlpacaClientOptions, creds: ResolvedCredentia
  * Illustrates the SDK's two-layer model on one class: it *inherits* every
  * generated method (`postOrder`, `getAllOrders`, `deleteOrderByOrderID`, ...)
  * unchanged (layer 1, always available), and *adds* one ergonomic builder per
- * common order kind (layer 2) that drops the `postOrder({ postOrderRequest })`
+ * common order kind (layer 2) that drops the `postOrder({ createOrderRequest })`
  * wrapper, accepts `number | string` amounts, and requires the fields each kind
  * needs at compile time (see {@link orders}). Each returns the created
  * {@link trading.Order}. The additive builders never hide the raw `postOrder`;
@@ -238,35 +238,35 @@ export type GetAllOrdersInput = Omit<trading.GetAllOrdersRequest, "side" | "symb
 export class OrdersApi extends trading.OrdersApi {
     /** Place a market order (requires `qty` or `notional`). */
     market(input: orders.MarketOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildMarketOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildMarketOrder(input) });
     }
     /** Place a limit order. */
     limit(input: orders.LimitOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildLimitOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildLimitOrder(input) });
     }
     /** Place a stop (stop-market) order. */
     stop(input: orders.StopOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildStopOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildStopOrder(input) });
     }
     /** Place a stop-limit order. */
     stopLimit(input: orders.StopLimitOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildStopLimitOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildStopLimitOrder(input) });
     }
     /** Place a trailing-stop order (requires `trailPrice` or `trailPercent`). */
     trailingStop(input: orders.TrailingStopOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildTrailingStopOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildTrailingStopOrder(input) });
     }
     /** Place a bracket order (entry + take-profit + stop-loss). */
     bracket(input: orders.BracketOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildBracketOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildBracketOrder(input) });
     }
     /** Place a one-cancels-other (OCO) order. */
     oco(input: orders.OcoOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildOcoOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildOcoOrder(input) });
     }
     /** Place a one-triggers-other (OTO) order. */
     oto(input: orders.OtoOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildOtoOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildOtoOrder(input) });
     }
     /**
      * Generic escape hatch: submit a near-raw order, normalizing amount fields
@@ -276,7 +276,7 @@ export class OrdersApi extends trading.OrdersApi {
      * deciding whether to submit another order.
      */
     submit(input: orders.OrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildOrder(input) });
     }
 
     /**
@@ -631,7 +631,7 @@ export class TradingClient {
             const place = async (): Promise<void> => {
                 try {
                     const placed = await this.orders.postOrder(
-                        { postOrderRequest: orders.buildOrder(submittedInput) },
+                        { createOrderRequest: orders.buildOrder(submittedInput) },
                         { signal: workflowController.signal },
                     );
                     if (settled) return;
@@ -891,7 +891,7 @@ function collectSymbolMap<T>(
  *
  *   1. **Generated (always present).** Every market-data `Api` is a lazily
  *      constructed, memoized accessor — `stocks`, `crypto`, `options`,
- *      `forex`, `indices`, `news`, `screener`, ... — each exposing its raw
+ *      `forex`, `news`, `screener`, `corporateActions`, ... — each exposing its raw
  *      generated methods (which keep Alpaca's compact wire keys).
  *   2. **Ergonomic (additive).** Hand-written conveniences on top: the
  *      normalized `get<Asset><Thing>` / `get<Asset>Candles` accessors (canonical
@@ -915,10 +915,8 @@ export class MarketDataClient {
 
     private _stocks?: marketData.StockApi;
     private _crypto?: marketData.CryptoApi;
-    private _cryptoPerpetualFutures?: marketData.CryptoPerpetualFuturesApi;
     private _fixedIncome?: marketData.FixedIncomeApi;
     private _forex?: marketData.ForexApi;
-    private _indices?: marketData.IndexApi;
     private _logos?: marketData.LogosApi;
     private _news?: marketData.NewsApi;
     private _options?: marketData.OptionApi;
@@ -940,17 +938,11 @@ export class MarketDataClient {
     get crypto(): marketData.CryptoApi {
         return (this._crypto ??= new marketData.CryptoApi(this.config));
     }
-    get cryptoPerpetualFutures(): marketData.CryptoPerpetualFuturesApi {
-        return (this._cryptoPerpetualFutures ??= new marketData.CryptoPerpetualFuturesApi(this.config));
-    }
     get fixedIncome(): marketData.FixedIncomeApi {
         return (this._fixedIncome ??= new marketData.FixedIncomeApi(this.config));
     }
     get forex(): marketData.ForexApi {
         return (this._forex ??= new marketData.ForexApi(this.config));
-    }
-    get indices(): marketData.IndexApi {
-        return (this._indices ??= new marketData.IndexApi(this.config));
     }
     get logos(): marketData.LogosApi {
         return (this._logos ??= new marketData.LogosApi(this.config));
@@ -1075,18 +1067,6 @@ export class MarketDataClient {
         opts?: SymbolCollectOptions,
     ): Promise<{ [symbol: string]: marketDataShapes.Quote[] }> {
         return marketDataShapes.toQuotesBySymbol(await this.collectCryptoQuotesBySymbol(req, opts), marketDataShapes.toCryptoQuote);
-    }
-
-    /**
-     * Historical index values as canonical {@link marketDataShapes.IndexValue}s,
-     * keyed by symbol. Preserves the full-precision `timestampRaw` (the generated
-     * model truncates the timestamp to a `Date`).
-     */
-    async getIndexValues(
-        req: Omit<WithSymbolList<marketData.IndexValuesRequest>, "pageToken">,
-        opts?: SymbolCollectOptions,
-    ): Promise<{ [symbol: string]: marketDataShapes.IndexValue[] }> {
-        return marketDataShapes.toIndexValuesBySymbol(await this.collectIndexValuesBySymbol(req, opts));
     }
 
     /**
@@ -1333,20 +1313,6 @@ export class MarketDataClient {
     collectOptionTradesBySymbol(req: Omit<WithSymbolList<marketData.OptionTradesRequest>, "pageToken">, opts?: SymbolCollectOptions) {
         return collectSymbolMap<marketData.OptionTrade>(req.symbols, (symbols, pageToken) =>
             this.options.optionTrades({ ...req, symbols, pageToken }).then((r) => ({ data: r.trades ?? {}, nextPageToken: r.nextPageToken })),
-            opts,
-        );
-    }
-
-    /** Iterate historical index values across all symbols and pages. */
-    iterateIndexValues(req: Omit<WithSymbolList<marketData.IndexValuesRequest>, "pageToken">) {
-        return pagination.paginateSymbolMap<marketData.IndexValue>((pageToken) =>
-            this.indices.indexValues({ ...req, symbols: values.normalizeSymbols(req.symbols), pageToken }).then((r) => ({ data: r.values ?? {}, nextPageToken: r.nextPageToken })),
-        );
-    }
-    /** Collect historical index values merged into a `{ [symbol]: IndexValue[] }` map. */
-    collectIndexValuesBySymbol(req: Omit<WithSymbolList<marketData.IndexValuesRequest>, "pageToken">, opts?: SymbolCollectOptions) {
-        return collectSymbolMap<marketData.IndexValue>(req.symbols, (symbols, pageToken) =>
-            this.indices.indexValues({ ...req, symbols, pageToken }).then((r) => ({ data: r.values ?? {}, nextPageToken: r.nextPageToken })),
             opts,
         );
     }

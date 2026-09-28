@@ -100,6 +100,13 @@ export interface OptionContract extends Record<string, unknown> {
      */
     openInterestDate?: Date;
     /**
+     * The ppind (Penny Program Indicator) field indicates whether an option contract is eligible for penny price increments,
+     * with `true` meaning it is part of the Penny Program and `false` meaning it is not.
+     * @type {boolean}
+     * @memberof OptionContract
+     */
+    ppind: boolean;
+    /**
      * The root symbol of the option contract.
      * @type {string}
      * @memberof OptionContract
@@ -181,6 +188,7 @@ export function instanceOfOptionContract(value: object): value is OptionContract
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('multiplier' in value) || value['multiplier'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
+    if (!('ppind' in value) || value['ppind'] === undefined) return false;
     if (!('size' in value) || value['size'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
     if (!('strikePrice' in value) || value['strikePrice'] === undefined) return false;
@@ -213,6 +221,7 @@ export function OptionContractFromJSONTyped(json: any, ignoreDiscriminator: bool
         'name': json['name'],
         'openInterest': json['open_interest'] == null ? undefined : json['open_interest'],
         'openInterestDate': json['open_interest_date'] == null ? undefined : (new Date(json['open_interest_date'])),
+        'ppind': json['ppind'],
         'rootSymbol': json['root_symbol'] == null ? undefined : json['root_symbol'],
         'size': json['size'],
         'status': json['status'],
@@ -246,6 +255,7 @@ export function OptionContractToJSONTyped(value?: OptionContract | null, ignoreD
         'name': value['name'],
         'open_interest': value['openInterest'],
         'open_interest_date': value['openInterestDate'] == null ? undefined : ((value['openInterestDate']).toISOString().substring(0,10)),
+        'ppind': value['ppind'],
         'root_symbol': value['rootSymbol'],
         'size': value['size'],
         'status': value['status'],

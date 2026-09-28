@@ -95,7 +95,7 @@ const trading: ApiReferenceExamples = {
     },
     "trading.corporateActions.getV2CorporateActionsAnnouncements": {
         description: "Deprecated: corporate-action announcements over a date range.",
-        example: 'await alpaca.trading.corporateActions.getV2CorporateActionsAnnouncements({ caTypes: "dividend", since: "2024-01-01", until: "2024-01-31" });',
+        example: 'await alpaca.trading.corporateActions.getV2CorporateActionsAnnouncements({ caTypes: ["Dividend"], since: "2024-01-01", until: "2024-01-31" });',
     },
     "trading.corporateActions.getV2CorporateActionsAnnouncementsId": {
         description: "Deprecated: a single corporate-action announcement by id.",
@@ -133,9 +133,24 @@ const trading: ApiReferenceExamples = {
         description: "List whitelisted crypto withdrawal addresses.",
         example: 'await alpaca.trading.cryptoFunding.listWhitelistedAddress();',
     },
+    "trading.cryptoFunding.searchVASPs": {
+        description: "Search the travel-rule directory for a destination exchange.",
+        example: 'await alpaca.trading.cryptoFunding.searchVASPs({ q: "Coinbase" });',
+    },
+    "trading.cryptoFunding.updateWhitelistedAddressTravelRuleInfo": {
+        description: "Attach updated travel-rule details to a whitelisted destination.",
+        example: 'await alpaca.trading.cryptoFunding.updateWhitelistedAddressTravelRuleInfo({ whitelistedAddressId: "a1...c2", updateWhitelistedAddressTravelRuleInfoRequest: { travelRuleInfo: { beneficiaryIsSelfHosted: true, beneficiaryGivenName: "Ada", beneficiaryFamilyName: "Lovelace" } } });',
+    },
     "trading.events.subscribeToActivitiesSSE": {
-        description: "Server-sent event stream of account activities.",
-        example: 'await alpaca.trading.events.subscribeToActivitiesSSE({ sinceId: "20240101000000000::..." });',
+        description: "Typed async stream of account activities; reconnects with Last-Event-ID until closed.",
+        example: [
+            'const events = await alpaca.trading.events.subscribeToActivitiesSSE({ sinceId: "20240101000000000::..." });',
+            "try {",
+            "  for await (const event of events) console.log(event.activityType, event.details);",
+            "} finally {",
+            "  events.close();",
+            "}",
+        ].join("\n"),
     },
     "trading.orders.getAllOrders": {
         description: "List orders, filterable by status, side and symbol.",
@@ -145,7 +160,7 @@ const trading: ApiReferenceExamples = {
         description: "Place one order (raw); include a stable, unique client ID for audit and recovery.",
         example: [
             "const clientOrderId = crypto.randomUUID();",
-            'await alpaca.trading.orders.postOrder({ postOrderRequest: { symbol: "AAPL", qty: "1", side: "buy", type: "market", timeInForce: "day", clientOrderId } });',
+            'await alpaca.trading.orders.postOrder({ createOrderRequest: { symbol: "AAPL", qty: "1", side: "buy", type: "market", timeInForce: "day", clientOrderId } });',
         ].join("\n"),
     },
     "trading.orders.getOrderByOrderID": {
@@ -210,7 +225,7 @@ const trading: ApiReferenceExamples = {
     },
     "trading.tokenization.postTokenizationMint": {
         description: "Submit a tokenization mint request.",
-        example: 'await alpaca.trading.tokenization.postTokenizationMint({ tokenizationMintRequest: { issuer: "xstocks", network: "solana", qty: "1", underlyingSymbol: "AAPL", walletAddress: "wallet-address" } });',
+        example: 'await alpaca.trading.tokenization.postTokenizationMint({ idempotencyKey: crypto.randomUUID(), tokenizationMintRequest: { issuer: "xstocks", network: "solana", qty: "1", underlyingSymbol: "AAPL", walletAddress: "wallet-address" } });',
     },
     "trading.watchlists.getWatchlists": {
         description: "List all watchlists.",
@@ -331,26 +346,6 @@ const marketData: ApiReferenceExamples = {
         description: "Latest order book for one or more crypto pairs.",
         example: 'await alpaca.marketData.crypto.cryptoLatestOrderbooks({ loc: "us", symbols: "BTC/USD" });',
     },
-    "marketData.cryptoPerpetualFutures.cryptoPerpLatestBars": {
-        description: "Latest bar for one or more crypto perpetual-futures contracts.",
-        example: 'await alpaca.marketData.cryptoPerpetualFutures.cryptoPerpLatestBars({ loc: "global", symbols: "BTC-PERP" });',
-    },
-    "marketData.cryptoPerpetualFutures.cryptoPerpLatestQuotes": {
-        description: "Latest quote for one or more perpetual-futures contracts.",
-        example: 'await alpaca.marketData.cryptoPerpetualFutures.cryptoPerpLatestQuotes({ loc: "global", symbols: "BTC-PERP" });',
-    },
-    "marketData.cryptoPerpetualFutures.cryptoPerpLatestTrades": {
-        description: "Latest trade for one or more perpetual-futures contracts.",
-        example: 'await alpaca.marketData.cryptoPerpetualFutures.cryptoPerpLatestTrades({ loc: "global", symbols: "BTC-PERP" });',
-    },
-    "marketData.cryptoPerpetualFutures.cryptoPerpLatestOrderbooks": {
-        description: "Latest order book for one or more perpetual-futures contracts.",
-        example: 'await alpaca.marketData.cryptoPerpetualFutures.cryptoPerpLatestOrderbooks({ loc: "global", symbols: "BTC-PERP" });',
-    },
-    "marketData.cryptoPerpetualFutures.cryptoPerpLatestFuturesPricing": {
-        description: "Latest funding/mark pricing for perpetual-futures contracts.",
-        example: 'await alpaca.marketData.cryptoPerpetualFutures.cryptoPerpLatestFuturesPricing({ loc: "global", symbols: "BTC-PERP" });',
-    },
     "marketData.fixedIncome.fixedIncomeLatestPrices": {
         description: "Latest fixed-income prices by ISIN.",
         example: 'await alpaca.marketData.fixedIncome.fixedIncomeLatestPrices({ isins: "US0378331005" });',
@@ -366,14 +361,6 @@ const marketData: ApiReferenceExamples = {
     "marketData.forex.latestRates": {
         description: "Latest forex rates for one or more currency pairs.",
         example: 'await alpaca.marketData.forex.latestRates({ currencyPairs: "EUR/USD,GBP/USD" });',
-    },
-    "marketData.indices.indexValues": {
-        description: "Historical index values (paginated).",
-        example: 'await alpaca.marketData.indices.indexValues({ symbols: "SPX", start: new Date("2024-01-01") });',
-    },
-    "marketData.indices.indexLatestValues": {
-        description: "Latest values for one or more indices.",
-        example: 'await alpaca.marketData.indices.indexLatestValues({ symbols: "SPX" });',
     },
     "marketData.logos.logos": {
         description: "Company logo image bytes for a symbol.",
@@ -426,6 +413,17 @@ const marketData: ApiReferenceExamples = {
     "marketData.corporateActions.corporateActions": {
         description: "Historical corporate-action data by symbol and type (paginated).",
         example: 'await alpaca.marketData.corporateActions.corporateActions({ symbols: "AAPL", types: "cash_dividend", start: new Date("2024-01-01") });',
+    },
+    "marketData.corporateActions.subscribeToCorporateActionsEventsSSE": {
+        description: "Typed async stream of corporate-action mutations; close it or abort its signal when done.",
+        example: [
+            'const events = await alpaca.marketData.corporateActions.subscribeToCorporateActionsEventsSSE({ region: "us" });',
+            "try {",
+            "  for await (const event of events) console.log(event.action, event.ca);",
+            "} finally {",
+            "  events.close();",
+            "}",
+        ].join("\n"),
     },
 };
 
@@ -614,10 +612,6 @@ const ergonomic: ApiReferenceExamples = {
         description: "Historical crypto quotes as canonical `Quote`s, keyed by symbol.",
         example: 'const quotes = await alpaca.marketData.getCryptoQuotes({ loc: "us", symbols: ["BTC/USD"], start: new Date("2024-01-02") });',
     },
-    "marketData.getIndexValues": {
-        description: "Historical index values as canonical `IndexValue`s (with full-precision `timestampRaw`), keyed by symbol.",
-        example: 'const values = await alpaca.marketData.getIndexValues({ symbols: ["SPX"], start: new Date("2024-01-02") });',
-    },
     "marketData.getStockAuctions": {
         description: "Historical stock auctions as canonical `DailyAuctions` (each print with full-precision `timestampRaw`), keyed by symbol.",
         example: 'const auctions = await alpaca.marketData.getStockAuctions({ symbols: ["AAPL"], start: new Date("2024-01-02") });',
@@ -737,14 +731,6 @@ const ergonomic: ApiReferenceExamples = {
     "marketData.collectOptionTradesBySymbol": {
         description: "Collect option trades merged into a `{ [symbol]: OptionTrade[] }` map.",
         example: 'const bySymbol = await alpaca.marketData.collectOptionTradesBySymbol({ symbols: ["AAPL250117C00150000"], start: new Date("2024-01-02") });',
-    },
-    "marketData.iterateIndexValues": {
-        description: "Lazily yield index-value records across symbols and pages.",
-        example: 'for await (const { symbol, value } of alpaca.marketData.iterateIndexValues({ symbols: ["SPX"], start: new Date("2024-01-01") })) console.log(symbol, value);',
-    },
-    "marketData.collectIndexValuesBySymbol": {
-        description: "Collect index values merged into a `{ [symbol]: IndexValue[] }` map.",
-        example: 'const bySymbol = await alpaca.marketData.collectIndexValuesBySymbol({ symbols: ["SPX"], start: new Date("2024-01-01") });',
     },
     "marketData.iterateForexRates": {
         description: "Lazily yield forex-rate records across currency pairs and pages.",

@@ -31,6 +31,7 @@ import {
 export interface GetAccountActivitiesRequest {
     activityTypes?: Array<ActivityType>;
     category?: GetAccountActivitiesCategoryEnum;
+    orderId?: string;
     date?: Date;
     until?: Date;
     after?: Date;
@@ -41,6 +42,7 @@ export interface GetAccountActivitiesRequest {
 
 export interface GetAccountActivitiesByActivityTypeRequest {
     activityType: string;
+    orderId?: string;
     date?: Date;
     until?: Date;
     after?: Date;
@@ -67,6 +69,10 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
 
         if (requestParameters['category'] != null) {
             queryParameters['category'] = requestParameters['category'];
+        }
+
+        if (requestParameters['orderId'] != null) {
+            queryParameters['order_id'] = requestParameters['orderId'];
         }
 
         if (requestParameters['date'] != null) {
@@ -138,6 +144,10 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters['orderId'] != null) {
+            queryParameters['order_id'] = requestParameters['orderId'];
+        }
 
         if (requestParameters['date'] != null) {
             queryParameters['date'] = (requestParameters['date'] as any).toISOString();

@@ -26,6 +26,12 @@ export interface CommonSplitActivityV2 {
      */
     newCusip: string;
     /**
+     * ISIN of the new security after the split
+     * @type {string}
+     * @memberof CommonSplitActivityV2
+     */
+    newIsin?: string;
+    /**
      * Ratio of new shares received
      * @type {string}
      * @memberof CommonSplitActivityV2
@@ -37,6 +43,12 @@ export interface CommonSplitActivityV2 {
      * @memberof CommonSplitActivityV2
      */
     oldCusip: string;
+    /**
+     * ISIN of the old security before the split
+     * @type {string}
+     * @memberof CommonSplitActivityV2
+     */
+    oldIsin?: string;
     /**
      * Ratio of old shares exchanged
      * @type {string}
@@ -73,8 +85,10 @@ export function CommonSplitActivityV2FromJSONTyped(json: any, ignoreDiscriminato
     return {
         
         'newCusip': json['new_cusip'],
+        'newIsin': json['new_isin'] == null ? undefined : json['new_isin'],
         'newRate': json['new_rate'],
         'oldCusip': json['old_cusip'],
+        'oldIsin': json['old_isin'] == null ? undefined : json['old_isin'],
         'oldRate': json['old_rate'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
     };
@@ -92,8 +106,10 @@ export function CommonSplitActivityV2ToJSONTyped(value?: CommonSplitActivityV2 |
     return {
         
         'new_cusip': value['newCusip'],
+        'new_isin': value['newIsin'],
         'new_rate': value['newRate'],
         'old_cusip': value['oldCusip'],
+        'old_isin': value['oldIsin'],
         'old_rate': value['oldRate'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
     };

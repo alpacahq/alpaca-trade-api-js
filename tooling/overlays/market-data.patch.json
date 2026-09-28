@@ -3,5 +3,45 @@
     "op": "replace",
     "path": "/components/parameters/stock_auction_feed/schema",
     "value": { "$ref": "#/components/schemas/stock_historical_feed" }
+  },
+  {
+    "op": "add",
+    "path": "/paths/~1v1beta1~1logos~1{symbol}/get/responses/200/content/image~1png/schema/format",
+    "value": "binary"
+  },
+  {
+    "op": "add",
+    "path": "/paths/~1v1beta1~1events~1corporate-actions/get/x-typescript-fetch-sse",
+    "value": true
+  },
+  {
+    "op": "add",
+    "path": "/paths/~1v1beta1~1events~1corporate-actions/get/x-typescript-fetch-sse-reconnect",
+    "value": true
+  },
+  {
+    "op": "add",
+    "path": "/components/parameters/cas_events_until/x-typescript-fetch-sse-terminal",
+    "value": true
+  },
+  {
+    "op": "add",
+    "path": "/components/parameters/cas_events_until_id/x-typescript-fetch-sse-terminal",
+    "value": true
+  },
+  {
+    "op": "add",
+    "path": "/components/parameters/cas_events_last_event_id/x-typescript-fetch-sse-last-event-id",
+    "value": true
+  },
+  {
+    "op": "add",
+    "path": "/paths/~1v1beta1~1events~1corporate-actions/get/x-typescript-fetch-sse-sandbox-server-index",
+    "value": 1
+  },
+  {
+    "op": "replace",
+    "path": "/components/schemas/corporate_action_event/description",
+    "value": "A single corporate-action mutation delivered over the\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n\nEvery event uses the same envelope. The `event_type` field selects which of\nthe 16 per-type schemas populates `ca`; see\n[`corporate_action_event_type`](#/components/schemas/corporate_action_event_type)\nfor the full mapping and follow the link on each row to the per-type `ca`\npayload schema.\n\nOptional fields (including `currency` and, on most CA types, `isin`) are\nomitted from the JSON when empty; `null` is never emitted.\n"
   }
 ]

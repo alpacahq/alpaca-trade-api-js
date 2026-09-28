@@ -6,6 +6,24 @@ const sidebars: SidebarsConfig = {
         "getting-started",
         {
             type: "category",
+            label: "Migrations",
+            collapsed: true,
+            items: [
+                { type: "doc", id: "migrations", label: "Overview" },
+                {
+                    type: "doc",
+                    id: "migration",
+                    label: "3.x → 4.0 (most users)",
+                },
+                {
+                    type: "doc",
+                    id: "migration-v5",
+                    label: "4.x → 5.0",
+                },
+            ],
+        },
+        {
+            type: "category",
             label: "SDK Areas",
             collapsed: false,
             items: [

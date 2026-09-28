@@ -56,6 +56,12 @@ export interface ReverseSplitActivityV2 {
      */
     newCusip: string;
     /**
+     * ISIN of the new security after the split
+     * @type {string}
+     * @memberof ReverseSplitActivityV2
+     */
+    newIsin?: string;
+    /**
      * Ratio of new shares received
      * @type {string}
      * @memberof ReverseSplitActivityV2
@@ -67,6 +73,12 @@ export interface ReverseSplitActivityV2 {
      * @memberof ReverseSplitActivityV2
      */
     oldCusip: string;
+    /**
+     * ISIN of the old security before the split
+     * @type {string}
+     * @memberof ReverseSplitActivityV2
+     */
+    oldIsin?: string;
     /**
      * Ratio of old shares exchanged
      * @type {string}
@@ -149,8 +161,10 @@ export function ReverseSplitActivityV2FromJSONTyped(json: any, ignoreDiscriminat
         'positionDate': (new Date(json['position_date'])),
         'reorgId': json['reorg_id'] == null ? undefined : json['reorg_id'],
         'newCusip': json['new_cusip'],
+        'newIsin': json['new_isin'] == null ? undefined : json['new_isin'],
         'newRate': json['new_rate'],
         'oldCusip': json['old_cusip'],
+        'oldIsin': json['old_isin'] == null ? undefined : json['old_isin'],
         'oldRate': json['old_rate'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'newQty': json['new_qty'],
@@ -179,8 +193,10 @@ export function ReverseSplitActivityV2ToJSONTyped(value?: ReverseSplitActivityV2
         'position_date': ((value['positionDate']).toISOString().substring(0,10)),
         'reorg_id': value['reorgId'],
         'new_cusip': value['newCusip'],
+        'new_isin': value['newIsin'],
         'new_rate': value['newRate'],
         'old_cusip': value['oldCusip'],
+        'old_isin': value['oldIsin'],
         'old_rate': value['oldRate'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'new_qty': value['newQty'],

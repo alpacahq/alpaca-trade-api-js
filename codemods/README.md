@@ -3,6 +3,10 @@
 Automated migration helpers for `@alpacahq/alpaca-trade-api`, built on
 [jscodeshift](https://github.com/facebook/jscodeshift).
 
+Choose the transform for the SDK version currently installed. To move from
+`3.x` to `5.x`, run the `3.x` → `4.0` migration and verify it before running the
+`4.x` → `5.0` migration. See the [migration guide index](../MIGRATIONS.md).
+
 ## `alpaca-v3-to-v4.js`
 
 Migrates source from the stable `3.x` SDK to the `4.0` rewrite. It performs the
@@ -96,3 +100,62 @@ source-unchanged and reported for manual review in the jscodeshift output.
 
 > The codemod is a starting point, not a guarantee. Always run it on a clean
 > git tree.
+
+## `alpaca-v4-to-v5.js`
+
+Migrates the mechanical generated-contract changes from `4.x` to `5.0` and
+reports semantic changes that need review. It is intentionally smaller than the
+`3.x` transform because the ergonomic client surface is largely stable. Read
+the [`4.x` → `5.0` guide](../MIGRATION_V5.md) alongside it.
+
+### Run
+
+```bash
+# JavaScript sources
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=babel "src/**/*.js"
+
+# TypeScript sources
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=tsx --extensions=ts,tsx "src/**/*.{ts,tsx}"
+
+# Preview without writing
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=tsx --dry --print src/bot.ts
+```
+
+When running from a checkout of this repository, use
+`-t ./codemods/alpaca-v4-to-v5.js`.
+
+### What it rewrites automatically
+
+- Proven generated order body/helper names to `CreateOrderRequest*` and the
+  operation wrapper to `PostOrderRequest`.
+- `postOrderRequest` to `createOrderRequest` in generated order calls and
+  request objects, preserving shorthand values.
+- Generated option-contract response, corporate-announcement, and tokenization
+  issuer symbol names.
+- Literal `caTypes: "..."` values to one-element arrays in announcement calls.
+
+The old `PostOrderRequest` name is ambiguous: in version 4 it names the order
+body, while in version 5 it names the operation wrapper. The transform rewrites
+it only when surrounding request syntax proves which meaning is intended and
+reports uncertain references for manual review.
+
+### What it flags without silently rewriting
+
+- Removed index-value and crypto perpetual-futures APIs.
+- `Assets.easyToBorrow` and changed corporate-announcement fields/dates.
+- Activity SSE calls, whose return value is now an async subscription with an
+  explicit lifecycle rather than an array.
+- Trading dividend activity flags used as booleans when their provenance is
+  provable; their wire values are the strings `"true"` and `"false"`. Market
+  Data corporate-action flags remain booleans and are not flagged.
+- `REORG`/`REO` references. Persisted historical `REORG` values are never
+  rewritten automatically.
+
+### After running
+
+1. Review the diff and jscodeshift report.
+2. Resolve every `TODO(alpaca-codemod)` and any ambiguous generated-type report.
+3. Run the type-checker and tests against version 5.
+
+The transform is a safety aid, not a complete semantic migration. Always run it
+on a clean version-control branch.

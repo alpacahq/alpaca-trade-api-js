@@ -157,7 +157,7 @@ import {
 } from "@alpacahq/alpaca-trade-api";
 
 const clientOrderId = `resilient-order-${crypto.randomUUID()}`;
-const postOrderRequest = orders.buildMarketOrder({
+const createOrderRequest = orders.buildMarketOrder({
   symbol: "AAPL",
   side: "buy",
   qty: 1,
@@ -165,7 +165,7 @@ const postOrderRequest = orders.buildMarketOrder({
 });
 
 try {
-  await alpaca.trading.orders.postOrder({ postOrderRequest });
+  await alpaca.trading.orders.postOrder({ createOrderRequest });
 } catch (error) {
   if (error instanceof ApiError) {
     console.error({

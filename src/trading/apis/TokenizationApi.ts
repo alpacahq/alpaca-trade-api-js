@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  TokenizationIssuer,
   TokenizationMintRequest,
   TokenizationMintResponse,
   TokenizationNetwork,
@@ -23,6 +24,8 @@ import type {
   TokenizationRequestType,
 } from '../models/index';
 import {
+    TokenizationIssuerFromJSON,
+    TokenizationIssuerToJSON,
     TokenizationMintRequestFromJSON,
     TokenizationMintRequestToJSON,
     TokenizationMintResponseFromJSON,
@@ -49,7 +52,7 @@ export interface GetTokenizationRequestsRequest {
     type?: TokenizationRequestType;
     status?: TokenizationRequestStatus;
     underlyingSymbol?: string;
-    issuer?: GetTokenizationRequestsIssuerEnum;
+    issuer?: TokenizationIssuer;
     network?: TokenizationNetwork;
     after?: Date;
     before?: Date;
@@ -57,6 +60,7 @@ export interface GetTokenizationRequestsRequest {
 
 export interface PostTokenizationMintRequest {
     tokenizationMintRequest: TokenizationMintRequest;
+    idempotencyKey?: string;
 }
 
 /**
@@ -229,7 +233,7 @@ export class TokenizationApi extends runtime.BaseAPI {
     }
 
     /**
-     * This endpoint is used by an Authorized Participant to request the minting of a tokenized asset.
+     * This endpoint is used by an Authorized Participant to request the minting of a tokenized asset.  **Idempotency**: When the `Idempotency-Key` header is supplied, this endpoint is idempotent. Multiple requests with the same key and identical request body will create only one mint request. A subsequent request returns the previously created request with the same response (no duplicate is created). If the same key is used with a different request body, the API returns `422 Unprocessable Entity`.  **Recommended for production**: Always supply `Idempotency-Key` when requesting a mint. This allows safe retries on timeouts, network errors, or 5xx responses without risking duplicate requests. Use a client-generated unique value (e.g. UUID).
      * Mint a Tokenized Asset
      */
     async postTokenizationMintRaw(requestParameters: PostTokenizationMintRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenizationMintResponse>> {
@@ -245,6 +249,10 @@ export class TokenizationApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
@@ -269,7 +277,7 @@ export class TokenizationApi extends runtime.BaseAPI {
     }
 
     /**
-     * This endpoint is used by an Authorized Participant to request the minting of a tokenized asset.
+     * This endpoint is used by an Authorized Participant to request the minting of a tokenized asset.  **Idempotency**: When the `Idempotency-Key` header is supplied, this endpoint is idempotent. Multiple requests with the same key and identical request body will create only one mint request. A subsequent request returns the previously created request with the same response (no duplicate is created). If the same key is used with a different request body, the API returns `422 Unprocessable Entity`.  **Recommended for production**: Always supply `Idempotency-Key` when requesting a mint. This allows safe retries on timeouts, network errors, or 5xx responses without risking duplicate requests. Use a client-generated unique value (e.g. UUID).
      * Mint a Tokenized Asset
      */
     async postTokenizationMint(requestParameters: PostTokenizationMintRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenizationMintResponse> {
@@ -278,11 +286,3 @@ export class TokenizationApi extends runtime.BaseAPI {
     }
 
 }
-
-/**
- * @export
- */
-export const GetTokenizationRequestsIssuerEnum = {
-    Xstocks: 'xstocks'
-} as const;
-export type GetTokenizationRequestsIssuerEnum = typeof GetTokenizationRequestsIssuerEnum[keyof typeof GetTokenizationRequestsIssuerEnum];

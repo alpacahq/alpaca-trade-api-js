@@ -15,18 +15,18 @@
 
 import * as runtime from '../runtime';
 import type {
-  GetV2CorporateActionsAnnouncements200ResponseInner,
-  GetV2CorporateActionsAnnouncementsId200Response,
+  CorporateActionCaType,
+  CorporateAnnouncement,
 } from '../models/index';
 import {
-    GetV2CorporateActionsAnnouncements200ResponseInnerFromJSON,
-    GetV2CorporateActionsAnnouncements200ResponseInnerToJSON,
-    GetV2CorporateActionsAnnouncementsId200ResponseFromJSON,
-    GetV2CorporateActionsAnnouncementsId200ResponseToJSON,
+    CorporateActionCaTypeFromJSON,
+    CorporateActionCaTypeToJSON,
+    CorporateAnnouncementFromJSON,
+    CorporateAnnouncementToJSON,
 } from '../models/index';
 
 export interface GetV2CorporateActionsAnnouncementsRequest {
-    caTypes: string;
+    caTypes: Array<CorporateActionCaType>;
     since: string;
     until: string;
     symbol?: string;
@@ -48,7 +48,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
      * Retrieve Announcements
      * @deprecated
      */
-    async getV2CorporateActionsAnnouncementsRaw(requestParameters: GetV2CorporateActionsAnnouncementsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GetV2CorporateActionsAnnouncements200ResponseInner>>> {
+    async getV2CorporateActionsAnnouncementsRaw(requestParameters: GetV2CorporateActionsAnnouncementsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<CorporateAnnouncement>>> {
         if (requestParameters['caTypes'] == null) {
             throw new runtime.RequiredError(
                 'caTypes',
@@ -73,7 +73,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         if (requestParameters['caTypes'] != null) {
-            queryParameters['ca_types'] = requestParameters['caTypes'];
+            queryParameters['ca_types'] = requestParameters['caTypes']!.join(runtime.COLLECTION_FORMATS["csv"]);
         }
 
         if (requestParameters['since'] != null) {
@@ -116,7 +116,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GetV2CorporateActionsAnnouncements200ResponseInnerFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(CorporateAnnouncementFromJSON));
     }
 
     /**
@@ -124,7 +124,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
      * Retrieve Announcements
      * @deprecated
      */
-    async getV2CorporateActionsAnnouncements(requestParameters: GetV2CorporateActionsAnnouncementsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetV2CorporateActionsAnnouncements200ResponseInner>> {
+    async getV2CorporateActionsAnnouncements(requestParameters: GetV2CorporateActionsAnnouncementsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CorporateAnnouncement>> {
         const response = await this.getV2CorporateActionsAnnouncementsRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -134,7 +134,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
      * Retrieve a Specific Announcement
      * @deprecated
      */
-    async getV2CorporateActionsAnnouncementsIdRaw(requestParameters: GetV2CorporateActionsAnnouncementsIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetV2CorporateActionsAnnouncementsId200Response>> {
+    async getV2CorporateActionsAnnouncementsIdRaw(requestParameters: GetV2CorporateActionsAnnouncementsIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CorporateAnnouncement>> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
@@ -165,7 +165,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetV2CorporateActionsAnnouncementsId200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => CorporateAnnouncementFromJSON(jsonValue));
     }
 
     /**
@@ -173,7 +173,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
      * Retrieve a Specific Announcement
      * @deprecated
      */
-    async getV2CorporateActionsAnnouncementsId(requestParameters: GetV2CorporateActionsAnnouncementsIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetV2CorporateActionsAnnouncementsId200Response> {
+    async getV2CorporateActionsAnnouncementsId(requestParameters: GetV2CorporateActionsAnnouncementsIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CorporateAnnouncement> {
         const response = await this.getV2CorporateActionsAnnouncementsIdRaw(requestParameters, initOverrides);
         return await response.value();
     }

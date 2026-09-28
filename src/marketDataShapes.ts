@@ -44,7 +44,6 @@ import type {
     StockQuote,
     CryptoQuote,
     OptionQuote,
-    IndexValue as RestIndexValue,
     StockAuction,
     StockDailyAuctions,
 } from "./market-data";
@@ -159,26 +158,6 @@ export interface Quote {
     conditions?: string[];
     /** Tape (A/B/C/...), when provided. */
     tape?: string;
-}
-
-/**
- * The value of an index at a point in time. The generated REST model types the
- * timestamp as `Date`, but index-value responses deserialize verbatim, so the
- * full-precision RFC-3339 string survives at runtime and is surfaced here as
- * {@link timestampRaw} (identical treatment to {@link Bar}/{@link Trade}).
- */
-export interface IndexValue {
-    /** Symbol the value belongs to (set by the SDK from the response key). */
-    symbol?: string;
-    /** Time of the value (millisecond precision). */
-    timestamp: Date;
-    /**
-     * The original RFC-3339 timestamp string with full nanosecond precision,
-     * when the source preserved it. `timestamp` truncates to milliseconds.
-     */
-    timestampRaw?: string;
-    /** Index value. */
-    value: number;
 }
 
 /** A single opening or closing auction print. */
@@ -395,16 +374,6 @@ export function toOptionQuote(quote: OptionQuote, symbol?: string): Quote {
     };
 }
 
-/** Map a REST index value onto a canonical {@link IndexValue}. */
-export function toIndexValue(value: RestIndexValue, symbol?: string): IndexValue {
-    return {
-        symbol,
-        timestamp: asDate(value.t),
-        timestampRaw: rawTimestamp(value.t),
-        value: value.v,
-    };
-}
-
 /** Map a single REST {@link StockAuction} onto a canonical {@link Auction}. */
 export function toAuction(auction: StockAuction): Auction {
     return {
@@ -466,13 +435,6 @@ export function toQuotesBySymbol<T>(
     mapper: (quote: T, symbol?: string) => Quote,
 ): { [symbol: string]: Quote[] } {
     return mapBySymbol(map, mapper);
-}
-
-/** Normalize a `{ [symbol]: IndexValue[] }` map into canonical `{ [symbol]: IndexValue[] }`. */
-export function toIndexValuesBySymbol(
-    map: { [symbol: string]: RestIndexValue[] },
-): { [symbol: string]: IndexValue[] } {
-    return mapBySymbol(map, toIndexValue);
 }
 
 /** Normalize a `{ [symbol]: StockDailyAuctions[] }` map into `{ [symbol]: DailyAuctions[] }`. */

@@ -62,6 +62,12 @@ export interface SDIVActivityV2 {
      */
     exDate?: Date;
     /**
+     * The ISIN of the security involved with the activity
+     * @type {string}
+     * @memberof SDIVActivityV2
+     */
+    isin?: string;
+    /**
      * The payable_date for this corporate action
      * @type {Date}
      * @memberof SDIVActivityV2
@@ -137,6 +143,7 @@ export function SDIVActivityV2FromJSONTyped(json: any, ignoreDiscriminator: bool
         'reorgId': json['reorg_id'] == null ? undefined : json['reorg_id'],
         'cusip': json['cusip'],
         'exDate': json['ex_date'] == null ? undefined : (new Date(json['ex_date'])),
+        'isin': json['isin'] == null ? undefined : json['isin'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'rate': json['rate'],
         'recordDate': json['record_date'] == null ? undefined : (new Date(json['record_date'])),
@@ -165,6 +172,7 @@ export function SDIVActivityV2ToJSONTyped(value?: SDIVActivityV2 | null, ignoreD
         'reorg_id': value['reorgId'],
         'cusip': value['cusip'],
         'ex_date': value['exDate'] == null ? undefined : ((value['exDate']).toISOString().substring(0,10)),
+        'isin': value['isin'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'rate': value['rate'],
         'record_date': value['recordDate'] == null ? undefined : ((value['recordDate']).toISOString().substring(0,10)),

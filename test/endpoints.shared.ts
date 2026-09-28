@@ -18,8 +18,8 @@ import { capabilities, type CapabilityGroup } from '../src/capabilities';
 import type { Alpaca } from '../src/client';
 import { createMockAlpaca } from '../src/testing';
 
-/** Shape of a single mocked response: a JSON object, a JSON array, or no body (void/204). */
-export type ResponseKind = 'object' | 'array' | 'void';
+/** Shape of one mocked response, including a real framed event stream. */
+export type ResponseKind = 'object' | 'array' | 'void' | 'sse';
 
 /** One endpoint under test. */
 export interface EndpointCase {
@@ -46,6 +46,7 @@ export interface EndpointCase {
 function bodyFor(testCase: EndpointCase): unknown {
     if (testCase.body !== undefined) return testCase.body;
     if (testCase.kind === 'array') return [];
+    if (testCase.kind === 'sse') return 'data: {}\n\n';
     if (testCase.kind === 'void') return undefined;
     return {};
 }
@@ -58,11 +59,26 @@ function bodyFor(testCase: EndpointCase): unknown {
 export function runEndpointCases(group: CapabilityGroup, cases: EndpointCase[]): void {
     it.each(cases)('$accessor.$method -> $verb hits its endpoint and deserializes', async (testCase) => {
         const alpaca = createMockAlpaca([
-            { method: testCase.verb, path: testCase.path, body: bodyFor(testCase) },
+            {
+                method: testCase.verb,
+                path: testCase.path,
+                body: bodyFor(testCase),
+                headers: testCase.kind === 'sse'
+                    ? { 'Content-Type': 'text/event-stream' }
+                    : undefined,
+            },
         ]);
         const result = await testCase.call(alpaca);
         if (testCase.kind === 'array') {
             expect(Array.isArray(result)).toBe(true);
+        }
+        if (testCase.kind === 'sse') {
+            const stream = result as AsyncIterable<unknown> & { close(): void };
+            expect(stream[Symbol.asyncIterator]).toBeTypeOf('function');
+            const iterator = stream[Symbol.asyncIterator]();
+            expect((await iterator.next()).done).toBe(false);
+            await iterator.return?.();
+            stream.close();
         }
         // `object`/`void` simply must not reject (a wrong verb/path 404s -> throws).
     });

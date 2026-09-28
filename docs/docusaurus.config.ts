@@ -47,8 +47,8 @@ const config: Config = {
 
     themeConfig: {
         announcementBar: {
-            id: "v4",
-            content: `This documents <strong>4.0</strong> of @alpacahq/alpaca-trade-api — a full rewrite. Upgrading from 3.x? See the <a href="${baseUrl}migration">migration guide</a>.`,
+            id: "v3-migration",
+            content: `Upgrading from the widely used <strong>3.x</strong> line? Version 4 introduced a full rewrite. Start with the <a href="${baseUrl}migration">3.x → 4.0 migration guide</a>.`,
             isCloseable: true,
         },
         navbar: {

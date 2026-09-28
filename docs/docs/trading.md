@@ -114,7 +114,7 @@ This separates request construction from placement:
 ```ts
 import { orders } from "@alpacahq/alpaca-trade-api";
 
-const postOrderRequest = orders.buildLimitOrder({
+const createOrderRequest = orders.buildLimitOrder({
   symbol: "AAPL",
   side: "buy",
   qty: 1,
@@ -123,7 +123,7 @@ const postOrderRequest = orders.buildLimitOrder({
 });
 
 // The network request happens only here.
-const order = await paper.trading.orders.postOrder({ postOrderRequest });
+const order = await paper.trading.orders.postOrder({ createOrderRequest });
 ```
 
 `orders.buildLimitOrder` (and the market, stop, stop-limit, trailing-stop,
@@ -166,7 +166,7 @@ The generated method is always available too:
 const clientOrderId = `raw-market-${crypto.randomUUID()}`;
 
 await paper.trading.orders.postOrder({
-  postOrderRequest: {
+  createOrderRequest: {
     symbol: "AAPL",
     side: "buy",
     type: "market",

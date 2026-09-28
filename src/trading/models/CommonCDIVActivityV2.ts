@@ -44,11 +44,17 @@ export interface CommonCDIVActivityV2 {
      */
     exDate?: Date;
     /**
-     * Indicates if related to a non-US security
-     * @type {boolean}
+     * Indicates if related to a non-US security. Serialized as the JSON strings `"true"` or `"false"`, not a JSON boolean.
+     * @type {string}
      * @memberof CommonCDIVActivityV2
      */
-    foreign: boolean;
+    foreign: CommonCDIVActivityV2ForeignEnum;
+    /**
+     * The ISIN of the security involved with the activity
+     * @type {string}
+     * @memberof CommonCDIVActivityV2
+     */
+    isin?: string;
     /**
      * The payable_date for this corporate action
      * @type {Date}
@@ -68,11 +74,11 @@ export interface CommonCDIVActivityV2 {
      */
     recordDate?: Date;
     /**
-     * Indicates if this is a special dividend
-     * @type {boolean}
+     * Indicates if this is a special dividend. Serialized as the JSON strings `"true"` or `"false"`, not a JSON boolean.
+     * @type {string}
      * @memberof CommonCDIVActivityV2
      */
-    special: boolean;
+    special: CommonCDIVActivityV2SpecialEnum;
     /**
      * The symbol of the security involved with the activity
      * @type {string}
@@ -80,6 +86,26 @@ export interface CommonCDIVActivityV2 {
      */
     symbol: string;
 }
+
+
+/**
+ * @export
+ */
+export const CommonCDIVActivityV2ForeignEnum = {
+    True: 'true',
+    False: 'false'
+} as const;
+export type CommonCDIVActivityV2ForeignEnum = typeof CommonCDIVActivityV2ForeignEnum[keyof typeof CommonCDIVActivityV2ForeignEnum];
+
+/**
+ * @export
+ */
+export const CommonCDIVActivityV2SpecialEnum = {
+    True: 'true',
+    False: 'false'
+} as const;
+export type CommonCDIVActivityV2SpecialEnum = typeof CommonCDIVActivityV2SpecialEnum[keyof typeof CommonCDIVActivityV2SpecialEnum];
+
 
 /**
  * Check if a given object implements the CommonCDIVActivityV2 interface.
@@ -108,6 +134,7 @@ export function CommonCDIVActivityV2FromJSONTyped(json: any, ignoreDiscriminator
         'dueBillOnDate': json['due_bill_on_date'] == null ? undefined : (new Date(json['due_bill_on_date'])),
         'exDate': json['ex_date'] == null ? undefined : (new Date(json['ex_date'])),
         'foreign': json['foreign'],
+        'isin': json['isin'] == null ? undefined : json['isin'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'rate': json['rate'],
         'recordDate': json['record_date'] == null ? undefined : (new Date(json['record_date'])),
@@ -132,6 +159,7 @@ export function CommonCDIVActivityV2ToJSONTyped(value?: CommonCDIVActivityV2 | n
         'due_bill_on_date': value['dueBillOnDate'] == null ? undefined : ((value['dueBillOnDate']).toISOString().substring(0,10)),
         'ex_date': value['exDate'] == null ? undefined : ((value['exDate']).toISOString().substring(0,10)),
         'foreign': value['foreign'],
+        'isin': value['isin'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'rate': value['rate'],
         'record_date': value['recordDate'] == null ? undefined : ((value['recordDate']).toISOString().substring(0,10)),

@@ -51,7 +51,7 @@ The candle variants return an empty `Candles` object (empty column arrays) when
 the requested symbol is absent.
 
 The normalized layer includes stock, crypto, and option bars; stock and crypto
-trades and quotes; index values; and stock auctions. Corresponding chart-ready
+trades and quotes; stock auctions; and forex rates. Corresponding chart-ready
 candle and single-symbol variants are available where applicable. Browse the
 complete helper inventory in the
 [Ergonomic Helpers Reference](./api/ergonomic-helpers.md).
@@ -110,13 +110,12 @@ the original RFC-3339 timestamp with full **nanosecond** precision (e.g.
 Date`. The same fields appear on the live stream, so historical and real-time
 records stay identical.
 
-The canonical **index-value** (`getIndexValues`) and **stock-auction**
-(`getStockAuctions`) accessors carry the same `timestampRaw` on every record
-(each opening/closing auction print for auctions), so those endpoints no longer
-silently truncate to milliseconds when you reach for the canonical shape.
+The canonical **stock-auction** (`getStockAuctions`) accessor carries the same
+`timestampRaw` on every opening/closing print, so the endpoint does not silently
+truncate to milliseconds when you reach for the canonical shape.
 
 > Note: raw generated models for fully-deserialized endpoints (e.g. latest
-> orderbooks, fixed-income, perp-futures) still surface only a millisecond
+> orderbooks and fixed-income) still surface only a millisecond
 > `Date`; prefer the canonical accessors above where nanosecond precision
 > matters.
 

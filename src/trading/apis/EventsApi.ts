@@ -35,10 +35,10 @@ export interface SubscribeToActivitiesSSERequest {
 export class EventsApi extends runtime.BaseAPI {
 
     /**
-     * The Events API sends the real-time events and provides historical queries with SSE (Server Sent Events).  This endpoint streams events on account activities.  Historical events are streamed immediately if queried, and updates are pushed as events occur.  Query parameter rules: - If `until` is specified, `since` is required. - If `until_id` is specified, `since_id` is required. - You cannot use `since` and `since_id` together. Behavior: - If `since` or `since_id` is not specified, this will not return any historic data. - If `until` or `until_id` is specified, stream will end at the specified point with status 200.  ---  Warning: Currently, OAS-3 does not fully support responses from an SSE API.  In case the client code is generated from this OAS spec, please do not specify `since` and `until`, as the generated client may hang forever waiting for the response to end.  If you require the streaming capabilities, we recommend not using the generated clients for this specific endpoint until the OAS-3 standards define how to represent this behavior.  ---  ###  Comment messages According to the SSE specification, any line that starts with a colon is a comment which does not contain data.  It is typically a free text that does not follow any data schema. A few examples mentioned below for comment messages.  #####  Slow client  The server sends a comment when the client is not consuming messages fast enough. Example: `: you are reading too slowly, dropped 10000 messages`  ##### Internal server error  An error message is sent as a comment when the server closes the connection on an internal server error (only sent by the v2 and v2beta1 endpoints). Example: `: internal server error`  ---
+     * The Events API sends real-time account-activity events and provides historical queries over Server-Sent Events (SSE).  Historical events are streamed immediately when requested, followed by live updates.  Query parameter rules: - If `until` is specified, `since` is required. - If `until_id` is specified, `since_id` is required. - `since` and `since_id` cannot be combined.  Behavior: - Without `since` or `since_id`, only live events are returned. - With `until` or `until_id`, the finite stream ends after the requested boundary.  The generated TypeScript client exposes this response as a typed `SseSubscription<ActivityEventV2>` async iterable.
      * Subscribe to Activity Events (SSE)
      */
-    async subscribeToActivitiesSSERaw(requestParameters: SubscribeToActivitiesSSERequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ActivityEventV2>>> {
+    async subscribeToActivitiesSSERaw(requestParameters: SubscribeToActivitiesSSERequest, sseOptions: runtime.SseOptions = {}): Promise<runtime.SSEApiResponse<ActivityEventV2>> {
         const queryParameters: any = {};
 
         if (requestParameters['since'] != null) {
@@ -59,33 +59,55 @@ export class EventsApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
-        }
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
-        }
+        headerParameters['Accept'] = 'text/event-stream';
 
 
         let urlPath = `/v2beta1/events/activities`;
 
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ActivityEventV2FromJSON));
+        const sseMetadata: runtime.SseOperationMetadata = {
+            reconnect: true,
+            bounded: false || requestParameters['until'] != null || requestParameters['untilId'] != null,
+            
+            servers: [
+            ],
+        };
+        return runtime.SSEApiResponse.open(
+            async (lastEventId, signal) => {
+                return this.requestSse({
+                    path: urlPath,
+                    method: 'GET',
+                    headers: headerParameters,
+                    query: queryParameters,
+                }, { ...sseOptions, signal }, sseMetadata, lastEventId, async (overrideHeaders) => {
+                    const streamHeaders = { ...headerParameters };
+                    if (!overrideHeaders.has("APCA-API-KEY-ID") && this.configuration && this.configuration.apiKey) {
+                        streamHeaders["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
+                    }
+                    if (!overrideHeaders.has("APCA-API-SECRET-KEY") && this.configuration && this.configuration.apiKey) {
+                        streamHeaders["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
+                    }
+                    if (lastEventId !== undefined) {
+                        if (lastEventId === '') {
+                            delete streamHeaders['Last-Event-Id'];
+                        } else {
+                            streamHeaders['Last-Event-Id'] = lastEventId;
+                        }
+                    }
+                    return streamHeaders;
+                });
+            },
+            (data) => ActivityEventV2FromJSON(runtime.parseSseJson(data)),
+            sseOptions,
+            sseMetadata,
+        );
     }
 
     /**
-     * The Events API sends the real-time events and provides historical queries with SSE (Server Sent Events).  This endpoint streams events on account activities.  Historical events are streamed immediately if queried, and updates are pushed as events occur.  Query parameter rules: - If `until` is specified, `since` is required. - If `until_id` is specified, `since_id` is required. - You cannot use `since` and `since_id` together. Behavior: - If `since` or `since_id` is not specified, this will not return any historic data. - If `until` or `until_id` is specified, stream will end at the specified point with status 200.  ---  Warning: Currently, OAS-3 does not fully support responses from an SSE API.  In case the client code is generated from this OAS spec, please do not specify `since` and `until`, as the generated client may hang forever waiting for the response to end.  If you require the streaming capabilities, we recommend not using the generated clients for this specific endpoint until the OAS-3 standards define how to represent this behavior.  ---  ###  Comment messages According to the SSE specification, any line that starts with a colon is a comment which does not contain data.  It is typically a free text that does not follow any data schema. A few examples mentioned below for comment messages.  #####  Slow client  The server sends a comment when the client is not consuming messages fast enough. Example: `: you are reading too slowly, dropped 10000 messages`  ##### Internal server error  An error message is sent as a comment when the server closes the connection on an internal server error (only sent by the v2 and v2beta1 endpoints). Example: `: internal server error`  ---
+     * The Events API sends real-time account-activity events and provides historical queries over Server-Sent Events (SSE).  Historical events are streamed immediately when requested, followed by live updates.  Query parameter rules: - If `until` is specified, `since` is required. - If `until_id` is specified, `since_id` is required. - `since` and `since_id` cannot be combined.  Behavior: - Without `since` or `since_id`, only live events are returned. - With `until` or `until_id`, the finite stream ends after the requested boundary.  The generated TypeScript client exposes this response as a typed `SseSubscription<ActivityEventV2>` async iterable.
      * Subscribe to Activity Events (SSE)
      */
-    async subscribeToActivitiesSSE(requestParameters: SubscribeToActivitiesSSERequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ActivityEventV2>> {
-        const response = await this.subscribeToActivitiesSSERaw(requestParameters, initOverrides);
+    async subscribeToActivitiesSSE(requestParameters: SubscribeToActivitiesSSERequest = {}, sseOptions: runtime.SseOptions = {}): Promise<runtime.SseSubscription<ActivityEventV2>> {
+        const response = await this.subscribeToActivitiesSSERaw(requestParameters, sseOptions);
         return await response.value();
     }
 

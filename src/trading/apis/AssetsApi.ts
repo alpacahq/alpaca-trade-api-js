@@ -17,24 +17,24 @@ import * as runtime from '../runtime';
 import type {
   AssetAttribute,
   Assets,
-  GetOptionsContracts200Response,
   OptionContract,
   OptionContractStyle,
   OptionContractType,
+  OptionContractsResponse,
 } from '../models/index';
 import {
     AssetAttributeFromJSON,
     AssetAttributeToJSON,
     AssetsFromJSON,
     AssetsToJSON,
-    GetOptionsContracts200ResponseFromJSON,
-    GetOptionsContracts200ResponseToJSON,
     OptionContractFromJSON,
     OptionContractToJSON,
     OptionContractStyleFromJSON,
     OptionContractStyleToJSON,
     OptionContractTypeFromJSON,
     OptionContractTypeToJSON,
+    OptionContractsResponseFromJSON,
+    OptionContractsResponseToJSON,
 } from '../models/index';
 
 export interface GetOptionContractSymbolOrIdRequest {
@@ -125,7 +125,7 @@ export class AssetsApi extends runtime.BaseAPI {
      * This endpoint allows you to retrieve a list of option contracts based on various filtering criteria. By default only active contracts that expire before the upcoming weekend are returned. 
      * Get Option Contracts
      */
-    async getOptionsContractsRaw(requestParameters: GetOptionsContractsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetOptionsContracts200Response>> {
+    async getOptionsContractsRaw(requestParameters: GetOptionsContractsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OptionContractsResponse>> {
         const queryParameters: any = {};
 
         if (requestParameters['underlyingSymbols'] != null) {
@@ -204,14 +204,14 @@ export class AssetsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetOptionsContracts200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => OptionContractsResponseFromJSON(jsonValue));
     }
 
     /**
      * This endpoint allows you to retrieve a list of option contracts based on various filtering criteria. By default only active contracts that expire before the upcoming weekend are returned. 
      * Get Option Contracts
      */
-    async getOptionsContracts(requestParameters: GetOptionsContractsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetOptionsContracts200Response> {
+    async getOptionsContracts(requestParameters: GetOptionsContractsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OptionContractsResponse> {
         const response = await this.getOptionsContractsRaw(requestParameters, initOverrides);
         return await response.value();
     }

@@ -16,7 +16,7 @@
 /**
  * The order types supported by Alpaca vary based on the order's security type. The following provides a comprehensive breakdown of the supported order types for each category:
  *  - Equity trading: market, limit, stop, stop_limit, trailing_stop.
- *  - Options trading: market, limit.
+ *  - Options trading: market, limit, stop, stop_limit.
  *  - Multileg Options trading: market, limit.
  *  - Crypto trading: market, limit, stop_limit.
  * @export

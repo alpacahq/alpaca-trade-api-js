@@ -1,0 +1,184 @@
+{{^discriminator}}
+{{#hasImports}}
+{{#imports}}
+import type { {{{.}}} } from './{{.}}{{importFileExtension}}';
+import {
+    instanceOf{{{.}}},
+    {{{.}}}FromJSON,
+    {{{.}}}FromJSONTyped,
+    {{{.}}}ToJSON,
+} from './{{.}}{{importFileExtension}}';
+{{/imports}}
+
+{{/hasImports}}
+{{/discriminator}}
+{{! OpenAPI Generator 7.14 omits imports for discriminator-mapped models. }}
+{{#discriminator}}
+{{#mappedModels}}
+import type { {{modelName}} } from './{{modelName}}{{importFileExtension}}';
+import {
+    instanceOf{{modelName}},
+    {{modelName}}FromJSONTyped,
+    {{modelName}}ToJSON,
+} from './{{modelName}}{{importFileExtension}}';
+{{/mappedModels}}
+
+{{/discriminator}}
+{{>modelOneOfInterfaces}}
+
+{{^discriminator}}
+function containsInvalidDate(value: unknown): boolean {
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime());
+    }
+    if (Array.isArray(value)) {
+        return value.some(containsInvalidDate);
+    }
+    if (value !== null && typeof value === 'object') {
+        return Object.values(value).some(containsInvalidDate);
+    }
+    return false;
+}
+
+function selectMostSpecific<T>(values: T[]): T | undefined {
+    let selected: T | undefined;
+    let selectedScore = -1;
+    for (const value of values) {
+        const score =
+            value !== null && typeof value === 'object'
+                ? Object.values(value).filter((item) => item !== undefined).length
+                : 0;
+        if (score > selectedScore) {
+            selected = value;
+            selectedScore = score;
+        }
+    }
+    return selected;
+}
+
+{{/discriminator}}
+/**
+ * Check if a given object implements one of the {{classname}} variants.
+ */
+export function instanceOf{{classname}}(value: object): value is {{classname}} {
+{{#discriminator}}
+    return [
+{{#discriminator.mappedModels}}
+        '{{mappingName}}',
+{{/discriminator.mappedModels}}
+    ].includes((value as Record<string, unknown>)['{{discriminator.propertyName}}'] as string);
+{{/discriminator}}
+{{^discriminator}}
+    return (
+{{#oneOfModels}}
+        instanceOf{{{.}}}(value) ||
+{{/oneOfModels}}
+{{#oneOfArrays}}
+        (Array.isArray(value) && value.every((item) => instanceOf{{{.}}}(item))) ||
+{{/oneOfArrays}}
+        false
+    );
+{{/discriminator}}
+}
+
+export function {{classname}}FromJSON(json: any): {{classname}} {
+    return {{classname}}FromJSONTyped(json, false);
+}
+
+export function {{classname}}FromJSONTyped(json: any, ignoreDiscriminator: boolean): {{classname}} {
+    if (json == null) {
+        return json;
+    }
+{{#discriminator}}
+    switch (json['{{discriminator.propertyBaseName}}']) {
+{{#discriminator.mappedModels}}
+        case '{{mappingName}}':
+            return Object.assign({}, {{modelName}}FromJSONTyped(json, true), { {{discriminator.propertyName}}: '{{mappingName}}' } as const);
+{{/discriminator.mappedModels}}
+        default:
+            return json;
+    }
+{{/discriminator}}
+{{^discriminator}}
+    const candidates: any[] = [];
+    {{#oneOfModels}}
+    {{#-first}}
+    if (typeof json !== 'object') {
+        return json;
+    }
+    {{/-first}}
+    {
+        const value = {{{.}}}FromJSONTyped(json, true);
+        if (instanceOf{{{.}}}(value) && !containsInvalidDate(value)) {
+            candidates.push(value);
+        }
+    }
+    {{/oneOfModels}}
+    {{#oneOfArrays}}
+    {{#-first}}
+    if (Array.isArray(json)) {
+        if (json.every(item => typeof item === 'object')) {
+    {{/-first}}
+            const values = json.map(value => {{{.}}}FromJSONTyped(value, true));
+            if (values.every(item => instanceOf{{{.}}}(item) && !containsInvalidDate(item))) {
+                candidates.push(values);
+            }
+    {{#-last}}
+        }
+        return json;
+    }
+    {{/-last}}
+    {{/oneOfArrays}}
+
+    return selectMostSpecific(candidates) ?? json;
+{{/discriminator}}
+}
+
+export function {{classname}}ToJSON(json: any): any {
+    return {{classname}}ToJSONTyped(json, false);
+}
+
+export function {{classname}}ToJSONTyped(value?: {{classname}} | null, ignoreDiscriminator: boolean = false): any {
+    if (value == null) {
+        return value;
+    }
+{{#discriminator}}
+    switch (value['{{discriminator.propertyName}}']) {
+{{#discriminator.mappedModels}}
+        case '{{mappingName}}':
+            return Object.assign({}, {{modelName}}ToJSON(value), { '{{discriminator.propertyBaseName}}': '{{mappingName}}' } as const);
+{{/discriminator.mappedModels}}
+        default:
+            return value;
+    }
+{{/discriminator}}
+{{^discriminator}}
+    const candidates: any[] = [];
+    {{#oneOfModels}}
+    {{#-first}}
+    if (typeof value !== 'object') {
+        return value;
+    }
+    {{/-first}}
+    if (instanceOf{{{.}}}(value)) {
+        candidates.push({{{.}}}ToJSON(value as {{{.}}}));
+    }
+    {{/oneOfModels}}
+    {{#oneOfArrays}}
+    {{#-first}}
+    if (Array.isArray(value)) {
+        if (value.every(item => typeof item === 'object')) {
+    {{/-first}}
+            if (value.every(item => instanceOf{{{.}}}(item))) {
+                candidates.push(value.map(value => {{{.}}}ToJSON(value as {{{.}}})));
+            }
+    {{#-last}}
+        }
+        return value;
+    }
+    {{/-last}}
+    {{/oneOfArrays}}
+
+    return selectMostSpecific(candidates) ?? value;
+{{/discriminator}}
+}

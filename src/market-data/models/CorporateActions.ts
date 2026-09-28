@@ -41,6 +41,13 @@ import {
     PartialCallToJSON,
     PartialCallToJSONTyped,
 } from './PartialCall';
+import type { CapitalGainsDistribution } from './CapitalGainsDistribution';
+import {
+    CapitalGainsDistributionFromJSON,
+    CapitalGainsDistributionFromJSONTyped,
+    CapitalGainsDistributionToJSON,
+    CapitalGainsDistributionToJSONTyped,
+} from './CapitalGainsDistribution';
 import type { StockAndCashMerger } from './StockAndCashMerger';
 import {
     StockAndCashMergerFromJSON,
@@ -125,6 +132,12 @@ import {
  * @interface CorporateActions
  */
 export interface CorporateActions {
+    /**
+     * 
+     * @type {Array<CapitalGainsDistribution>}
+     * @memberof CorporateActions
+     */
+    capitalGainsDistributions?: Array<CapitalGainsDistribution>;
     /**
      * 
      * @type {Array<CashDividend>}
@@ -234,6 +247,7 @@ export function CorporateActionsFromJSONTyped(json: any, ignoreDiscriminator: bo
     }
     return {
         
+        'capitalGainsDistributions': json['capital_gains_distributions'] == null ? undefined : ((json['capital_gains_distributions'] as Array<any>).map(CapitalGainsDistributionFromJSON)),
         'cashDividends': json['cash_dividends'] == null ? undefined : ((json['cash_dividends'] as Array<any>).map(CashDividendFromJSON)),
         'cashMergers': json['cash_mergers'] == null ? undefined : ((json['cash_mergers'] as Array<any>).map(CashMergerFromJSON)),
         'forwardSplits': json['forward_splits'] == null ? undefined : ((json['forward_splits'] as Array<any>).map(ForwardSplitFromJSON)),
@@ -263,6 +277,7 @@ export function CorporateActionsToJSONTyped(value?: CorporateActions | null, ign
 
     return {
         
+        'capital_gains_distributions': value['capitalGainsDistributions'] == null ? undefined : ((value['capitalGainsDistributions'] as Array<any>).map(CapitalGainsDistributionToJSON)),
         'cash_dividends': value['cashDividends'] == null ? undefined : ((value['cashDividends'] as Array<any>).map(CashDividendToJSON)),
         'cash_mergers': value['cashMergers'] == null ? undefined : ((value['cashMergers'] as Array<any>).map(CashMergerToJSON)),
         'forward_splits': value['forwardSplits'] == null ? undefined : ((value['forwardSplits'] as Array<any>).map(ForwardSplitToJSON)),

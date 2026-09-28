@@ -55,9 +55,12 @@ declarations are authoritative for exact signatures and models.
 
 - **Authored guides** live under
   [`docs/docs/`](https://github.com/alpacahq/alpaca-trade-api-js/tree/master/docs/docs/).
-- **Generated pages** — API reference, examples, and the migration page — are
+- **Generated pages** — API reference, examples, and migration pages — are
   produced during the docs build from the SDK capability maps, repository
-  examples, and root [`MIGRATION.md`](./MIGRATION.md).
+  examples, and root [`MIGRATIONS.md`](./MIGRATIONS.md),
+  [`MIGRATION.md`](./MIGRATION.md), and
+  [`MIGRATION_V5.md`](./MIGRATION_V5.md). Register future migration sources in
+  `scripts/gen-docs-migration.ts`; do not edit generated docs pages.
 - **Production build:** `npm --prefix docs run build` (runs generators first,
   then Docusaurus). CI and the GitHub Pages deploy use this path.
 

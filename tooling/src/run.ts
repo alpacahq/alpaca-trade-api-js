@@ -15,7 +15,9 @@ import {
   type SpecDiffSummary,
   summarizeSpecDiff,
 } from "./specDiff.js";
+import { assertSseContracts } from "./sseContract.js";
 import { filesToDelete } from "./staleClean.js";
+import { assertTravelRuleContract } from "./travelRuleContract.js";
 
 export type Target = "trading" | "market-data";
 const ALL_TARGETS: Target[] = ["trading", "market-data"];
@@ -133,8 +135,10 @@ function ensureToolchain(): void {
 
 function projectOverlay(target: Target, spec: unknown): void {
   const patch = readJson(overlayPath(target)) as Operation[];
-  applyOverlay(spec, patch);
-  log(`  [dry-run] ${target} overlay projection applies cleanly.`);
+  const derived = applyOverlay(spec, patch);
+  assertSseContracts(derived);
+  assertTravelRuleContract(derived, target === "trading");
+  log(`  ${target} overlay projection and custom contracts are valid.`);
 }
 
 /** Steps 2-5: fetch latest specs, diff vs pinned, prompt, adopt. */
@@ -177,6 +181,12 @@ async function refreshSpecs(targets: Target[], opts: GenerateOptions): Promise<s
     opts,
   );
 
+  const adoptions: Array<{
+    target: Target;
+    file: string;
+    live: unknown;
+    summary: SpecDiffSummary;
+  }> = [];
   for (const { target, file, live, summary } of refreshes) {
     if (!hasChanges(summary)) {
       if (opts.dryRun) projectOverlay(target, live);
@@ -187,11 +197,15 @@ async function refreshSpecs(targets: Target[], opts: GenerateOptions): Promise<s
       log(`  Keeping pinned ${file} (declined).`);
       continue;
     }
+    projectOverlay(target, live);
+    adoptions.push({ target, file, live, summary });
     if (opts.dryRun) {
       log(`  [dry-run] would overwrite ${specPath(target)}`);
-      projectOverlay(target, live);
       projectedRisks.push(...projectOrphanRisks(target, summary));
-    } else {
+    }
+  }
+  if (!opts.dryRun) {
+    for (const { target, file, live } of adoptions) {
       fs.writeFileSync(specPath(target), canonicalize(live));
       log(`  Adopted new ${file}.`);
     }
@@ -204,6 +218,8 @@ function deriveSpec(target: Target): void {
   const spec = readJson(specPath(target));
   const patch = readJson(overlayPath(target)) as Operation[];
   const derived = applyOverlay(spec, patch); // throws OverlayDriftError on stale path
+  assertSseContracts(derived);
+  assertTravelRuleContract(derived, target === "trading");
   fs.mkdirSync(path.dirname(derivedPath(target)), { recursive: true });
   fs.writeFileSync(derivedPath(target), `${JSON.stringify(derived, null, 2)}\n`);
 }

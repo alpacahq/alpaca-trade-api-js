@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * Options corporate action of Cash dividend
+ * Options corporate action of cash dividend or return of capital
  * @export
  * @interface OpcaCDIVActivityV2
  */
@@ -104,11 +104,17 @@ export interface OpcaCDIVActivityV2 {
      */
     exDate?: Date;
     /**
-     * Indicates if related to a non-US security
-     * @type {boolean}
+     * Indicates if related to a non-US security. Serialized as the JSON strings `"true"` or `"false"`, not a JSON boolean.
+     * @type {string}
      * @memberof OpcaCDIVActivityV2
      */
-    foreign: boolean;
+    foreign: OpcaCDIVActivityV2ForeignEnum;
+    /**
+     * The ISIN of the security involved with the activity
+     * @type {string}
+     * @memberof OpcaCDIVActivityV2
+     */
+    isin?: string;
     /**
      * The payable_date for this corporate action
      * @type {Date}
@@ -128,11 +134,11 @@ export interface OpcaCDIVActivityV2 {
      */
     recordDate?: Date;
     /**
-     * Indicates if this is a special dividend
-     * @type {boolean}
+     * Indicates if this is a special dividend. Serialized as the JSON strings `"true"` or `"false"`, not a JSON boolean.
+     * @type {string}
      * @memberof OpcaCDIVActivityV2
      */
-    special: boolean;
+    special: OpcaCDIVActivityV2SpecialEnum;
     /**
      * The symbol of the security involved with the activity
      * @type {string}
@@ -140,6 +146,26 @@ export interface OpcaCDIVActivityV2 {
      */
     symbol: string;
 }
+
+
+/**
+ * @export
+ */
+export const OpcaCDIVActivityV2ForeignEnum = {
+    True: 'true',
+    False: 'false'
+} as const;
+export type OpcaCDIVActivityV2ForeignEnum = typeof OpcaCDIVActivityV2ForeignEnum[keyof typeof OpcaCDIVActivityV2ForeignEnum];
+
+/**
+ * @export
+ */
+export const OpcaCDIVActivityV2SpecialEnum = {
+    True: 'true',
+    False: 'false'
+} as const;
+export type OpcaCDIVActivityV2SpecialEnum = typeof OpcaCDIVActivityV2SpecialEnum[keyof typeof OpcaCDIVActivityV2SpecialEnum];
+
 
 /**
  * Check if a given object implements the OpcaCDIVActivityV2 interface.
@@ -182,6 +208,7 @@ export function OpcaCDIVActivityV2FromJSONTyped(json: any, ignoreDiscriminator: 
         'dueBillOnDate': json['due_bill_on_date'] == null ? undefined : (new Date(json['due_bill_on_date'])),
         'exDate': json['ex_date'] == null ? undefined : (new Date(json['ex_date'])),
         'foreign': json['foreign'],
+        'isin': json['isin'] == null ? undefined : json['isin'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'rate': json['rate'],
         'recordDate': json['record_date'] == null ? undefined : (new Date(json['record_date'])),
@@ -216,6 +243,7 @@ export function OpcaCDIVActivityV2ToJSONTyped(value?: OpcaCDIVActivityV2 | null,
         'due_bill_on_date': value['dueBillOnDate'] == null ? undefined : ((value['dueBillOnDate']).toISOString().substring(0,10)),
         'ex_date': value['exDate'] == null ? undefined : ((value['exDate']).toISOString().substring(0,10)),
         'foreign': value['foreign'],
+        'isin': value['isin'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'rate': value['rate'],
         'record_date': value['recordDate'] == null ? undefined : ((value['recordDate']).toISOString().substring(0,10)),

@@ -86,11 +86,17 @@ export interface DIVSPDActivityV2 {
      */
     exDate?: Date;
     /**
-     * Indicates if related to a non-US security
-     * @type {boolean}
+     * Indicates if related to a non-US security. Serialized as the JSON strings `"true"` or `"false"`, not a JSON boolean.
+     * @type {string}
      * @memberof DIVSPDActivityV2
      */
-    foreign: boolean;
+    foreign: DIVSPDActivityV2ForeignEnum;
+    /**
+     * The ISIN of the security involved with the activity
+     * @type {string}
+     * @memberof DIVSPDActivityV2
+     */
+    isin?: string;
     /**
      * The payable_date for this corporate action
      * @type {Date}
@@ -110,11 +116,11 @@ export interface DIVSPDActivityV2 {
      */
     recordDate?: Date;
     /**
-     * Indicates if this is a special dividend
-     * @type {boolean}
+     * Indicates if this is a special dividend. Serialized as the JSON strings `"true"` or `"false"`, not a JSON boolean.
+     * @type {string}
      * @memberof DIVSPDActivityV2
      */
-    special: boolean;
+    special: DIVSPDActivityV2SpecialEnum;
     /**
      * The symbol of the security involved with the activity
      * @type {string}
@@ -122,6 +128,26 @@ export interface DIVSPDActivityV2 {
      */
     symbol: string;
 }
+
+
+/**
+ * @export
+ */
+export const DIVSPDActivityV2ForeignEnum = {
+    True: 'true',
+    False: 'false'
+} as const;
+export type DIVSPDActivityV2ForeignEnum = typeof DIVSPDActivityV2ForeignEnum[keyof typeof DIVSPDActivityV2ForeignEnum];
+
+/**
+ * @export
+ */
+export const DIVSPDActivityV2SpecialEnum = {
+    True: 'true',
+    False: 'false'
+} as const;
+export type DIVSPDActivityV2SpecialEnum = typeof DIVSPDActivityV2SpecialEnum[keyof typeof DIVSPDActivityV2SpecialEnum];
+
 
 /**
  * Check if a given object implements the DIVSPDActivityV2 interface.
@@ -161,6 +187,7 @@ export function DIVSPDActivityV2FromJSONTyped(json: any, ignoreDiscriminator: bo
         'entitledQty': json['entitled_qty'],
         'exDate': json['ex_date'] == null ? undefined : (new Date(json['ex_date'])),
         'foreign': json['foreign'],
+        'isin': json['isin'] == null ? undefined : json['isin'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'rate': json['rate'],
         'recordDate': json['record_date'] == null ? undefined : (new Date(json['record_date'])),
@@ -192,6 +219,7 @@ export function DIVSPDActivityV2ToJSONTyped(value?: DIVSPDActivityV2 | null, ign
         'entitled_qty': value['entitledQty'],
         'ex_date': value['exDate'] == null ? undefined : ((value['exDate']).toISOString().substring(0,10)),
         'foreign': value['foreign'],
+        'isin': value['isin'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'rate': value['rate'],
         'record_date': value['recordDate'] == null ? undefined : ((value['recordDate']).toISOString().substring(0,10)),

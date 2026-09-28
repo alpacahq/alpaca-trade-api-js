@@ -71,8 +71,12 @@ try {
         "README.md",
         "CONTRIBUTING.md",
         "LLMS.md",
+        "MIGRATIONS.md",
         "MIGRATION.md",
+        "MIGRATION_V5.md",
+        "codemods/README.md",
         "codemods/alpaca-v3-to-v4.js",
+        "codemods/alpaca-v4-to-v5.js",
     ]) {
         if (!packedFiles.has(required)) {
             fail("packed files", `missing ${required}`);

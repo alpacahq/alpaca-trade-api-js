@@ -16,19 +16,19 @@
 import * as runtime from '../runtime';
 import type {
   CanceledOrderResponse,
+  CreateOrderRequest,
   Order,
   PatchOrderRequest,
-  PostOrderRequest,
 } from '../models/index';
 import {
     CanceledOrderResponseFromJSON,
     CanceledOrderResponseToJSON,
+    CreateOrderRequestFromJSON,
+    CreateOrderRequestToJSON,
     OrderFromJSON,
     OrderToJSON,
     PatchOrderRequestFromJSON,
     PatchOrderRequestToJSON,
-    PostOrderRequestFromJSON,
-    PostOrderRequestToJSON,
 } from '../models/index';
 
 export interface DeleteOrderByOrderIDRequest {
@@ -63,8 +63,8 @@ export interface PatchOrderByOrderIdRequest {
     patchOrderRequest: PatchOrderRequest;
 }
 
-export interface PostOrderOperationRequest {
-    postOrderRequest: PostOrderRequest;
+export interface PostOrderRequest {
+    createOrderRequest: CreateOrderRequest;
 }
 
 /**
@@ -402,11 +402,11 @@ export class OrdersApi extends runtime.BaseAPI {
      * Places a new order for the given account. An order request may be rejected if the account is not authorized for trading, or if the tradable balance is insufficient to fill the order.
      * Create an Order
      */
-    async postOrderRaw(requestParameters: PostOrderOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Order>> {
-        if (requestParameters['postOrderRequest'] == null) {
+    async postOrderRaw(requestParameters: PostOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Order>> {
+        if (requestParameters['createOrderRequest'] == null) {
             throw new runtime.RequiredError(
-                'postOrderRequest',
-                'Required parameter "postOrderRequest" was null or undefined when calling postOrder().'
+                'createOrderRequest',
+                'Required parameter "createOrderRequest" was null or undefined when calling postOrder().'
             );
         }
 
@@ -432,7 +432,7 @@ export class OrdersApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: PostOrderRequestToJSON(requestParameters['postOrderRequest']),
+            body: CreateOrderRequestToJSON(requestParameters['createOrderRequest']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => OrderFromJSON(jsonValue));
@@ -442,7 +442,7 @@ export class OrdersApi extends runtime.BaseAPI {
      * Places a new order for the given account. An order request may be rejected if the account is not authorized for trading, or if the tradable balance is insufficient to fill the order.
      * Create an Order
      */
-    async postOrder(requestParameters: PostOrderOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Order> {
+    async postOrder(requestParameters: PostOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Order> {
         const response = await this.postOrderRaw(requestParameters, initOverrides);
         return await response.value();
     }

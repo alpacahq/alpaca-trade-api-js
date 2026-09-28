@@ -3,7 +3,31 @@
  * @export
  * @interface {{classname}}
  */
-export interface {{classname}} {{#vendorExtensions.x-ts-passthrough}}extends Record<string, unknown> {{/vendorExtensions.x-ts-passthrough}}{{#parent}}extends {{{.}}} {{/parent}}{
+{{#vendorExtensions.x-ts-travel-rule-info}}
+export interface {{classname}}Fields {
+{{#vars}}
+    /**
+     * {{#lambda.indented_star_4}}{{{unescapedDescription}}}{{/lambda.indented_star_4}}
+     * @type {{=<% %>=}}{<%&datatype%>}<%={{ }}=%>
+     * @memberof {{classname}}
+    {{#deprecated}}
+     * @deprecated
+    {{/deprecated}}
+     */
+    {{#isReadOnly}}readonly {{/isReadOnly}}{{name}}{{^required}}?{{/required}}: {{#isEnum}}{{{datatypeWithEnum}}}{{#isNullable}} | null{{/isNullable}}{{/isEnum}}{{^isEnum}}{{{datatype}}}{{#isNullable}} | null{{/isNullable}}{{/isEnum}};
+{{/vars}}
+}
+
+export type {{classname}} = {{classname}}Fields & (
+    | { beneficiaryVaspId: string }
+    | { beneficiaryIsSelfHosted: true }
+    | { beneficiaryManualEntry: TravelRuleManualEntry }
+) & (
+    | { beneficiaryEntityName: string }
+    | { beneficiaryGivenName: string; beneficiaryFamilyName: string }
+);
+{{/vendorExtensions.x-ts-travel-rule-info}}
+{{^vendorExtensions.x-ts-travel-rule-info}}export interface {{classname}} {{#vendorExtensions.x-ts-passthrough}}extends Record<string, unknown> {{/vendorExtensions.x-ts-passthrough}}{{#parent}}extends {{{.}}} {{/parent}}{
 {{#additionalPropertiesType}}
     [key: string]: {{{additionalPropertiesType}}}{{#hasVars}} | any{{/hasVars}};
 {{/additionalPropertiesType}}
@@ -18,7 +42,7 @@ export interface {{classname}} {{#vendorExtensions.x-ts-passthrough}}extends Rec
      */
     {{#isReadOnly}}readonly {{/isReadOnly}}{{name}}{{^required}}?{{/required}}: {{#isEnum}}{{{datatypeWithEnum}}}{{#isNullable}} | null{{/isNullable}}{{/isEnum}}{{^isEnum}}{{{datatype}}}{{#isNullable}} | null{{/isNullable}}{{/isEnum}};
 {{/vars}}
-}{{#hasEnums}}
+}{{/vendorExtensions.x-ts-travel-rule-info}}{{#hasEnums}}
 
 {{#vars}}
 {{#isEnum}}

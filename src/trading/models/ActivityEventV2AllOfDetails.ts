@@ -34,6 +34,46 @@ import {
  */
 export type ActivityEventV2AllOfDetails = ActivityV2DetailNTA | ActivityV2DetailTRD;
 
+function containsInvalidDate(value: unknown): boolean {
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime());
+    }
+    if (Array.isArray(value)) {
+        return value.some(containsInvalidDate);
+    }
+    if (value !== null && typeof value === 'object') {
+        return Object.values(value).some(containsInvalidDate);
+    }
+    return false;
+}
+
+function selectMostSpecific<T>(values: T[]): T | undefined {
+    let selected: T | undefined;
+    let selectedScore = -1;
+    for (const value of values) {
+        const score =
+            value !== null && typeof value === 'object'
+                ? Object.values(value).filter((item) => item !== undefined).length
+                : 0;
+        if (score > selectedScore) {
+            selected = value;
+            selectedScore = score;
+        }
+    }
+    return selected;
+}
+
+/**
+ * Check if a given object implements one of the ActivityEventV2AllOfDetails variants.
+ */
+export function instanceOfActivityEventV2AllOfDetails(value: object): value is ActivityEventV2AllOfDetails {
+    return (
+        instanceOfActivityV2DetailNTA(value) ||
+        instanceOfActivityV2DetailTRD(value) ||
+        false
+    );
+}
+
 export function ActivityEventV2AllOfDetailsFromJSON(json: any): ActivityEventV2AllOfDetails {
     return ActivityEventV2AllOfDetailsFromJSONTyped(json, false);
 }
@@ -42,17 +82,24 @@ export function ActivityEventV2AllOfDetailsFromJSONTyped(json: any, ignoreDiscri
     if (json == null) {
         return json;
     }
+    const candidates: any[] = [];
     if (typeof json !== 'object') {
         return json;
     }
-    if (instanceOfActivityV2DetailNTA(json)) {
-        return ActivityV2DetailNTAFromJSONTyped(json, true);
+    {
+        const value = ActivityV2DetailNTAFromJSONTyped(json, true);
+        if (instanceOfActivityV2DetailNTA(value) && !containsInvalidDate(value)) {
+            candidates.push(value);
+        }
     }
-    if (instanceOfActivityV2DetailTRD(json)) {
-        return ActivityV2DetailTRDFromJSONTyped(json, true);
+    {
+        const value = ActivityV2DetailTRDFromJSONTyped(json, true);
+        if (instanceOfActivityV2DetailTRD(value) && !containsInvalidDate(value)) {
+            candidates.push(value);
+        }
     }
 
-    return {} as any;
+    return selectMostSpecific(candidates) ?? json;
 }
 
 export function ActivityEventV2AllOfDetailsToJSON(json: any): any {
@@ -63,16 +110,17 @@ export function ActivityEventV2AllOfDetailsToJSONTyped(value?: ActivityEventV2Al
     if (value == null) {
         return value;
     }
+    const candidates: any[] = [];
     if (typeof value !== 'object') {
         return value;
     }
     if (instanceOfActivityV2DetailNTA(value)) {
-        return ActivityV2DetailNTAToJSON(value as ActivityV2DetailNTA);
+        candidates.push(ActivityV2DetailNTAToJSON(value as ActivityV2DetailNTA));
     }
     if (instanceOfActivityV2DetailTRD(value)) {
-        return ActivityV2DetailTRDToJSON(value as ActivityV2DetailTRD);
+        candidates.push(ActivityV2DetailTRDToJSON(value as ActivityV2DetailTRD));
     }
 
-    return {};
+    return selectMostSpecific(candidates) ?? value;
 }
 

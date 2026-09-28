@@ -2,8 +2,8 @@
  * Generation-safe, ergonomic builders for the `POST /v2/orders` request.
  *
  * The generated `OrdersApi.postOrder` takes a doubly-wrapped argument
- * (`postOrder({ postOrderRequest: { ... } })`) and the underlying
- * {@link PostOrderRequest} marks only `type`/`timeInForce` as required, so an
+ * (`postOrder({ createOrderRequest: { ... } })`) and the underlying
+ * {@link CreateOrderRequest} marks only `type`/`timeInForce` as required, so an
  * order missing its `symbol`, `side`, or `qty` still type-checks and only fails
  * at request time. These builders fix both problems the way alpaca-py and the
  * Go SDK do: one ergonomic call per order kind, with the fields each kind
@@ -11,8 +11,8 @@
  * `qty`/prices accepted as `number | string` (normalized to the wire-truthful
  * `string`).
  *
- * Each builder is pure (no network) and returns a typed {@link PostOrderRequest}
- * ready to hand to `postOrder({ postOrderRequest })`. The facade's
+ * Each builder is pure (no network) and returns a typed {@link CreateOrderRequest}
+ * ready to hand to `postOrder({ createOrderRequest })`. The facade's
  * `alpaca.trading.orders` exposes thin methods (`.market()`, `.limit()`, ...)
  * that submit the built request for you.
  *
@@ -24,7 +24,7 @@
  * import { orders } from "@alpacahq/alpaca-trade-api";
  *
  * const req = orders.buildLimitOrder({ symbol: "AAPL", qty: 10, side: "buy", limitPrice: 150 });
- * await tradingOrdersApi.postOrder({ postOrderRequest: req });
+ * await tradingOrdersApi.postOrder({ createOrderRequest: req });
  * ```
  */
 import type {
@@ -33,9 +33,9 @@ import type {
     OrderClass,
     TimeInForce,
     PositionIntent,
-    PostOrderRequest,
-    PostOrderRequestTakeProfit,
-    PostOrderRequestStopLoss,
+    CreateOrderRequest,
+    CreateOrderRequestTakeProfit,
+    CreateOrderRequestStopLoss,
     MLegOrderLeg,
     AdvancedInstructions,
 } from "./trading";
@@ -188,7 +188,7 @@ export type OtoOrderInput = CommonOrderFields & {
 
 /**
  * Near-raw input for the generic {@link buildOrder} escape hatch: the full
- * {@link PostOrderRequest} surface with amount fields accepted as `number |
+ * {@link CreateOrderRequest} surface with amount fields accepted as `number |
  * string`. Use this for order shapes the typed builders don't cover (e.g.
  * multi-leg `mleg` options).
  */
@@ -209,18 +209,18 @@ export interface OrderInput extends CommonOrderFields {
     advancedInstructions?: AdvancedInstructions;
 }
 
-function applyCommon(req: PostOrderRequest, input: CommonOrderFields): void {
+function applyCommon(req: CreateOrderRequest, input: CommonOrderFields): void {
     if (input.clientOrderId !== undefined) req.clientOrderId = input.clientOrderId;
     if (input.extendedHours !== undefined) req.extendedHours = input.extendedHours;
     if (input.positionIntent !== undefined) req.positionIntent = input.positionIntent;
 }
 
-function buildTakeProfit(tp: TakeProfitInput): PostOrderRequestTakeProfit {
+function buildTakeProfit(tp: TakeProfitInput): CreateOrderRequestTakeProfit {
     return { limitPrice: toAmountString(tp.limitPrice, "takeProfit.limitPrice") };
 }
 
-function buildStopLoss(sl: StopLossInput): PostOrderRequestStopLoss {
-    const out: PostOrderRequestStopLoss = {
+function buildStopLoss(sl: StopLossInput): CreateOrderRequestStopLoss {
+    const out: CreateOrderRequestStopLoss = {
         stopPrice: toAmountString(sl.stopPrice, "stopLoss.stopPrice"),
     };
     if (sl.limitPrice !== undefined) {
@@ -230,8 +230,8 @@ function buildStopLoss(sl: StopLossInput): PostOrderRequestStopLoss {
 }
 
 /** Build a market order request. */
-export function buildMarketOrder(input: MarketOrderInput): PostOrderRequest {
-    const req: PostOrderRequest = {
+export function buildMarketOrder(input: MarketOrderInput): CreateOrderRequest {
+    const req: CreateOrderRequest = {
         symbol: input.symbol,
         side: input.side,
         type: "market",
@@ -249,8 +249,8 @@ export function buildMarketOrder(input: MarketOrderInput): PostOrderRequest {
 }
 
 /** Build a limit order request. */
-export function buildLimitOrder(input: LimitOrderInput): PostOrderRequest {
-    const req: PostOrderRequest = {
+export function buildLimitOrder(input: LimitOrderInput): CreateOrderRequest {
+    const req: CreateOrderRequest = {
         symbol: input.symbol,
         side: input.side,
         type: "limit",
@@ -263,8 +263,8 @@ export function buildLimitOrder(input: LimitOrderInput): PostOrderRequest {
 }
 
 /** Build a stop (stop-market) order request. */
-export function buildStopOrder(input: StopOrderInput): PostOrderRequest {
-    const req: PostOrderRequest = {
+export function buildStopOrder(input: StopOrderInput): CreateOrderRequest {
+    const req: CreateOrderRequest = {
         symbol: input.symbol,
         side: input.side,
         type: "stop",
@@ -277,8 +277,8 @@ export function buildStopOrder(input: StopOrderInput): PostOrderRequest {
 }
 
 /** Build a stop-limit order request. */
-export function buildStopLimitOrder(input: StopLimitOrderInput): PostOrderRequest {
-    const req: PostOrderRequest = {
+export function buildStopLimitOrder(input: StopLimitOrderInput): CreateOrderRequest {
+    const req: CreateOrderRequest = {
         symbol: input.symbol,
         side: input.side,
         type: "stop_limit",
@@ -292,8 +292,8 @@ export function buildStopLimitOrder(input: StopLimitOrderInput): PostOrderReques
 }
 
 /** Build a trailing-stop order request. */
-export function buildTrailingStopOrder(input: TrailingStopOrderInput): PostOrderRequest {
-    const req: PostOrderRequest = {
+export function buildTrailingStopOrder(input: TrailingStopOrderInput): CreateOrderRequest {
+    const req: CreateOrderRequest = {
         symbol: input.symbol,
         side: input.side,
         type: "trailing_stop",
@@ -312,9 +312,9 @@ export function buildTrailingStopOrder(input: TrailingStopOrderInput): PostOrder
 }
 
 /** Build a bracket order request (entry + take-profit + stop-loss). */
-export function buildBracketOrder(input: BracketOrderInput): PostOrderRequest {
+export function buildBracketOrder(input: BracketOrderInput): CreateOrderRequest {
     const isLimit = input.limitPrice !== undefined;
-    const req: PostOrderRequest = {
+    const req: CreateOrderRequest = {
         symbol: input.symbol,
         side: input.side,
         type: isLimit ? "limit" : "market",
@@ -332,8 +332,8 @@ export function buildBracketOrder(input: BracketOrderInput): PostOrderRequest {
 }
 
 /** Build a one-cancels-other (OCO) order request. */
-export function buildOcoOrder(input: OcoOrderInput): PostOrderRequest {
-    const req: PostOrderRequest = {
+export function buildOcoOrder(input: OcoOrderInput): CreateOrderRequest {
+    const req: CreateOrderRequest = {
         symbol: input.symbol,
         side: input.side,
         type: "limit",
@@ -348,9 +348,9 @@ export function buildOcoOrder(input: OcoOrderInput): PostOrderRequest {
 }
 
 /** Build a one-triggers-other (OTO) order request. */
-export function buildOtoOrder(input: OtoOrderInput): PostOrderRequest {
+export function buildOtoOrder(input: OtoOrderInput): CreateOrderRequest {
     const isLimit = input.limitPrice !== undefined;
-    const req: PostOrderRequest = {
+    const req: CreateOrderRequest = {
         symbol: input.symbol,
         side: input.side,
         type: isLimit ? "limit" : "market",
@@ -373,14 +373,14 @@ export function buildOtoOrder(input: OtoOrderInput): PostOrderRequest {
 }
 
 /**
- * Generic escape hatch: build a {@link PostOrderRequest} from a near-raw input,
+ * Generic escape hatch: build a {@link CreateOrderRequest} from a near-raw input,
  * normalizing the amount fields (`qty`/`notional`/prices/trails and the
  * take-profit/stop-loss legs) to wire strings. `type` is required; everything
  * else is passed through as given. Use the typed builders above when possible;
  * reach for this only for shapes they don't cover (e.g. `mleg`).
  */
-export function buildOrder(input: OrderInput): PostOrderRequest {
-    const req: PostOrderRequest = {
+export function buildOrder(input: OrderInput): CreateOrderRequest {
+    const req: CreateOrderRequest = {
         type: input.type,
         timeInForce: input.timeInForce ?? "day",
     };

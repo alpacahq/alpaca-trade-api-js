@@ -3,6 +3,16 @@
   { "op": "add", "path": "/components/schemas/Order/x-ts-passthrough", "value": true },
   { "op": "add", "path": "/components/schemas/AccountConfigurations/x-ts-passthrough", "value": true },
   { "op": "add", "path": "/components/schemas/OptionContract/x-ts-passthrough", "value": true },
+  { "op": "add", "path": "/components/schemas/CorporateAnnouncement/x-ts-passthrough", "value": true },
+  { "op": "add", "path": "/components/schemas/TravelRuleInfo/x-ts-travel-rule-info", "value": true },
   { "op": "add", "path": "/paths/~1v2~1account~1activities/get/responses/200/content/application~1json/schema/items/x-ts-passthrough", "value": true },
-  { "op": "add", "path": "/paths/~1v2~1corporate_actions~1announcements/get/responses/200/content/application~1json/schema/items/x-ts-passthrough", "value": true }
+  { "op": "replace", "path": "/paths/~1v2beta1~1events~1activities/get/description", "value": "The Events API sends real-time account-activity events and provides historical queries over Server-Sent Events (SSE).\n\nHistorical events are streamed immediately when requested, followed by live updates.\n\nQuery parameter rules:\n- If `until` is specified, `since` is required.\n- If `until_id` is specified, `since_id` is required.\n- `since` and `since_id` cannot be combined.\n\nBehavior:\n- Without `since` or `since_id`, only live events are returned.\n- With `until` or `until_id`, the finite stream ends after the requested boundary.\n\nThe generated TypeScript client exposes this response as a typed `SseSubscription<ActivityEventV2>` async iterable." },
+  { "op": "add", "path": "/paths/~1v2beta1~1events~1activities/get/x-typescript-fetch-sse", "value": true },
+  { "op": "add", "path": "/paths/~1v2beta1~1events~1activities/get/x-typescript-fetch-sse-reconnect", "value": true },
+  { "op": "test", "path": "/paths/~1v2beta1~1events~1activities/get/parameters/1/name", "value": "until" },
+  { "op": "test", "path": "/paths/~1v2beta1~1events~1activities/get/parameters/1/in", "value": "query" },
+  { "op": "add", "path": "/paths/~1v2beta1~1events~1activities/get/parameters/1/x-typescript-fetch-sse-terminal", "value": true },
+  { "op": "test", "path": "/paths/~1v2beta1~1events~1activities/get/parameters/3/name", "value": "until_id" },
+  { "op": "test", "path": "/paths/~1v2beta1~1events~1activities/get/parameters/3/in", "value": "query" },
+  { "op": "add", "path": "/paths/~1v2beta1~1events~1activities/get/parameters/3/x-typescript-fetch-sse-terminal", "value": true }
 ]

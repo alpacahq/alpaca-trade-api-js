@@ -92,6 +92,12 @@ export interface OpcaSDIVActivityV2 {
      */
     exDate?: Date;
     /**
+     * The ISIN of the security involved with the activity
+     * @type {string}
+     * @memberof OpcaSDIVActivityV2
+     */
+    isin?: string;
+    /**
      * The payable_date for this corporate action
      * @type {Date}
      * @memberof OpcaSDIVActivityV2
@@ -153,6 +159,7 @@ export function OpcaSDIVActivityV2FromJSONTyped(json: any, ignoreDiscriminator: 
         'qty': json['qty'] == null ? undefined : json['qty'],
         'cusip': json['cusip'],
         'exDate': json['ex_date'] == null ? undefined : (new Date(json['ex_date'])),
+        'isin': json['isin'] == null ? undefined : json['isin'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'rate': json['rate'],
         'recordDate': json['record_date'] == null ? undefined : (new Date(json['record_date'])),
@@ -183,6 +190,7 @@ export function OpcaSDIVActivityV2ToJSONTyped(value?: OpcaSDIVActivityV2 | null,
         'qty': value['qty'],
         'cusip': value['cusip'],
         'ex_date': value['exDate'] == null ? undefined : ((value['exDate']).toISOString().substring(0,10)),
+        'isin': value['isin'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'rate': value['rate'],
         'record_date': value['recordDate'] == null ? undefined : ((value['recordDate']).toISOString().substring(0,10)),

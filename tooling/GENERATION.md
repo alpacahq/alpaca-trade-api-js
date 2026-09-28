@@ -51,10 +51,14 @@ found: `brew install openjdk`.
    `--allow-breaking-spec-removals` is also supplied. `--dry-run --yes` remains
    fully write-free and does not require the override. Interactive mode lists
    removals and keeps the existing confirmation prompt. Declining keeps the
-   current baseline.
+   current baseline. Every selected candidate is overlaid and its SSE contracts
+   are validated before any selected pinned spec is written, so one invalid
+   target cannot leave a partially adopted baseline.
 4. **Derive** — apply the per-target JSON Patch overlay to the pinned spec
    (`src/overlay.ts`) to produce the generator input in `.work/derived/`. A stale
-   overlay path is a hard failure (`OverlayDriftError`).
+   overlay path is a hard failure (`OverlayDriftError`). `src/sseContract.ts`
+   and `src/travelRuleContract.ts` then validate the narrow template contracts
+   before generation.
 5. **Generate** — run `openapi-generator` with the forked templates
    (`templates/typescript-fetch/`) into `../src/<target>`.
 6. **Stale-file cleanup** — delete committed `apis/`/`models/` files that the new
@@ -75,8 +79,13 @@ found: `brew install openjdk`.
 
 ## Durability mechanisms (the regeneration-safe patches)
 
-The generated trees are frozen output; we never hand-edit them. The four classes
+The generated trees are frozen output; we never hand-edit them. The eight classes
 of deviation we need are encoded as follows:
+
+OpenAPI Generator 7.14 emits trailing spaces where optional Mustache values are
+empty. `.gitattributes` excludes only generated API/model files from Git's
+`blank-at-eol` warning so stock-compatible output does not create false-positive
+release checks; hand-written files remain covered.
 
 ### 1. Null-safe required arrays — forked template
 
@@ -103,9 +112,8 @@ Six trading models keep unknown fields (`...json` spread + `extends
 Record<string, unknown>`) so undocumented API fields survive round-trips. This is
 gated on a vendor extension `x-ts-passthrough` (added by the trading overlay) and
 emitted by the forked `modelGeneric.mustache` / `modelGenericInterfaces.mustache`.
-Models: `Account`, `Order`, `AccountConfigurations`, `OptionContract`, plus the
-two inline response-item models `GetAccountActivities200ResponseInner` and
-`GetV2CorporateActionsAnnouncements200ResponseInner`.
+Models: `Account`, `Order`, `AccountConfigurations`, `OptionContract`,
+`GetAccountActivities200ResponseInner`, and `CorporateAnnouncement`.
 
 ### 4. Feed enum tightening — spec overlay
 
@@ -113,6 +121,94 @@ The market-data `stock_auction_feed` parameter is an untyped `string` upstream.
 `overlays/market-data.patch.json` retargets it to the existing
 `stock_historical_feed` enum schema so the two auction operations type `feed?:
 StockHistoricalFeed` instead of `feed?: string`.
+
+### 5. Binary logo response — spec overlay
+
+The OpenAPI 3.1 logo response declares `type: string` with
+`contentMediaType: image/png`, but OpenAPI Generator 7.14 ignores
+`contentMediaType` and emits a text response. The market-data overlay adds the
+equivalent `format: binary` hint to the derived generator input so `LogosApi`
+continues to return a `Blob` without modifying the pinned upstream spec.
+
+### 6. Complete `oneOf` output — forked template
+
+OpenAPI Generator 7.14 omits imports for discriminator-mapped `oneOf` models and
+does not emit an `instanceOfX` guard for `oneOf` aliases. The former makes
+market-data `CorporateActionEvent` uncompilable; the latter breaks a nested
+Trading activity union that imports `instanceOfActivityV2DetailNTA`.
+`templates/typescript-fetch/modelOneOf.mustache` adds the missing discriminator
+imports and reusable guards, and returns `value` (rather than the generator's
+undefined `json` identifier) for an unknown discriminator during serialization.
+For undiscriminated unions it converts wire JSON before applying generated model
+guards, because those guards use camelCase TypeScript property names while the
+wire payload uses snake_case. Structural variants can overlap, so conversion and
+serialization evaluate every valid candidate and select the one retaining the
+most defined properties instead of silently dropping fields through the first,
+less-specific match. Discriminator guards read the typed property name while
+serialization emits only the wire property name.
+
+### 7. Typed Server-Sent Events — vendor extension + validator + forked template
+
+OpenAPI 3.0/3.1 can declare `text/event-stream` but cannot describe the schema of
+each independently framed `data:` item, and `typescript-fetch` otherwise buffers
+the body and calls `response.json()`. Approved operations carry
+`x-typescript-fetch-sse` in the target overlay; optional companion extensions
+declare reconnect behavior and the sandbox operation-server index. Terminal
+query parameters and the Last-Event-ID header are marked on their actual
+Parameter Objects, allowing the template to use OpenAPI Generator's resolved
+`paramName` rather than guessing wire-to-TypeScript names. The pinned upstream
+specs remain unchanged.
+
+`src/sseContract.ts` fails generation when an SSE response is unmarked, a marker
+is stale or malformed, path/response references are unresolved or cyclic,
+successful media types are ambiguous, parameter locations are invalid, or
+operation-server metadata is unsafe. `templates/typescript-fetch/apis.mustache` is the exact
+pinned 7.14 template with a narrow marked-operation branch that emits
+`SSEApiResponse<T>` / `SseSubscription<T>`, operation servers, and the generated
+item transformer. Generated authentication is evaluated inside the connector so
+function-backed credentials refresh on every initial or reconnect attempt.
+Credential resolution is covered by the same cancellation and connection
+deadline as the fetch, and an explicit per-call authentication header bypasses
+its corresponding provider. All unmarked API output must remain byte-identical
+to the stock template.
+
+When upgrading OpenAPI Generator, extract the new stock `apis.mustache`, inspect
+the marked operation context with `debugOperations`, reapply the narrow branch,
+and A/B-generate from the same derived specs. Every API file without an SSE
+operation must compare byte-for-byte with stock output.
+
+### 8. Valid Travel Rule combinations — vendor extension + forked template
+
+The upstream `TravelRuleInfo` description requires at least one destination
+identifier and either an entity name or both natural-person names, but its
+schema marks every field optional. The trading overlay adds
+`x-ts-travel-rule-info`; the forked generic model templates emit an intersection
+type representing those alternatives and reject incomplete JavaScript values
+during serialization. The customization is limited to that marked schema and
+does not add validation to other generated models. `src/travelRuleContract.ts`
+fails generation if the marker moves, is duplicated, appears outside trading,
+or any hardcoded field/type/reference assumption drifts.
+
+### Credential-gated SSE smoke
+
+The deterministic suite validates framing, hosts, cancellation, reconnects, and
+model conversion without credentials. Before a release, optionally validate the
+real services with bounded replay windows known to contain data:
+
+```bash
+APCA_API_KEY_ID=... \
+APCA_API_SECRET_KEY=... \
+APCA_SSE_ACTIVITY_SINCE=2026-09-24T00:00:00Z \
+APCA_SSE_ACTIVITY_UNTIL=2026-09-25T00:00:00Z \
+APCA_SSE_CORPORATE_ACTIONS_SINCE=2026-09-24T00:00:00Z \
+APCA_SSE_CORPORATE_ACTIONS_UNTIL=2026-09-25T00:00:00Z \
+npm run smoke:sse
+```
+
+Set `APCA_PAPER=false` for live trading or
+`APCA_MARKET_DATA_SANDBOX=true` for the market-data sandbox. The smoke logs only
+event ids; it never logs credentials or payloads. It fails if either bounded
+window has no event, so choose windows appropriate to the test account.
 
 ## Layout
 

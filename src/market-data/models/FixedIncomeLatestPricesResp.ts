@@ -22,7 +22,7 @@ import {
 } from './FixedIncomePrice';
 
 /**
- * 
+ * Latest fixed-income prices keyed by ISIN.
  * @export
  * @interface FixedIncomeLatestPricesResp
  */

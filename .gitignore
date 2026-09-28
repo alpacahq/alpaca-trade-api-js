@@ -49,7 +49,9 @@ docs/build/
 docs/.docusaurus/
 docs/docs/api/
 docs/docs/examples.md
+docs/docs/migrations.md
 docs/docs/migration.md
+docs/docs/migration-v5.md
 
 # Local discovery artifacts
 discovery/

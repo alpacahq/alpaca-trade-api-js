@@ -16,7 +16,7 @@
 /**
  * The Time-In-Force values supported by Alpaca vary based on the order's security type. Here is a breakdown of the supported TIFs for each specific security type:
  * - Equity trading: day, gtc, opg, cls, ioc, fok.
- * - Options trading: day.
+ * - Options trading: day, gtc.
  * - Crypto trading: gtc, ioc.
  * 
  * Below are the descriptions of each TIF:

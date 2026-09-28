@@ -18,8 +18,11 @@
  * @export
  */
 export const TokenizationIssuer = {
-    Xstocks: 'xstocks',
-    St0x: 'st0x'
+    Binance: 'binance',
+    Coinbase: 'coinbase',
+    Ondo: 'ondo',
+    St0x: 'st0x',
+    Xstocks: 'xstocks'
 } as const;
 export type TokenizationIssuer = typeof TokenizationIssuer[keyof typeof TokenizationIssuer];
 
