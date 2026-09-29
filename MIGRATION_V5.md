@@ -275,7 +275,11 @@ Live subscriptions reconnect by default and resume with `Last-Event-ID`; finite
 retries by default; established live streams continue reconnecting unless you
 set `maxAttempts` / `maxElapsedMs`. Replays may include the last event again, so
 deduplicate side effects by event id. Pass an `AbortSignal`, `reconnect: false`,
-or reconnect limits when you need explicit lifecycle bounds. The configured
-`timeoutMs` applies only through response headers; opt into `idleTimeoutMs` or
-`maxDurationMs` to limit the live body. Subscriptions are single-consumer; call
-`close()` if you open one but never start iteration.
+or reconnect limits when you need explicit lifecycle bounds. For a successful
+200/204 connection, the configured `timeoutMs` ends after validated response
+headers and does not bound the live body. For non-2xx responses, it remains
+active while the SDK reads the bounded error body for a typed `ApiError`.
+`connectTimeoutMs` overrides this deadline per subscription, and `0` disables
+it. Opt into `idleTimeoutMs` or `maxDurationMs` to limit the live body.
+Subscriptions are single-consumer; call `close()` if you open one but never
+start iteration.

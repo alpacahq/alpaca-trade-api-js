@@ -167,6 +167,41 @@ describe('typed SSE subscription', () => {
         expect(reconnects).toHaveBeenCalledTimes(1);
     });
 
+    it('does not resume past an event interrupted before dispatch', async () => {
+        const seenIds: Array<string | undefined> = [];
+        let call = 0;
+        const raw = await SSEApiResponse.open(
+            async (lastEventId) => {
+                seenIds.push(lastEventId);
+                call += 1;
+                return {
+                    response: chunkedResponse([
+                        call === 1
+                            ? 'id: evt-1\ndata: {"n":1}\n\nid: evt-2\ndata: {"n":2}'
+                            : 'id: evt-2\ndata: {"n":2}\n\n',
+                    ]),
+                    url: 'https://stream.example.test/events',
+                };
+            },
+            (data) => JSON.parse(data) as { n: number },
+            { reconnect: { initialDelayMs: 0, maxDelayMs: 0 } },
+            { reconnect: true },
+        );
+        const iterator = (await raw.value())[Symbol.asyncIterator]();
+
+        await expect(iterator.next()).resolves.toEqual({
+            value: { n: 1 },
+            done: false,
+        });
+        await expect(iterator.next()).resolves.toEqual({
+            value: { n: 2 },
+            done: false,
+        });
+        await iterator.return?.();
+
+        expect(seenIds).toEqual([undefined, 'evt-1']);
+    });
+
     it('retries the initial connection and honors Retry-After', async () => {
         vi.useFakeTimers();
         try {
@@ -608,7 +643,7 @@ describe('typed SSE subscription', () => {
         const raw = await SSEApiResponse.open(
             async () => ({
                 response: chunkedResponse([
-                    'id: kept\ndata: first\n\nid: ignored\u0000value\ndata: second\n\ndata: incomplete',
+                    'id: kept\ndata: first\n\nid: ignored\u0000value\ndata: second\n\nid: not-dispatched\ndata: incomplete',
                 ]),
                 url: 'https://stream.example.test/events',
             }),
@@ -1081,39 +1116,48 @@ describe('generated SSE operation metadata', () => {
         expect(cancel).toHaveBeenCalledOnce();
     });
 
-    it('keeps a typed API error when an error body never ends', async () => {
+    it('uses the default connection deadline for a non-2xx body that never ends', async () => {
+        vi.useFakeTimers();
         const cancel = vi.fn();
-        const api = new marketData.CorporateActionsApi(
-            new marketData.Configuration({
-                fetchApi: async () =>
-                    new Response(
-                        new ReadableStream<Uint8Array>({
-                            start(controller) {
-                                controller.enqueue(
-                                    new TextEncoder().encode('{"message":"partial'),
-                                );
+        try {
+            const api = new marketData.CorporateActionsApi(
+                new marketData.Configuration({
+                    fetchApi: async () =>
+                        new Response(
+                            new ReadableStream<Uint8Array>({
+                                start(controller) {
+                                    controller.enqueue(
+                                        new TextEncoder().encode('{"message":"partial'),
+                                    );
+                                },
+                                cancel,
+                            }),
+                            {
+                                status: 503,
+                                headers: { 'X-Request-ID': 'request-id' },
                             },
-                            cancel,
-                        }),
-                        {
-                            status: 503,
-                            headers: { 'X-Request-ID': 'request-id' },
-                        },
-                    ),
-            }),
-        );
+                        ),
+                }),
+            );
 
-        await expect(
-            api.subscribeToCorporateActionsEventsSSE(
+            const opening = api.subscribeToCorporateActionsEventsSSE(
                 {},
                 {
                     reconnect: false,
-                    connectTimeoutMs: 5,
                     maxErrorBodyBytes: 1024,
                 },
-            ),
-        ).rejects.toMatchObject({ status: 503, requestId: 'request-id' });
-        expect(cancel).toHaveBeenCalledOnce();
+            );
+            const rejected = expect(opening).rejects.toMatchObject({
+                status: 503,
+                requestId: 'request-id',
+            });
+
+            await vi.advanceTimersByTimeAsync(30_000);
+            await rejected;
+            expect(cancel).toHaveBeenCalledOnce();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('deserializes snake_case activity detail unions into typed models', async () => {

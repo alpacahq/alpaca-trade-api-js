@@ -265,7 +265,7 @@ module.exports = function transformer(file, api) {
             statement.comments = statement.comments || [];
             const marker = `TODO(alpaca-codemod): ${message}`;
             const already = statement.comments.some((comment) =>
-                comment.value.includes("TODO(alpaca-codemod):"),
+                comment.value.includes(marker),
             );
             if (!already) {
                 statement.comments.unshift(
@@ -308,6 +308,8 @@ module.exports = function transformer(file, api) {
     };
 
     const tradingNamespaces = createBindings();
+    const marketDataNamespaces = createBindings();
+    const marketDataShapeNamespaces = createBindings();
     const sdkNamespaces = createBindings();
     const alpacaConstructors = createBindings();
 
@@ -324,6 +326,27 @@ module.exports = function transformer(file, api) {
                 const scope = bindingScope(localPath);
                 if (!hasLaterWrite(scope, localPath.value.name)) {
                     setBinding(tradingNamespaces, localPath);
+                }
+            } else if (
+                specifier.type === "ImportSpecifier" &&
+                propertyName(specifier.imported) === "marketData" &&
+                specifier.local
+            ) {
+                const localPath = specifierPath.get("local");
+                const scope = bindingScope(localPath);
+                if (!hasLaterWrite(scope, localPath.value.name)) {
+                    setBinding(marketDataNamespaces, localPath);
+                }
+            } else if (
+                specifier.type === "ImportSpecifier" &&
+                propertyName(specifier.imported) ===
+                    "marketDataShapes" &&
+                specifier.local
+            ) {
+                const localPath = specifierPath.get("local");
+                const scope = bindingScope(localPath);
+                if (!hasLaterWrite(scope, localPath.value.name)) {
+                    setBinding(marketDataShapeNamespaces, localPath);
                 }
             } else if (
                 specifier.type === "ImportSpecifier" &&
@@ -387,6 +410,28 @@ module.exports = function transformer(file, api) {
             } else if (
                 (property.type === "Property" ||
                     property.type === "ObjectProperty") &&
+                propertyName(property.key) === "marketData" &&
+                property.value.type === "Identifier"
+            ) {
+                const valuePath = propertyPath.get("value");
+                const scope = bindingScope(valuePath);
+                if (!hasLaterWrite(scope, valuePath.value.name)) {
+                    setBinding(marketDataNamespaces, valuePath);
+                }
+            } else if (
+                (property.type === "Property" ||
+                    property.type === "ObjectProperty") &&
+                propertyName(property.key) === "marketDataShapes" &&
+                property.value.type === "Identifier"
+            ) {
+                const valuePath = propertyPath.get("value");
+                const scope = bindingScope(valuePath);
+                if (!hasLaterWrite(scope, valuePath.value.name)) {
+                    setBinding(marketDataShapeNamespaces, valuePath);
+                }
+            } else if (
+                (property.type === "Property" ||
+                    property.type === "ObjectProperty") &&
                 propertyName(property.key) === "Alpaca" &&
                 property.value.type === "Identifier"
             ) {
@@ -412,6 +457,45 @@ module.exports = function transformer(file, api) {
             propertyName(objectPath.value.property) === "trading"
         ) {
             const sdkPath = objectPath.get("object");
+            return (
+                sdkPath.value?.type === "Identifier" &&
+                hasBinding(sdkNamespaces, sdkPath)
+            );
+        }
+        return false;
+    };
+    const isMarketDataNamespaceMember = (path) => {
+        const objectPath = path.get("object");
+        if (
+            objectPath.value?.type === "Identifier" &&
+            hasBinding(marketDataNamespaces, objectPath)
+        ) {
+            return true;
+        }
+        if (
+            objectPath.value?.type === "MemberExpression" &&
+            propertyName(objectPath.value.property) === "marketData"
+        ) {
+            const sdkPath = objectPath.get("object");
+            return (
+                sdkPath.value?.type === "Identifier" &&
+                hasBinding(sdkNamespaces, sdkPath)
+            );
+        }
+        return false;
+    };
+    const isMarketDataShapesNamespace = (path) => {
+        if (
+            path.value?.type === "Identifier" &&
+            hasBinding(marketDataShapeNamespaces, path)
+        ) {
+            return true;
+        }
+        if (
+            path.value?.type === "MemberExpression" &&
+            propertyName(path.value.property) === "marketDataShapes"
+        ) {
+            const sdkPath = path.get("object");
             return (
                 sdkPath.value?.type === "Identifier" &&
                 hasBinding(sdkNamespaces, sdkPath)
@@ -509,6 +593,10 @@ module.exports = function transformer(file, api) {
             hasBinding(alpacaInstances, path)) ||
         (path.value?.type === "NewExpression" &&
             isAlpacaConstructor(path.get("callee")));
+    const isFacadeNamespaceReceiver = (path, namespace) =>
+        path.value?.type === "MemberExpression" &&
+        propertyName(path.value.property) === namespace &&
+        isAlpacaInstance(path.get("object"));
     const isFacadeAreaReceiver = (path, namespace, area) => {
         if (
             path.value?.type !== "MemberExpression" ||
@@ -550,7 +638,170 @@ module.exports = function transformer(file, api) {
         isNamedCall(path.value, orderMethodNames) &&
         isGeneratedOrdersReceiver(path.get("callee", "object"));
 
+    const corporateActionsApis = createBindings();
+    root.find(j.VariableDeclarator).forEach((path) => {
+        if (
+            path.value.id.type !== "Identifier" ||
+            path.value.init?.type !== "NewExpression" ||
+            path.value.init.callee.type !== "MemberExpression" ||
+            propertyName(path.value.init.callee.property) !==
+                "CorporateActionsApi" ||
+            !isTradingNamespaceMember(path.get("init", "callee")) ||
+            !isStableDeclaration(path.get("id"))
+        ) {
+            return;
+        }
+        setBinding(corporateActionsApis, path.get("id"));
+    });
+    propagateStableAliases(corporateActionsApis);
+    const isGeneratedCorporateActionsReceiver = (path) =>
+        (path.value?.type === "Identifier" &&
+            hasBinding(corporateActionsApis, path)) ||
+        isFacadeAreaReceiver(path, "trading", "corporateActions");
+    const corporateActionsMethodNames = new Set([
+        "getV2CorporateActionsAnnouncements",
+        "getV2CorporateActionsAnnouncementsRaw",
+    ]);
+    const isGeneratedCorporateActionsCall = (path) =>
+        isNamedCall(path.value, corporateActionsMethodNames) &&
+        isGeneratedCorporateActionsReceiver(
+            path.get("callee", "object"),
+        );
+
+    const eventsApis = createBindings();
+    root.find(j.VariableDeclarator).forEach((path) => {
+        if (
+            path.value.id.type !== "Identifier" ||
+            path.value.init?.type !== "NewExpression" ||
+            path.value.init.callee.type !== "MemberExpression" ||
+            propertyName(path.value.init.callee.property) !==
+                "EventsApi" ||
+            !isTradingNamespaceMember(path.get("init", "callee")) ||
+            !isStableDeclaration(path.get("id"))
+        ) {
+            return;
+        }
+        setBinding(eventsApis, path.get("id"));
+    });
+    propagateStableAliases(eventsApis);
+    const activitySseMethodNames = new Set([
+        "subscribeToActivitiesSSE",
+        "subscribeToActivitiesSSERaw",
+    ]);
+    const isGeneratedEventsReceiver = (path) =>
+        (path.value?.type === "Identifier" &&
+            hasBinding(eventsApis, path)) ||
+        isFacadeAreaReceiver(path, "trading", "events");
+    const isGeneratedActivitySseCall = (path) =>
+        isNamedCall(path.value, activitySseMethodNames) &&
+        isGeneratedEventsReceiver(path.get("callee", "object"));
+
+    const removedMarketDataApis = createBindings();
+    root.find(j.VariableDeclarator).forEach((path) => {
+        if (
+            path.value.id.type !== "Identifier" ||
+            path.value.init?.type !== "NewExpression" ||
+            path.value.init.callee.type !== "MemberExpression" ||
+            !isMarketDataNamespaceMember(
+                path.get("init", "callee"),
+            ) ||
+            !isStableDeclaration(path.get("id"))
+        ) {
+            return;
+        }
+        const apiName = propertyName(
+            path.value.init.callee.property,
+        );
+        if (
+            apiName === "IndexApi" ||
+            apiName === "CryptoPerpetualFuturesApi"
+        ) {
+            setBinding(
+                removedMarketDataApis,
+                path.get("id"),
+                apiName,
+            );
+        }
+    });
+    propagateStableAliases(removedMarketDataApis);
+    const isRemovedMarketDataMember = (path, name) => {
+        const isNestedReceiver =
+            path.parent?.value?.type === "MemberExpression" &&
+            path.parent.value.object === path.value;
+        if (name === "indices") {
+            return (
+                !isNestedReceiver &&
+                isFacadeAreaReceiver(
+                    path,
+                    "marketData",
+                    "indices",
+                )
+            );
+        }
+        if (name === "cryptoPerpetualFutures") {
+            return (
+                !isNestedReceiver &&
+                isFacadeAreaReceiver(
+                    path,
+                    "marketData",
+                    "cryptoPerpetualFutures",
+                )
+            );
+        }
+        const receiverPath = path.get("object");
+        if (
+            name === "getIndexValues" &&
+            (isFacadeAreaReceiver(
+                receiverPath,
+                "marketData",
+                "indices",
+            ) ||
+                (receiverPath.value?.type === "Identifier" &&
+                    getBinding(
+                        removedMarketDataApis,
+                        receiverPath,
+                    ) === "IndexApi"))
+        ) {
+            return true;
+        }
+        if (
+            name === "getCryptoPerpetualFuturesPricing" &&
+            (isFacadeAreaReceiver(
+                receiverPath,
+                "marketData",
+                "cryptoPerpetualFutures",
+            ) ||
+                (receiverPath.value?.type === "Identifier" &&
+                    getBinding(
+                        removedMarketDataApis,
+                        receiverPath,
+                    ) === "CryptoPerpetualFuturesApi"))
+        ) {
+            return true;
+        }
+        if (
+            [
+                "iterateIndexValues",
+                "collectIndexValuesBySymbol",
+            ].includes(name)
+        ) {
+            return isFacadeNamespaceReceiver(
+                receiverPath,
+                "marketData",
+            );
+        }
+        if (
+            ["toIndexValue", "toIndexValuesBySymbol"].includes(
+                name,
+            )
+        ) {
+            return isMarketDataShapesNamespace(receiverPath);
+        }
+        return false;
+    };
+
     const orderBodyBindings = createBindings();
+    const stableObjectBindings = createBindings();
     const legacyOrderRequestObjects = new WeakSet();
     const trackOrderBody = (objectPath) => {
         objectPath.get("properties").each((propertyPath) => {
@@ -568,6 +819,17 @@ module.exports = function transformer(file, api) {
     };
     root.find(j.VariableDeclarator).forEach((path) => {
         if (
+            path.value.id.type === "Identifier" &&
+            path.value.init?.type === "ObjectExpression" &&
+            isStableDeclaration(path.get("id"))
+        ) {
+            setBinding(
+                stableObjectBindings,
+                path.get("id"),
+                path.value.init,
+            );
+        }
+        if (
             path.value.id.type !== "Identifier" ||
             path.value.init?.type !== "ObjectExpression" ||
             typeName(path.value.id.typeAnnotation) !==
@@ -578,6 +840,7 @@ module.exports = function transformer(file, api) {
         legacyOrderRequestObjects.add(path.value.init);
         trackOrderBody(path.get("init"));
     });
+    propagateStableAliases(stableObjectBindings);
     root.find(j.CallExpression).forEach((path) => {
         if (!isGeneratedOrderCall(path)) return;
         const request = objectArgument(path.value);
@@ -657,12 +920,70 @@ module.exports = function transformer(file, api) {
             changed = true;
         }
         if (changed) mutated = true;
+        return changed;
+    };
+    const migrateCorporateActionRequest = (object) => {
+        let provenCompatible = true;
+        for (const property of object.properties) {
+            if (property.type === "SpreadElement") {
+                provenCompatible = false;
+                continue;
+            }
+            if (
+                (property.type !== "Property" &&
+                    property.type !== "ObjectProperty") ||
+                propertyName(property.key) !== "caTypes"
+            ) {
+                continue;
+            }
+            if (
+                (property.value.type === "Literal" ||
+                    property.value.type === "StringLiteral") &&
+                typeof property.value.value === "string"
+            ) {
+                property.value = j.arrayExpression([property.value]);
+                mutated = true;
+            } else if (property.value.type !== "ArrayExpression") {
+                provenCompatible = false;
+            }
+        }
+        return provenCompatible;
     };
 
     root.find(j.CallExpression).forEach((path) => {
         if (isGeneratedOrderCall(path)) {
             const request = objectArgument(path.value);
-            if (request) renameRequestProperty(request);
+            if (request) {
+                renameRequestProperty(request);
+            } else if (path.value.arguments[0]?.type === "Identifier") {
+                const boundObject = getBinding(
+                    stableObjectBindings,
+                    path.get("arguments", 0),
+                );
+                const migrated =
+                    boundObject?.type === "ObjectExpression" &&
+                    (renameRequestProperty(boundObject) ||
+                        boundObject.properties.some(
+                            (property) =>
+                                (property.type === "Property" ||
+                                    property.type ===
+                                        "ObjectProperty") &&
+                                propertyName(property.key) ===
+                                    "createOrderRequest",
+                        ));
+                if (migrated) return;
+                addTodo(
+                    path,
+                    "variable-post-order-request",
+                    "a variable-backed `postOrder` request may still contain `postOrderRequest`; rename it to `createOrderRequest` after confirming the binding",
+                );
+            } else if (path.value.arguments.length > 0) {
+                addTodo(
+                    path,
+                    "expression-post-order-request",
+                    "an expression-backed `postOrder` request could not be migrated safely; ensure it returns `{ createOrderRequest }`",
+                );
+            }
         } else if (
             isNamedCall(path.value, orderMethodNames) &&
             path.value.callee.object.type === "MemberExpression" &&
@@ -680,35 +1001,56 @@ module.exports = function transformer(file, api) {
             );
         }
 
-        if (
-            isNamedCall(
-                path.value,
-                new Set([
-                    "getV2CorporateActionsAnnouncements",
-                    "getV2CorporateActionsAnnouncementsRaw",
-                ]),
-            )
-        ) {
+        if (isGeneratedCorporateActionsCall(path)) {
             const request = objectArgument(path.value);
-            if (!request) return;
-            for (const property of request.properties) {
-                if (
-                    (property.type !== "Property" &&
-                        property.type !== "ObjectProperty") ||
-                    propertyName(property.key) !== "caTypes"
-                ) {
-                    continue;
+            if (request) {
+                if (!migrateCorporateActionRequest(request)) {
+                    addTodo(
+                        path,
+                        "inline-corporate-actions-request",
+                        "the `caTypes` value could not be proven to be a v5 array; review this corporate-actions request",
+                    );
                 }
-                if (
-                    property.value.type === "Literal" ||
-                    property.value.type === "StringLiteral"
-                ) {
-                    if (typeof property.value.value === "string") {
-                        property.value = j.arrayExpression([property.value]);
-                        mutated = true;
-                    }
-                }
+                return;
             }
+            if (path.value.arguments[0]?.type === "Identifier") {
+                const boundObject = getBinding(
+                    stableObjectBindings,
+                    path.get("arguments", 0),
+                );
+                if (
+                    boundObject?.type === "ObjectExpression" &&
+                    migrateCorporateActionRequest(boundObject)
+                ) {
+                    return;
+                }
+                addTodo(
+                    path,
+                    "variable-corporate-actions-request",
+                    "a variable-backed corporate-actions request could not be migrated safely; ensure `caTypes` is an array",
+                );
+            } else if (path.value.arguments.length > 0) {
+                addTodo(
+                    path,
+                    "expression-corporate-actions-request",
+                    "an expression-backed corporate-actions request could not be migrated safely; ensure `caTypes` is an array",
+                );
+            }
+        } else if (
+            isNamedCall(path.value, corporateActionsMethodNames) &&
+            path.value.callee.object.type === "MemberExpression" &&
+            propertyName(path.value.callee.object.property) ===
+                "corporateActions" &&
+            path.value.callee.object.object.type ===
+                "MemberExpression" &&
+            propertyName(
+                path.value.callee.object.object.property,
+            ) === "trading"
+        ) {
+            report(
+                "unproven-corporate-actions-receiver",
+                "an unproven `.trading.corporateActions` receiver was left unchanged; construct or retain the client from an imported `Alpaca` binding",
+            );
         }
     });
 
@@ -719,50 +1061,82 @@ module.exports = function transformer(file, api) {
     });
 
     root.find(j.CallExpression).forEach((path) => {
-        if (
-            isNamedCall(
-                path.value,
-                new Set([
-                    "subscribeToActivitiesSSE",
-                    "subscribeToActivitiesSSERaw",
-                ]),
-            )
-        ) {
+        if (isGeneratedActivitySseCall(path)) {
             addTodo(
                 path,
                 "activity-sse",
                 "activity SSE now returns an async subscription; migrate array-style consumption and close the stream explicitly",
             );
+        } else if (
+            isNamedCall(path.value, activitySseMethodNames) &&
+            path.value.callee.object.type === "MemberExpression" &&
+            propertyName(path.value.callee.object.property) ===
+                "events" &&
+            path.value.callee.object.object.type ===
+                "MemberExpression" &&
+            propertyName(
+                path.value.callee.object.object.property,
+            ) === "trading"
+        ) {
+            report(
+                "unproven-events-receiver",
+                "an unproven `.trading.events` receiver was left unchanged; construct or retain the client from an imported `Alpaca` binding",
+            );
         }
     });
+
+    const assetModels = createBindings();
+    const announcementModels = createBindings();
+    root.find(j.VariableDeclarator).forEach((path) => {
+        if (path.value.id.type !== "Identifier") return;
+        const modelName = typeName(path.value.id.typeAnnotation);
+        const assertedModelName =
+            path.value.init?.type === "TSAsExpression"
+                ? typeNodeName(path.value.init.typeAnnotation)
+                : undefined;
+        if (
+            modelName === "Assets" ||
+            assertedModelName === "Assets"
+        ) {
+            setBinding(assetModels, path.get("id"));
+        }
+        if (
+            modelName === "CorporateAnnouncement" ||
+            assertedModelName === "CorporateAnnouncement"
+        ) {
+            setBinding(announcementModels, path.get("id"));
+        }
+    });
+    propagateStableAliases(assetModels);
+    propagateStableAliases(announcementModels);
 
     root.find(j.MemberExpression).forEach((path) => {
         const name = propertyName(path.value.property);
         if (!name) return;
         if (REMOVED_MARKET_DATA_MEMBERS.has(name)) {
-            if (
-                ["indices", "cryptoPerpetualFutures"].includes(name) &&
-                !(
-                    path.value.object.type === "MemberExpression" &&
-                    propertyName(path.value.object.property) ===
-                        "marketData"
-                )
-            ) {
-                return;
-            }
+            if (!isRemovedMarketDataMember(path, name)) return;
             addTodo(
                 path,
                 `removed-${name}`,
                 REMOVED_MARKET_DATA_MEMBERS.get(name),
             );
-        } else if (name === "easyToBorrow") {
+        } else if (
+            name === "easyToBorrow" &&
+            path.value.object.type === "Identifier" &&
+            hasBinding(assetModels, path.get("object"))
+        ) {
             report(
                 "easyToBorrow",
                 "`easyToBorrow` was removed; inspect this access and use the `borrowStatus` enum when it is an Alpaca Asset",
             );
         } else if (
-            name === "corporateActionsId" ||
-            name === "expirationDate"
+            (name === "corporateActionsId" ||
+                name === "expirationDate") &&
+            path.value.object.type === "Identifier" &&
+            hasBinding(
+                announcementModels,
+                path.get("object"),
+            )
         ) {
             report(
                 `announcement-${name}`,
@@ -790,25 +1164,20 @@ module.exports = function transformer(file, api) {
     const activityStreams = createBindings();
     const activityEvents = createBindings();
 
-    const unwrap = (node) =>
-        node?.type === "AwaitExpression" ? node.argument : node;
-    const isActivitySubscription = (node) => {
-        const value = unwrap(node);
+    const isActivitySubscription = (path) => {
+        let candidatePath = path;
+        if (candidatePath.value?.type === "AwaitExpression") {
+            candidatePath = candidatePath.get("argument");
+        }
         return (
-            value?.type === "CallExpression" &&
-            isNamedCall(
-                value,
-                new Set([
-                    "subscribeToActivitiesSSE",
-                    "subscribeToActivitiesSSERaw",
-                ]),
-            )
+            candidatePath.value?.type === "CallExpression" &&
+            isGeneratedActivitySseCall(candidatePath)
         );
     };
 
     root.find(j.VariableDeclarator).forEach((path) => {
         if (path.value.id.type !== "Identifier") return;
-        if (isActivitySubscription(path.value.init)) {
+        if (path.value.init && isActivitySubscription(path.get("init"))) {
             setBinding(activityStreams, path.get("id"));
         }
         const modelName = typeName(path.value.id.typeAnnotation);
@@ -830,7 +1199,7 @@ module.exports = function transformer(file, api) {
         const left = path.value.left;
         const rightPath = path.get("right");
         const isStream =
-            isActivitySubscription(path.value.right) ||
+            isActivitySubscription(rightPath) ||
             (rightPath.value.type === "Identifier" &&
                 hasBinding(activityStreams, rightPath));
         if (!isStream) return;

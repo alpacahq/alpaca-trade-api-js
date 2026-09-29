@@ -639,6 +639,8 @@ export class BaseAPI {
         }
 
         try {
+            // Unlike a validated 200/204 stream, a non-2xx response keeps the
+            // connection deadline active while its bounded error body is read.
             const maxBytes = options.maxErrorBodyBytes ?? 64 * 1024;
             throw await buildApiError(
                 response,

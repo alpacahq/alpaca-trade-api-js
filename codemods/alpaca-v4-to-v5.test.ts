@@ -153,6 +153,203 @@ unrelated.trading.orders.postOrder({ postOrderRequest: body });`;
         ]);
     });
 
+    it("marks variable-backed generated order requests for review", () => {
+        const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+const request = getRequest();
+alpaca.trading.orders.postOrder(request);`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): a variable-backed `postOrder` request may still contain `postOrderRequest`",
+        );
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                "a variable-backed `postOrder` request may still contain `postOrderRequest`",
+            ),
+        ]);
+    });
+
+    it("migrates stable variable-backed generated order requests", () => {
+        const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+const request = { postOrderRequest: body };
+const alias = request;
+alpaca.trading.orders.postOrder(alias);`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "const request = { createOrderRequest: body };",
+        );
+        expect(result.reports).toEqual([]);
+        expect(transform(result.source ?? source).source).toBeUndefined();
+    });
+
+    it("marks expression-backed generated order requests for review", () => {
+        const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+alpaca.trading.orders.postOrder(getRequest());`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): an expression-backed `postOrder` request could not be migrated safely",
+        );
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                "an expression-backed `postOrder` request could not be migrated safely",
+            ),
+        ]);
+    });
+
+    it("rewrites proven generated corporate-action receivers", () => {
+        const source = `import { trading } from "@alpacahq/alpaca-trade-api";
+const api = new trading.CorporateActionsApi();
+api.getV2CorporateActionsAnnouncements({ caTypes: "dividend" });`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            'api.getV2CorporateActionsAnnouncements({ caTypes: ["dividend"] });',
+        );
+        expect(result.reports).toEqual([]);
+    });
+
+    it("migrates stable variable-backed corporate-action requests", () => {
+        const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+const request = { caTypes: "dividend" };
+alpaca.trading.corporateActions.getV2CorporateActionsAnnouncements(request);`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            'const request = { caTypes: ["dividend"] };',
+        );
+        expect(result.reports).toEqual([]);
+    });
+
+    it("marks unresolved corporate-action request expressions for review", () => {
+        const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+alpaca.trading.corporateActions.getV2CorporateActionsAnnouncements(getRequest());`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): an expression-backed corporate-actions request could not be migrated safely",
+        );
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                "an expression-backed corporate-actions request could not be migrated safely",
+            ),
+        ]);
+    });
+
+    it("leaves unrelated corporate-action lookalikes unchanged", () => {
+        const source = `const unrelated = {
+  getV2CorporateActionsAnnouncements(request) { return request; }
+};
+unrelated.getV2CorporateActionsAnnouncements({ caTypes: ["dividend"] });`;
+
+        expect(transform(source, "babel")).toEqual({
+            source: undefined,
+            reports: [],
+        });
+    });
+
+    it("leaves unproven facade-shaped corporate-action receivers unchanged", () => {
+        const source = `const unrelated = {
+  trading: {
+    corporateActions: {
+      getV2CorporateActionsAnnouncements(request) { return request; }
+    }
+  }
+};
+unrelated.trading.corporateActions.getV2CorporateActionsAnnouncements({
+  caTypes: ["dividend"]
+});`;
+        const result = transform(source, "babel");
+
+        expect(result.source).toBeUndefined();
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                "an unproven `.trading.corporateActions` receiver was left unchanged",
+            ),
+        ]);
+    });
+
+    it("leaves unrelated SSE and removed-method lookalikes unchanged", () => {
+        const source = `const unrelated = {
+  subscribeToActivitiesSSE() { return []; },
+  getIndexValues() { return [1]; }
+};
+const events = await unrelated.subscribeToActivitiesSSE();
+for await (const event of events) {
+  if (event.details.foreign) console.log(event);
+}
+console.log(unrelated.getIndexValues());`;
+
+        expect(transform(source, "babel")).toEqual({
+            source: undefined,
+            reports: [],
+        });
+    });
+
+    it("flags removed market-data APIs only on proven SDK receivers", () => {
+        const source = `import {
+  Alpaca,
+  marketData,
+  marketDataShapes
+} from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+const indexApi = new marketData.IndexApi();
+indexApi.getIndexValues({});
+alpaca.marketData.iterateIndexValues({});
+marketDataShapes.toIndexValue({});`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): the index-values operation was removed upstream",
+        );
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): the ergonomic index iterator was removed",
+        );
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): the index-value shape helper was removed",
+        );
+    });
+
+    it("leaves unrelated changed-field lookalikes unchanged", () => {
+        const source = `const unrelated = {
+  easyToBorrow: true,
+  corporateActionsId: "id",
+  expirationDate: "2026-01-01"
+};
+console.log(
+  unrelated.easyToBorrow,
+  unrelated.corporateActionsId,
+  unrelated.expirationDate
+);`;
+
+        expect(transform(source, "babel")).toEqual({
+            source: undefined,
+            reports: [],
+        });
+    });
+
+    it("adds a distinct review TODO when another codemod TODO exists", () => {
+        const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+const request = getRequest();
+// TODO(alpaca-codemod): keep this separate
+alpaca.trading.orders.postOrder(request);`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): keep this separate",
+        );
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): a variable-backed `postOrder` request may still contain",
+        );
+    });
+
     it("leaves unrelated lookalikes unchanged", () => {
         const source = `const unrelated = {
   indices: { value: 1 },

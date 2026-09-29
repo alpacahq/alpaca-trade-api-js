@@ -73,13 +73,16 @@ Opening is bounded to two retries by default so the initial `await` cannot retry
 forever; set `maxInitialAttempts` explicitly (or `Infinity`) to change that
 limit. Once opened, live reconnects remain unlimited unless bounded by policy.
 
-The ordinary SDK `timeoutMs` is only a connect-through-headers deadline for SSE;
-it never terminates a healthy body after 30 seconds. Per-subscription options
-also include `connectTimeoutMs`, opt-in `idleTimeoutMs` / `maxDurationMs`,
-`basePath` / `serverIndex`, resource limits, and `onOpen`, `onComment`, and
-`onReconnect` diagnostics. Use `subscription.messages()` when you need the raw
-SSE envelope (`data`, `event`, `id`, and `retry`) rather than only typed data.
-Breaking iteration, `close()`, `abort()`, or aborting the caller signal releases
+For a successful 200/204 SSE connection, the ordinary SDK `timeoutMs` ends after
+the response headers are validated; it never terminates a healthy body after 30
+seconds. For a non-2xx response, that same deadline remains active while the SDK
+reads the bounded error body used to construct a typed `ApiError`.
+`connectTimeoutMs` overrides the deadline per subscription, and `0` disables it.
+Other options include opt-in `idleTimeoutMs` / `maxDurationMs`, `basePath` /
+`serverIndex`, resource limits, and `onOpen`, `onComment`, and `onReconnect`
+diagnostics. Use `subscription.messages()` when you need the raw SSE envelope
+(`data`, `event`, `id`, and `retry`) rather than only typed data. Breaking
+iteration, `close()`, `abort()`, or aborting the caller signal releases
 the reader and prevents further reconnects. A subscription has one consumer; if
 you open one but never begin iteration, call `close()` explicitly.
 

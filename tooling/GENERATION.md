@@ -144,8 +144,19 @@ guards, because those guards use camelCase TypeScript property names while the
 wire payload uses snake_case. Structural variants can overlap, so conversion and
 serialization evaluate every valid candidate and select the one retaining the
 most defined properties instead of silently dropping fields through the first,
-less-specific match. Discriminator guards read the typed property name while
-serialization emits only the wire property name.
+less-specific match. The trading overlay marks the intentionally compatible
+CDIV/CGD/DIVSPD activity-detail variants with
+`x-ts-one-of-merge-models`; only that explicit group fills missing keys from
+another candidate, without overwriting the selected primary. This preserves
+fields such as `long_term_rate` without grafting fields from loosely matching,
+semantically unrelated activity variants. The same scoped merge applies to
+serialized wire candidates. Unmarked structural unions retain one selected
+variant. If a future array-valued union is explicitly marked, compatible
+candidates merge missing object fields by array index; unmarked arrays remain
+selected-only. Discriminator guards read the typed property name while
+serialization emits only the wire property name. `src/oneOfContract.ts` fails
+generation if a merge marker moves, names a model outside that schema's
+`oneOf`, or diverges from the reviewed trading compatibility group.
 
 ### 7. Typed Server-Sent Events — vendor extension + validator + forked template
 

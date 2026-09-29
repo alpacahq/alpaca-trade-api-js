@@ -9,11 +9,8 @@ const alpaca = new Alpaca({
     keyId: "key",
     secret: "secret",
 });
-declare const asset: { easyToBorrow: boolean };
-declare const announcement: {
-    corporateActionsId: string;
-    expirationDate: string;
-};
+declare const asset: trading.Assets;
+declare const announcement: trading.CorporateAnnouncement;
 
 const orderBody: trading.CreateOrderRequest =
     trading.CreateOrderRequestFromJSON({});

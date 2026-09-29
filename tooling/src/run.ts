@@ -18,6 +18,7 @@ import {
 import { assertSseContracts } from "./sseContract.js";
 import { filesToDelete } from "./staleClean.js";
 import { assertTravelRuleContract } from "./travelRuleContract.js";
+import { assertOneOfMergeContracts } from "./oneOfContract.js";
 
 export type Target = "trading" | "market-data";
 const ALL_TARGETS: Target[] = ["trading", "market-data"];
@@ -138,6 +139,7 @@ function projectOverlay(target: Target, spec: unknown): void {
   const derived = applyOverlay(spec, patch);
   assertSseContracts(derived);
   assertTravelRuleContract(derived, target === "trading");
+  assertOneOfMergeContracts(derived, target === "trading");
   log(`  ${target} overlay projection and custom contracts are valid.`);
 }
 
@@ -220,6 +222,7 @@ function deriveSpec(target: Target): void {
   const derived = applyOverlay(spec, patch); // throws OverlayDriftError on stale path
   assertSseContracts(derived);
   assertTravelRuleContract(derived, target === "trading");
+  assertOneOfMergeContracts(derived, target === "trading");
   fs.mkdirSync(path.dirname(derivedPath(target)), { recursive: true });
   fs.writeFileSync(derivedPath(target), `${JSON.stringify(derived, null, 2)}\n`);
 }

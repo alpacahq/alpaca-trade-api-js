@@ -142,9 +142,12 @@ const alpaca = new Alpaca({
   and covers rate-limit waits, middleware, fetch, and response-body reads.
   Backoff is outside that attempt budget; caller abort spans the entire
   operation and backoff. Every cancellation phase throws `FetchError` with an
-  `AbortError` or `TimeoutError` cause. For SSE methods, `timeoutMs`
-  ends after validated response headers; use SSE `idleTimeoutMs` or
-  `maxDurationMs` only when you deliberately want to bound the live body.
+  `AbortError` or `TimeoutError` cause. For a successful 200/204 SSE connection,
+  `timeoutMs` ends after validated response headers; on non-2xx it remains
+  active while the bounded error body is read for a typed `ApiError`.
+  `connectTimeoutMs` overrides this deadline per subscription, and `0` disables
+  it. Use SSE `idleTimeoutMs` or `maxDurationMs` only when you deliberately want
+  to bound the live body.
 - **Redirects reject by default.** Requests use `redirect: "error"` so secret
   `APCA-API-*` headers cannot follow an off-host redirect. Set
   `redirect: "follow"` only when deliberately opting out.

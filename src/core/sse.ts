@@ -61,7 +61,11 @@ export interface SseOptions extends RequestInit {
      * AbortSignal, they are composed and either signal cancels the subscription.
      */
     requestInit?: RequestInit;
-    /** Deadline through receipt of response headers. Defaults to configured REST timeout. */
+    /**
+     * Deadline through validated successful response headers and, for non-2xx
+     * responses, the bounded error-body read. Defaults to the configured REST
+     * timeout; set to 0 to disable it.
+     */
     connectTimeoutMs?: number;
     /** Maximum time without response bytes; disabled by default. */
     idleTimeoutMs?: number;
@@ -171,6 +175,7 @@ class EventStreamParser {
     private eventType = "";
     private eventBytes = 0;
     private _lastEventId: string | undefined;
+    private pendingLastEventId: string | undefined;
     private _retryMs: number | undefined;
     private readonly encoder = new TextEncoder();
 
@@ -181,6 +186,7 @@ class EventStreamParser {
         private readonly maxEventBytes: number,
     ) {
         this._lastEventId = initialLastEventId;
+        this.pendingLastEventId = initialLastEventId;
         this._retryMs = initialRetryMs;
     }
 
@@ -249,6 +255,11 @@ class EventStreamParser {
 
     private processLine(line: string): ParserOutput[] {
         if (line === "") {
+            // The WHATWG algorithm commits the event-ID buffer only when an
+            // event block reaches its terminating blank line. This also allows
+            // data-less `id:` blocks to update resumption state without letting
+            // an interrupted event skip data that was never dispatched.
+            this._lastEventId = this.pendingLastEventId;
             if (!this.hasData) {
                 this.eventType = "";
                 return [];
@@ -294,7 +305,7 @@ class EventStreamParser {
                 this.eventType = value;
                 break;
             case "id":
-                if (!value.includes("\0")) this._lastEventId = value;
+                if (!value.includes("\0")) this.pendingLastEventId = value;
                 break;
             case "retry":
                 if (/^\d+$/.test(value)) this._retryMs = Number(value);

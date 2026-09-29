@@ -334,20 +334,81 @@ function containsInvalidDate(value: unknown): boolean {
     return false;
 }
 
-function selectMostSpecific<T>(values: T[]): T | undefined {
-    let selected: T | undefined;
+function selectMostSpecific<T>(
+    candidates: Array<{ name: string; value: T }>,
+    mergeModelNames: ReadonlySet<string>,
+): T | undefined {
+    let selected: { name: string; value: T } | undefined;
     let selectedScore = -1;
-    for (const value of values) {
+    for (const candidate of candidates) {
+        const value = candidate.value;
         const score =
             value !== null && typeof value === 'object'
                 ? Object.values(value).filter((item) => item !== undefined).length
                 : 0;
         if (score > selectedScore) {
-            selected = value;
+            selected = candidate;
             selectedScore = score;
         }
     }
-    return selected;
+    if (
+        selected === undefined ||
+        selected.value === null ||
+        typeof selected.value !== 'object' ||
+        !mergeModelNames.has(selected.name)
+    ) {
+        return selected?.value;
+    }
+    if (Array.isArray(selected.value)) {
+        return selected.value.map((selectedItem, index) => {
+            if (
+                selectedItem === null ||
+                typeof selectedItem !== 'object' ||
+                Array.isArray(selectedItem)
+            ) {
+                return selectedItem;
+            }
+            const mergedItem = { ...selectedItem } as Record<string, unknown>;
+            for (const candidate of candidates) {
+                if (
+                    !mergeModelNames.has(candidate.name) ||
+                    !Array.isArray(candidate.value)
+                ) {
+                    continue;
+                }
+                const candidateItem = candidate.value[index];
+                if (
+                    candidateItem === null ||
+                    typeof candidateItem !== 'object' ||
+                    Array.isArray(candidateItem)
+                ) {
+                    continue;
+                }
+                for (const [key, item] of Object.entries(candidateItem)) {
+                    if (mergedItem[key] === undefined && item !== undefined) {
+                        mergedItem[key] = item;
+                    }
+                }
+            }
+            return mergedItem;
+        }) as T;
+    }
+    const merged = { ...selected.value } as Record<string, unknown>;
+    for (const candidate of candidates) {
+        if (!mergeModelNames.has(candidate.name)) {
+            continue;
+        }
+        const value = candidate.value;
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+            continue;
+        }
+        for (const [key, item] of Object.entries(value)) {
+            if (merged[key] === undefined && item !== undefined) {
+                merged[key] = item;
+            }
+        }
+    }
+    return merged as T;
 }
 
 /**
@@ -417,263 +478,267 @@ export function ActivityV2DetailNTAFromJSONTyped(json: any, ignoreDiscriminator:
     {
         const value = AcatcActivityV2FromJSONTyped(json, true);
         if (instanceOfAcatcActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'AcatcActivityV2', value });
         }
     }
     {
         const value = AcatsActivityV2FromJSONTyped(json, true);
         if (instanceOfAcatsActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'AcatsActivityV2', value });
         }
     }
     {
         const value = CDIVActivityV2FromJSONTyped(json, true);
         if (instanceOfCDIVActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'CDIVActivityV2', value });
         }
     }
     {
         const value = CGDActivityV2FromJSONTyped(json, true);
         if (instanceOfCGDActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'CGDActivityV2', value });
         }
     }
     {
         const value = CSWActivityV2FromJSONTyped(json, true);
         if (instanceOfCSWActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'CSWActivityV2', value });
         }
     }
     {
         const value = DIVNRAActivityV2FromJSONTyped(json, true);
         if (instanceOfDIVNRAActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'DIVNRAActivityV2', value });
         }
     }
     {
         const value = DIVSPDActivityV2FromJSONTyped(json, true);
         if (instanceOfDIVSPDActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'DIVSPDActivityV2', value });
         }
     }
     {
         const value = DIVWHActivityV2FromJSONTyped(json, true);
         if (instanceOfDIVWHActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'DIVWHActivityV2', value });
         }
     }
     {
         const value = ExchangeOfferActivityV2FromJSONTyped(json, true);
         if (instanceOfExchangeOfferActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'ExchangeOfferActivityV2', value });
         }
     }
     {
         const value = FEEActivityV2FromJSONTyped(json, true);
         if (instanceOfFEEActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'FEEActivityV2', value });
         }
     }
     {
         const value = FOPTActivityV2FromJSONTyped(json, true);
         if (instanceOfFOPTActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'FOPTActivityV2', value });
         }
     }
     {
         const value = FixedIncomeInterestActivityV2FromJSONTyped(json, true);
         if (instanceOfFixedIncomeInterestActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'FixedIncomeInterestActivityV2', value });
         }
     }
     {
         const value = FixedIncomeRedemptionActivityV2FromJSONTyped(json, true);
         if (instanceOfFixedIncomeRedemptionActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'FixedIncomeRedemptionActivityV2', value });
         }
     }
     {
         const value = ForwardSplitActivityV2FromJSONTyped(json, true);
         if (instanceOfForwardSplitActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'ForwardSplitActivityV2', value });
         }
     }
     {
         const value = JNLCActivityV2FromJSONTyped(json, true);
         if (instanceOfJNLCActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'JNLCActivityV2', value });
         }
     }
     {
         const value = JNLSActivityV2FromJSONTyped(json, true);
         if (instanceOfJNLSActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'JNLSActivityV2', value });
         }
     }
     {
         const value = MAActivityV2FromJSONTyped(json, true);
         if (instanceOfMAActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'MAActivityV2', value });
         }
     }
     {
         const value = MEMActivityV2FromJSONTyped(json, true);
         if (instanceOfMEMActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'MEMActivityV2', value });
         }
     }
     {
         const value = NCActivityV2FromJSONTyped(json, true);
         if (instanceOfNCActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'NCActivityV2', value });
         }
     }
     {
         const value = OCTActivityV2FromJSONTyped(json, true);
         if (instanceOfOCTActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OCTActivityV2', value });
         }
     }
     {
         const value = OPASNActivityV2FromJSONTyped(json, true);
         if (instanceOfOPASNActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OPASNActivityV2', value });
         }
     }
     {
         const value = OPCSHActivityV2FromJSONTyped(json, true);
         if (instanceOfOPCSHActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OPCSHActivityV2', value });
         }
     }
     {
         const value = OPEXCActivityV2FromJSONTyped(json, true);
         if (instanceOfOPEXCActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OPEXCActivityV2', value });
         }
     }
     {
         const value = OPEXPActivityV2FromJSONTyped(json, true);
         if (instanceOfOPEXPActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OPEXPActivityV2', value });
         }
     }
     {
         const value = OPTRDActivityV2FromJSONTyped(json, true);
         if (instanceOfOPTRDActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OPTRDActivityV2', value });
         }
     }
     {
         const value = OpcaCDIVActivityV2FromJSONTyped(json, true);
         if (instanceOfOpcaCDIVActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OpcaCDIVActivityV2', value });
         }
     }
     {
         const value = OpcaFSPLITActivityV2FromJSONTyped(json, true);
         if (instanceOfOpcaFSPLITActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OpcaFSPLITActivityV2', value });
         }
     }
     {
         const value = OpcaMAActivityV2FromJSONTyped(json, true);
         if (instanceOfOpcaMAActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OpcaMAActivityV2', value });
         }
     }
     {
         const value = OpcaNCActivityV2FromJSONTyped(json, true);
         if (instanceOfOpcaNCActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OpcaNCActivityV2', value });
         }
     }
     {
         const value = OpcaRSPLITActivityV2FromJSONTyped(json, true);
         if (instanceOfOpcaRSPLITActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OpcaRSPLITActivityV2', value });
         }
     }
     {
         const value = OpcaSDIVActivityV2FromJSONTyped(json, true);
         if (instanceOfOpcaSDIVActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OpcaSDIVActivityV2', value });
         }
     }
     {
         const value = OpcaSPINActivityV2FromJSONTyped(json, true);
         if (instanceOfOpcaSPINActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OpcaSPINActivityV2', value });
         }
     }
     {
         const value = OpcaUSPLITActivityV2FromJSONTyped(json, true);
         if (instanceOfOpcaUSPLITActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'OpcaUSPLITActivityV2', value });
         }
     }
     {
         const value = REOActivityV2FromJSONTyped(json, true);
         if (instanceOfREOActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'REOActivityV2', value });
         }
     }
     {
         const value = ReverseSplitActivityV2FromJSONTyped(json, true);
         if (instanceOfReverseSplitActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'ReverseSplitActivityV2', value });
         }
     }
     {
         const value = RightsDistributionActivityV2FromJSONTyped(json, true);
         if (instanceOfRightsDistributionActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'RightsDistributionActivityV2', value });
         }
     }
     {
         const value = RightsSubscriptionElectionActivityV2FromJSONTyped(json, true);
         if (instanceOfRightsSubscriptionElectionActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'RightsSubscriptionElectionActivityV2', value });
         }
     }
     {
         const value = SDIVActivityV2FromJSONTyped(json, true);
         if (instanceOfSDIVActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'SDIVActivityV2', value });
         }
     }
     {
         const value = SpinoffActivityV2FromJSONTyped(json, true);
         if (instanceOfSpinoffActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'SpinoffActivityV2', value });
         }
     }
     {
         const value = TenderOfferActivityV2FromJSONTyped(json, true);
         if (instanceOfTenderOfferActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'TenderOfferActivityV2', value });
         }
     }
     {
         const value = UnitSplitActivityV2FromJSONTyped(json, true);
         if (instanceOfUnitSplitActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'UnitSplitActivityV2', value });
         }
     }
     {
         const value = WRMActivityV2FromJSONTyped(json, true);
         if (instanceOfWRMActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'WRMActivityV2', value });
         }
     }
     {
         const value = WarrantExerciseElectionActivityV2FromJSONTyped(json, true);
         if (instanceOfWarrantExerciseElectionActivityV2(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'WarrantExerciseElectionActivityV2', value });
         }
     }
 
-    return selectMostSpecific(candidates) ?? json;
+    return selectMostSpecific(candidates, new Set([
+        'CDIVActivityV2',
+        'CGDActivityV2',
+        'DIVSPDActivityV2',
+    ])) ?? json;
 }
 
 export function ActivityV2DetailNTAToJSON(json: any): any {
@@ -689,135 +754,139 @@ export function ActivityV2DetailNTAToJSONTyped(value?: ActivityV2DetailNTA | nul
         return value;
     }
     if (instanceOfAcatcActivityV2(value)) {
-        candidates.push(AcatcActivityV2ToJSON(value as AcatcActivityV2));
+        candidates.push({ name: 'AcatcActivityV2', value: AcatcActivityV2ToJSON(value as AcatcActivityV2) });
     }
     if (instanceOfAcatsActivityV2(value)) {
-        candidates.push(AcatsActivityV2ToJSON(value as AcatsActivityV2));
+        candidates.push({ name: 'AcatsActivityV2', value: AcatsActivityV2ToJSON(value as AcatsActivityV2) });
     }
     if (instanceOfCDIVActivityV2(value)) {
-        candidates.push(CDIVActivityV2ToJSON(value as CDIVActivityV2));
+        candidates.push({ name: 'CDIVActivityV2', value: CDIVActivityV2ToJSON(value as CDIVActivityV2) });
     }
     if (instanceOfCGDActivityV2(value)) {
-        candidates.push(CGDActivityV2ToJSON(value as CGDActivityV2));
+        candidates.push({ name: 'CGDActivityV2', value: CGDActivityV2ToJSON(value as CGDActivityV2) });
     }
     if (instanceOfCSWActivityV2(value)) {
-        candidates.push(CSWActivityV2ToJSON(value as CSWActivityV2));
+        candidates.push({ name: 'CSWActivityV2', value: CSWActivityV2ToJSON(value as CSWActivityV2) });
     }
     if (instanceOfDIVNRAActivityV2(value)) {
-        candidates.push(DIVNRAActivityV2ToJSON(value as DIVNRAActivityV2));
+        candidates.push({ name: 'DIVNRAActivityV2', value: DIVNRAActivityV2ToJSON(value as DIVNRAActivityV2) });
     }
     if (instanceOfDIVSPDActivityV2(value)) {
-        candidates.push(DIVSPDActivityV2ToJSON(value as DIVSPDActivityV2));
+        candidates.push({ name: 'DIVSPDActivityV2', value: DIVSPDActivityV2ToJSON(value as DIVSPDActivityV2) });
     }
     if (instanceOfDIVWHActivityV2(value)) {
-        candidates.push(DIVWHActivityV2ToJSON(value as DIVWHActivityV2));
+        candidates.push({ name: 'DIVWHActivityV2', value: DIVWHActivityV2ToJSON(value as DIVWHActivityV2) });
     }
     if (instanceOfExchangeOfferActivityV2(value)) {
-        candidates.push(ExchangeOfferActivityV2ToJSON(value as ExchangeOfferActivityV2));
+        candidates.push({ name: 'ExchangeOfferActivityV2', value: ExchangeOfferActivityV2ToJSON(value as ExchangeOfferActivityV2) });
     }
     if (instanceOfFEEActivityV2(value)) {
-        candidates.push(FEEActivityV2ToJSON(value as FEEActivityV2));
+        candidates.push({ name: 'FEEActivityV2', value: FEEActivityV2ToJSON(value as FEEActivityV2) });
     }
     if (instanceOfFOPTActivityV2(value)) {
-        candidates.push(FOPTActivityV2ToJSON(value as FOPTActivityV2));
+        candidates.push({ name: 'FOPTActivityV2', value: FOPTActivityV2ToJSON(value as FOPTActivityV2) });
     }
     if (instanceOfFixedIncomeInterestActivityV2(value)) {
-        candidates.push(FixedIncomeInterestActivityV2ToJSON(value as FixedIncomeInterestActivityV2));
+        candidates.push({ name: 'FixedIncomeInterestActivityV2', value: FixedIncomeInterestActivityV2ToJSON(value as FixedIncomeInterestActivityV2) });
     }
     if (instanceOfFixedIncomeRedemptionActivityV2(value)) {
-        candidates.push(FixedIncomeRedemptionActivityV2ToJSON(value as FixedIncomeRedemptionActivityV2));
+        candidates.push({ name: 'FixedIncomeRedemptionActivityV2', value: FixedIncomeRedemptionActivityV2ToJSON(value as FixedIncomeRedemptionActivityV2) });
     }
     if (instanceOfForwardSplitActivityV2(value)) {
-        candidates.push(ForwardSplitActivityV2ToJSON(value as ForwardSplitActivityV2));
+        candidates.push({ name: 'ForwardSplitActivityV2', value: ForwardSplitActivityV2ToJSON(value as ForwardSplitActivityV2) });
     }
     if (instanceOfJNLCActivityV2(value)) {
-        candidates.push(JNLCActivityV2ToJSON(value as JNLCActivityV2));
+        candidates.push({ name: 'JNLCActivityV2', value: JNLCActivityV2ToJSON(value as JNLCActivityV2) });
     }
     if (instanceOfJNLSActivityV2(value)) {
-        candidates.push(JNLSActivityV2ToJSON(value as JNLSActivityV2));
+        candidates.push({ name: 'JNLSActivityV2', value: JNLSActivityV2ToJSON(value as JNLSActivityV2) });
     }
     if (instanceOfMAActivityV2(value)) {
-        candidates.push(MAActivityV2ToJSON(value as MAActivityV2));
+        candidates.push({ name: 'MAActivityV2', value: MAActivityV2ToJSON(value as MAActivityV2) });
     }
     if (instanceOfMEMActivityV2(value)) {
-        candidates.push(MEMActivityV2ToJSON(value as MEMActivityV2));
+        candidates.push({ name: 'MEMActivityV2', value: MEMActivityV2ToJSON(value as MEMActivityV2) });
     }
     if (instanceOfNCActivityV2(value)) {
-        candidates.push(NCActivityV2ToJSON(value as NCActivityV2));
+        candidates.push({ name: 'NCActivityV2', value: NCActivityV2ToJSON(value as NCActivityV2) });
     }
     if (instanceOfOCTActivityV2(value)) {
-        candidates.push(OCTActivityV2ToJSON(value as OCTActivityV2));
+        candidates.push({ name: 'OCTActivityV2', value: OCTActivityV2ToJSON(value as OCTActivityV2) });
     }
     if (instanceOfOPASNActivityV2(value)) {
-        candidates.push(OPASNActivityV2ToJSON(value as OPASNActivityV2));
+        candidates.push({ name: 'OPASNActivityV2', value: OPASNActivityV2ToJSON(value as OPASNActivityV2) });
     }
     if (instanceOfOPCSHActivityV2(value)) {
-        candidates.push(OPCSHActivityV2ToJSON(value as OPCSHActivityV2));
+        candidates.push({ name: 'OPCSHActivityV2', value: OPCSHActivityV2ToJSON(value as OPCSHActivityV2) });
     }
     if (instanceOfOPEXCActivityV2(value)) {
-        candidates.push(OPEXCActivityV2ToJSON(value as OPEXCActivityV2));
+        candidates.push({ name: 'OPEXCActivityV2', value: OPEXCActivityV2ToJSON(value as OPEXCActivityV2) });
     }
     if (instanceOfOPEXPActivityV2(value)) {
-        candidates.push(OPEXPActivityV2ToJSON(value as OPEXPActivityV2));
+        candidates.push({ name: 'OPEXPActivityV2', value: OPEXPActivityV2ToJSON(value as OPEXPActivityV2) });
     }
     if (instanceOfOPTRDActivityV2(value)) {
-        candidates.push(OPTRDActivityV2ToJSON(value as OPTRDActivityV2));
+        candidates.push({ name: 'OPTRDActivityV2', value: OPTRDActivityV2ToJSON(value as OPTRDActivityV2) });
     }
     if (instanceOfOpcaCDIVActivityV2(value)) {
-        candidates.push(OpcaCDIVActivityV2ToJSON(value as OpcaCDIVActivityV2));
+        candidates.push({ name: 'OpcaCDIVActivityV2', value: OpcaCDIVActivityV2ToJSON(value as OpcaCDIVActivityV2) });
     }
     if (instanceOfOpcaFSPLITActivityV2(value)) {
-        candidates.push(OpcaFSPLITActivityV2ToJSON(value as OpcaFSPLITActivityV2));
+        candidates.push({ name: 'OpcaFSPLITActivityV2', value: OpcaFSPLITActivityV2ToJSON(value as OpcaFSPLITActivityV2) });
     }
     if (instanceOfOpcaMAActivityV2(value)) {
-        candidates.push(OpcaMAActivityV2ToJSON(value as OpcaMAActivityV2));
+        candidates.push({ name: 'OpcaMAActivityV2', value: OpcaMAActivityV2ToJSON(value as OpcaMAActivityV2) });
     }
     if (instanceOfOpcaNCActivityV2(value)) {
-        candidates.push(OpcaNCActivityV2ToJSON(value as OpcaNCActivityV2));
+        candidates.push({ name: 'OpcaNCActivityV2', value: OpcaNCActivityV2ToJSON(value as OpcaNCActivityV2) });
     }
     if (instanceOfOpcaRSPLITActivityV2(value)) {
-        candidates.push(OpcaRSPLITActivityV2ToJSON(value as OpcaRSPLITActivityV2));
+        candidates.push({ name: 'OpcaRSPLITActivityV2', value: OpcaRSPLITActivityV2ToJSON(value as OpcaRSPLITActivityV2) });
     }
     if (instanceOfOpcaSDIVActivityV2(value)) {
-        candidates.push(OpcaSDIVActivityV2ToJSON(value as OpcaSDIVActivityV2));
+        candidates.push({ name: 'OpcaSDIVActivityV2', value: OpcaSDIVActivityV2ToJSON(value as OpcaSDIVActivityV2) });
     }
     if (instanceOfOpcaSPINActivityV2(value)) {
-        candidates.push(OpcaSPINActivityV2ToJSON(value as OpcaSPINActivityV2));
+        candidates.push({ name: 'OpcaSPINActivityV2', value: OpcaSPINActivityV2ToJSON(value as OpcaSPINActivityV2) });
     }
     if (instanceOfOpcaUSPLITActivityV2(value)) {
-        candidates.push(OpcaUSPLITActivityV2ToJSON(value as OpcaUSPLITActivityV2));
+        candidates.push({ name: 'OpcaUSPLITActivityV2', value: OpcaUSPLITActivityV2ToJSON(value as OpcaUSPLITActivityV2) });
     }
     if (instanceOfREOActivityV2(value)) {
-        candidates.push(REOActivityV2ToJSON(value as REOActivityV2));
+        candidates.push({ name: 'REOActivityV2', value: REOActivityV2ToJSON(value as REOActivityV2) });
     }
     if (instanceOfReverseSplitActivityV2(value)) {
-        candidates.push(ReverseSplitActivityV2ToJSON(value as ReverseSplitActivityV2));
+        candidates.push({ name: 'ReverseSplitActivityV2', value: ReverseSplitActivityV2ToJSON(value as ReverseSplitActivityV2) });
     }
     if (instanceOfRightsDistributionActivityV2(value)) {
-        candidates.push(RightsDistributionActivityV2ToJSON(value as RightsDistributionActivityV2));
+        candidates.push({ name: 'RightsDistributionActivityV2', value: RightsDistributionActivityV2ToJSON(value as RightsDistributionActivityV2) });
     }
     if (instanceOfRightsSubscriptionElectionActivityV2(value)) {
-        candidates.push(RightsSubscriptionElectionActivityV2ToJSON(value as RightsSubscriptionElectionActivityV2));
+        candidates.push({ name: 'RightsSubscriptionElectionActivityV2', value: RightsSubscriptionElectionActivityV2ToJSON(value as RightsSubscriptionElectionActivityV2) });
     }
     if (instanceOfSDIVActivityV2(value)) {
-        candidates.push(SDIVActivityV2ToJSON(value as SDIVActivityV2));
+        candidates.push({ name: 'SDIVActivityV2', value: SDIVActivityV2ToJSON(value as SDIVActivityV2) });
     }
     if (instanceOfSpinoffActivityV2(value)) {
-        candidates.push(SpinoffActivityV2ToJSON(value as SpinoffActivityV2));
+        candidates.push({ name: 'SpinoffActivityV2', value: SpinoffActivityV2ToJSON(value as SpinoffActivityV2) });
     }
     if (instanceOfTenderOfferActivityV2(value)) {
-        candidates.push(TenderOfferActivityV2ToJSON(value as TenderOfferActivityV2));
+        candidates.push({ name: 'TenderOfferActivityV2', value: TenderOfferActivityV2ToJSON(value as TenderOfferActivityV2) });
     }
     if (instanceOfUnitSplitActivityV2(value)) {
-        candidates.push(UnitSplitActivityV2ToJSON(value as UnitSplitActivityV2));
+        candidates.push({ name: 'UnitSplitActivityV2', value: UnitSplitActivityV2ToJSON(value as UnitSplitActivityV2) });
     }
     if (instanceOfWRMActivityV2(value)) {
-        candidates.push(WRMActivityV2ToJSON(value as WRMActivityV2));
+        candidates.push({ name: 'WRMActivityV2', value: WRMActivityV2ToJSON(value as WRMActivityV2) });
     }
     if (instanceOfWarrantExerciseElectionActivityV2(value)) {
-        candidates.push(WarrantExerciseElectionActivityV2ToJSON(value as WarrantExerciseElectionActivityV2));
+        candidates.push({ name: 'WarrantExerciseElectionActivityV2', value: WarrantExerciseElectionActivityV2ToJSON(value as WarrantExerciseElectionActivityV2) });
     }
 
-    return selectMostSpecific(candidates) ?? value;
+    return selectMostSpecific(candidates, new Set([
+        'CDIVActivityV2',
+        'CGDActivityV2',
+        'DIVSPDActivityV2',
+    ])) ?? value;
 }
 

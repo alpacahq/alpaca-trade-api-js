@@ -47,20 +47,81 @@ function containsInvalidDate(value: unknown): boolean {
     return false;
 }
 
-function selectMostSpecific<T>(values: T[]): T | undefined {
-    let selected: T | undefined;
+function selectMostSpecific<T>(
+    candidates: Array<{ name: string; value: T }>,
+    mergeModelNames: ReadonlySet<string>,
+): T | undefined {
+    let selected: { name: string; value: T } | undefined;
     let selectedScore = -1;
-    for (const value of values) {
+    for (const candidate of candidates) {
+        const value = candidate.value;
         const score =
             value !== null && typeof value === 'object'
                 ? Object.values(value).filter((item) => item !== undefined).length
                 : 0;
         if (score > selectedScore) {
-            selected = value;
+            selected = candidate;
             selectedScore = score;
         }
     }
-    return selected;
+    if (
+        selected === undefined ||
+        selected.value === null ||
+        typeof selected.value !== 'object' ||
+        !mergeModelNames.has(selected.name)
+    ) {
+        return selected?.value;
+    }
+    if (Array.isArray(selected.value)) {
+        return selected.value.map((selectedItem, index) => {
+            if (
+                selectedItem === null ||
+                typeof selectedItem !== 'object' ||
+                Array.isArray(selectedItem)
+            ) {
+                return selectedItem;
+            }
+            const mergedItem = { ...selectedItem } as Record<string, unknown>;
+            for (const candidate of candidates) {
+                if (
+                    !mergeModelNames.has(candidate.name) ||
+                    !Array.isArray(candidate.value)
+                ) {
+                    continue;
+                }
+                const candidateItem = candidate.value[index];
+                if (
+                    candidateItem === null ||
+                    typeof candidateItem !== 'object' ||
+                    Array.isArray(candidateItem)
+                ) {
+                    continue;
+                }
+                for (const [key, item] of Object.entries(candidateItem)) {
+                    if (mergedItem[key] === undefined && item !== undefined) {
+                        mergedItem[key] = item;
+                    }
+                }
+            }
+            return mergedItem;
+        }) as T;
+    }
+    const merged = { ...selected.value } as Record<string, unknown>;
+    for (const candidate of candidates) {
+        if (!mergeModelNames.has(candidate.name)) {
+            continue;
+        }
+        const value = candidate.value;
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+            continue;
+        }
+        for (const [key, item] of Object.entries(value)) {
+            if (merged[key] === undefined && item !== undefined) {
+                merged[key] = item;
+            }
+        }
+    }
+    return merged as T;
 }
 
 /**
@@ -89,17 +150,18 @@ export function ActivityEventV2AllOfDetailsFromJSONTyped(json: any, ignoreDiscri
     {
         const value = ActivityV2DetailNTAFromJSONTyped(json, true);
         if (instanceOfActivityV2DetailNTA(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'ActivityV2DetailNTA', value });
         }
     }
     {
         const value = ActivityV2DetailTRDFromJSONTyped(json, true);
         if (instanceOfActivityV2DetailTRD(value) && !containsInvalidDate(value)) {
-            candidates.push(value);
+            candidates.push({ name: 'ActivityV2DetailTRD', value });
         }
     }
 
-    return selectMostSpecific(candidates) ?? json;
+    return selectMostSpecific(candidates, new Set([
+    ])) ?? json;
 }
 
 export function ActivityEventV2AllOfDetailsToJSON(json: any): any {
@@ -115,12 +177,13 @@ export function ActivityEventV2AllOfDetailsToJSONTyped(value?: ActivityEventV2Al
         return value;
     }
     if (instanceOfActivityV2DetailNTA(value)) {
-        candidates.push(ActivityV2DetailNTAToJSON(value as ActivityV2DetailNTA));
+        candidates.push({ name: 'ActivityV2DetailNTA', value: ActivityV2DetailNTAToJSON(value as ActivityV2DetailNTA) });
     }
     if (instanceOfActivityV2DetailTRD(value)) {
-        candidates.push(ActivityV2DetailTRDToJSON(value as ActivityV2DetailTRD));
+        candidates.push({ name: 'ActivityV2DetailTRD', value: ActivityV2DetailTRDToJSON(value as ActivityV2DetailTRD) });
     }
 
-    return selectMostSpecific(candidates) ?? value;
+    return selectMostSpecific(candidates, new Set([
+    ])) ?? value;
 }
 

@@ -32,6 +32,9 @@ import {
     CorporateAnnouncementFromJSON,
     ActivityV2DetailNTAFromJSON,
     ActivityV2DetailNTAToJSON,
+    ActivityEventV2AllOfDetailsFromJSON,
+    ActivityEventV2AllOfDetailsToJSON,
+    GetAccountActivitiesByActivityType200ResponseInnerFromJSON,
     CDIVActivityV2FromJSON,
     CommonCDIVActivityV2FromJSON,
     DIVSPDActivityV2FromJSON,
@@ -178,6 +181,89 @@ describe('oneOf conversion fidelity', () => {
 
         expect(model).toMatchObject({ symbol: 'AAPL' });
         expect(ActivityV2DetailNTAToJSON(model)).toMatchObject(wire);
+    });
+
+    it('merges recognized fields from overlapping activity detail models', () => {
+        const wire = {
+            system_date: '2026-09-25',
+            position_date: '2026-09-24',
+            cusip: '037833100',
+            foreign: 'false',
+            rate: '0.24',
+            special: 'true',
+            symbol: 'AAPL',
+            cash_payout: '24.00',
+            entitled_qty: '100',
+            long_term_rate: '0.18',
+            journal_id: 'unrelated-journal',
+            transfer_id: 'unrelated-transfer',
+        };
+
+        const model = ActivityV2DetailNTAFromJSON(wire);
+        const roundTrip = ActivityV2DetailNTAToJSON(model);
+
+        expect(model).toMatchObject({
+            foreign: 'false',
+            special: 'true',
+            longTermRate: '0.18',
+        });
+        expect(model).not.toHaveProperty('journalId');
+        expect(model).not.toHaveProperty('transferId');
+        expect(roundTrip).toMatchObject({
+            system_date: wire.system_date,
+            position_date: wire.position_date,
+            cusip: wire.cusip,
+            foreign: wire.foreign,
+            rate: wire.rate,
+            special: wire.special,
+            symbol: wire.symbol,
+            cash_payout: wire.cash_payout,
+            entitled_qty: wire.entitled_qty,
+            long_term_rate: wire.long_term_rate,
+        });
+        expect(roundTrip).not.toHaveProperty('journal_id');
+        expect(roundTrip).not.toHaveProperty('transfer_id');
+    });
+
+    it('keeps exclusive trading and non-trading activity variants separate', () => {
+        const model = GetAccountActivitiesByActivityType200ResponseInnerFromJSON({
+            id: 'trade-1',
+            symbol: 'AAPL',
+            qty: '1',
+            side: 'buy',
+            price: '10',
+            order_id: 'order-1',
+            cum_qty: '1',
+            leaves_qty: '0',
+            order_status: 'filled',
+            type: 'fill',
+            transaction_time: '2026-01-01T00:00:00.000Z',
+            net_amount: 'unrelated',
+        });
+
+        expect(model).not.toHaveProperty('netAmount');
+    });
+
+    it('does not graft non-trading fields onto trading event details', () => {
+        const model = ActivityEventV2AllOfDetailsFromJSON({
+            asset_id: 'asset-1',
+            cum_qty: '1',
+            execution_type: 'fill',
+            leaves_qty: '0',
+            order_id: 'order-1',
+            order_status: 'filled',
+            side: 'buy',
+            symbol: 'AAPL',
+            commission: '1.0',
+            system_date: '2026-09-25',
+            group_id: 'unrelated-group',
+        });
+        const roundTrip = ActivityEventV2AllOfDetailsToJSON(model);
+
+        expect(model).not.toHaveProperty('systemDate');
+        expect(model).not.toHaveProperty('groupId');
+        expect(roundTrip).not.toHaveProperty('system_date');
+        expect(roundTrip).not.toHaveProperty('group_id');
     });
 
     it('uses typed discriminator names and emits only the wire discriminator', () => {
