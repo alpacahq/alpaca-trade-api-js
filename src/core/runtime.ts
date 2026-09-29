@@ -338,15 +338,53 @@ function sseRequestInit(options: SseOptions): RequestInit {
     };
 }
 
-function mergeRequestHeaders(
-    generated: HeadersInit | undefined,
-    overrides: HeadersInit | undefined,
-): Headers {
-    const headers = new Headers(generated);
-    new Headers(overrides).forEach((value, name) => {
-        headers.set(name, value);
-    });
+type RequestHeaderSource = HeadersInit | HTTPHeaders | undefined;
+
+function forEachRequestHeader(
+    source: RequestHeaderSource,
+    callback: (value: string, name: string) => void,
+): void {
+    if (!source) return;
+    if (source instanceof Headers) {
+        source.forEach(callback);
+        return;
+    }
+    if (Array.isArray(source)) {
+        for (const [name, value] of source) callback(value, name);
+        return;
+    }
+    for (const [name, value] of Object.entries(source)) {
+        if (value !== undefined) callback(value, name);
+    }
+}
+
+function mergeRequestHeaders(...sources: RequestHeaderSource[]): Headers {
+    const headers = new Headers();
+    for (const source of sources) {
+        forEachRequestHeader(source, (value, name) => {
+            headers.set(name, value);
+        });
+    }
     return headers;
+}
+
+function mergeRequestHeaderRecord(
+    ...sources: RequestHeaderSource[]
+): HTTPHeaders {
+    const headers = new Headers();
+    const casing = new Map<string, string>();
+    for (const source of sources) {
+        forEachRequestHeader(source, (value, name) => {
+            headers.set(name, value);
+            casing.set(name.toLowerCase(), name);
+        });
+    }
+    return Object.fromEntries(
+        Array.from(headers.entries(), ([name, value]) => [
+            casing.get(name) ?? name,
+            value,
+        ]),
+    );
 }
 
 /**
@@ -678,7 +716,12 @@ export class BaseAPI {
         if (userAgent) {
             defaultHeaders['User-Agent'] = userAgent;
         }
-        const headers = Object.assign(defaultHeaders, this.configuration.headers, context.headers);
+        const headers = mergeRequestHeaderRecord(
+            defaultHeaders,
+            this.configuration.headers,
+            context.headers,
+        );
+        const mergedHeaders = new Headers(headers);
 
         // OAuth2 bearer auth. The generated operations only ever wire Alpaca's
         // `APCA-API-KEY-ID` / `APCA-API-SECRET-KEY` headers (the spec declares
@@ -686,14 +729,13 @@ export class BaseAPI {
         // Authorization header here at the transport layer. An explicit
         // Authorization header (from config or the operation) still wins.
         const accessToken = this.configuration.accessToken;
-        if (accessToken && headers.Authorization === undefined && headers.authorization === undefined) {
+        if (accessToken && !mergedHeaders.has("Authorization")) {
             const token = await accessToken();
             if (token) {
+                mergedHeaders.set("Authorization", `Bearer ${token}`);
                 headers.Authorization = `Bearer ${token}`;
             }
         }
-
-        Object.keys(headers).forEach(key => headers[key] === undefined ? delete headers[key] : {});
 
         const initOverrideFn =
             typeof initOverrides === "function"
@@ -724,7 +766,7 @@ export class BaseAPI {
             || (overriddenInit.body instanceof URLSearchParams)
             || isBlob(overriddenInit.body)) {
           body = overriddenInit.body;
-        } else if (this.isJsonMime(headers['Content-Type'])) {
+        } else if (this.isJsonMime(mergedHeaders.get("Content-Type"))) {
           body = JSON.stringify(overriddenInit.body);
         } else {
           body = overriddenInit.body;

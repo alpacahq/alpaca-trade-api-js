@@ -412,7 +412,8 @@ export interface ErgonomicHelperEntry {
  * of the generated APIs. Each row lists the helper methods on a facade object;
  * the raw generated methods they build on remain available (see
  * {@link capabilities}). Keep this in sync with {@link "./client"} — a test
- * asserts every listed helper exists on the facade.
+ * asserts every listed helper exists and every own public facade method is
+ * represented by the raw, streaming, or ergonomic maps.
  */
 export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
     // --- Trading ---------------------------------------------------------

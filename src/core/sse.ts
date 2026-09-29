@@ -213,7 +213,12 @@ class EventStreamParser {
             output.push(...this.processLine(line));
         }
 
-        if (this.byteLength(this.buffer) > this.maxLineBytes) {
+        // A terminal CR is already a line delimiter; it is kept only until the
+        // next chunk tells us whether it forms CRLF.
+        const pendingLine = this.buffer.endsWith("\r")
+            ? this.buffer.slice(0, -1)
+            : this.buffer;
+        if (this.byteLength(pendingLine) > this.maxLineBytes) {
             throw new SseProtocolError(
                 `SSE line exceeded ${this.maxLineBytes} bytes`,
             );
@@ -514,6 +519,13 @@ export class SseSubscription<T> implements AsyncIterable<T> {
         return this._connection;
     }
 
+    /**
+     * Effective event ID through the most recently delivered message.
+     *
+     * Parser lookahead never advances this past queued or failed messages.
+     * A completed data-less `id:` block is committed after all earlier
+     * messages from the same input batch have been delivered.
+     */
     get lastEventId(): string | undefined {
         return this._lastEventId;
     }
@@ -741,8 +753,6 @@ export class SseSubscription<T> implements AsyncIterable<T> {
                 const outputs = parser.feed(
                     decoder.decode(result.value, { stream: true }),
                 );
-                this._lastEventId = parser.lastEventId;
-                this._serverRetryMs = parser.retryMs;
                 for (const output of outputs) {
                     if (output.kind === "comment") {
                         callback(this.options.onComment, output.comment);
@@ -759,6 +769,8 @@ export class SseSubscription<T> implements AsyncIterable<T> {
                             error,
                         );
                     }
+                    this._lastEventId = output.message.id;
+                    this._serverRetryMs = output.message.retry;
                     yield {
                         data,
                         event: output.message.event,
@@ -766,19 +778,24 @@ export class SseSubscription<T> implements AsyncIterable<T> {
                         retry: output.message.retry,
                     };
                 }
+                this._lastEventId = parser.lastEventId;
+                this._serverRetryMs = parser.retryMs;
             }
             const final = decoder.decode();
             if (final) {
                 const outputs = parser.feed(final);
-                this._lastEventId = parser.lastEventId;
-                this._serverRetryMs = parser.retryMs;
                 for (const output of outputs) {
                     if (output.kind === "comment") {
                         callback(this.options.onComment, output.comment);
                     } else {
                         try {
+                            const data = this.transformer(
+                                output.message.data,
+                            );
+                            this._lastEventId = output.message.id;
+                            this._serverRetryMs = output.message.retry;
                             yield {
-                                data: this.transformer(output.message.data),
+                                data,
                                 event: output.message.event,
                                 id: output.message.id,
                                 retry: output.message.retry,
@@ -793,6 +810,8 @@ export class SseSubscription<T> implements AsyncIterable<T> {
                         }
                     }
                 }
+                this._lastEventId = parser.lastEventId;
+                this._serverRetryMs = parser.retryMs;
             }
             const trailing = parser.finish();
             for (const output of trailing) {
@@ -801,8 +820,11 @@ export class SseSubscription<T> implements AsyncIterable<T> {
                     continue;
                 }
                 try {
+                    const data = this.transformer(output.message.data);
+                    this._lastEventId = output.message.id;
+                    this._serverRetryMs = output.message.retry;
                     yield {
-                        data: this.transformer(output.message.data),
+                        data,
                         event: output.message.event,
                         id: output.message.id,
                         retry: output.message.retry,

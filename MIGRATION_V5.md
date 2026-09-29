@@ -23,18 +23,38 @@ generated-contract renames and adds review diagnostics for semantic changes:
 # TypeScript
 npx jscodeshift \
   -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js \
-  --parser=tsx --extensions=ts,tsx "src/**/*.{ts,tsx}"
+  --parser=tsx --extensions=ts,tsx src
 
 # JavaScript
 npx jscodeshift \
   -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js \
-  --parser=babel "src/**/*.js"
+  --parser=babel --extensions=js src
 ```
 
 Run it on a clean version-control branch and review the resulting diff and
 jscodeshift report. The transform does not silently rewrite removed APIs, SSE
 control flow, `REORG`/`REO` semantics, or Trading dividend flag comparisons.
 See the [codemod reference](codemods/README.md) for its exact scope.
+
+Applications that receive an Alpaca client through dependency injection can
+register its exact lexical name with `--instanceName=client` (comma-separate
+multiple names). This opt-in includes function parameters and stable aliases,
+but ignores reassigned bindings. A variable merely named `alpaca` is not trusted
+without the option or a proven SDK constructor.
+
+JavaScript users must also manually audit response consumers because untyped
+data flow cannot always prove that a property came from this SDK. In particular,
+search for and review:
+
+- `CorporateAnnouncement` date string operations and the removed
+  `corporateActionsId` / `expirationDate` fields;
+- `Assets.easyToBorrow`, replacing it with an appropriate `borrowStatus`
+  comparison;
+- truthiness checks on Trading dividend `foreign` / `special` string flags.
+
+TypeScript reports these response-shape changes through compiler diagnostics.
+The codemod deliberately does not match property names globally because that
+would modify unrelated application objects.
 
 ## Removed upstream endpoints
 
@@ -46,6 +66,10 @@ or index-value endpoints. Version 5 therefore removes:
 - `alpaca.marketData.indices` and `marketData.IndexApi`;
 - `getIndexValues`, `iterateIndexValues`, and
   `collectIndexValuesBySymbol`;
+- generated `indexValues` / `indexLatestValues` and their `Raw` siblings;
+- generated `cryptoPerpLatestBars`, `cryptoPerpLatestFuturesPricing`,
+  `cryptoPerpLatestOrderbooks`, `cryptoPerpLatestQuotes`,
+  `cryptoPerpLatestTrades`, and their `Raw` siblings;
 - the canonical `IndexValue`, `toIndexValue`, and
   `toIndexValuesBySymbol` exports;
 - the generated crypto-perpetual-futures and index-value request/response
@@ -117,7 +141,9 @@ are not replacements for the removed camel-case properties.
 
 - `getV2CorporateActionsAnnouncements({ caTypes })` now takes a
   `CorporateActionCaType[]` (for example, `["Dividend"]`) instead of one
-  untyped string.
+  untyped string. The codemod splits comma-delimited literals such as
+  `"Dividend,Merger"` into `["Dividend", "Merger"]` and canonicalizes known
+  casing; dynamic, empty, or unknown values are left with a review TODO.
 - `Assets.easyToBorrow` was removed upstream; use `borrowStatus`.
 - `OptionContract.ppind` is now required.
 - `PortfolioHistory.baseValue` and entries in `equity`, `profitLoss`, and

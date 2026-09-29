@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-import { Alpaca, TradingClient, MarketDataClient, LIVE_TRADING_BASE_PATH, DEFAULT_RATE_LIMIT } from '../src/client';
+import {
+    Alpaca,
+    OrdersApi,
+    TradingClient,
+    MarketDataClient,
+    LIVE_TRADING_BASE_PATH,
+    DEFAULT_RATE_LIMIT,
+} from '../src/client';
 import * as trading from '../src/trading';
 import * as marketData from '../src/market-data';
 import * as streaming from '../src/streaming';
@@ -605,6 +612,44 @@ describe('Capability map', () => {
             }
             for (const method of entry.methods) {
                 expect(typeof target[method], `${entry.accessor}.${method}`).toBe('function');
+            }
+        }
+    });
+
+    it('maps every own public facade method to a capability entry', () => {
+        const facades = [
+            ['trading.orders', OrdersApi],
+            ['trading', TradingClient],
+            ['marketData', MarketDataClient],
+        ] as const;
+
+        for (const [accessor, Facade] of facades) {
+            const mapped = new Set([
+                ...capabilities
+                    .filter((entry) => entry.accessor === accessor)
+                    .flatMap((entry) => entry.methods),
+                ...ergonomicCapabilities
+                    .filter((entry) => entry.accessor === accessor)
+                    .flatMap((entry) => entry.methods),
+                ...streamingCapabilities
+                    .filter((entry) => entry.accessor.startsWith(`${accessor}.`))
+                    .map((entry) => entry.accessor.slice(accessor.length + 1)),
+            ]);
+            const ownMethods = Object.getOwnPropertyNames(Facade.prototype)
+                .filter((method) => method !== 'constructor')
+                .filter(
+                    (method) =>
+                        typeof Object.getOwnPropertyDescriptor(
+                            Facade.prototype,
+                            method,
+                        )?.value === 'function',
+                );
+
+            for (const method of ownMethods) {
+                expect(
+                    mapped.has(method),
+                    `${accessor}.${method} is missing from the capability maps`,
+                ).toBe(true);
             }
         }
     });

@@ -99,11 +99,19 @@ export function assertSseContracts(document: unknown): void {
       let successfulSseSchema: JsonObject | undefined;
       let successfulSseCount = 0;
       let competingSuccessfulMedia: string | undefined;
+      let unsupportedSuccessfulStatus: string | undefined;
+      let contentfulNoContentStatus = false;
 
       for (const [status, rawResponse] of Object.entries(responses ?? {})) {
         if (!/^2(?:\d\d|XX)$/i.test(status)) continue;
         const response = resolveLocalRef(root, rawResponse);
         const content = object(response?.content);
+        if (status !== "200" && status !== "204") {
+          unsupportedSuccessfulStatus ??= status;
+        }
+        if (status === "204" && Object.keys(content ?? {}).length > 0) {
+          contentfulNoContentStatus = true;
+        }
         for (const [rawMediaType, rawMedia] of Object.entries(content ?? {})) {
           const mediaType = normalizedMediaType(rawMediaType);
           if (mediaType === "text/event-stream") {
@@ -140,6 +148,15 @@ export function assertSseContracts(document: unknown): void {
           label,
           `${SSE_MARKER} is present but no successful text/event-stream response exists`,
         );
+      }
+      if ((marked || successfulSseCount > 0) && unsupportedSuccessfulStatus) {
+        fail(
+          label,
+          `successful status ${unsupportedSuccessfulStatus} is unsupported for SSE; use 200 and optionally an empty 204 response`,
+        );
+      }
+      if ((marked || successfulSseCount > 0) && contentfulNoContentStatus) {
+        fail(label, "SSE status 204 must not declare response content");
       }
       const parameters = [
         ...(Array.isArray(pathItem.parameters) ? pathItem.parameters : []),

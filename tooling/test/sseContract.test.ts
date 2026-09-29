@@ -57,6 +57,50 @@ describe("SSE generation contract", () => {
     ).not.toThrow();
   });
 
+  it("accepts only runtime-supported successful SSE statuses", () => {
+    const withNoContent = operation({
+      "x-typescript-fetch-sse": true,
+      responses: {
+        ...operation().responses,
+        "204": { description: "Stop reconnecting" },
+      },
+    });
+    expect(() =>
+      assertSseContracts(document(withNoContent)),
+    ).not.toThrow();
+
+    for (const status of ["201", "206", "2XX"]) {
+      const unsupported = operation({
+        "x-typescript-fetch-sse": true,
+        responses: {
+          "200": operation().responses["200"],
+          [status]: { description: "Unsupported success" },
+        },
+      });
+      expect(() =>
+        assertSseContracts(document(unsupported)),
+      ).toThrowError(new RegExp(`status ${status} is unsupported`));
+    }
+
+    const contentfulNoContent = operation({
+      "x-typescript-fetch-sse": true,
+      responses: {
+        ...operation().responses,
+        "204": {
+          content: {
+            "text/event-stream":
+              operation().responses["200"].content[
+                "text/event-stream"
+              ],
+          },
+        },
+      },
+    });
+    expect(() =>
+      assertSseContracts(document(contentfulNoContent)),
+    ).toThrowError(/204 must not declare response content/);
+  });
+
   it("rejects an unmarked event stream", () => {
     expect(() => assertSseContracts(document(operation()))).toThrowError(
       /missing x-typescript-fetch-sse/,
@@ -191,7 +235,7 @@ describe("SSE generation contract", () => {
     const spec = document(
       operation({
         "x-typescript-fetch-sse": true,
-        responses: { "2XX": { $ref: "#/components/responses/events" } },
+        responses: { "200": { $ref: "#/components/responses/events" } },
       }),
     ) as Record<string, any>;
     spec.components.responses = {

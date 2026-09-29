@@ -19,10 +19,10 @@ codemod are included in the published npm package.
 
 ```bash
 # JavaScript sources
-npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=babel "src/**/*.js"
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=babel --extensions=js src
 
 # TypeScript sources
-npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=tsx --extensions=ts,tsx "src/**/*.ts"
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=tsx --extensions=ts,tsx src
 
 # Preview without writing
 npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=babel --dry --print src/bot.js
@@ -112,10 +112,10 @@ the [`4.x` → `5.0` guide](../MIGRATION_V5.md) alongside it.
 
 ```bash
 # JavaScript sources
-npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=babel "src/**/*.js"
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=babel --extensions=js src
 
 # TypeScript sources
-npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=tsx --extensions=ts,tsx "src/**/*.{ts,tsx}"
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=tsx --extensions=ts,tsx src
 
 # Preview without writing
 npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=tsx --dry --print src/bot.ts
@@ -123,6 +123,14 @@ npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-
 
 When running from a checkout of this repository, use
 `-t ./codemods/alpaca-v4-to-v5.js`.
+
+### Options
+
+- `--instanceName=foo,bar` — additional dependency-injected Alpaca client
+  identifiers to trust. Every exact lexical binding with a requested name,
+  including function parameters, is eligible; reassigned bindings are ignored.
+  Stable aliases are followed. No identifier is trusted from its name unless
+  this option is supplied.
 
 ### What it rewrites automatically
 
@@ -132,7 +140,9 @@ When running from a checkout of this repository, use
   preserving shorthand values.
 - Generated option-contract response, corporate-announcement, and tokenization
   issuer symbol names.
-- Literal `caTypes: "..."` values to one-element arrays in announcement calls.
+- Literal `caTypes: "Dividend,Merger"` CSV values to canonical arrays such as
+  `["Dividend", "Merger"]` in announcement calls. Matching is
+  case-insensitive; empty or unknown values are left for review.
 
 The old `PostOrderRequest` name is ambiguous: in version 4 it names the order
 body, while in version 5 it names the operation wrapper. The transform rewrites
@@ -141,7 +151,9 @@ reports uncertain references for manual review.
 
 ### What it flags without silently rewriting
 
-- Removed index-value and crypto perpetual-futures APIs.
+- Removed index-value and crypto perpetual-futures APIs, including the
+  generated API constructors (including proven destructuring from the
+  `marketData` namespace) and every generated operation / `Raw` sibling.
 - `Assets.easyToBorrow` and changed corporate-announcement fields/dates.
 - Activity SSE calls, whose return value is now an async subscription with an
   explicit lifecycle rather than an array.
@@ -163,3 +175,12 @@ reports uncertain references for manual review.
 
 The transform is a safety aid, not a complete semantic migration. Always run it
 on a clean version-control branch.
+
+JavaScript users must manually audit response consumers that static provenance
+cannot prove. Search for `CorporateAnnouncement` date string operations and its
+removed `corporateActionsId` / `expirationDate` fields,
+`Assets.easyToBorrow`, and truthiness checks on Trading dividend
+`foreign` / `special` string flags. TypeScript users receive compiler
+diagnostics for these response-shape changes. The transform intentionally does
+not match those property names globally because they may belong to unrelated
+application objects.

@@ -68,6 +68,10 @@ carry the latest event id in `Last-Event-ID` and honor the server's `retry:`
 field and HTTP `Retry-After`. Replay may be inclusive, so consumers that need
 exactly-once effects must deduplicate by event id. Pass `reconnect: false`, or a
 policy such as `{ maxAttempts: 5, maxElapsedMs: 60_000 }`, to bound retries.
+`subscription.lastEventId` is safe to persist after handling an event: it tracks
+the most recently delivered message rather than later messages already buffered
+in the same network chunk. A completed data-less `id:` block is applied only
+after all earlier buffered messages have been delivered.
 Queries with `until` or `untilId` are finite and end cleanly without reconnecting.
 Opening is bounded to two retries by default so the initial `await` cannot retry
 forever; set `maxInitialAttempts` explicitly (or `Infinity`) to change that

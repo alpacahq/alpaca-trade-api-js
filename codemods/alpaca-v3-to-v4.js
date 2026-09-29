@@ -6,7 +6,7 @@
  * semantic change (return-shape changes, field renames, etc.).
  *
  * Usage:
- *   npx jscodeshift -t codemods/alpaca-v3-to-v4.js "src/**\/*.{js,ts}"
+ *   npx jscodeshift -t codemods/alpaca-v3-to-v4.js --extensions=js src
  *   npx jscodeshift -t codemods/alpaca-v3-to-v4.js --dry --print src/bot.ts
  *   # TypeScript: add --parser=tsx (or --parser=ts) and --extensions=ts,tsx
  *

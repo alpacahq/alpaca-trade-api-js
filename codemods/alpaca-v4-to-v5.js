@@ -7,7 +7,7 @@
  *
  * Usage:
  *   npx jscodeshift -t codemods/alpaca-v4-to-v5.js --parser=tsx \
- *     --extensions=ts,tsx "src/**\/*.{ts,tsx}"
+ *     --extensions=ts,tsx src
  */
 
 "use strict";
@@ -67,12 +67,63 @@ const GENERATED_RENAMES = new Map([
 
 const REMOVED_MARKET_DATA_MEMBERS = new Map([
     [
+        "CryptoPerpetualFuturesApi",
+        "the generated crypto perpetual-futures API was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestBars",
+        "the crypto perpetual-futures bars operation was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestBarsRaw",
+        "the crypto perpetual-futures bars operation was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestFuturesPricing",
+        "the crypto perpetual-futures pricing operation was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestFuturesPricingRaw",
+        "the crypto perpetual-futures pricing operation was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestOrderbooks",
+        "the crypto perpetual-futures orderbooks operation was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestOrderbooksRaw",
+        "the crypto perpetual-futures orderbooks operation was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestQuotes",
+        "the crypto perpetual-futures quotes operation was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestQuotesRaw",
+        "the crypto perpetual-futures quotes operation was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestTrades",
+        "the crypto perpetual-futures trades operation was removed upstream",
+    ],
+    [
+        "cryptoPerpLatestTradesRaw",
+        "the crypto perpetual-futures trades operation was removed upstream",
+    ],
+    [
         "cryptoPerpetualFutures",
         "the crypto perpetual-futures API was removed upstream; remove or replace this call",
     ],
+    ["IndexApi", "the generated index-values API was removed upstream"],
+    ["indexLatestValues", "the latest index-values operation was removed upstream"],
     [
-        "getCryptoPerpetualFuturesPricing",
-        "the crypto perpetual-futures operation was removed upstream",
+        "indexLatestValuesRaw",
+        "the latest index-values operation was removed upstream",
+    ],
+    ["indexValues", "the historical index-values operation was removed upstream"],
+    [
+        "indexValuesRaw",
+        "the historical index-values operation was removed upstream",
     ],
     [
         "indices",
@@ -88,6 +139,13 @@ const REMOVED_MARKET_DATA_MEMBERS = new Map([
     ["toIndexValuesBySymbol", "the index-value shape helper was removed"],
 ]);
 
+const CORPORATE_ACTION_TYPES = new Map(
+    ["Spinoff", "Merger", "Split", "Reorg", "Dividend"].map((value) => [
+        value.toLowerCase(),
+        value,
+    ]),
+);
+
 const TRADING_DIVIDEND_MODELS = new Set([
     "CDIVActivityV2",
     "CommonCDIVActivityV2",
@@ -95,7 +153,7 @@ const TRADING_DIVIDEND_MODELS = new Set([
     "OpcaCDIVActivityV2",
 ]);
 
-module.exports = function transformer(file, api) {
+module.exports = function transformer(file, api, options = {}) {
     const j = api.jscodeshift;
     const root = j(file.source);
     let mutated = false;
@@ -444,46 +502,91 @@ module.exports = function transformer(file, api) {
         });
     });
 
-    const isTradingNamespaceMember = (path) => {
-        const objectPath = path.get("object");
+    const isSdkNamespaceObject = (path) =>
+        (path.value?.type === "Identifier" &&
+            hasBinding(sdkNamespaces, path)) ||
+        isPackageRequire(path);
+    const isTradingNamespaceObject = (path) => {
         if (
-            objectPath.value?.type === "Identifier" &&
-            hasBinding(tradingNamespaces, objectPath)
+            path.value?.type === "Identifier" &&
+            hasBinding(tradingNamespaces, path)
         ) {
             return true;
         }
         if (
-            objectPath.value?.type === "MemberExpression" &&
-            propertyName(objectPath.value.property) === "trading"
+            path.value?.type === "MemberExpression" &&
+            propertyName(path.value.property) === "trading"
         ) {
-            const sdkPath = objectPath.get("object");
-            return (
-                sdkPath.value?.type === "Identifier" &&
-                hasBinding(sdkNamespaces, sdkPath)
-            );
+            const sdkPath = path.get("object");
+            return isSdkNamespaceObject(sdkPath);
         }
         return false;
     };
-    const isMarketDataNamespaceMember = (path) => {
-        const objectPath = path.get("object");
+    const isTradingNamespaceMember = (path) =>
+        path.value?.type === "MemberExpression" &&
+        isTradingNamespaceObject(path.get("object"));
+    const isMarketDataNamespaceObject = (path) => {
         if (
-            objectPath.value?.type === "Identifier" &&
-            hasBinding(marketDataNamespaces, objectPath)
+            path.value?.type === "Identifier" &&
+            hasBinding(marketDataNamespaces, path)
         ) {
             return true;
         }
         if (
-            objectPath.value?.type === "MemberExpression" &&
-            propertyName(objectPath.value.property) === "marketData"
+            path.value?.type === "MemberExpression" &&
+            propertyName(path.value.property) === "marketData"
         ) {
-            const sdkPath = objectPath.get("object");
-            return (
-                sdkPath.value?.type === "Identifier" &&
-                hasBinding(sdkNamespaces, sdkPath)
-            );
+            const sdkPath = path.get("object");
+            return isSdkNamespaceObject(sdkPath);
         }
         return false;
     };
+    const isMarketDataNamespaceMember = (path) =>
+        path.value?.type === "MemberExpression" &&
+        isMarketDataNamespaceObject(path.get("object"));
+    const activityTypeObjects = createBindings();
+    root.find(j.VariableDeclarator).forEach((path) => {
+        if (
+            path.value.id.type === "Identifier" &&
+            path.value.init?.type === "MemberExpression" &&
+            propertyName(path.value.init.property) === "ActivityType" &&
+            isTradingNamespaceMember(path.get("init")) &&
+            isStableDeclaration(path.get("id"))
+        ) {
+            setBinding(activityTypeObjects, path.get("id"));
+            return;
+        }
+        if (
+            path.value.id.type !== "ObjectPattern" ||
+            !path.value.init ||
+            !isTradingNamespaceObject(path.get("init"))
+        ) {
+            return;
+        }
+        path.get("id", "properties").each((propertyPath) => {
+            const property = propertyPath.value;
+            if (
+                (property.type !== "Property" &&
+                    property.type !== "ObjectProperty") ||
+                propertyName(property.key) !== "ActivityType" ||
+                property.value.type !== "Identifier"
+            ) {
+                return;
+            }
+            const valuePath = propertyPath.get("value");
+            const scope = bindingScope(valuePath);
+            if (!hasLaterWrite(scope, valuePath.value.name)) {
+                setBinding(activityTypeObjects, valuePath);
+            }
+        });
+    });
+    propagateStableAliases(activityTypeObjects);
+    const isActivityTypeObject = (path) =>
+        (path.value?.type === "Identifier" &&
+            hasBinding(activityTypeObjects, path)) ||
+        (path.value?.type === "MemberExpression" &&
+            propertyName(path.value.property) === "ActivityType" &&
+            isTradingNamespaceMember(path));
     const isMarketDataShapesNamespace = (path) => {
         if (
             path.value?.type === "Identifier" &&
@@ -576,6 +679,27 @@ module.exports = function transformer(file, api) {
         );
     };
     const alpacaInstances = createBindings();
+    const configuredInstanceNames = new Set(
+        String(options.instanceName || "")
+            .split(",")
+            .map((name) => name.trim())
+            .filter(Boolean),
+    );
+    if (configuredInstanceNames.size > 0) {
+        root.find(j.Identifier).forEach((path) => {
+            if (!configuredInstanceNames.has(path.value.name)) return;
+            const scope = bindingScope(path);
+            if (!scope || hasBinding(alpacaInstances, path)) return;
+            if (hasLaterWrite(scope, path.value.name)) {
+                report(
+                    `ambiguous-instance-${path.value.name}`,
+                    `--instanceName=${path.value.name} was ignored for a reassigned binding`,
+                );
+                return;
+            }
+            setBinding(alpacaInstances, path);
+        });
+    }
     root.find(j.NewExpression).forEach((path) => {
         if (!isAlpacaConstructor(path.get("callee"))) return;
         const parent = path.parent;
@@ -696,38 +820,128 @@ module.exports = function transformer(file, api) {
         isNamedCall(path.value, activitySseMethodNames) &&
         isGeneratedEventsReceiver(path.get("callee", "object"));
 
+    const removedMarketDataApiNames = new Set([
+        "IndexApi",
+        "CryptoPerpetualFuturesApi",
+    ]);
+    const removedMarketDataConstructors = createBindings();
+    root.find(j.VariableDeclarator).forEach((path) => {
+        if (
+            path.value.id.type === "Identifier" &&
+            path.value.init?.type === "MemberExpression" &&
+            isMarketDataNamespaceMember(path.get("init")) &&
+            removedMarketDataApiNames.has(
+                propertyName(path.value.init.property),
+            ) &&
+            isStableDeclaration(path.get("id"))
+        ) {
+            setBinding(
+                removedMarketDataConstructors,
+                path.get("id"),
+                propertyName(path.value.init.property),
+            );
+            return;
+        }
+        if (
+            path.value.id.type !== "ObjectPattern" ||
+            !path.value.init ||
+            !isMarketDataNamespaceObject(path.get("init"))
+        ) {
+            return;
+        }
+        path.get("id", "properties").each((propertyPath) => {
+            const property = propertyPath.value;
+            const apiName =
+                property.type === "Property" ||
+                property.type === "ObjectProperty"
+                    ? propertyName(property.key)
+                    : undefined;
+            if (
+                !apiName ||
+                !removedMarketDataApiNames.has(apiName) ||
+                property.value.type !== "Identifier"
+            ) {
+                return;
+            }
+            const valuePath = propertyPath.get("value");
+            const scope = bindingScope(valuePath);
+            if (hasLaterWrite(scope, valuePath.value.name)) return;
+            setBinding(
+                removedMarketDataConstructors,
+                valuePath,
+                apiName,
+            );
+            addTodo(
+                propertyPath,
+                `removed-${apiName}`,
+                REMOVED_MARKET_DATA_MEMBERS.get(apiName),
+            );
+        });
+    });
+    propagateStableAliases(removedMarketDataConstructors);
+
     const removedMarketDataApis = createBindings();
     root.find(j.VariableDeclarator).forEach((path) => {
         if (
             path.value.id.type !== "Identifier" ||
             path.value.init?.type !== "NewExpression" ||
-            path.value.init.callee.type !== "MemberExpression" ||
-            !isMarketDataNamespaceMember(
-                path.get("init", "callee"),
-            ) ||
             !isStableDeclaration(path.get("id"))
         ) {
             return;
         }
-        const apiName = propertyName(
-            path.value.init.callee.property,
-        );
-        if (
-            apiName === "IndexApi" ||
-            apiName === "CryptoPerpetualFuturesApi"
-        ) {
-            setBinding(
-                removedMarketDataApis,
-                path.get("id"),
-                apiName,
-            );
+        const calleePath = path.get("init", "callee");
+        const apiName =
+            calleePath.value?.type === "MemberExpression" &&
+            isMarketDataNamespaceMember(calleePath)
+                ? propertyName(calleePath.value.property)
+                : calleePath.value?.type === "Identifier"
+                  ? getBinding(
+                        removedMarketDataConstructors,
+                        calleePath,
+                    )
+                  : undefined;
+        if (!apiName || !removedMarketDataApiNames.has(apiName)) {
+            return;
         }
+        setBinding(
+            removedMarketDataApis,
+            path.get("id"),
+            apiName,
+        );
     });
     propagateStableAliases(removedMarketDataApis);
+    const indexApiMethods = new Set([
+        "getIndexValues",
+        "indexLatestValues",
+        "indexLatestValuesRaw",
+        "indexValues",
+        "indexValuesRaw",
+    ]);
+    const cryptoPerpetualFuturesApiMethods = new Set([
+        "cryptoPerpLatestBars",
+        "cryptoPerpLatestBarsRaw",
+        "cryptoPerpLatestFuturesPricing",
+        "cryptoPerpLatestFuturesPricingRaw",
+        "cryptoPerpLatestOrderbooks",
+        "cryptoPerpLatestOrderbooksRaw",
+        "cryptoPerpLatestQuotes",
+        "cryptoPerpLatestQuotesRaw",
+        "cryptoPerpLatestTrades",
+        "cryptoPerpLatestTradesRaw",
+    ]);
     const isRemovedMarketDataMember = (path, name) => {
         const isNestedReceiver =
             path.parent?.value?.type === "MemberExpression" &&
             path.parent.value.object === path.value;
+        if (
+            name === "IndexApi" ||
+            name === "CryptoPerpetualFuturesApi"
+        ) {
+            return (
+                !isNestedReceiver &&
+                isMarketDataNamespaceMember(path)
+            );
+        }
         if (name === "indices") {
             return (
                 !isNestedReceiver &&
@@ -750,32 +964,28 @@ module.exports = function transformer(file, api) {
         }
         const receiverPath = path.get("object");
         if (
-            name === "getIndexValues" &&
-            (isFacadeAreaReceiver(
-                receiverPath,
-                "marketData",
-                "indices",
-            ) ||
-                (receiverPath.value?.type === "Identifier" &&
-                    getBinding(
-                        removedMarketDataApis,
-                        receiverPath,
-                    ) === "IndexApi"))
+            indexApiMethods.has(name) &&
+            receiverPath.value?.type === "Identifier" &&
+            getBinding(removedMarketDataApis, receiverPath) ===
+                "IndexApi"
         ) {
             return true;
         }
         if (
-            name === "getCryptoPerpetualFuturesPricing" &&
-            (isFacadeAreaReceiver(
+            cryptoPerpetualFuturesApiMethods.has(name) &&
+            receiverPath.value?.type === "Identifier" &&
+            getBinding(removedMarketDataApis, receiverPath) ===
+                "CryptoPerpetualFuturesApi"
+        ) {
+            return true;
+        }
+        if (
+            name === "getIndexValues" &&
+            isFacadeAreaReceiver(
                 receiverPath,
                 "marketData",
-                "cryptoPerpetualFutures",
-            ) ||
-                (receiverPath.value?.type === "Identifier" &&
-                    getBinding(
-                        removedMarketDataApis,
-                        receiverPath,
-                    ) === "CryptoPerpetualFuturesApi"))
+                "indices",
+            )
         ) {
             return true;
         }
@@ -958,7 +1168,22 @@ module.exports = function transformer(file, api) {
                     property.value.type === "StringLiteral") &&
                 typeof property.value.value === "string"
             ) {
-                property.value = j.arrayExpression([property.value]);
+                const values = property.value.value
+                    .split(",")
+                    .map((value) => value.trim());
+                const canonical = values.map((value) =>
+                    CORPORATE_ACTION_TYPES.get(value.toLowerCase()),
+                );
+                if (
+                    values.some((value) => value === "") ||
+                    canonical.some((value) => value === undefined)
+                ) {
+                    provenCompatible = false;
+                    continue;
+                }
+                property.value = j.arrayExpression(
+                    canonical.map((value) => j.stringLiteral(value)),
+                );
                 mutated = true;
             } else if (property.value.type !== "ArrayExpression") {
                 provenCompatible = false;
@@ -1170,17 +1395,27 @@ module.exports = function transformer(file, api) {
         }
     });
 
+    const reorgReview =
+        'do not mechanically rewrite historical "REORG"; use "REO" for new reorganizations and retain "REORG"/"WRM" for worthless removals';
+    root.find(j.MemberExpression).forEach((path) => {
+        if (
+            propertyName(path.value.property) === "Reorg" &&
+            isActivityTypeObject(path.get("object"))
+        ) {
+            report("reorg-enum", reorgReview);
+        }
+    });
     root.find(j.Literal, { value: "REORG" }).forEach(() => {
         report(
             "reorg-literal",
-            'do not mechanically rewrite historical "REORG"; use "REO" for new reorganizations and retain "REORG"/"WRM" for worthless removals',
+            reorgReview,
         );
     });
     if (j.StringLiteral) {
         root.find(j.StringLiteral, { value: "REORG" }).forEach(() => {
             report(
                 "reorg-literal",
-                'do not mechanically rewrite historical "REORG"; use "REO" for new reorganizations and retain "REORG"/"WRM" for worthless removals',
+                reorgReview,
             );
         });
     }

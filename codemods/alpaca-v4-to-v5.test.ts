@@ -17,6 +17,7 @@ function fixture(name: string): string {
 function transform(
     source: string,
     parser: "babel" | "tsx" = "tsx",
+    options: Record<string, unknown> = {},
 ): {
     source: string | undefined;
     reports: string[];
@@ -31,10 +32,33 @@ function transform(
             report: (message: string) => reports.push(message),
             stats: () => {},
         },
-        {},
+        options,
     );
     return { source: result?.trimEnd(), reports };
 }
+
+const removedGeneratedMarketDataMethods = [
+    ["IndexApi", "indexLatestValues"],
+    ["IndexApi", "indexLatestValuesRaw"],
+    ["IndexApi", "indexValues"],
+    ["IndexApi", "indexValuesRaw"],
+    ["CryptoPerpetualFuturesApi", "cryptoPerpLatestBars"],
+    ["CryptoPerpetualFuturesApi", "cryptoPerpLatestBarsRaw"],
+    [
+        "CryptoPerpetualFuturesApi",
+        "cryptoPerpLatestFuturesPricing",
+    ],
+    [
+        "CryptoPerpetualFuturesApi",
+        "cryptoPerpLatestFuturesPricingRaw",
+    ],
+    ["CryptoPerpetualFuturesApi", "cryptoPerpLatestOrderbooks"],
+    ["CryptoPerpetualFuturesApi", "cryptoPerpLatestOrderbooksRaw"],
+    ["CryptoPerpetualFuturesApi", "cryptoPerpLatestQuotes"],
+    ["CryptoPerpetualFuturesApi", "cryptoPerpLatestQuotesRaw"],
+    ["CryptoPerpetualFuturesApi", "cryptoPerpLatestTrades"],
+    ["CryptoPerpetualFuturesApi", "cryptoPerpLatestTradesRaw"],
+] as const;
 
 describe("alpaca-v4-to-v5 codemod", () => {
     it("matches the TypeScript migration fixture", () => {
@@ -236,9 +260,45 @@ api.getV2CorporateActionsAnnouncements({ caTypes: "dividend" });`;
         const result = transform(source);
 
         expect(result.source).toContain(
-            'api.getV2CorporateActionsAnnouncements({ caTypes: ["dividend"] });',
+            'api.getV2CorporateActionsAnnouncements({ caTypes: ["Dividend"] });',
         );
         expect(result.reports).toEqual([]);
+    });
+
+    it("splits and canonicalizes literal corporate-action CSV values", () => {
+        const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+alpaca.trading.corporateActions.getV2CorporateActionsAnnouncements({
+  caTypes: " dividend, Merger,DIVIDEND "
+});`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            'caTypes: ["Dividend", "Merger", "Dividend"]',
+        );
+        expect(result.reports).toEqual([]);
+        expect(transform(result.source ?? source).source).toBeUndefined();
+    });
+
+    it("leaves unknown literal corporate-action values for review", () => {
+        const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+alpaca.trading.corporateActions.getV2CorporateActionsAnnouncements({
+  caTypes: "Dividend,Unknown"
+});`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            'caTypes: "Dividend,Unknown"',
+        );
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): the `caTypes` value could not be proven to be a v5 array",
+        );
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                "the `caTypes` value could not be proven to be a v5 array",
+            ),
+        ]);
     });
 
     it("leaves shared variable-backed corporate-action requests unchanged", () => {
@@ -315,13 +375,60 @@ unrelated.trading.corporateActions.getV2CorporateActionsAnnouncements({
     it("leaves unrelated SSE and removed-method lookalikes unchanged", () => {
         const source = `const unrelated = {
   subscribeToActivitiesSSE() { return []; },
-  getIndexValues() { return [1]; }
+  getIndexValues() { return [1]; },
+  indexValues() { return [2]; },
+  cryptoPerpLatestBars() { return [3]; }
 };
 const events = await unrelated.subscribeToActivitiesSSE();
 for await (const event of events) {
   if (event.details.foreign) console.log(event);
 }
-console.log(unrelated.getIndexValues());`;
+console.log(
+  unrelated.getIndexValues(),
+  unrelated.indexValues(),
+  unrelated.cryptoPerpLatestBars()
+);`;
+
+        expect(transform(source, "babel")).toEqual({
+            source: undefined,
+            reports: [],
+        });
+    });
+
+    it.each([
+        `import { trading as trade } from "@alpacahq/alpaca-trade-api";
+if (activity.activityType === trade.ActivityType.Reorg) handle(activity);`,
+        `import * as sdk from "@alpacahq/alpaca-trade-api";
+const activityTypes = sdk.trading.ActivityType;
+const stableAlias = activityTypes;
+if (activity.activityType === stableAlias["Reorg"]) handle(activity);`,
+        `const sdk = require("@alpacahq/alpaca-trade-api");
+const { ActivityType: Types } = sdk.trading;
+if (activity.activityType === Types.Reorg) handle(activity);`,
+        `const { ActivityType } = require("@alpacahq/alpaca-trade-api").trading;
+if (activity.activityType === ActivityType.Reorg) handle(activity);`,
+    ])(
+        "reports proven ActivityType.Reorg without rewriting it",
+        (source) => {
+            const result = transform(
+                source,
+                source.startsWith("const") ? "babel" : "tsx",
+            );
+
+            expect(result.source).toBeUndefined();
+            expect(result.reports).toEqual([
+                expect.stringContaining(
+                    'do not mechanically rewrite historical "REORG"',
+                ),
+            ]);
+        },
+    );
+
+    it("does not report unrelated Reorg members", () => {
+        const source = `const unrelated = {
+  ActivityType: { Reorg: "application-value" }
+};
+console.log(unrelated.ActivityType.Reorg);`;
 
         expect(transform(source, "babel")).toEqual({
             source: undefined,
@@ -351,6 +458,105 @@ marketDataShapes.toIndexValue({});`;
         expect(result.source).toContain(
             "TODO(alpaca-codemod): the index-value shape helper was removed",
         );
+    });
+
+    it.each(removedGeneratedMarketDataMethods)(
+        "flags removed generated %s.%s calls",
+        (apiName, methodName) => {
+            const source = `import { marketData } from "@alpacahq/alpaca-trade-api";
+const api = new marketData.${apiName}();
+api.${methodName}({});`;
+            const result = transform(source);
+
+            expect(result.source).toContain(
+                "TODO(alpaca-codemod): the generated",
+            );
+            expect(result.source).toMatch(
+                new RegExp(
+                    `TODO\\(alpaca-codemod\\): the .*${apiName === "IndexApi" ? "index-values" : "crypto perpetual-futures"}.* operation was removed upstream`,
+                ),
+            );
+            expect(result.reports).toHaveLength(2);
+            expect(transform(result.source ?? source).source).toBeUndefined();
+        },
+    );
+
+    it.each([
+        `import { marketData as md } from "@alpacahq/alpaca-trade-api";
+const { IndexApi: RemovedIndex } = md;
+const Constructor = RemovedIndex;
+const api = new Constructor();
+api.indexValues({});`,
+        `const { marketData: md } = require("@alpacahq/alpaca-trade-api");
+const { CryptoPerpetualFuturesApi } = md;
+const api = new CryptoPerpetualFuturesApi();
+api.cryptoPerpLatestBars({});`,
+        `const { IndexApi } = require("@alpacahq/alpaca-trade-api").marketData;
+const api = new IndexApi();
+api.indexLatestValues({});`,
+    ])(
+        "flags destructured generated Market Data constructors",
+        (source) => {
+            const result = transform(
+                source,
+                source.startsWith("const") ? "babel" : "tsx",
+            );
+
+            expect(result.source).toContain(
+                "TODO(alpaca-codemod): the generated",
+            );
+            expect(result.reports).toHaveLength(2);
+            expect(transform(
+                result.source ?? source,
+                source.startsWith("const") ? "babel" : "tsx",
+            ).source).toBeUndefined();
+        },
+    );
+
+    it("uses explicit instance names for dependency-injected facade clients", () => {
+        const source = `function migrate(client) {
+  const stable = client;
+  return stable.marketData.indices.getIndexValues({});
+}`;
+
+        expect(transform(source, "babel")).toEqual({
+            source: undefined,
+            reports: [],
+        });
+
+        const result = transform(source, "babel", {
+            instanceName: "client",
+        });
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): the index-values operation was removed upstream",
+        );
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                "the index-values operation was removed upstream",
+            ),
+        ]);
+        expect(
+            transform(result.source ?? source, "babel", {
+                instanceName: "client",
+            }).source,
+        ).toBeUndefined();
+    });
+
+    it("ignores an explicitly named facade binding when it is reassigned", () => {
+        const source = `function migrate(client) {
+  client = getReplacement();
+  return client.marketData.indices.getIndexValues({});
+}`;
+        const result = transform(source, "babel", {
+            instanceName: "client",
+        });
+
+        expect(result.source).toBeUndefined();
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                "--instanceName=client was ignored for a reassigned binding",
+            ),
+        ]);
     });
 
     it("leaves unrelated changed-field lookalikes unchanged", () => {

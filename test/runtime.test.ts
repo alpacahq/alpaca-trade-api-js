@@ -65,12 +65,20 @@ function headerValue(init: RequestInit | undefined, name: string): string | unde
  */
 function callerFor(rt: RuntimeModule) {
     class RawApi extends rt.BaseAPI {
-        exec(method: string, initOverrides?: RequestInit): Promise<Response> {
-            return this.request({ path: '/probe', method: method as never, headers: {} }, initOverrides);
+        exec(
+            method: string,
+            initOverrides?: RequestInit,
+            headers: Record<string, string | undefined> = {},
+        ): Promise<Response> {
+            return this.request({ path: '/probe', method: method as never, headers }, initOverrides);
         }
     }
-    return (cfg: InstanceType<RuntimeModule['Configuration']>, method: string, initOverrides?: RequestInit) =>
-        new RawApi(cfg).exec(method, initOverrides);
+    return (
+        cfg: InstanceType<RuntimeModule['Configuration']>,
+        method: string,
+        initOverrides?: RequestInit,
+        headers?: Record<string, string | undefined>,
+    ) => new RawApi(cfg).exec(method, initOverrides, headers);
 }
 
 for (const { name, rt } of RUNTIMES) {
@@ -113,6 +121,64 @@ for (const { name, rt } of RUNTIMES) {
             });
             await call(cfg, 'GET');
             expect(headerValue(seen, 'User-Agent')).toBe('my-app/9.9');
+        });
+    });
+
+    describe(`[${name}] case-insensitive header precedence`, () => {
+        it('lets generated operation headers replace mixed-case configuration headers', async () => {
+            let seen: RequestInit | undefined;
+            const accessToken = vi.fn(async () => 'generated-token');
+            const cfg = new rt.Configuration({
+                headers: {
+                    accept: 'application/json',
+                    'X-Operation': 'configured',
+                    authorization: 'Bearer configured',
+                },
+                accessToken,
+                fetchApi: async (_url, init) => {
+                    seen = init;
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+
+            await call(cfg, 'POST', undefined, {
+                Accept: 'application/problem+json',
+                'x-operation': 'generated',
+                'Content-Type': 'application/json',
+            });
+
+            const headers = new Headers(seen?.headers);
+            expect(headers.get('Accept')).toBe('application/problem+json');
+            expect(headers.get('X-Operation')).toBe('generated');
+            expect(headers.get('Authorization')).toBe('Bearer configured');
+            expect(accessToken).not.toHaveBeenCalled();
+            expect(seen?.body).toBeUndefined();
+        });
+
+        it('keeps JSON body serialization after header normalization', async () => {
+            let seen: RequestInit | undefined;
+            class BodyApi extends rt.BaseAPI {
+                exec(): Promise<Response> {
+                    return this.request({
+                        path: '/probe',
+                        method: 'POST',
+                        headers: { 'content-type': 'application/json' },
+                        body: { ok: true },
+                    });
+                }
+            }
+            const cfg = new rt.Configuration({
+                headers: { 'Content-Type': 'text/plain' },
+                fetchApi: async (_url, init) => {
+                    seen = init;
+                    return jsonResponse(200, OK_BODY);
+                },
+            });
+
+            await new BodyApi(cfg).exec();
+
+            expect(headerValue(seen, 'Content-Type')).toBe('application/json');
+            expect(seen?.body).toBe('{"ok":true}');
         });
     });
 

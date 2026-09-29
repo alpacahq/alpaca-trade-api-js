@@ -1,5 +1,14 @@
-import { readFileSync } from "node:fs";
+import {
+    mkdirSync,
+    mkdtempSync,
+    readFileSync,
+    rmSync,
+    writeFileSync,
+} from "node:fs";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { renderDocsExamples } from "../scripts/gen-docs-examples";
 import {
@@ -8,6 +17,8 @@ import {
     renderDocsMigrationIndex,
     renderDocsV5Migration,
 } from "../scripts/gen-docs-migration";
+
+const nodeRequire = createRequire(import.meta.url);
 
 describe("docs migration generator", () => {
     it("adds generated frontmatter and rewrites only repository-relative links", () => {
@@ -92,6 +103,108 @@ describe("docs migration generator", () => {
             "The transform does not silently rewrite removed APIs",
         );
     });
+
+    it("publishes directory-based codemod commands that select JavaScript and TypeScript", () => {
+        const root = resolve(import.meta.dirname, "..");
+        const guides = [
+            readFileSync(resolve(root, "MIGRATION.md"), "utf8"),
+            readFileSync(resolve(root, "MIGRATION_V5.md"), "utf8"),
+            readFileSync(resolve(root, "codemods", "README.md"), "utf8"),
+        ];
+
+        for (const guide of guides) {
+            expect(guide).not.toMatch(/["']src\/\*\*/);
+        }
+        expect(guides[0]).toContain(
+            "--parser=babel --extensions=js src",
+        );
+        expect(guides[0]).toContain(
+            "--parser=tsx --extensions=ts,tsx src",
+        );
+        expect(guides[1]).toContain(
+            "--parser=babel --extensions=js src",
+        );
+        expect(guides[1]).toContain(
+            "--parser=tsx --extensions=ts,tsx src",
+        );
+    });
+
+    it.each([
+        {
+            version: "v3-to-v4",
+            extension: "js",
+            parser: "babel",
+            source: `const Alpaca = require("@alpacahq/alpaca-trade-api");
+const client = new Alpaca({ secretKey: "secret" });
+console.log(client);`,
+        },
+        {
+            version: "v3-to-v4",
+            extension: "tsx",
+            parser: "tsx",
+            source: `import Alpaca from "@alpacahq/alpaca-trade-api";
+const client = new Alpaca({ secretKey: "secret" });
+export const view = <div>{String(client)}</div>;`,
+        },
+        {
+            version: "v4-to-v5",
+            extension: "js",
+            parser: "babel",
+            source: `const { trading } = require("@alpacahq/alpaca-trade-api");
+console.log(trading.PostOrderRequestTakeProfit);`,
+        },
+        {
+            version: "v4-to-v5",
+            extension: "tsx",
+            parser: "tsx",
+            source: `import { trading } from "@alpacahq/alpaca-trade-api";
+export const value = <div>{String(trading.PostOrderRequestTakeProfit)}</div>;`,
+        },
+    ])(
+        "the $version $extension directory command transforms a fixture",
+        ({ version, extension, parser, source }) => {
+            const root = resolve(import.meta.dirname, "..");
+            const fixture = mkdtempSync(
+                resolve(tmpdir(), `alpaca-${version}-${extension}-`),
+            );
+            const sourceDir = resolve(fixture, "src");
+            const sourceFile = resolve(sourceDir, `input.${extension}`);
+            mkdirSync(sourceDir);
+            writeFileSync(sourceFile, source);
+
+            try {
+                const result = spawnSync(
+                    process.execPath,
+                    [
+                        nodeRequire.resolve(
+                            "jscodeshift/bin/jscodeshift.js",
+                        ),
+                        "-t",
+                        resolve(
+                            root,
+                            "codemods",
+                            `alpaca-${version}.js`,
+                        ),
+                        `--parser=${parser}`,
+                        `--extensions=${extension}`,
+                        "src",
+                    ],
+                    {
+                        cwd: fixture,
+                        encoding: "utf8",
+                    },
+                );
+
+                expect(
+                    result.status,
+                    result.stderr || result.stdout,
+                ).toBe(0);
+                expect(readFileSync(sourceFile, "utf8")).not.toBe(source);
+            } finally {
+                rmSync(fixture, { recursive: true, force: true });
+            }
+        },
+    );
 
     it("keeps the 3.x migration in the announcement and navbar", () => {
         const config = readFileSync(
@@ -182,6 +295,7 @@ describe("docs migration generator", () => {
         expect(source).toContain(
             'Do not mechanically rewrite persisted historical `"REORG"` values to `"REO"`',
         );
+        expect(source).toContain("`--instanceName=client`");
     });
 
     it("warns against truthiness for string-valued dividend flags", () => {
@@ -217,6 +331,16 @@ describe("docs migration generator", () => {
         );
         expect(source).toContain(
             "`expirationDate` was removed, while `effectiveDate?: Date` was added",
+        );
+        expect(source).toContain(
+            "JavaScript users must also manually audit response consumers",
+        );
+        expect(source).toContain("`Assets.easyToBorrow`");
+        expect(source).toContain(
+            "truthiness checks on Trading dividend `foreign` / `special` string flags",
+        );
+        expect(source).toContain(
+            "The codemod deliberately does not match property names globally",
         );
     });
 

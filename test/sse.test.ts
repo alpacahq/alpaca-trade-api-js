@@ -132,6 +132,30 @@ describe('typed SSE subscription', () => {
         );
     });
 
+    it('does not count a fragmented CRLF delimiter against the line limit', async () => {
+        const accepted = await SSEApiResponse.open(
+            async () => ({
+                response: chunkedResponse(['data: x\r', '\n\r\n']),
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => data,
+            { reconnect: false, maxLineBytes: 7 },
+        );
+        await expect(collect(await accepted.value())).resolves.toEqual(['x']);
+
+        const rejected = await SSEApiResponse.open(
+            async () => ({
+                response: chunkedResponse(['data: x\r', '\n\r\n']),
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => data,
+            { reconnect: false, maxLineBytes: 6 },
+        );
+        await expect(collect(await rejected.value())).rejects.toBeInstanceOf(
+            SseProtocolError,
+        );
+    });
+
     it('reconnects with the latest event id and stops when iteration returns', async () => {
         const seenIds: Array<string | undefined> = [];
         const reconnects = vi.fn();
@@ -200,6 +224,119 @@ describe('typed SSE subscription', () => {
         await iterator.return?.();
 
         expect(seenIds).toEqual([undefined, 'evt-1']);
+    });
+
+    it('exposes only the event id delivered from a parsed batch', async () => {
+        const raw = await SSEApiResponse.open(
+            async () => ({
+                response: chunkedResponse([
+                    'id: evt-1\ndata: {"n":1}\n\nid: evt-2\ndata: {"n":2}\n\n',
+                ]),
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => JSON.parse(data) as { n: number },
+            { reconnect: false },
+        );
+        const stream = await raw.value();
+        const iterator = stream.messages()[Symbol.asyncIterator]();
+
+        await expect(iterator.next()).resolves.toMatchObject({
+            value: { data: { n: 1 }, id: 'evt-1' },
+            done: false,
+        });
+        expect(stream.lastEventId).toBe('evt-1');
+
+        await iterator.return?.();
+    });
+
+    it('does not checkpoint an event that fails deserialization', async () => {
+        const raw = await SSEApiResponse.open(
+            async () => ({
+                response: chunkedResponse([
+                    'id: evt-1\ndata: {"n":1}\n\nid: evt-2\ndata: not-json\n\n',
+                ]),
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => JSON.parse(data) as { n: number },
+            { reconnect: false },
+        );
+        const stream = await raw.value();
+        const iterator = stream.messages()[Symbol.asyncIterator]();
+
+        await expect(iterator.next()).resolves.toMatchObject({
+            value: { data: { n: 1 }, id: 'evt-1' },
+            done: false,
+        });
+        await expect(iterator.next()).rejects.toBeInstanceOf(
+            SseDeserializationError,
+        );
+        expect(stream.lastEventId).toBe('evt-1');
+    });
+
+    it('commits a data-less event id only after earlier batched messages drain', async () => {
+        const raw = await SSEApiResponse.open(
+            async () => ({
+                response: chunkedResponse([
+                    'id: evt-1\ndata: first\n\nid: checkpoint\n\n',
+                ]),
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => data,
+            { reconnect: false },
+        );
+        const stream = await raw.value();
+        const iterator = stream.messages()[Symbol.asyncIterator]();
+
+        await expect(iterator.next()).resolves.toMatchObject({
+            value: { data: 'first', id: 'evt-1' },
+            done: false,
+        });
+        expect(stream.lastEventId).toBe('evt-1');
+        await expect(iterator.next()).resolves.toEqual({
+            value: undefined,
+            done: true,
+        });
+        expect(stream.lastEventId).toBe('checkpoint');
+    });
+
+    it('reconnects from the final delivered id after draining a parsed batch', async () => {
+        const seenIds: Array<string | undefined> = [];
+        let call = 0;
+        const raw = await SSEApiResponse.open(
+            async (lastEventId) => {
+                seenIds.push(lastEventId);
+                call += 1;
+                return {
+                    response: chunkedResponse([
+                        call === 1
+                            ? 'id: evt-1\ndata: {"n":1}\n\nid: evt-2\ndata: {"n":2}\n\n'
+                            : 'id: evt-3\ndata: {"n":3}\n\n',
+                    ]),
+                    url: 'https://stream.example.test/events',
+                };
+            },
+            (data) => JSON.parse(data) as { n: number },
+            { reconnect: { initialDelayMs: 0, maxDelayMs: 0 } },
+            { reconnect: true },
+        );
+        const stream = await raw.value();
+        const iterator = stream[Symbol.asyncIterator]();
+
+        await expect(iterator.next()).resolves.toEqual({
+            value: { n: 1 },
+            done: false,
+        });
+        await expect(iterator.next()).resolves.toEqual({
+            value: { n: 2 },
+            done: false,
+        });
+        await expect(iterator.next()).resolves.toEqual({
+            value: { n: 3 },
+            done: false,
+        });
+        await iterator.return?.();
+
+        expect(seenIds).toEqual([undefined, 'evt-2']);
     });
 
     it('retries the initial connection and honors Retry-After', async () => {
@@ -854,6 +991,41 @@ describe('generated SSE operation metadata', () => {
         stream.close();
     });
 
+    it('deduplicates mixed-case configuration and generated SSE headers', async () => {
+        let seenInit: RequestInit | undefined;
+        const accessToken = vi.fn(async () => 'unused-token');
+        const api = new trading.EventsApi(
+            new trading.Configuration({
+                keyId: 'generated-key',
+                secret: 'generated-secret',
+                accessToken,
+                headers: {
+                    accept: 'application/json',
+                    'apca-api-key-id': 'configured-key',
+                    'APCA-API-SECRET-KEY': 'configured-secret',
+                    authorization: 'Bearer configured',
+                },
+                fetchApi: async (_url, init) => {
+                    seenInit = init;
+                    return chunkedResponse([]);
+                },
+            }),
+        );
+
+        const stream = await api.subscribeToActivitiesSSE(
+            {},
+            { reconnect: false },
+        );
+
+        const headers = new Headers(seenInit?.headers);
+        expect(headers.get('Accept')).toBe('text/event-stream');
+        expect(headers.get('APCA-API-KEY-ID')).toBe('generated-key');
+        expect(headers.get('APCA-API-SECRET-KEY')).toBe('generated-secret');
+        expect(headers.get('Authorization')).toBe('Bearer configured');
+        expect(accessToken).not.toHaveBeenCalled();
+        stream.close();
+    });
+
     it.each([
         ['updates', 'id: fresh-1\ndata: {}\n\n', 'fresh-1'],
         ['resets', 'id:\ndata: {}\n\n', null],
@@ -931,6 +1103,7 @@ describe('generated SSE operation metadata', () => {
         let seenId: string | null = null;
         const api = new trading.EventsApi(
             new trading.Configuration({
+                headers: { 'LAST-EVENT-ID': 'configured' },
                 fetchApi: async (_url, init) => {
                     seenId = new Headers(init?.headers).get('Last-Event-ID');
                     return chunkedResponse([]);
@@ -960,7 +1133,14 @@ describe('generated SSE operation metadata', () => {
         });
         const fetchApi = vi.fn(async () => chunkedResponse([]));
         const api = new trading.EventsApi(
-            new trading.Configuration({ apiKey, fetchApi }),
+            new trading.Configuration({
+                apiKey,
+                headers: {
+                    'apca-api-key-id': 'configured-key',
+                    'APCA-API-SECRET-KEY': 'configured-secret',
+                },
+                fetchApi,
+            }),
         );
 
         const stream = await api.subscribeToActivitiesSSE(
@@ -991,14 +1171,18 @@ describe('generated SSE operation metadata', () => {
         });
         const fetchApi = vi.fn(async () => chunkedResponse([]));
         const api = new trading.EventsApi(
-            new trading.Configuration({ accessToken, fetchApi }),
+            new trading.Configuration({
+                accessToken,
+                headers: { authorization: 'Bearer configured' },
+                fetchApi,
+            }),
         );
 
         const stream = await api.subscribeToActivitiesSSE(
             {},
             {
                 headers: {
-                    Authorization: 'Bearer explicit',
+                    AUTHORIZATION: 'Bearer explicit',
                 },
                 reconnect: false,
             },
