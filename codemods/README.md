@@ -128,8 +128,8 @@ When running from a checkout of this repository, use
 
 - Proven generated order body/helper names to `CreateOrderRequest*` and the
   operation wrapper to `PostOrderRequest`.
-- `postOrderRequest` to `createOrderRequest` in generated order calls and
-  request objects, preserving shorthand values.
+- `postOrderRequest` to `createOrderRequest` in inline generated order calls,
+  preserving shorthand values.
 - Generated option-contract response, corporate-announcement, and tokenization
   issuer symbol names.
 - Literal `caTypes: "..."` values to one-element arrays in announcement calls.
@@ -150,6 +150,10 @@ reports uncertain references for manual review.
   Data corporate-action flags remain booleans and are not flagged.
 - `REORG`/`REO` references. Persisted historical `REORG` values are never
   rewritten automatically.
+- Variable-backed order and corporate-action request objects. They may be
+  shared with non-SDK consumers or modified through property writes, so the
+  transform leaves their runtime shape unchanged and marks each SDK call for
+  review.
 
 ### After running
 

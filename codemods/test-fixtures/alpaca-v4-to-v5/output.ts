@@ -15,9 +15,10 @@ declare const announcement: trading.CorporateAnnouncement;
 const orderBody: trading.CreateOrderRequest =
     trading.CreateOrderRequestFromJSON({});
 const orderRequest: trading.PostOrderRequest = {
-    createOrderRequest: orderBody,
+    postOrderRequest: orderBody,
 };
 await alpaca.trading.orders.postOrder({ createOrderRequest: orderBody });
+// TODO(alpaca-codemod): a variable-backed `postOrder` request was left unchanged because it may be shared; ensure this SDK call receives `{ createOrderRequest }`
 await alpaca.trading.orders.postOrderRaw(orderRequest);
 
 const optionContracts =

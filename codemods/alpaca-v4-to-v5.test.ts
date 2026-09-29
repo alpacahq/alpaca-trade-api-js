@@ -161,28 +161,56 @@ alpaca.trading.orders.postOrder(request);`;
         const result = transform(source);
 
         expect(result.source).toContain(
-            "TODO(alpaca-codemod): a variable-backed `postOrder` request may still contain `postOrderRequest`",
+            "TODO(alpaca-codemod): a variable-backed `postOrder` request was left unchanged because it may be shared",
         );
         expect(result.reports).toEqual([
             expect.stringContaining(
-                "a variable-backed `postOrder` request may still contain `postOrderRequest`",
+                "a variable-backed `postOrder` request was left unchanged because it may be shared",
             ),
         ]);
     });
 
-    it("migrates stable variable-backed generated order requests", () => {
+    it("leaves shared variable-backed generated order requests unchanged", () => {
         const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
 const alpaca = new Alpaca();
 const request = { postOrderRequest: body };
+consume(request);
 const alias = request;
 alpaca.trading.orders.postOrder(alias);`;
         const result = transform(source);
 
         expect(result.source).toContain(
-            "const request = { createOrderRequest: body };",
+            "const request = { postOrderRequest: body };",
         );
-        expect(result.reports).toEqual([]);
+        expect(result.source).toContain("consume(request);");
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): a variable-backed `postOrder` request was left unchanged because it may be shared",
+        );
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                "a variable-backed `postOrder` request was left unchanged because it may be shared",
+            ),
+        ]);
         expect(transform(result.source ?? source).source).toBeUndefined();
+    });
+
+    it("does not partially rewrite a typed variable-backed order request with property writes", () => {
+        const source = `import { Alpaca, trading } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+const request: trading.PostOrderOperationRequest = { postOrderRequest: first };
+request.postOrderRequest = second;
+alpaca.trading.orders.postOrder(request);`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "const request: trading.PostOrderRequest = { postOrderRequest: first };",
+        );
+        expect(result.source).toContain(
+            "request.postOrderRequest = second;",
+        );
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): a variable-backed `postOrder` request was left unchanged because it may be shared",
+        );
     });
 
     it("marks expression-backed generated order requests for review", () => {
@@ -213,17 +241,26 @@ api.getV2CorporateActionsAnnouncements({ caTypes: "dividend" });`;
         expect(result.reports).toEqual([]);
     });
 
-    it("migrates stable variable-backed corporate-action requests", () => {
+    it("leaves shared variable-backed corporate-action requests unchanged", () => {
         const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
 const alpaca = new Alpaca();
 const request = { caTypes: "dividend" };
+consume(request);
 alpaca.trading.corporateActions.getV2CorporateActionsAnnouncements(request);`;
         const result = transform(source);
 
         expect(result.source).toContain(
-            'const request = { caTypes: ["dividend"] };',
+            'const request = { caTypes: "dividend" };',
         );
-        expect(result.reports).toEqual([]);
+        expect(result.source).toContain("consume(request);");
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): a variable-backed corporate-actions request was left unchanged because it may be shared",
+        );
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                "a variable-backed corporate-actions request was left unchanged because it may be shared",
+            ),
+        ]);
     });
 
     it("marks unresolved corporate-action request expressions for review", () => {
@@ -346,7 +383,7 @@ alpaca.trading.orders.postOrder(request);`;
             "TODO(alpaca-codemod): keep this separate",
         );
         expect(result.source).toContain(
-            "TODO(alpaca-codemod): a variable-backed `postOrder` request may still contain",
+            "TODO(alpaca-codemod): a variable-backed `postOrder` request was left unchanged because it may be shared",
         );
     });
 

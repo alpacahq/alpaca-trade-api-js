@@ -802,7 +802,6 @@ module.exports = function transformer(file, api) {
 
     const orderBodyBindings = createBindings();
     const stableObjectBindings = createBindings();
-    const legacyOrderRequestObjects = new WeakSet();
     const trackOrderBody = (objectPath) => {
         objectPath.get("properties").each((propertyPath) => {
             const property = propertyPath.value;
@@ -837,7 +836,6 @@ module.exports = function transformer(file, api) {
         ) {
             return;
         }
-        legacyOrderRequestObjects.add(path.value.init);
         trackOrderBody(path.get("init"));
     });
     propagateStableAliases(stableObjectBindings);
@@ -922,6 +920,25 @@ module.exports = function transformer(file, api) {
         if (changed) mutated = true;
         return changed;
     };
+    const isCompatibleOrderRequest = (object) => {
+        let hasCreateOrderRequest = false;
+        for (const property of object.properties) {
+            if (property.type === "SpreadElement") return false;
+            if (
+                property.type !== "Property" &&
+                property.type !== "ObjectProperty"
+            ) {
+                continue;
+            }
+            const name = propertyName(property.key);
+            if (property.computed && name === undefined) return false;
+            if (name === "postOrderRequest") return false;
+            if (name === "createOrderRequest") {
+                hasCreateOrderRequest = true;
+            }
+        }
+        return hasCreateOrderRequest;
+    };
     const migrateCorporateActionRequest = (object) => {
         let provenCompatible = true;
         for (const property of object.properties) {
@@ -949,6 +966,26 @@ module.exports = function transformer(file, api) {
         }
         return provenCompatible;
     };
+    const isCompatibleCorporateActionRequest = (object) => {
+        for (const property of object.properties) {
+            if (property.type === "SpreadElement") return false;
+            if (
+                property.type !== "Property" &&
+                property.type !== "ObjectProperty"
+            ) {
+                continue;
+            }
+            const name = propertyName(property.key);
+            if (property.computed && name === undefined) return false;
+            if (
+                name === "caTypes" &&
+                property.value.type !== "ArrayExpression"
+            ) {
+                return false;
+            }
+        }
+        return true;
+    };
 
     root.find(j.CallExpression).forEach((path) => {
         if (isGeneratedOrderCall(path)) {
@@ -960,22 +997,16 @@ module.exports = function transformer(file, api) {
                     stableObjectBindings,
                     path.get("arguments", 0),
                 );
-                const migrated =
+                if (
                     boundObject?.type === "ObjectExpression" &&
-                    (renameRequestProperty(boundObject) ||
-                        boundObject.properties.some(
-                            (property) =>
-                                (property.type === "Property" ||
-                                    property.type ===
-                                        "ObjectProperty") &&
-                                propertyName(property.key) ===
-                                    "createOrderRequest",
-                        ));
-                if (migrated) return;
+                    isCompatibleOrderRequest(boundObject)
+                ) {
+                    return;
+                }
                 addTodo(
                     path,
                     "variable-post-order-request",
-                    "a variable-backed `postOrder` request may still contain `postOrderRequest`; rename it to `createOrderRequest` after confirming the binding",
+                    "a variable-backed `postOrder` request was left unchanged because it may be shared; ensure this SDK call receives `{ createOrderRequest }`",
                 );
             } else if (path.value.arguments.length > 0) {
                 addTodo(
@@ -1020,14 +1051,14 @@ module.exports = function transformer(file, api) {
                 );
                 if (
                     boundObject?.type === "ObjectExpression" &&
-                    migrateCorporateActionRequest(boundObject)
+                    isCompatibleCorporateActionRequest(boundObject)
                 ) {
                     return;
                 }
                 addTodo(
                     path,
                     "variable-corporate-actions-request",
-                    "a variable-backed corporate-actions request could not be migrated safely; ensure `caTypes` is an array",
+                    "a variable-backed corporate-actions request was left unchanged because it may be shared; ensure `caTypes` is an array at this SDK call",
                 );
             } else if (path.value.arguments.length > 0) {
                 addTodo(
@@ -1051,12 +1082,6 @@ module.exports = function transformer(file, api) {
                 "unproven-corporate-actions-receiver",
                 "an unproven `.trading.corporateActions` receiver was left unchanged; construct or retain the client from an imported `Alpaca` binding",
             );
-        }
-    });
-
-    root.find(j.ObjectExpression).forEach((path) => {
-        if (legacyOrderRequestObjects.has(path.value)) {
-            renameRequestProperty(path.value);
         }
     });
 
