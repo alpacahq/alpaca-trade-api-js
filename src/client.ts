@@ -34,7 +34,11 @@
  * bars.connect();
  * ```
  */
-import type { AlpacaCredentials, ResolvedCredentials } from "./auth";
+import type {
+    AccessToken,
+    AlpacaCredentials,
+    ResolvedCredentials,
+} from "./auth";
 import { resolveCredentials } from "./auth";
 import { ApiError, FetchError } from "./errors";
 import * as trading from "./trading";
@@ -68,14 +72,14 @@ export type AlpacaRequestRedirect = "error" | "follow" | "manual";
  * Options accepted by the top-level {@link Alpaca} client.
  *
  * Provide credentials as either an API `keyId`/`secret` pair or an OAuth
- * `accessToken`. Any of them may be omitted and resolved from the standard
+ * `accessToken` or token provider. Any of them may be omitted and resolved from the standard
  * Alpaca environment variables (`APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`,
- * `APCA_API_OAUTH_TOKEN`). A non-empty explicit token selects OAuth; otherwise
- * any non-empty explicit key field selects key authentication ahead of an
- * environment token. Empty strings are treated as absent. With no explicit
- * scheme, environment OAuth takes precedence over environment keys. Every
- * other field is an optional passthrough shared by both the trading and
- * market-data REST configurations.
+ * `APCA_API_OAUTH_TOKEN`). A non-empty explicit token, Promise, or provider
+ * selects OAuth; otherwise any non-empty explicit key field selects key
+ * authentication ahead of an environment token. Empty strings are treated as
+ * absent. With no explicit scheme, environment OAuth takes precedence over
+ * environment keys. Every other field is an optional passthrough shared by
+ * both the trading and market-data REST configurations.
  */
 export interface AlpacaClientOptions {
     /** API key id, or set `APCA_API_KEY_ID`. Pair with {@link secret}. */
@@ -84,12 +88,12 @@ export interface AlpacaClientOptions {
     secret?: string;
     /**
      * OAuth2 access token sent as `Authorization: Bearer <token>` (or set
-     * `APCA_API_OAUTH_TOKEN`). An explicitly passed token takes precedence over
-     * key credentials for REST requests. Note: the real-time streaming
-     * endpoints authenticate with a key/secret pair, so OAuth-only clients
-     * cannot open WebSocket streams.
+     * `APCA_API_OAUTH_TOKEN`). A provider is evaluated for every REST request
+     * and fetch-based SSE reconnect so expiring tokens can be refreshed. An
+     * explicitly passed token or provider takes precedence over key
+     * credentials. WebSocket streams still require a key/secret pair.
      */
-    accessToken?: string;
+    accessToken?: AccessToken;
     /**
      * Use the paper-trading environment. Defaults to `true`.
      *

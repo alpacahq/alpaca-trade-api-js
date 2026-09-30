@@ -143,6 +143,27 @@ const REMOVED_MARKET_DATA_MEMBERS = new Map([
     ["toIndexValuesBySymbol", "the index-value shape helper was removed"],
 ]);
 
+const REMOVED_MARKET_DATA_MODEL_NAMES = [
+    "CryptoPerpFuturesPricing",
+    "CryptoPerpLatestFuturesPricingResp",
+    "CryptoPerpLoc",
+    "IndexLatestValuesResp",
+    "IndexValue",
+    "IndexValuesResp",
+];
+
+const REMOVED_MARKET_DATA_MODEL_MEMBERS = new Map(
+    REMOVED_MARKET_DATA_MODEL_NAMES.flatMap((modelName) =>
+        [
+            ...MODEL_SUFFIXES.map((suffix) => `${modelName}${suffix}`),
+            `instanceOf${modelName}`,
+        ].map((memberName) => [
+            memberName,
+            `the generated Market Data export \`${memberName}\` was removed upstream with \`${modelName}\``,
+        ]),
+    ),
+);
+
 const CORPORATE_ACTION_TYPES = new Map(
     ["Spinoff", "Merger", "Split", "Reorg", "Dividend"].map((value) => [
         value.toLowerCase(),
@@ -754,6 +775,7 @@ module.exports = function transformer(file, api, options = {}) {
     };
 
     const tradingLocalNames = new Set();
+    const marketDataLocalNames = new Set();
     const sdkLocalNames = new Set();
     root.find(j.ImportDeclaration).forEach((path) => {
         if (!PACKAGE_NAMES.has(String(path.value.source.value))) return;
@@ -764,6 +786,12 @@ module.exports = function transformer(file, api, options = {}) {
                 specifier.local
             ) {
                 tradingLocalNames.add(specifier.local.name);
+            } else if (
+                specifier.type === "ImportSpecifier" &&
+                propertyName(specifier.imported) === "marketData" &&
+                specifier.local
+            ) {
+                marketDataLocalNames.add(specifier.local.name);
             } else if (
                 specifier.type === "ImportNamespaceSpecifier" &&
                 specifier.local
@@ -782,6 +810,14 @@ module.exports = function transformer(file, api, options = {}) {
             sdkLocalNames.has(node.left.name) &&
             node.right.type === "Identifier" &&
             node.right.name === "trading");
+    const isMarketDataTypeQualifier = (node) =>
+        (node.type === "Identifier" &&
+            marketDataLocalNames.has(node.name)) ||
+        (node.type === "TSQualifiedName" &&
+            node.left.type === "Identifier" &&
+            sdkLocalNames.has(node.left.name) &&
+            node.right.type === "Identifier" &&
+            node.right.name === "marketData");
 
     const typeNodeName = (type) => {
         if (type?.type !== "TSTypeReference") return undefined;
@@ -900,6 +936,12 @@ module.exports = function transformer(file, api, options = {}) {
         }
         return isAlpacaInstance(namespacePath.get("object"));
     };
+    const isMarketDataFacadeNamespaceReceiver = (path) =>
+        isFacadeNamespaceReceiver(path, "marketData") ||
+        isFacadeNamespaceReceiver(path, "data");
+    const isMarketDataFacadeAreaReceiver = (path, area) =>
+        isFacadeAreaReceiver(path, "marketData", area) ||
+        isFacadeAreaReceiver(path, "data", area);
 
     const orderApis = createBindings();
     root.find(j.VariableDeclarator).forEach((path) => {
@@ -1014,6 +1056,24 @@ module.exports = function transformer(file, api, options = {}) {
             },
         );
     };
+    const registerRemovedMarketDataModelPattern = (patternPath) => {
+        forEachObjectPatternProperty(
+            patternPath,
+            (memberName, _valuePath, propertyPath) => {
+                if (
+                    !memberName ||
+                    !REMOVED_MARKET_DATA_MODEL_MEMBERS.has(memberName)
+                ) {
+                    return;
+                }
+                addTodo(
+                    propertyPath,
+                    `removed-market-data-model-${memberName}`,
+                    REMOVED_MARKET_DATA_MODEL_MEMBERS.get(memberName),
+                );
+            },
+        );
+    };
     root.find(j.VariableDeclarator).forEach((path) => {
         if (
             path.value.id.type === "Identifier" &&
@@ -1039,6 +1099,7 @@ module.exports = function transformer(file, api, options = {}) {
         }
         if (isMarketDataNamespaceObject(path.get("init"))) {
             registerRemovedMarketDataPattern(path.get("id"));
+            registerRemovedMarketDataModelPattern(path.get("id"));
         }
         if (isSdkNamespaceObject(path.get("init"))) {
             const marketData = objectPatternProperty(
@@ -1050,6 +1111,9 @@ module.exports = function transformer(file, api, options = {}) {
                 "ObjectPattern"
             ) {
                 registerRemovedMarketDataPattern(
+                    marketData.valuePath,
+                );
+                registerRemovedMarketDataModelPattern(
                     marketData.valuePath,
                 );
             }
@@ -1122,19 +1186,14 @@ module.exports = function transformer(file, api, options = {}) {
         if (name === "indices") {
             return (
                 !isNestedReceiver &&
-                isFacadeAreaReceiver(
-                    path,
-                    "marketData",
-                    "indices",
-                )
+                isMarketDataFacadeAreaReceiver(path, "indices")
             );
         }
         if (name === "cryptoPerpetualFutures") {
             return (
                 !isNestedReceiver &&
-                isFacadeAreaReceiver(
+                isMarketDataFacadeAreaReceiver(
                     path,
-                    "marketData",
                     "cryptoPerpetualFutures",
                 )
             );
@@ -1157,11 +1216,19 @@ module.exports = function transformer(file, api, options = {}) {
             return true;
         }
         if (
-            name === "getIndexValues" &&
-            isFacadeAreaReceiver(
+            indexApiMethods.has(name) &&
+            isMarketDataFacadeAreaReceiver(
                 receiverPath,
-                "marketData",
                 "indices",
+            )
+        ) {
+            return true;
+        }
+        if (
+            cryptoPerpetualFuturesApiMethods.has(name) &&
+            isMarketDataFacadeAreaReceiver(
+                receiverPath,
+                "cryptoPerpetualFutures",
             )
         ) {
             return true;
@@ -1172,10 +1239,7 @@ module.exports = function transformer(file, api, options = {}) {
                 "collectIndexValuesBySymbol",
             ].includes(name)
         ) {
-            return isFacadeNamespaceReceiver(
-                receiverPath,
-                "marketData",
-            );
+            return isMarketDataFacadeNamespaceReceiver(receiverPath);
         }
         if (
             ["toIndexValue", "toIndexValuesBySymbol"].includes(
@@ -1264,6 +1328,20 @@ module.exports = function transformer(file, api, options = {}) {
 
     if (j.TSQualifiedName) {
         root.find(j.TSQualifiedName).forEach((path) => {
+            if (isMarketDataTypeQualifier(path.value.left)) {
+                const removedName = propertyName(path.value.right);
+                if (
+                    removedName &&
+                    REMOVED_MARKET_DATA_MODEL_MEMBERS.has(removedName)
+                ) {
+                    addTodo(
+                        path,
+                        `removed-market-data-model-${removedName}`,
+                        REMOVED_MARKET_DATA_MODEL_MEMBERS.get(removedName),
+                    );
+                }
+                return;
+            }
             if (!isTradingTypeQualifier(path.value.left)) return;
             const oldName = propertyName(path.value.right);
             if (oldName === "PostOrderRequest") {
@@ -1540,7 +1618,16 @@ module.exports = function transformer(file, api, options = {}) {
     root.find(j.MemberExpression).forEach((path) => {
         const name = propertyName(path.value.property);
         if (!name) return;
-        if (REMOVED_MARKET_DATA_MEMBERS.has(name)) {
+        if (
+            REMOVED_MARKET_DATA_MODEL_MEMBERS.has(name) &&
+            isMarketDataNamespaceMember(path)
+        ) {
+            addTodo(
+                path,
+                `removed-market-data-model-${name}`,
+                REMOVED_MARKET_DATA_MODEL_MEMBERS.get(name),
+            );
+        } else if (REMOVED_MARKET_DATA_MEMBERS.has(name)) {
             if (!isRemovedMarketDataMember(path, name)) return;
             addTodo(
                 path,

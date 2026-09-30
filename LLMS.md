@@ -74,15 +74,16 @@ const alpaca = new Alpaca({
 
 - Credentials resolve from environment variables when omitted:
   `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`, and `APCA_API_OAUTH_TOKEN`. A
-  non-empty explicit `accessToken` selects OAuth; otherwise any non-empty
-  explicit key field selects key authentication ahead of an environment token.
-  Empty strings are absent. With no explicit scheme, environment OAuth takes
-  precedence over environment keys.
+  non-empty explicit `accessToken`, Promise, or provider selects OAuth;
+  otherwise any non-empty explicit key field selects key authentication ahead
+  of an environment token. Empty strings are absent. With no explicit scheme,
+  environment OAuth takes precedence over environment keys. Token providers
+  are evaluated before every REST request and fetch-based SSE reconnect.
 - **Never** pass `apiKey` as a plain string. Alpaca needs two distinct headers
   and rejects a single value. Use OAuth via `accessToken`, or
   `auth.apiKeyAuth({ keyId, secret })` for lazy credentials.
-- OAuth-only clients **cannot** open WebSocket streams; streaming needs a key
-  and secret.
+- OAuth-only clients **cannot** open WebSocket streams; WebSocket authentication
+  needs a key and secret. Fetch-based SSE accepts OAuth or key credentials.
 
 ## Idioms agents get wrong
 

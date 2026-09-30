@@ -130,7 +130,7 @@ export function NewsFromJSONTyped(json: any, ignoreDiscriminator: boolean): News
         'images': (new Set(json['images'] == null ? [] : (json['images'] as Array<any>).map(NewsImageFromJSON))),
         'source': json['source'],
         'summary': json['summary'],
-        'symbols': json['symbols'],
+        'symbols': json['symbols'] == null ? [] : json['symbols'],
         'updatedAt': (new Date(json['updated_at'])),
         'url': json['url'] == null ? undefined : json['url'],
     };

@@ -200,7 +200,100 @@ describe("SSE generation contract", () => {
           }),
         ),
       ),
-    ).toThrowError(/must reference an existing operation server/);
+    ).toThrowError(/must reference an existing operation-level server/);
+  });
+
+  it("rejects SSE authentication the template cannot emit", () => {
+    const spec = document(
+      operation({
+        "x-typescript-fetch-sse": true,
+        security: [{ cookieKey: [] }],
+      }),
+    ) as Record<string, any>;
+    spec.components.securitySchemes = {
+      cookieKey: {
+        type: "apiKey",
+        in: "cookie",
+        name: "session",
+      },
+    };
+
+    expect(() => assertSseContracts(spec)).toThrowError(
+      /cookieKey.*apiKey in cookie.*cannot be emitted/,
+    );
+
+    spec.paths["/events"].get.security = [{ missing: [] }];
+    expect(() => assertSseContracts(spec)).toThrowError(
+      /security scheme missing is unresolved/,
+    );
+  });
+
+  it("accepts every authentication scheme the SSE template emits", () => {
+    const spec = document(
+      operation({
+        "x-typescript-fetch-sse": true,
+        security: [
+          { headerKey: [], queryKey: [] },
+          { basic: [] },
+          { bearer: [] },
+          { oauth: ["events:read"] },
+        ],
+      }),
+    ) as Record<string, any>;
+    spec.components.securitySchemes = {
+      headerKey: {
+        type: "apiKey",
+        in: "header",
+        name: "X-Key",
+      },
+      queryKey: {
+        type: "apiKey",
+        in: "query",
+        name: "key",
+      },
+      basic: { type: "http", scheme: "basic" },
+      bearer: { type: "http", scheme: "bearer" },
+      oauth: {
+        type: "oauth2",
+        flows: {
+          clientCredentials: {
+            tokenUrl: "https://auth.example.com/token",
+            scopes: { "events:read": "Read events" },
+          },
+        },
+      },
+    };
+
+    expect(() => assertSseContracts(spec)).not.toThrow();
+  });
+
+  it("requires operation-level SSE servers when template metadata needs them", () => {
+    const pathServers = document(
+      operation({
+        "x-typescript-fetch-sse": true,
+      }),
+    ) as Record<string, any>;
+    pathServers.paths["/events"].servers = [
+      { url: "https://stream.example.com" },
+    ];
+    expect(() => assertSseContracts(pathServers)).toThrowError(
+      /path-level servers cannot be emitted/,
+    );
+
+    const rootServers = document(
+      operation({
+        "x-typescript-fetch-sse": true,
+      }),
+    ) as Record<string, any>;
+    rootServers.servers = [{ url: "https://stream.example.com" }];
+    expect(() => assertSseContracts(rootServers)).not.toThrow();
+
+    rootServers.paths["/events"].get[
+      "x-typescript-fetch-sse-sandbox-server-index"
+    ] = 0;
+    expect(() => assertSseContracts(rootServers)).toThrowError(
+      /must reference an existing operation-level server/,
+    );
   });
 
   it("resolves referenced parameters before checking extension metadata", () => {

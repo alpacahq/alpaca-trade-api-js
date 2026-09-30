@@ -53,6 +53,11 @@ try {
 }
 ```
 
+Unlike WebSocket streams, fetch-based SSE accepts OAuth as well as a key/secret
+pair. Pass an `accessToken` provider to the `Alpaca` facade when tokens may
+expire; the provider is called again for every reconnect. Authentication
+failures (`401`/`403`) are terminal and are not retried.
+
 The raw generated methods remain available when you want the operation names
 directly:
 

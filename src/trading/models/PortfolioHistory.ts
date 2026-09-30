@@ -104,11 +104,11 @@ export function PortfolioHistoryFromJSONTyped(json: any, ignoreDiscriminator: bo
         'baseValue': json['base_value'],
         'baseValueAsof': json['base_value_asof'] == null ? undefined : (new Date(json['base_value_asof'])),
         'cashflow': json['cashflow'] == null ? undefined : json['cashflow'],
-        'equity': json['equity'],
-        'profitLoss': json['profit_loss'],
-        'profitLossPct': json['profit_loss_pct'],
+        'equity': json['equity'] == null ? [] : json['equity'],
+        'profitLoss': json['profit_loss'] == null ? [] : json['profit_loss'],
+        'profitLossPct': json['profit_loss_pct'] == null ? [] : json['profit_loss_pct'],
         'timeframe': json['timeframe'],
-        'timestamp': json['timestamp'],
+        'timestamp': json['timestamp'] == null ? [] : json['timestamp'],
     };
 }
 

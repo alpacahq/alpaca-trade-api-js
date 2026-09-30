@@ -543,6 +543,54 @@ marketDataShapes.toIndexValue({});`;
         );
     });
 
+    it("flags removed facade APIs through the public data alias", () => {
+        const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+alpaca.data.indices.getIndexValues({});
+alpaca.data.iterateIndexValues({});
+alpaca.data.cryptoPerpetualFutures.cryptoPerpLatestTrades({});`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): the index-values operation was removed upstream",
+        );
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): the ergonomic index iterator was removed",
+        );
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): the crypto perpetual-futures trades operation was removed upstream",
+        );
+        expect(result.reports).toHaveLength(3);
+    });
+
+    it("flags removed generated Market Data models and runtime helpers", () => {
+        const source = `import { marketData as md } from "@alpacahq/alpaca-trade-api";
+import * as sdk from "@alpacahq/alpaca-trade-api";
+type Pricing = md.CryptoPerpFuturesPricing;
+type Values = sdk.marketData.IndexValuesResp;
+const parsePricing = md.CryptoPerpLatestFuturesPricingRespFromJSON;
+const { CryptoPerpLoc, instanceOfIndexLatestValuesResp } = md;
+console.log(parsePricing, CryptoPerpLoc, instanceOfIndexLatestValuesResp);`;
+        const result = transform(source);
+
+        for (const removedName of [
+            "CryptoPerpFuturesPricing",
+            "IndexValuesResp",
+            "CryptoPerpLatestFuturesPricingRespFromJSON",
+            "CryptoPerpLoc",
+            "instanceOfIndexLatestValuesResp",
+        ]) {
+            expect(result.source).toContain(
+                `TODO(alpaca-codemod): the generated Market Data export \`${removedName}\` was removed upstream`,
+            );
+            expect(result.reports).toContainEqual(
+                expect.stringContaining(
+                    `the generated Market Data export \`${removedName}\` was removed upstream`,
+                ),
+            );
+        }
+    });
+
     it.each(removedGeneratedMarketDataMethods)(
         "flags removed generated %s.%s calls",
         (apiName, methodName) => {

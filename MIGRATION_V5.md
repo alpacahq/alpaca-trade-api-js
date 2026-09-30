@@ -58,14 +58,21 @@ TypeScript reports these response-shape changes through compiler diagnostics.
 The codemod deliberately does not match property names globally because that
 would modify unrelated application objects.
 
+Required non-nullable primitive arrays now receive the same defensive
+deserialization as model arrays: an upstream `null` or missing value becomes
+`[]` instead of leaking `null` through a non-nullable TypeScript field. This
+only changes malformed responses that contradict their OpenAPI requirement.
+
 ## Removed upstream endpoints
 
 The Market Data specification no longer publishes the crypto perpetual-futures
 or index-value endpoints. Version 5 therefore removes:
 
-- `alpaca.marketData.cryptoPerpetualFutures` and
+- `alpaca.marketData.cryptoPerpetualFutures` (also available through the
+  `alpaca.data` alias in v4) and
   `marketData.CryptoPerpetualFuturesApi`;
-- `alpaca.marketData.indices` and `marketData.IndexApi`;
+- `alpaca.marketData.indices` (also available through `alpaca.data`) and
+  `marketData.IndexApi`;
 - `getIndexValues`, `iterateIndexValues`, and
   `collectIndexValuesBySymbol`;
 - generated `indexValues` / `indexLatestValues` and their `Raw` siblings;
@@ -74,8 +81,11 @@ or index-value endpoints. Version 5 therefore removes:
   `cryptoPerpLatestTrades`, and their `Raw` siblings;
 - the canonical `IndexValue`, `toIndexValue`, and
   `toIndexValuesBySymbol` exports;
-- the generated crypto-perpetual-futures and index-value request/response
-  models.
+- the generated `CryptoPerpFuturesPricing`,
+  `CryptoPerpLatestFuturesPricingResp`, `CryptoPerpLoc`,
+  `IndexLatestValuesResp`, and `IndexValuesResp` models and their
+  `FromJSON`, `FromJSONTyped`, `ToJSON`, `ToJSONTyped`, and `instanceOf*`
+  runtime helpers.
 
 These endpoints were removed upstream rather than relocated; continuing to call
 them on version 4 results in server errors.
@@ -317,3 +327,10 @@ active while the SDK reads the bounded error body for a typed `ApiError`.
 it. Opt into `idleTimeoutMs` or `maxDurationMs` to limit the live body.
 Subscriptions are single-consumer; call `close()` if you open one but never
 start iteration.
+
+Fetch-based SSE accepts the same key/secret or OAuth credentials as REST.
+Unlike WebSocket streams, it can use an OAuth-only client. Version 5 also
+accepts a Promise or function-backed `accessToken` on the `Alpaca` facade; a
+provider is evaluated before every REST request and SSE reconnect so expiring
+tokens can be refreshed. HTTP `401` and `403` responses are terminal and do not
+cause a reconnect loop.

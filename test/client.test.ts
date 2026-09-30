@@ -135,6 +135,22 @@ describe('Credential resolution (env + OAuth)', () => {
         expect(headerValue(calls[0].init, 'APCA-API-SECRET-KEY')).toBeUndefined();
     });
 
+    it('refreshes a function-backed OAuth token for each facade request', async () => {
+        restoreEnv = withCleanEnv();
+        let token = 0;
+        const { calls, fetchApi } = capturingFetch();
+        const alpaca = new Alpaca({
+            accessToken: async () => `tok-${++token}`,
+            fetchApi,
+        });
+
+        await alpaca.trading.account.getAccount();
+        await alpaca.trading.account.getAccount();
+
+        expect(headerValue(calls[0].init, 'Authorization')).toBe('Bearer tok-1');
+        expect(headerValue(calls[1].init, 'Authorization')).toBe('Bearer tok-2');
+    });
+
     it('falls back to the APCA_API_OAUTH_TOKEN env var', async () => {
         restoreEnv = withCleanEnv();
         process.env.APCA_API_OAUTH_TOKEN = 'env-tok';

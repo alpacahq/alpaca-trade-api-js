@@ -202,6 +202,47 @@ export function assertSseContracts(document: unknown): void {
         );
       }
 
+      const effectiveSecurity = Object.hasOwn(operation, "security")
+        ? operation.security
+        : root.security;
+      if (
+        effectiveSecurity !== undefined &&
+        !Array.isArray(effectiveSecurity)
+      ) {
+        fail(label, "security must be an array");
+      }
+      const securitySchemes = object(object(root.components)?.securitySchemes);
+      for (const rawRequirement of effectiveSecurity ?? []) {
+        const requirement = object(rawRequirement);
+        if (!requirement) {
+          fail(label, "security requirements must be objects");
+        }
+        for (const schemeName of Object.keys(requirement)) {
+          const rawScheme = securitySchemes?.[schemeName];
+          const scheme = resolveLocalRef(root, rawScheme);
+          if (!scheme) {
+            fail(label, `security scheme ${schemeName} is unresolved`);
+          }
+          const type = scheme.type;
+          const supported =
+            type === "oauth2" ||
+            (type === "http" &&
+              (scheme.scheme === "basic" || scheme.scheme === "bearer")) ||
+            (type === "apiKey" &&
+              (scheme.in === "header" || scheme.in === "query"));
+          if (!supported) {
+            const location =
+              type === "apiKey" && typeof scheme.in === "string"
+                ? ` in ${scheme.in}`
+                : "";
+            fail(
+              label,
+              `security scheme ${schemeName} (${String(type)}${location}) cannot be emitted by the SSE template`,
+            );
+          }
+        }
+      }
+
       if (
         operation[SSE_RECONNECT] !== undefined &&
         typeof operation[SSE_RECONNECT] !== "boolean"
@@ -247,13 +288,37 @@ export function assertSseContracts(document: unknown): void {
         fail(label, `${SSE_LAST_EVENT_ID_PARAM} may mark at most one parameter`);
       }
 
-      const servers = Array.isArray(operation.servers)
+      if (
+        Object.hasOwn(operation, "servers") &&
+        !Array.isArray(operation.servers)
+      ) {
+        fail(label, "operation servers must be an array");
+      }
+      if (
+        Object.hasOwn(pathItem, "servers") &&
+        !Array.isArray(pathItem.servers)
+      ) {
+        fail(label, "path-level servers must be an array");
+      }
+      const operationServers = Array.isArray(operation.servers)
         ? operation.servers
-        : Array.isArray(pathItem.servers)
-          ? pathItem.servers
-          : Array.isArray(root.servers)
-            ? root.servers
-            : [];
+        : undefined;
+      const pathServers = Array.isArray(pathItem.servers)
+        ? pathItem.servers
+        : undefined;
+      if (
+        operationServers === undefined &&
+        pathServers !== undefined &&
+        pathServers.length > 0
+      ) {
+        fail(
+          label,
+          "path-level servers cannot be emitted by the SSE template; copy them to the operation",
+        );
+      }
+      const servers =
+        operationServers ??
+        (Array.isArray(root.servers) ? root.servers : []);
       for (const [index, rawServer] of servers.entries()) {
         const url = object(rawServer)?.url;
         let parsed: URL | undefined;
@@ -281,13 +346,14 @@ export function assertSseContracts(document: unknown): void {
       const sandboxIndex = operation[SSE_SANDBOX_SERVER_INDEX];
       if (sandboxIndex !== undefined) {
         if (
+          operationServers === undefined ||
           !Number.isInteger(sandboxIndex) ||
           (sandboxIndex as number) < 0 ||
-          (sandboxIndex as number) >= servers.length
+          (sandboxIndex as number) >= operationServers.length
         ) {
           fail(
             label,
-            `${SSE_SANDBOX_SERVER_INDEX} must reference an existing operation server`,
+            `${SSE_SANDBOX_SERVER_INDEX} must reference an existing operation-level server`,
           );
         }
       }

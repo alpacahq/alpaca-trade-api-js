@@ -1,5 +1,6 @@
 import {
     Alpaca,
+    type AccessTokenProvider,
     type AlpacaClientOptions,
     type Auction,
     type DailyAuctions,
@@ -8,12 +9,14 @@ import {
     type trading,
 } from "@alpacahq/alpaca-trade-api/rest";
 
+const accessToken: AccessTokenProvider = async () => "token";
 const options: AlpacaClientOptions = {
     keyId: "key",
     secret: "secret",
     credentials: "include",
     redirect: "error",
 };
+const oauthOptions: AlpacaClientOptions = { accessToken };
 const client = new Alpaca(options);
 const values: [Auction?, DailyAuctions?] = [];
 const sseOptions: SseOptions = { reconnect: false };
@@ -23,6 +26,7 @@ const ergonomicEvents: Promise<SseSubscription<trading.ActivityEventV2>> =
     client.trading.subscribeActivities({}, sseOptions);
 
 void client;
+void oauthOptions;
 void events;
 void ergonomicEvents;
 void values;

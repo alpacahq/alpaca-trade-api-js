@@ -1099,6 +1099,69 @@ describe('generated SSE operation metadata', () => {
         ]);
     });
 
+    it('refreshes a facade OAuth provider before each SSE reconnect', async () => {
+        let tokenCall = 0;
+        let attempt = 0;
+        const seenTokens: Array<string | null> = [];
+        const alpaca = new Alpaca({
+            accessToken: async () => `token-${++tokenCall}`,
+            rateLimit: false,
+            fetchApi: async (_url, init) => {
+                seenTokens.push(
+                    new Headers(init?.headers).get('Authorization'),
+                );
+                attempt += 1;
+                return attempt === 1
+                    ? chunkedResponse([])
+                    : new Response(null, { status: 204 });
+            },
+        });
+
+        const stream = await alpaca.trading.subscribeActivities(
+            {},
+            { reconnect: { initialDelayMs: 0, maxDelayMs: 0 } },
+        );
+
+        await expect(collect(stream)).resolves.toEqual([]);
+        expect(seenTokens).toEqual([
+            'Bearer token-1',
+            'Bearer token-2',
+        ]);
+    });
+
+    it.each([401, 403])(
+        'does not retry SSE OAuth after an HTTP %s response',
+        async (status) => {
+            const accessToken = vi.fn(async () => 'rejected-token');
+            const fetchApi = vi.fn(async () =>
+                new Response(
+                    JSON.stringify({
+                        code: status,
+                        message: 'authorization rejected',
+                    }),
+                    {
+                        status,
+                        headers: { 'Content-Type': 'application/json' },
+                    },
+                ),
+            );
+            const alpaca = new Alpaca({
+                accessToken,
+                fetchApi,
+                rateLimit: false,
+            });
+
+            await expect(
+                alpaca.trading.subscribeActivities(
+                    {},
+                    { reconnect: { initialDelayMs: 0, maxDelayMs: 0 } },
+                ),
+            ).rejects.toMatchObject({ status });
+            expect(accessToken).toHaveBeenCalledOnce();
+            expect(fetchApi).toHaveBeenCalledOnce();
+        },
+    );
+
     it('lets nested headers override the observable initial Last-Event-ID', async () => {
         let seenId: string | null = null;
         const api = new trading.EventsApi(

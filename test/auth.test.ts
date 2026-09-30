@@ -62,6 +62,14 @@ describe('auth.resolveCredentials', () => {
         expect(auth.resolveCredentials({ accessToken: 'tok' })).toEqual({ accessToken: 'tok' });
     });
 
+    it('preserves a lazy access-token provider for per-request refresh', () => {
+        restoreEnv = withCleanEnv();
+        const provider: auth.AccessTokenProvider = async () => 'refreshed';
+        expect(auth.resolveCredentials({ accessToken: provider })).toEqual({
+            accessToken: provider,
+        });
+    });
+
     it('prefers OAuth and ignores key/secret when both are provided', () => {
         restoreEnv = withCleanEnv();
         expect(auth.resolveCredentials({ keyId: KEY_ID, secret: SECRET, accessToken: 'tok' })).toEqual({ accessToken: 'tok' });

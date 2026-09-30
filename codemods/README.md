@@ -154,7 +154,11 @@ reports uncertain references for manual review.
 
 - Removed index-value and crypto perpetual-futures APIs, including the
   generated API constructors (including proven destructuring from the
-  `marketData` namespace) and every generated operation / `Raw` sibling.
+  `marketData` namespace), every generated operation / `Raw` sibling, and
+  facade access through either `alpaca.marketData` or its `alpaca.data` alias.
+- Removed generated index-value and crypto perpetual-futures models and their
+  `FromJSON`, `ToJSON`, and `instanceOf*` runtime helpers when referenced
+  through the proven `marketData` namespace.
 - `Assets.easyToBorrow` and changed corporate-announcement fields/dates.
 - Activity SSE calls, whose return value is now an async subscription with an
   explicit lifecycle rather than an array.

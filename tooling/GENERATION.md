@@ -173,8 +173,12 @@ specs remain unchanged.
 `src/sseContract.ts` fails generation when an SSE response is unmarked, a marker
 is stale or malformed, path/response references are unresolved or cyclic,
 successful media types are ambiguous, parameter locations are invalid, or
-operation-server metadata is unsafe. `templates/typescript-fetch/apis.mustache` is the exact
-pinned 7.14 template with a narrow marked-operation branch that emits
+operation-server metadata is unsafe. It also rejects authentication schemes the
+template cannot emit (including cookie API keys) and non-empty path-level server
+lists, which OpenAPI Generator does not expose in the operation template
+context; stream-specific servers must be copied to the operation by the
+overlay. `templates/typescript-fetch/apis.mustache` is the exact pinned 7.14
+template with a narrow marked-operation branch that emits
 `SSEApiResponse<T>` / `SseSubscription<T>`, operation servers, and the generated
 item transformer. Generated authentication is evaluated inside the connector so
 function-backed credentials refresh on every initial or reconnect attempt.

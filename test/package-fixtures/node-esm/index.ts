@@ -1,5 +1,6 @@
 import {
     Alpaca,
+    type AccessTokenProvider,
     type AlpacaClientOptions,
     type Auction,
     type DailyAuctions,
@@ -13,6 +14,8 @@ const options: AlpacaClientOptions = {
     credentials: "same-origin",
     redirect: "manual",
 };
+const accessToken: AccessTokenProvider = async () => "token";
+const oauthOptions: AlpacaClientOptions = { accessToken };
 const transport: trading.ConfigurationParameters = {
     credentials: "include",
     redirect: "error",
@@ -33,6 +36,7 @@ const closeAllPositions: () => Promise<
 > = () => client.trading.closeAllPositions();
 
 void client;
+void oauthOptions;
 void activities;
 void closeAllPositions;
 void invalidTravelRuleInfo;

@@ -18,6 +18,8 @@ import {
     StockQuotesRespSingleFromJSON,
     StockTradesRespFromJSON,
     StockTradesRespSingleFromJSON,
+    StockTradeFromJSON,
+    StockQuoteFromJSON,
 } from '../src/market-data';
 import {
     ClockRespFromJSON,
@@ -39,6 +41,7 @@ import {
     CommonCDIVActivityV2FromJSON,
     DIVSPDActivityV2FromJSON,
     OpcaCDIVActivityV2FromJSON,
+    PortfolioHistoryFromJSON,
 } from '../src/trading';
 
 // --- G01: null-safe array deserialization ----------------------------------
@@ -66,6 +69,20 @@ const G01_CASES: G01Case[] = [
     { name: 'ClockResp', fn: ClockRespFromJSON, input: { clocks: null }, arrayFields: ['clocks'] },
     { name: 'OptionContractsResponse', fn: OptionContractsResponseFromJSON, input: { option_contracts: null }, arrayFields: ['optionContracts'] },
     { name: 'PublicCalendarResp', fn: PublicCalendarRespFromJSON, input: { calendar: null }, arrayFields: ['calendar'] },
+    { name: 'StockTrade', fn: StockTradeFromJSON, input: { c: null }, arrayFields: ['c'] },
+    { name: 'StockQuote', fn: StockQuoteFromJSON, input: { c: null }, arrayFields: ['c'] },
+    { name: 'News primitive symbols', fn: NewsFromJSON, input: { symbols: null }, arrayFields: ['symbols'] },
+    {
+        name: 'PortfolioHistory primitive series',
+        fn: PortfolioHistoryFromJSON,
+        input: {
+            equity: null,
+            profit_loss: null,
+            profit_loss_pct: null,
+            timestamp: null,
+        },
+        arrayFields: ['equity', 'profitLoss', 'profitLossPct', 'timestamp'],
+    },
 ];
 
 describe('G01 null-safe array deserialization', () => {

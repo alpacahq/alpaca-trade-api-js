@@ -35,6 +35,11 @@ export {
     DEFAULT_RATE_LIMIT,
 } from './client';
 export type {
+    AccessToken,
+    AccessTokenProvider,
+} from './auth';
+
+export type {
     AlpacaClientOptions,
     AlpacaRequestCredentials,
     AlpacaRequestRedirect,

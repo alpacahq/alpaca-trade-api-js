@@ -43,6 +43,15 @@ the `Authorization: Bearer` header):
 const alpaca = new Alpaca({ accessToken: "OAUTH_TOKEN" });
 ```
 
+For expiring tokens, pass a provider. It is evaluated before every REST request
+and every fetch-based SSE connection or reconnect:
+
+```ts
+const alpaca = new Alpaca({
+  accessToken: async () => refreshOrLoadAccessToken(),
+});
+```
+
 OAuth also resolves from `APCA_API_OAUTH_TOKEN` when no explicit credential
 scheme is selected. Credential precedence is:
 
@@ -60,8 +69,9 @@ or environment-only configuration. If both token and key fields are passed
 explicitly, the token wins.
 
 :::note Streaming authentication
-Real-time streams require a key/secret pair. OAuth-only clients can use every
-supported REST surface but cannot open WebSocket streams.
+WebSocket streams require a key/secret pair and cannot use OAuth. Fetch-based
+SSE uses the same request authentication as REST: it accepts either a
+key/secret pair or OAuth, and a token provider is refreshed before reconnects.
 :::
 
 ## Verifying credentials
