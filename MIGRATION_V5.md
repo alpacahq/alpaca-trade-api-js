@@ -81,6 +81,9 @@ or index-value endpoints. Version 5 therefore removes:
   `cryptoPerpLatestTrades`, and their `Raw` siblings;
 - the canonical `IndexValue`, `toIndexValue`, and
   `toIndexValuesBySymbol` exports;
+- the generated `marketData.IndexValue` model and its
+  `IndexValueFromJSON`, `IndexValueFromJSONTyped`, `IndexValueToJSON`,
+  `IndexValueToJSONTyped`, and `instanceOfIndexValue` runtime helpers;
 - the generated `CryptoPerpFuturesPricing`,
   `CryptoPerpLatestFuturesPricingResp`, `CryptoPerpLoc`,
   `IndexLatestValuesResp`, and `IndexValuesResp` models and their

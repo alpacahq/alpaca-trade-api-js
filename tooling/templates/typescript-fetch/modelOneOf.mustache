@@ -123,11 +123,14 @@ function selectMostSpecific<T>(
  */
 export function instanceOf{{classname}}(value: object): value is {{classname}} {
 {{#discriminator}}
-    return [
+    switch ((value as Record<string, unknown>)['{{discriminator.propertyName}}']) {
 {{#discriminator.mappedModels}}
-        '{{mappingName}}',
+        case '{{mappingName}}':
+            return instanceOf{{modelName}}(value);
 {{/discriminator.mappedModels}}
-    ].includes((value as Record<string, unknown>)['{{discriminator.propertyName}}'] as string);
+        default:
+            return false;
+    }
 {{/discriminator}}
 {{^discriminator}}
     return (
@@ -153,11 +156,16 @@ export function {{classname}}FromJSONTyped(json: any, ignoreDiscriminator: boole
 {{#discriminator}}
     switch (json['{{discriminator.propertyBaseName}}']) {
 {{#discriminator.mappedModels}}
-        case '{{mappingName}}':
-            return Object.assign({}, {{modelName}}FromJSONTyped(json, true), { {{discriminator.propertyName}}: '{{mappingName}}' } as const);
+        case '{{mappingName}}': {
+            const value = Object.assign({}, {{modelName}}FromJSONTyped(json, true), { {{discriminator.propertyName}}: '{{mappingName}}' } as const);
+            if (!instanceOf{{modelName}}(value)) {
+                throw new TypeError('Invalid {{classname}} payload for discriminator "{{mappingName}}"');
+            }
+            return value;
+        }
 {{/discriminator.mappedModels}}
         default:
-            return json;
+            throw new TypeError(`Unknown {{classname}} discriminator value: ${String(json['{{discriminator.propertyBaseName}}'])}`);
     }
 {{/discriminator}}
 {{^discriminator}}
@@ -214,7 +222,7 @@ export function {{classname}}ToJSONTyped(value?: {{classname}} | null, ignoreDis
             return Object.assign({}, {{modelName}}ToJSON(value), { '{{discriminator.propertyBaseName}}': '{{mappingName}}' } as const);
 {{/discriminator.mappedModels}}
         default:
-            return value;
+            throw new TypeError(`Unknown {{classname}} discriminator value: ${String((value as Record<string, unknown>)['{{discriminator.propertyName}}'])}`);
     }
 {{/discriminator}}
 {{^discriminator}}

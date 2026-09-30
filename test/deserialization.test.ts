@@ -309,6 +309,23 @@ describe('oneOf conversion fidelity', () => {
         expect(roundTrip.event_type).toBe(wire.event_type);
         expect(roundTrip).not.toHaveProperty('eventType');
     });
+
+    it('rejects incomplete and unknown discriminated corporate-action events', () => {
+        expect(instanceOfCorporateActionEvent({
+            eventType: 'cash_dividend_corporateaction_event',
+        })).toBe(false);
+        expect(() =>
+            CorporateActionEventFromJSON({
+                event_type: 'cash_dividend_corporateaction_event',
+            }),
+        ).toThrow(/Invalid CorporateActionEvent payload/);
+        expect(() =>
+            CorporateActionEventFromJSON({
+                event_type: 'future_corporateaction_event',
+                ca: {},
+            }),
+        ).toThrow(/Unknown CorporateActionEvent discriminator/);
+    });
 });
 
 describe('Trading dividend activity string flags', () => {

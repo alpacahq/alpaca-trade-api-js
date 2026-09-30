@@ -409,6 +409,7 @@ export class SseSubscription<T> implements AsyncIterable<T> {
         listener: () => void;
     }> = [];
     private finalized = false;
+    private ending = false;
     private durationTimer?: ReturnType<typeof setTimeout>;
     private consumed = false;
     private activeReader?: ReadableStreamDefaultReader<Uint8Array>;
@@ -445,7 +446,7 @@ export class SseSubscription<T> implements AsyncIterable<T> {
                 if (!this.activeReader) {
                     closeBody(this.initialConnection?.response, reason);
                 }
-                if (!this.consumed) {
+                if (!this.ending) {
                     this.finalize({ reason: "aborted" });
                 }
             },
@@ -585,6 +586,7 @@ export class SseSubscription<T> implements AsyncIterable<T> {
                         reconnectStartedAt = undefined;
                         yield message;
                     }
+                    if (this.controller.signal.aborted) return;
                     if (this.metadata.bounded) return;
                 } catch (error) {
                     if (this.controller.signal.aborted) return;
@@ -707,6 +709,7 @@ export class SseSubscription<T> implements AsyncIterable<T> {
         } finally {
             const wasAborted = this.controller.signal.aborted;
             if (!wasAborted) {
+                this.ending = true;
                 this.controller.abort(
                     new DOMException("SSE subscription ended", "AbortError"),
                 );
@@ -754,6 +757,7 @@ export class SseSubscription<T> implements AsyncIterable<T> {
                     decoder.decode(result.value, { stream: true }),
                 );
                 for (const output of outputs) {
+                    if (this.controller.signal.aborted) return;
                     if (output.kind === "comment") {
                         callback(this.options.onComment, output.comment);
                         continue;
@@ -781,10 +785,12 @@ export class SseSubscription<T> implements AsyncIterable<T> {
                 this._lastEventId = parser.lastEventId;
                 this._serverRetryMs = parser.retryMs;
             }
+            if (this.controller.signal.aborted) return;
             const final = decoder.decode();
             if (final) {
                 const outputs = parser.feed(final);
                 for (const output of outputs) {
+                    if (this.controller.signal.aborted) return;
                     if (output.kind === "comment") {
                         callback(this.options.onComment, output.comment);
                     } else {
@@ -815,6 +821,7 @@ export class SseSubscription<T> implements AsyncIterable<T> {
             }
             const trailing = parser.finish();
             for (const output of trailing) {
+                if (this.controller.signal.aborted) return;
                 if (output.kind === "comment") {
                     callback(this.options.onComment, output.comment);
                     continue;

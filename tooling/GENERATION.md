@@ -137,8 +137,12 @@ does not emit an `instanceOfX` guard for `oneOf` aliases. The former makes
 market-data `CorporateActionEvent` uncompilable; the latter breaks a nested
 Trading activity union that imports `instanceOfActivityV2DetailNTA`.
 `templates/typescript-fetch/modelOneOf.mustache` adds the missing discriminator
-imports and reusable guards, and returns `value` (rather than the generator's
-undefined `json` identifier) for an unknown discriminator during serialization.
+imports and reusable guards. Discriminator guards delegate to the selected
+variant guard instead of accepting the discriminator alone. Deserialization
+validates the selected variant, and deserialization or serialization fails
+closed for an unknown discriminator rather than returning wire-shaped JSON under
+an incompatible generated type. For SSE, that conversion failure is surfaced as
+`SseDeserializationError`.
 For undiscriminated unions it converts wire JSON before applying generated model
 guards, because those guards use camelCase TypeScript property names while the
 wire payload uses snake_case. Structural variants can overlap, so conversion and

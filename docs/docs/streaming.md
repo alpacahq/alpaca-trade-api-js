@@ -92,12 +92,16 @@ Other options include opt-in `idleTimeoutMs` / `maxDurationMs`, `basePath` /
 diagnostics. Use `subscription.messages()` when you need the raw SSE envelope
 (`data`, `event`, `id`, and `retry`) rather than only typed data. Breaking
 iteration, `close()`, `abort()`, or aborting the caller signal releases
-the reader and prevents further reconnects. A subscription has one consumer; if
+the reader, drops any undelivered buffered events, and prevents further
+reconnects. A subscription has one consumer; if
 you open one but never begin iteration, call `close()` explicitly.
 
 `subscription.closed` distinguishes `{ reason: "eof" }`,
 `{ reason: "aborted" }`, and `{ reason: "error", error }`. Iteration still
 rejects with the terminal parser, deserialization, HTTP, or transport error.
+Malformed discriminated payloads and event types unknown to the installed SDK
+fail closed as `SseDeserializationError` instead of leaking wire-shaped JSON
+under an incompatible TypeScript type.
 
 SSE uses middleware `pre` and `onError` hooks. It intentionally skips `post`
 hooks because those hooks receive a cloned response, and cloning a long-lived

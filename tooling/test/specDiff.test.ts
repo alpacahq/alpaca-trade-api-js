@@ -18,6 +18,7 @@ describe("summarizeSpecDiff", () => {
     expect(s.schemasModified).toEqual(["A"]);
     expect(s.operationsAdded).toEqual(["POST /y"]);
     expect(s.operationsRemoved).toEqual([]);
+    expect(s.documentModified).toBe(true);
   });
 
   it("reports no changes for identical specs", () => {
@@ -27,7 +28,9 @@ describe("summarizeSpecDiff", () => {
 
   it("formats a coherent summary line", () => {
     const s = summarizeSpecDiff(base, next);
-    expect(formatSummary(s)).toContain("schemas: +1 -1 ~1; operations: +1 -0");
+    expect(formatSummary(s)).toContain(
+      "schemas: +1 -1 ~1; operations: +1 -0 ~0; document: modified",
+    );
   });
 
   it("flags an operation whose first tag moved to a different Api (the clock retag)", () => {
@@ -46,5 +49,55 @@ describe("summarizeSpecDiff", () => {
     const s = summarizeSpecDiff(before, after);
     expect(s.operationsRenamed).toEqual(['GET /v2/x: "getX" -> "fetchX"']);
     expect(s.operationsMoved).toEqual([]);
+  });
+
+  it("detects in-place operation contract changes", () => {
+    const before = {
+      paths: {
+        "/events": {
+          get: {
+            tags: ["Events"],
+            operationId: "events",
+            security: [{ apiKey: [] }],
+          },
+        },
+      },
+    };
+    const after = {
+      paths: {
+        "/events": {
+          get: {
+            tags: ["Events"],
+            operationId: "events",
+            security: [{ oauth2: [] }],
+          },
+        },
+      },
+    };
+
+    const s = summarizeSpecDiff(before, after);
+
+    expect(s.operationsModified).toEqual(["GET /events"]);
+    expect(hasChanges(s)).toBe(true);
+  });
+
+  it("detects document changes outside schemas and operations", () => {
+    const before = {
+      components: {
+        schemas: {},
+        securitySchemes: {
+          apiKey: { type: "apiKey", in: "header", name: "X-API-Key" },
+        },
+      },
+      paths: {},
+    };
+    const after = structuredClone(before);
+    after.components.securitySchemes.apiKey.name = "Authorization";
+
+    const s = summarizeSpecDiff(before, after);
+
+    expect(s.operationsModified).toEqual([]);
+    expect(s.documentModified).toBe(true);
+    expect(hasChanges(s)).toBe(true);
   });
 });

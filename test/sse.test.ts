@@ -575,6 +575,73 @@ describe('typed SSE subscription', () => {
         expect(cancel).toHaveBeenCalledOnce();
     });
 
+    it('does not deliver buffered events after close', async () => {
+        const response = chunkedResponse([
+            'data: first\n\ndata: second\n\n',
+        ]);
+        const raw = await SSEApiResponse.open(
+            async () => ({
+                response,
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => data,
+            { reconnect: false },
+        );
+        const stream = await raw.value();
+        const iterator = stream[Symbol.asyncIterator]();
+
+        await expect(iterator.next()).resolves.toEqual({
+            value: 'first',
+            done: false,
+        });
+        stream.close();
+
+        await expect(iterator.next()).resolves.toEqual({
+            value: undefined,
+            done: true,
+        });
+        await expect(stream.closed).resolves.toEqual({ reason: 'aborted' });
+    });
+
+    it('finalizes an externally aborted subscription while consumption is paused', async () => {
+        const cancel = vi.fn();
+        const controller = new AbortController();
+        const encoder = new TextEncoder();
+        const raw = await SSEApiResponse.open(
+            async () => ({
+                response: new Response(
+                    new ReadableStream<Uint8Array>({
+                        start(streamController) {
+                            streamController.enqueue(
+                                encoder.encode('data: first\n\n'),
+                            );
+                        },
+                        cancel,
+                    }),
+                    { headers: { 'Content-Type': 'text/event-stream' } },
+                ),
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => data,
+            { signal: controller.signal, reconnect: false },
+        );
+        const stream = await raw.value();
+        const iterator = stream[Symbol.asyncIterator]();
+
+        await expect(iterator.next()).resolves.toEqual({
+            value: 'first',
+            done: false,
+        });
+        controller.abort(new DOMException('cancelled', 'AbortError'));
+
+        await expect(stream.closed).resolves.toEqual({ reason: 'aborted' });
+        await expect(iterator.next()).resolves.toEqual({
+            value: undefined,
+            done: true,
+        });
+        expect(cancel).toHaveBeenCalledOnce();
+    });
+
     it('finalizes an opened subscription aborted before consumption', async () => {
         const cancel = vi.fn();
         const controller = new AbortController();
@@ -1023,6 +1090,30 @@ describe('generated SSE operation metadata', () => {
         expect(headers.get('APCA-API-SECRET-KEY')).toBe('generated-secret');
         expect(headers.get('Authorization')).toBe('Bearer configured');
         expect(accessToken).not.toHaveBeenCalled();
+        stream.close();
+    });
+
+    it('applies Basic auth to the generated corporate-actions SSE request', async () => {
+        let seenInit: RequestInit | undefined;
+        const api = new marketData.CorporateActionsApi(
+            new marketData.Configuration({
+                username: 'stream-user',
+                password: 'stream-password',
+                fetchApi: async (_url, init) => {
+                    seenInit = init;
+                    return chunkedResponse([]);
+                },
+            }),
+        );
+
+        const stream = await api.subscribeToCorporateActionsEventsSSE(
+            {},
+            { reconnect: false },
+        );
+
+        expect(new Headers(seenInit?.headers).get('Authorization')).toBe(
+            `Basic ${btoa('stream-user:stream-password')}`,
+        );
         stream.close();
     });
 

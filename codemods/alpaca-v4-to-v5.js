@@ -579,10 +579,65 @@ module.exports = function transformer(file, api, options = {}) {
         });
     });
 
+    propagateStableAliases(sdkNamespaces);
     const isSdkNamespaceObject = (path) =>
         (path.value?.type === "Identifier" &&
             hasBinding(sdkNamespaces, path)) ||
         isPackageRequire(path);
+    root.find(j.VariableDeclarator).forEach((path) => {
+        const initPath = path.get("init");
+        if (!path.value.init) return;
+        if (path.value.id.type === "ObjectPattern") {
+            if (!isSdkNamespaceObject(initPath)) return;
+            forEachObjectPatternProperty(
+                path.get("id"),
+                (name, valuePath) => {
+                    if (
+                        valuePath.value?.type !== "Identifier" ||
+                        !name
+                    ) {
+                        return;
+                    }
+                    const scope = bindingScope(valuePath);
+                    if (!scope || hasLaterWrite(scope, valuePath.value.name)) {
+                        return;
+                    }
+                    if (name === "trading") {
+                        setBinding(tradingNamespaces, valuePath);
+                    } else if (name === "marketData") {
+                        setBinding(marketDataNamespaces, valuePath);
+                    } else if (name === "marketDataShapes") {
+                        setBinding(marketDataShapeNamespaces, valuePath);
+                    } else if (name === "Alpaca") {
+                        setBinding(alpacaConstructors, valuePath);
+                    }
+                },
+            );
+            return;
+        }
+        if (
+            path.value.id.type !== "Identifier" ||
+            path.value.init.type !== "MemberExpression" ||
+            !isSdkNamespaceObject(initPath.get("object")) ||
+            !isStableDeclaration(path.get("id"))
+        ) {
+            return;
+        }
+        const name = propertyName(path.value.init.property);
+        if (name === "trading") {
+            setBinding(tradingNamespaces, path.get("id"));
+        } else if (name === "marketData") {
+            setBinding(marketDataNamespaces, path.get("id"));
+        } else if (name === "marketDataShapes") {
+            setBinding(marketDataShapeNamespaces, path.get("id"));
+        } else if (name === "Alpaca") {
+            setBinding(alpacaConstructors, path.get("id"));
+        }
+    });
+    propagateStableAliases(tradingNamespaces);
+    propagateStableAliases(marketDataNamespaces);
+    propagateStableAliases(marketDataShapeNamespaces);
+    propagateStableAliases(alpacaConstructors);
     const isTradingNamespaceObject = (path) => {
         if (
             path.value?.type === "Identifier" &&
@@ -889,6 +944,14 @@ module.exports = function transformer(file, api, options = {}) {
                 continue;
             }
             const [[scope, path]] = bindings;
+            const writeState = getBinding(writes, path);
+            if ((writeState?.declarations ?? 0) > 1) {
+                report(
+                    `ambiguous-instance-${name}`,
+                    `--instanceName=${name} was ignored for a redeclared binding`,
+                );
+                continue;
+            }
             if (hasLaterWrite(scope, name)) {
                 report(
                     `ambiguous-instance-${name}`,
@@ -943,14 +1006,70 @@ module.exports = function transformer(file, api, options = {}) {
         isFacadeAreaReceiver(path, "marketData", area) ||
         isFacadeAreaReceiver(path, "data", area);
 
+    const collectTradingApiConstructors = (apiName) => {
+        const bindings = createBindings();
+        root.find(j.VariableDeclarator).forEach((path) => {
+            if (
+                path.value.id.type === "ObjectPattern" &&
+                path.value.init &&
+                isTradingNamespaceObject(path.get("init"))
+            ) {
+                const match = objectPatternProperty(
+                    path.get("id"),
+                    apiName,
+                );
+                if (match?.valuePath.value?.type !== "Identifier") {
+                    return;
+                }
+                const scope = bindingScope(match.valuePath);
+                if (
+                    scope &&
+                    !hasLaterWrite(
+                        scope,
+                        match.valuePath.value.name,
+                    )
+                ) {
+                    setBinding(bindings, match.valuePath);
+                }
+                return;
+            }
+            if (
+                path.value.id.type !== "Identifier" ||
+                path.value.init?.type !== "MemberExpression" ||
+                propertyName(path.value.init.property) !== apiName ||
+                !isTradingNamespaceMember(path.get("init")) ||
+                !isStableDeclaration(path.get("id"))
+            ) {
+                return;
+            }
+            setBinding(bindings, path.get("id"));
+        });
+        propagateStableAliases(bindings);
+        return bindings;
+    };
+    const orderApiConstructors =
+        collectTradingApiConstructors("OrdersApi");
+    const corporateActionsApiConstructors =
+        collectTradingApiConstructors("CorporateActionsApi");
+    const eventsApiConstructors =
+        collectTradingApiConstructors("EventsApi");
+    const isTradingApiConstructor = (path, apiName, bindings) =>
+        (path.value?.type === "MemberExpression" &&
+            propertyName(path.value.property) === apiName &&
+            isTradingNamespaceMember(path)) ||
+        (path.value?.type === "Identifier" &&
+            hasBinding(bindings, path));
+
     const orderApis = createBindings();
     root.find(j.VariableDeclarator).forEach((path) => {
         if (
             path.value.id.type !== "Identifier" ||
             path.value.init?.type !== "NewExpression" ||
-            path.value.init.callee.type !== "MemberExpression" ||
-            propertyName(path.value.init.callee.property) !== "OrdersApi" ||
-            !isTradingNamespaceMember(path.get("init", "callee")) ||
+            !isTradingApiConstructor(
+                path.get("init", "callee"),
+                "OrdersApi",
+                orderApiConstructors,
+            ) ||
             !isStableDeclaration(path.get("id"))
         ) {
             return;
@@ -972,10 +1091,11 @@ module.exports = function transformer(file, api, options = {}) {
         if (
             path.value.id.type !== "Identifier" ||
             path.value.init?.type !== "NewExpression" ||
-            path.value.init.callee.type !== "MemberExpression" ||
-            propertyName(path.value.init.callee.property) !==
-                "CorporateActionsApi" ||
-            !isTradingNamespaceMember(path.get("init", "callee")) ||
+            !isTradingApiConstructor(
+                path.get("init", "callee"),
+                "CorporateActionsApi",
+                corporateActionsApiConstructors,
+            ) ||
             !isStableDeclaration(path.get("id"))
         ) {
             return;
@@ -1002,10 +1122,11 @@ module.exports = function transformer(file, api, options = {}) {
         if (
             path.value.id.type !== "Identifier" ||
             path.value.init?.type !== "NewExpression" ||
-            path.value.init.callee.type !== "MemberExpression" ||
-            propertyName(path.value.init.callee.property) !==
-                "EventsApi" ||
-            !isTradingNamespaceMember(path.get("init", "callee")) ||
+            !isTradingApiConstructor(
+                path.get("init", "callee"),
+                "EventsApi",
+                eventsApiConstructors,
+            ) ||
             !isStableDeclaration(path.get("id"))
         ) {
             return;
@@ -1719,6 +1840,37 @@ module.exports = function transformer(file, api, options = {}) {
         ) {
             setBinding(dividendDetails, path.get("id"));
         }
+    });
+    const dividendParameterIdentifier = (path) => {
+        let candidate = path;
+        if (candidate.value?.type === "TSParameterProperty") {
+            candidate = candidate.get("parameter");
+        }
+        if (candidate.value?.type === "AssignmentPattern") {
+            candidate = candidate.get("left");
+        }
+        if (candidate.value?.type === "RestElement") {
+            candidate = candidate.get("argument");
+        }
+        return candidate.value?.type === "Identifier"
+            ? candidate
+            : undefined;
+    };
+    root.find(j.Function).forEach((path) => {
+        path.get("params").each((parameterPath) => {
+            const identifierPath =
+                dividendParameterIdentifier(parameterPath);
+            if (!identifierPath) return;
+            const modelName = typeName(
+                identifierPath.value.typeAnnotation,
+            );
+            if (
+                modelName &&
+                TRADING_DIVIDEND_MODELS.has(modelName)
+            ) {
+                setBinding(dividendDetails, identifierPath);
+            }
+        });
     });
 
     root.find(j.ForOfStatement).forEach((path) => {

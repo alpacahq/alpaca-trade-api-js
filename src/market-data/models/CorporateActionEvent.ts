@@ -131,24 +131,42 @@ export type CorporateActionEvent = { eventType: 'capital_gains_distribution_corp
  * Check if a given object implements one of the CorporateActionEvent variants.
  */
 export function instanceOfCorporateActionEvent(value: object): value is CorporateActionEvent {
-    return [
-        'capital_gains_distribution_corporateaction_event',
-        'cash_dividend_corporateaction_event',
-        'cash_merger_corporateaction_event',
-        'equity_partial_call_corporateaction_event',
-        'forward_split_corporateaction_event',
-        'name_change_corporateaction_event',
-        'redemption_corporateaction_event',
-        'reorganization_corporateaction_event',
-        'reverse_split_corporateaction_event',
-        'rights_distribution_corporateaction_event',
-        'spin_off_corporateaction_event',
-        'stock_and_cash_merger_corporateaction_event',
-        'stock_dividend_corporateaction_event',
-        'stock_merger_corporateaction_event',
-        'unit_split_corporateaction_event',
-        'worthless_removal_corporateaction_event',
-    ].includes((value as Record<string, unknown>)['eventType'] as string);
+    switch ((value as Record<string, unknown>)['eventType']) {
+        case 'capital_gains_distribution_corporateaction_event':
+            return instanceOfCorporateActionEventCapitalGainsDistribution(value);
+        case 'cash_dividend_corporateaction_event':
+            return instanceOfCorporateActionEventCashDividend(value);
+        case 'cash_merger_corporateaction_event':
+            return instanceOfCorporateActionEventCashMerger(value);
+        case 'equity_partial_call_corporateaction_event':
+            return instanceOfCorporateActionEventEquityPartialCall(value);
+        case 'forward_split_corporateaction_event':
+            return instanceOfCorporateActionEventForwardSplit(value);
+        case 'name_change_corporateaction_event':
+            return instanceOfCorporateActionEventNameChange(value);
+        case 'redemption_corporateaction_event':
+            return instanceOfCorporateActionEventRedemption(value);
+        case 'reorganization_corporateaction_event':
+            return instanceOfCorporateActionEventReorganization(value);
+        case 'reverse_split_corporateaction_event':
+            return instanceOfCorporateActionEventReverseSplit(value);
+        case 'rights_distribution_corporateaction_event':
+            return instanceOfCorporateActionEventRightsDistribution(value);
+        case 'spin_off_corporateaction_event':
+            return instanceOfCorporateActionEventSpinOff(value);
+        case 'stock_and_cash_merger_corporateaction_event':
+            return instanceOfCorporateActionEventStockAndCashMerger(value);
+        case 'stock_dividend_corporateaction_event':
+            return instanceOfCorporateActionEventStockDividend(value);
+        case 'stock_merger_corporateaction_event':
+            return instanceOfCorporateActionEventStockMerger(value);
+        case 'unit_split_corporateaction_event':
+            return instanceOfCorporateActionEventUnitSplit(value);
+        case 'worthless_removal_corporateaction_event':
+            return instanceOfCorporateActionEventWorthlessRemoval(value);
+        default:
+            return false;
+    }
 }
 
 export function CorporateActionEventFromJSON(json: any): CorporateActionEvent {
@@ -160,40 +178,120 @@ export function CorporateActionEventFromJSONTyped(json: any, ignoreDiscriminator
         return json;
     }
     switch (json['event_type']) {
-        case 'capital_gains_distribution_corporateaction_event':
-            return Object.assign({}, CorporateActionEventCapitalGainsDistributionFromJSONTyped(json, true), { eventType: 'capital_gains_distribution_corporateaction_event' } as const);
-        case 'cash_dividend_corporateaction_event':
-            return Object.assign({}, CorporateActionEventCashDividendFromJSONTyped(json, true), { eventType: 'cash_dividend_corporateaction_event' } as const);
-        case 'cash_merger_corporateaction_event':
-            return Object.assign({}, CorporateActionEventCashMergerFromJSONTyped(json, true), { eventType: 'cash_merger_corporateaction_event' } as const);
-        case 'equity_partial_call_corporateaction_event':
-            return Object.assign({}, CorporateActionEventEquityPartialCallFromJSONTyped(json, true), { eventType: 'equity_partial_call_corporateaction_event' } as const);
-        case 'forward_split_corporateaction_event':
-            return Object.assign({}, CorporateActionEventForwardSplitFromJSONTyped(json, true), { eventType: 'forward_split_corporateaction_event' } as const);
-        case 'name_change_corporateaction_event':
-            return Object.assign({}, CorporateActionEventNameChangeFromJSONTyped(json, true), { eventType: 'name_change_corporateaction_event' } as const);
-        case 'redemption_corporateaction_event':
-            return Object.assign({}, CorporateActionEventRedemptionFromJSONTyped(json, true), { eventType: 'redemption_corporateaction_event' } as const);
-        case 'reorganization_corporateaction_event':
-            return Object.assign({}, CorporateActionEventReorganizationFromJSONTyped(json, true), { eventType: 'reorganization_corporateaction_event' } as const);
-        case 'reverse_split_corporateaction_event':
-            return Object.assign({}, CorporateActionEventReverseSplitFromJSONTyped(json, true), { eventType: 'reverse_split_corporateaction_event' } as const);
-        case 'rights_distribution_corporateaction_event':
-            return Object.assign({}, CorporateActionEventRightsDistributionFromJSONTyped(json, true), { eventType: 'rights_distribution_corporateaction_event' } as const);
-        case 'spin_off_corporateaction_event':
-            return Object.assign({}, CorporateActionEventSpinOffFromJSONTyped(json, true), { eventType: 'spin_off_corporateaction_event' } as const);
-        case 'stock_and_cash_merger_corporateaction_event':
-            return Object.assign({}, CorporateActionEventStockAndCashMergerFromJSONTyped(json, true), { eventType: 'stock_and_cash_merger_corporateaction_event' } as const);
-        case 'stock_dividend_corporateaction_event':
-            return Object.assign({}, CorporateActionEventStockDividendFromJSONTyped(json, true), { eventType: 'stock_dividend_corporateaction_event' } as const);
-        case 'stock_merger_corporateaction_event':
-            return Object.assign({}, CorporateActionEventStockMergerFromJSONTyped(json, true), { eventType: 'stock_merger_corporateaction_event' } as const);
-        case 'unit_split_corporateaction_event':
-            return Object.assign({}, CorporateActionEventUnitSplitFromJSONTyped(json, true), { eventType: 'unit_split_corporateaction_event' } as const);
-        case 'worthless_removal_corporateaction_event':
-            return Object.assign({}, CorporateActionEventWorthlessRemovalFromJSONTyped(json, true), { eventType: 'worthless_removal_corporateaction_event' } as const);
+        case 'capital_gains_distribution_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventCapitalGainsDistributionFromJSONTyped(json, true), { eventType: 'capital_gains_distribution_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventCapitalGainsDistribution(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "capital_gains_distribution_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'cash_dividend_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventCashDividendFromJSONTyped(json, true), { eventType: 'cash_dividend_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventCashDividend(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "cash_dividend_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'cash_merger_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventCashMergerFromJSONTyped(json, true), { eventType: 'cash_merger_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventCashMerger(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "cash_merger_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'equity_partial_call_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventEquityPartialCallFromJSONTyped(json, true), { eventType: 'equity_partial_call_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventEquityPartialCall(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "equity_partial_call_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'forward_split_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventForwardSplitFromJSONTyped(json, true), { eventType: 'forward_split_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventForwardSplit(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "forward_split_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'name_change_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventNameChangeFromJSONTyped(json, true), { eventType: 'name_change_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventNameChange(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "name_change_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'redemption_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventRedemptionFromJSONTyped(json, true), { eventType: 'redemption_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventRedemption(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "redemption_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'reorganization_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventReorganizationFromJSONTyped(json, true), { eventType: 'reorganization_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventReorganization(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "reorganization_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'reverse_split_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventReverseSplitFromJSONTyped(json, true), { eventType: 'reverse_split_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventReverseSplit(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "reverse_split_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'rights_distribution_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventRightsDistributionFromJSONTyped(json, true), { eventType: 'rights_distribution_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventRightsDistribution(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "rights_distribution_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'spin_off_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventSpinOffFromJSONTyped(json, true), { eventType: 'spin_off_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventSpinOff(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "spin_off_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'stock_and_cash_merger_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventStockAndCashMergerFromJSONTyped(json, true), { eventType: 'stock_and_cash_merger_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventStockAndCashMerger(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "stock_and_cash_merger_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'stock_dividend_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventStockDividendFromJSONTyped(json, true), { eventType: 'stock_dividend_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventStockDividend(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "stock_dividend_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'stock_merger_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventStockMergerFromJSONTyped(json, true), { eventType: 'stock_merger_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventStockMerger(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "stock_merger_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'unit_split_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventUnitSplitFromJSONTyped(json, true), { eventType: 'unit_split_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventUnitSplit(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "unit_split_corporateaction_event"');
+            }
+            return value;
+        }
+        case 'worthless_removal_corporateaction_event': {
+            const value = Object.assign({}, CorporateActionEventWorthlessRemovalFromJSONTyped(json, true), { eventType: 'worthless_removal_corporateaction_event' } as const);
+            if (!instanceOfCorporateActionEventWorthlessRemoval(value)) {
+                throw new TypeError('Invalid CorporateActionEvent payload for discriminator "worthless_removal_corporateaction_event"');
+            }
+            return value;
+        }
         default:
-            return json;
+            throw new TypeError(`Unknown CorporateActionEvent discriminator value: ${String(json['event_type'])}`);
     }
 }
 
@@ -239,7 +337,7 @@ export function CorporateActionEventToJSONTyped(value?: CorporateActionEvent | n
         case 'worthless_removal_corporateaction_event':
             return Object.assign({}, CorporateActionEventWorthlessRemovalToJSON(value), { 'event_type': 'worthless_removal_corporateaction_event' } as const);
         default:
-            return value;
+            throw new TypeError(`Unknown CorporateActionEvent discriminator value: ${String((value as Record<string, unknown>)['eventType'])}`);
     }
 }
 

@@ -336,6 +336,45 @@ api.getV2CorporateActionsAnnouncements({ caTypes: "dividend" });`;
         expect(result.reports).toEqual([]);
     });
 
+    it("tracks destructured generated Trading API constructors", () => {
+        const source = `import { trading } from "@alpacahq/alpaca-trade-api/rest";
+const { OrdersApi, CorporateActionsApi, EventsApi } = trading;
+const orders = new OrdersApi();
+const corporateActions = new CorporateActionsApi();
+const events = new EventsApi();
+orders.postOrder({ postOrderRequest: body });
+corporateActions.getV2CorporateActionsAnnouncements({ caTypes: "dividend" });
+events.subscribeToActivitiesSSE({});`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "orders.postOrder({ createOrderRequest: body });",
+        );
+        expect(result.source).toContain(
+            'corporateActions.getV2CorporateActionsAnnouncements({ caTypes: ["Dividend"] });',
+        );
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): activity SSE now returns an async subscription",
+        );
+    });
+
+    it("tracks stable aliases of SDK namespaces", () => {
+        const source = `import * as sdk from "@alpacahq/alpaca-trade-api/rest";
+const trade = sdk.trading;
+const md = sdk.marketData;
+trade.PositionClosedReponseFromJSON(payload);
+const indices = new md.IndexApi();
+indices.indexValues({});`;
+        const result = transform(source);
+
+        expect(result.source).toContain(
+            "trade.PositionClosedResponseFromJSON(payload);",
+        );
+        expect(result.source).toContain(
+            "TODO(alpaca-codemod): the generated index-values API was removed upstream",
+        );
+    });
+
     it("splits and canonicalizes literal corporate-action CSV values", () => {
         const source = `import { Alpaca } from "@alpacahq/alpaca-trade-api";
 const alpaca = new Alpaca();
@@ -706,6 +745,27 @@ function unrelated(client) {
         );
     });
 
+    it("ignores an explicitly named client when its binding is redeclared", () => {
+        const source = `var client = getAlpaca();
+var client = getUnrelatedClient();
+client.trading.orders.postOrder({ postOrderRequest: body });`;
+        const result = transform(source, "babel", {
+            instanceName: "client",
+        });
+
+        expect(result.source).toBeUndefined();
+        expect(result.reports).toEqual(
+            expect.arrayContaining([
+                expect.stringContaining(
+                    "--instanceName=client was ignored for a redeclared binding",
+                ),
+                expect.stringContaining(
+                    "an unproven `.trading.orders` receiver was left unchanged",
+                ),
+            ]),
+        );
+    });
+
     it("ignores an explicitly named facade binding when it is reassigned", () => {
         const source = `function migrate(client) {
   client = getReplacement();
@@ -719,6 +779,30 @@ function unrelated(client) {
         expect(result.reports).toEqual([
             expect.stringContaining(
                 "--instanceName=client was ignored for a reassigned binding",
+            ),
+        ]);
+    });
+
+    it("flags truthy dividend flags on typed function parameters", () => {
+        const source = `import { trading } from "@alpacahq/alpaca-trade-api/rest";
+function handle(details: trading.CDIVActivityV2) {
+  if (details.foreign) act();
+}
+const handleArrow = (details: trading.CommonCDIVActivityV2) =>
+  details.special && act();
+class Handler {
+  handle(details: trading.DIVSPDActivityV2) {
+    return Boolean(details.foreign);
+  }
+}`;
+        const result = transform(source);
+        const marker =
+            'TODO(alpaca-codemod): Trading dividend flags are the strings "true"/"false"';
+
+        expect(result.source?.split(marker)).toHaveLength(4);
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                'Trading dividend flags are the strings "true"/"false"',
             ),
         ]);
     });
