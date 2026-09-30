@@ -22,6 +22,18 @@ const SSE_EXTENSIONS = [
 ] as const;
 
 type JsonObject = Record<string, unknown>;
+export type SseTarget = "trading" | "market-data";
+
+const RUNTIME_FALLBACK_SERVERS: Record<SseTarget, readonly string[]> = {
+  trading: [
+    "https://paper-api.alpaca.markets",
+    "https://api.alpaca.markets",
+  ],
+  "market-data": [
+    "https://data.alpaca.markets",
+    "https://data.sandbox.alpaca.markets",
+  ],
+};
 
 function object(value: unknown): JsonObject | undefined {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -71,7 +83,10 @@ function fail(label: string, message: string): never {
  * message. This prevents a future spec update from silently regenerating
  * another buffered `Promise<T[]>` client.
  */
-export function assertSseContracts(document: unknown): void {
+export function assertSseContracts(
+  document: unknown,
+  target: SseTarget = "trading",
+): void {
   const root = object(document);
   if (!root) {
     throw new Error("Cannot validate SSE contracts: OpenAPI document is not an object");
@@ -341,6 +356,24 @@ export function assertSseContracts(document: unknown): void {
             `operation server ${index} must use a concrete HTTPS URL`,
           );
         }
+      }
+      const rootServers = Array.isArray(root.servers)
+        ? root.servers
+        : [];
+      const actualRootServers = rootServers.map(
+        (server) => object(server)?.url,
+      );
+      const expectedRootServers = RUNTIME_FALLBACK_SERVERS[target];
+      if (
+        actualRootServers.length !== expectedRootServers.length ||
+        expectedRootServers.some(
+          (url, index) => actualRootServers[index] !== url,
+        )
+      ) {
+        fail(
+          label,
+          `root servers ${JSON.stringify(actualRootServers)} do not match the ${target} runtime hosts ${JSON.stringify(expectedRootServers)}; update the hand-maintained runtime host constants and this contract together`,
+        );
       }
 
       const sandboxIndex = operation[SSE_SANDBOX_SERVER_INDEX];

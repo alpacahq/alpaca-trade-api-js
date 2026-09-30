@@ -137,7 +137,7 @@ function ensureToolchain(): void {
 function projectOverlay(target: Target, spec: unknown): void {
   const patch = readJson(overlayPath(target)) as Operation[];
   const derived = applyOverlay(spec, patch);
-  assertSseContracts(derived);
+  assertSseContracts(derived, target);
   assertTravelRuleContract(derived, target === "trading");
   assertOneOfMergeContracts(derived, target === "trading");
   log(`  ${target} overlay projection and custom contracts are valid.`);
@@ -220,7 +220,7 @@ function deriveSpec(target: Target): void {
   const spec = readJson(specPath(target));
   const patch = readJson(overlayPath(target)) as Operation[];
   const derived = applyOverlay(spec, patch); // throws OverlayDriftError on stale path
-  assertSseContracts(derived);
+  assertSseContracts(derived, target);
   assertTravelRuleContract(derived, target === "trading");
   assertOneOfMergeContracts(derived, target === "trading");
   fs.mkdirSync(path.dirname(derivedPath(target)), { recursive: true });

@@ -94,6 +94,8 @@ export interface SseOperationMetadata {
     reconnect?: boolean;
     bounded?: boolean;
     initialLastEventId?: string;
+    /** Configured default header, below operation and per-call precedence. */
+    configuredLastEventId?: string;
 }
 
 export interface SseConnection {
@@ -126,7 +128,11 @@ function initialLastEventId(
     new Headers(options.requestInit?.headers).forEach((value, name) => {
         headers.set(name, value);
     });
-    return headers.get("Last-Event-ID") ?? undefined;
+    return (
+        headers.get("Last-Event-ID") ??
+        metadata.configuredLastEventId ??
+        undefined
+    );
 }
 
 export class SseProtocolError extends Error {
@@ -536,11 +542,11 @@ export class SseSubscription<T> implements AsyncIterable<T> {
     }
 
     messages(): AsyncIterable<SseMessage<T>> {
-        return this.consumeMessages();
+        return this.cancellableIterator(this.consumeMessages());
     }
 
     [Symbol.asyncIterator](): AsyncIterator<T> {
-        return this.consumeData()[Symbol.asyncIterator]();
+        return this.cancellableIterator(this.consumeData());
     }
 
     close(reason?: unknown): void {
@@ -560,6 +566,42 @@ export class SseSubscription<T> implements AsyncIterable<T> {
         for await (const message of this.consumeMessages()) {
             yield message.data;
         }
+    }
+
+    private cancellableIterator<U>(
+        iterator: AsyncIterator<U>,
+    ): AsyncIterableIterator<U> {
+        let started = false;
+        let pending = 0;
+        const track = async (
+            operation: Promise<IteratorResult<U>>,
+        ): Promise<IteratorResult<U>> => {
+            pending += 1;
+            try {
+                return await operation;
+            } finally {
+                pending -= 1;
+            }
+        };
+        return {
+            next: () => {
+                started = true;
+                return track(iterator.next());
+            },
+            return: async (value?: unknown) => {
+                if (!started || pending > 0) this.close();
+                if (iterator.return) return iterator.return(value);
+                return { value: value as U, done: true };
+            },
+            throw: async (error?: unknown) => {
+                if (!started || pending > 0) this.close(error);
+                if (iterator.throw) return iterator.throw(error);
+                throw error;
+            },
+            [Symbol.asyncIterator]() {
+                return this;
+            },
+        };
     }
 
     private async *consumeMessages(): AsyncGenerator<SseMessage<T>> {

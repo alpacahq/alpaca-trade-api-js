@@ -602,6 +602,57 @@ alpaca.data.cryptoPerpetualFutures.cryptoPerpLatestTrades({});`;
         expect(result.reports).toHaveLength(3);
     });
 
+    it("flags destructured removed facade and shape APIs on proven SDK receivers", () => {
+        const source = `import {
+  Alpaca,
+  marketDataShapes
+} from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+const { indices, iterateIndexValues } = alpaca.marketData;
+const { cryptoPerpetualFutures, collectIndexValuesBySymbol } = alpaca.data;
+const { toIndexValue: convertIndex, toIndexValuesBySymbol } = marketDataShapes;
+indices.getIndexValues({});
+iterateIndexValues({});
+cryptoPerpetualFutures.cryptoPerpLatestBars({});
+collectIndexValuesBySymbol({});
+convertIndex(value);
+toIndexValuesBySymbol(values);`;
+        const result = transform(source);
+
+        for (const message of [
+            "the index-values API was removed upstream",
+            "the ergonomic index iterator was removed",
+            "the crypto perpetual-futures API was removed upstream",
+            "the ergonomic index collector was removed",
+            "the index-value shape helper was removed",
+        ]) {
+            expect(result.source).toContain(
+                `TODO(alpaca-codemod): ${message}`,
+            );
+            expect(result.reports).toContainEqual(
+                expect.stringContaining(message),
+            );
+        }
+    });
+
+    it("flags destructuring assignments only from proven SDK receivers", () => {
+        const source = `import { Alpaca, marketDataShapes } from "@alpacahq/alpaca-trade-api";
+const alpaca = new Alpaca();
+let indices;
+let toIndexValue;
+({ indices } = alpaca.marketData);
+({ toIndexValue } = marketDataShapes);
+const unrelated = { indices: {}, toIndexValue() {} };
+const { indices: safeIndices } = unrelated;
+const { toIndexValue: safeConvert } = unrelated;
+console.log(indices, toIndexValue, safeIndices, safeConvert);`;
+        const result = transform(source);
+
+        expect(
+            result.source?.match(/TODO\(alpaca-codemod\)/g),
+        ).toHaveLength(2);
+    });
+
     it("flags removed generated Market Data models and runtime helpers", () => {
         const source = `import { marketData as md } from "@alpacahq/alpaca-trade-api";
 import * as sdk from "@alpacahq/alpaca-trade-api";
@@ -805,6 +856,49 @@ class Handler {
                 'Trading dividend flags are the strings "true"/"false"',
             ),
         ]);
+    });
+
+    it("flags dividend truthiness through imported, chained type, and stable value aliases", () => {
+        const source = `import { trading } from "@alpacahq/alpaca-trade-api/rest";
+import type { CDIVActivityV2 } from "@alpacahq/alpaca-trade-api/rest";
+type Dividend = trading.CDIVActivityV2;
+type ChainedDividend = Dividend;
+type ImportedDividend = CDIVActivityV2;
+function handle(details: ChainedDividend, imported: ImportedDividend) {
+  const alias = details;
+  const chainedAlias = alias;
+  if (chainedAlias.foreign) act();
+  return Boolean(imported.special);
+}`;
+        const result = transform(source);
+        const marker =
+            'TODO(alpaca-codemod): Trading dividend flags are the strings "true"/"false"';
+
+        expect(result.source?.split(marker)).toHaveLength(3);
+        expect(result.reports).toEqual([
+            expect.stringContaining(
+                'Trading dividend flags are the strings "true"/"false"',
+            ),
+        ]);
+    });
+
+    it("does not follow a shadowing unrelated dividend type alias", () => {
+        const source = `import { trading } from "@alpacahq/alpaca-trade-api/rest";
+type Dividend = trading.CDIVActivityV2;
+function inspect(details: Dividend) {
+  if (details.foreign) act();
+}
+function unrelated() {
+  type Dividend = { foreign: boolean };
+  return (details: Dividend) => {
+    if (details.foreign) act();
+  };
+}`;
+        const result = transform(source);
+        const marker =
+            'TODO(alpaca-codemod): Trading dividend flags are the strings "true"/"false"';
+
+        expect(result.source?.split(marker)).toHaveLength(2);
     });
 
     it("leaves unrelated changed-field lookalikes unchanged", () => {

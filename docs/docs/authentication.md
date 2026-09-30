@@ -32,7 +32,9 @@ const config = new trading.Configuration({
 ```
 
 `apiKey` also accepts an asynchronous resolver when credentials need to be
-loaded or refreshed from an external secret store.
+loaded or refreshed from an external secret store. Credential loading is
+covered by the configured `timeoutMs` and a per-request `AbortSignal`, so a
+stalled secret store does not leave the request pending indefinitely.
 
 ## OAuth
 

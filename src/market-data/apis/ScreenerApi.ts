@@ -60,6 +60,7 @@ export class ScreenerApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
         }
@@ -71,6 +72,7 @@ export class ScreenerApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
         }
 
+        };
 
         let urlPath = `/v1beta1/screener/stocks/most-actives`;
 
@@ -79,6 +81,7 @@ export class ScreenerApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MostActivesRespFromJSON(jsonValue));
@@ -113,6 +116,7 @@ export class ScreenerApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
         }
@@ -124,6 +128,7 @@ export class ScreenerApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
         }
 
+        };
 
         let urlPath = `/v1beta1/screener/{market_type}/movers`;
         urlPath = urlPath.replace(`{${"market_type"}}`, encodeURIComponent(String(requestParameters['marketType'])));
@@ -133,6 +138,7 @@ export class ScreenerApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => MoversRespFromJSON(jsonValue));

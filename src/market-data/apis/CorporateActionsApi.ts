@@ -119,6 +119,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
         }
@@ -130,6 +131,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
         }
 
+        };
 
         let urlPath = `/v1/corporate-actions`;
 
@@ -138,6 +140,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CorporateActionsRespFromJSON(jsonValue));
@@ -197,6 +200,7 @@ export class CorporateActionsApi extends runtime.BaseAPI {
         const sseMetadata: runtime.SseOperationMetadata = {
             reconnect: true,
             bounded: false || requestParameters['until'] != null || requestParameters['untilId'] != null,
+            configuredLastEventId: new Headers(this.configuration?.headers).get('Last-Event-ID') ?? undefined,
             
             initialLastEventId: requestParameters['lastEventId'],
             

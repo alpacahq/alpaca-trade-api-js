@@ -155,7 +155,8 @@ reports uncertain references for manual review.
 - Removed index-value and crypto perpetual-futures APIs, including the
   generated API constructors (including proven destructuring from the
   `marketData` namespace), every generated operation / `Raw` sibling, and
-  facade access through either `alpaca.marketData` or its `alpaca.data` alias.
+  direct or destructured facade access through either `alpaca.marketData` or its
+  `alpaca.data` alias, plus destructured `marketDataShapes` helpers.
 - Removed generated index-value and crypto perpetual-futures models and their
   `FromJSON`, `ToJSON`, and `instanceOf*` runtime helpers when referenced
   through the proven `marketData` namespace.
@@ -163,8 +164,10 @@ reports uncertain references for manual review.
 - Activity SSE calls, whose return value is now an async subscription with an
   explicit lifecycle rather than an array.
 - Trading dividend activity flags used as booleans when their provenance is
-  provable; their wire values are the strings `"true"` and `"false"`. Market
-  Data corporate-action flags remain booleans and are not flagged.
+  provable through direct model types, chained type aliases, stable value
+  aliases, or activity SSE iteration; their wire values are the strings
+  `"true"` and `"false"`. Market Data corporate-action flags remain booleans
+  and are not flagged.
 - `REORG`/`REO` references. Persisted historical `REORG` values are never
   rewritten automatically.
 - Variable-backed order and corporate-action request objects. They may be
@@ -183,9 +186,9 @@ on a clean version-control branch.
 
 JavaScript users must manually audit response consumers that static provenance
 cannot prove. Search for `CorporateAnnouncement` date string operations and its
-removed `corporateActionsId` / `expirationDate` fields,
-`Assets.easyToBorrow`, and truthiness checks on Trading dividend
-`foreign` / `special` string flags. TypeScript users receive compiler
-diagnostics for these response-shape changes. The transform intentionally does
-not match those property names globally because they may belong to unrelated
-application objects.
+removed `corporateActionsId` / `expirationDate` fields and
+`Assets.easyToBorrow`. JavaScript and TypeScript users must both audit truthiness
+checks on Trading dividend `foreign` / `special` string flags: TypeScript allows
+truthiness checks on the valid `"true" | "false"` union. The transform
+intentionally does not match those property names globally because they may
+belong to unrelated application objects.

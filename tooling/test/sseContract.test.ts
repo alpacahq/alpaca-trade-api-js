@@ -24,6 +24,10 @@ const operation = (overrides: Record<string, unknown> = {}) => ({
 
 const document = (op: Record<string, unknown>) => ({
   openapi: "3.1.0",
+  servers: [
+    { url: "https://paper-api.alpaca.markets" },
+    { url: "https://api.alpaca.markets" },
+  ],
   paths: { "/events": { get: op } },
   components: { schemas: { Event: { type: "object" } } },
 });
@@ -285,7 +289,10 @@ describe("SSE generation contract", () => {
         "x-typescript-fetch-sse": true,
       }),
     ) as Record<string, any>;
-    rootServers.servers = [{ url: "https://stream.example.com" }];
+    rootServers.servers = [
+      { url: "https://paper-api.alpaca.markets" },
+      { url: "https://api.alpaca.markets" },
+    ];
     expect(() => assertSseContracts(rootServers)).not.toThrow();
 
     rootServers.paths["/events"].get[
@@ -294,6 +301,41 @@ describe("SSE generation contract", () => {
     expect(() => assertSseContracts(rootServers)).toThrowError(
       /must reference an existing operation-level server/,
     );
+  });
+
+  it("pins root-server fallback to the target runtime hosts", () => {
+    const trading = document(
+      operation({ "x-typescript-fetch-sse": true }),
+    ) as Record<string, any>;
+    trading.servers = [{ url: "https://api.example.com" }];
+    expect(() =>
+      assertSseContracts(trading, "trading"),
+    ).toThrowError(/do not match the trading runtime hosts/);
+
+    const marketData = document(
+      operation({ "x-typescript-fetch-sse": true }),
+    ) as Record<string, any>;
+    marketData.servers = [
+      { url: "https://data.alpaca.markets" },
+      { url: "https://data.sandbox.alpaca.markets" },
+    ];
+    expect(() =>
+      assertSseContracts(marketData, "market-data"),
+    ).not.toThrow();
+
+    marketData.servers = [
+      { url: "https://data.sandbox.alpaca.markets" },
+    ];
+    expect(() =>
+      assertSseContracts(marketData, "market-data"),
+    ).toThrowError(/do not match the market-data runtime hosts/);
+
+    marketData.paths["/events"].get.servers = [
+      { url: "https://stream.data.alpaca.markets" },
+    ];
+    expect(() =>
+      assertSseContracts(marketData, "market-data"),
+    ).toThrowError(/do not match the market-data runtime hosts/);
   });
 
   it("resolves referenced parameters before checking extension metadata", () => {

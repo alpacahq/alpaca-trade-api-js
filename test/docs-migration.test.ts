@@ -356,6 +356,12 @@ console.log(trading.PostOrderRequestTakeProfit);`,
         expect(source).toContain('Boolean(details.foreign)');
         expect(source).toContain('details.foreign === "true"');
         expect(source).toContain(
+            "TypeScript permits those truthiness checks",
+        );
+        expect(source).toContain(
+            "JavaScript and TypeScript users must both audit",
+        );
+        expect(source).toContain(
             "Market Data corporate-action models continue to expose their `foreign` and",
         );
     });
@@ -385,8 +391,8 @@ console.log(trading.PostOrderRequestTakeProfit);`,
         expect(source).toContain(
             "truthiness checks on Trading dividend `foreign` / `special` string flags",
         );
-        expect(source).toContain(
-            "The codemod deliberately does not match property names globally",
+        expect(source).toMatch(
+            /The codemod deliberately does\s+not match property names globally/,
         );
     });
 
@@ -441,6 +447,29 @@ console.log(trading.PostOrderRequestTakeProfit);`,
         );
         expect(source).toContain(
             "TypeScript does not automatically correlate that string",
+        );
+    });
+
+    it("documents safe tokenization-mint retries", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),
+            "utf8",
+        );
+
+        expect(source).toContain(
+            "`trading.tokenization.postTokenizationMint()` now accepts an optional",
+        );
+        expect(source).toContain(
+            "idempotencyKey: crypto.randomUUID()",
+        );
+        expect(source).toContain(
+            "Reusing the key with a different\nbody returns HTTP `422`",
+        );
+        expect(source).toContain(
+            "The SDK does not automatically retry `POST` requests",
+        );
+        expect(source).toContain(
+            "retain the same key and body for every attempt",
         );
     });
 

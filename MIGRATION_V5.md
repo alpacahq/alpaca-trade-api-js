@@ -54,9 +54,13 @@ search for and review:
   comparison;
 - truthiness checks on Trading dividend `foreign` / `special` string flags.
 
-TypeScript reports these response-shape changes through compiler diagnostics.
-The codemod deliberately does not match property names globally because that
-would modify unrelated application objects.
+TypeScript reports removed and structurally incompatible fields through compiler
+diagnostics, but it does **not** reject truthiness checks on the valid string
+union `"true" | "false"`. JavaScript and TypeScript users must both audit
+Trading dividend `foreign` / `special` checks. The codemod deliberately does
+not match property names globally because that would modify unrelated
+application objects. It follows proven model types, chained type aliases, and
+stable value aliases instead.
 
 Required non-nullable primitive arrays now receive the same defensive
 deserialization as model arrays: an upstream `null` or missing value becomes
@@ -92,6 +96,10 @@ or index-value endpoints. Version 5 therefore removes:
 
 These endpoints were removed upstream rather than relocated; continuing to call
 them on version 4 results in server errors.
+
+The codemod marks direct and destructured uses when it can prove they came from
+`alpaca.marketData`, the `alpaca.data` alias, or `marketDataShapes`. Resolve each
+marker manually; unrelated objects with the same property names are left alone.
 
 ## Generated trading model renames
 
@@ -189,6 +197,9 @@ use `if (details.foreign)`, `if (details.special)`, or
 `Boolean(details.foreign)`. Compare the value explicitly after narrowing the
 activity detail:
 
+TypeScript permits those truthiness checks because both values are valid
+strings; a clean type-check does not make the checks safe.
+
 ```ts
 const isForeign = details.foreign === "true";
 const isSpecial = details.special === "true";
@@ -258,6 +269,29 @@ Version 5 adds Trading API methods `searchVASPs` and
 (`beneficiaryEntityName`, or both `beneficiaryGivenName` and
 `beneficiaryFamilyName`). TypeScript enforces these combinations, and runtime
 serialization rejects incomplete JavaScript payloads before sending them.
+
+### Safe tokenization-mint retries
+
+`trading.tokenization.postTokenizationMint()` now accepts an optional
+`idempotencyKey`. Production callers should supply a new UUID for each logical
+mint operation:
+
+```ts
+await alpaca.trading.tokenization.postTokenizationMint({
+  idempotencyKey: crypto.randomUUID(),
+  tokenizationMintRequest,
+});
+```
+
+Repeating the same request body with the same key returns the existing mint
+response instead of creating a duplicate. Reusing the key with a different
+body returns HTTP `422`. The API currently accepts keys up to 128 characters,
+but new applications should use a UUIDv4 or UUIDv7 string (36 characters)
+because Alpaca is moving toward that limit.
+
+The SDK does not automatically retry `POST` requests. The idempotency key makes
+an application-directed retry safe after a timeout, network error, or transient
+`5xx`; retain the same key and body for every attempt at the same logical mint.
 
 ## Generated SSE now returns a live stream
 

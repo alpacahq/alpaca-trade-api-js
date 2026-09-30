@@ -161,6 +161,10 @@ selected-only. Discriminator guards read the typed property name while
 serialization emits only the wire property name. `src/oneOfContract.ts` fails
 generation if a merge marker moves, names a model outside that schema's
 `oneOf`, or diverges from the reviewed trading compatibility group.
+The required merge candidates also have reviewed structural fingerprints that
+include transitive `allOf` references, property names and wire types/formats,
+enums, and required sets. Any shape drift stops generation until the merge
+behavior is reviewed and the pinned fingerprint is updated deliberately.
 
 ### 7. Typed Server-Sent Events — vendor extension + validator + forked template
 
@@ -181,15 +185,18 @@ operation-server metadata is unsafe. It also rejects authentication schemes the
 template cannot emit (including cookie API keys) and non-empty path-level server
 lists, which OpenAPI Generator does not expose in the operation template
 context; stream-specific servers must be copied to the operation by the
-overlay. `templates/typescript-fetch/apis.mustache` is the exact pinned 7.14
+overlay. The validator also pins each target's root-server list to the
+hand-maintained runtime hosts, so a spec host change cannot silently diverge
+from either REST defaults or an SSE stream fallback.
+`templates/typescript-fetch/apis.mustache` is the exact pinned 7.14
 template with a narrow marked-operation branch that emits
 `SSEApiResponse<T>` / `SseSubscription<T>`, operation servers, and the generated
 item transformer. Generated authentication is evaluated inside the connector so
 function-backed credentials refresh on every initial or reconnect attempt.
 Credential resolution is covered by the same cancellation and connection
 deadline as the fetch, and an explicit per-call authentication header bypasses
-its corresponding provider. All unmarked API output must remain byte-identical
-to the stock template.
+its corresponding provider. Outside the shared deferred-auth stanza described
+below, unmarked API output must remain byte-identical to the stock template.
 
 When upgrading OpenAPI Generator, extract the new stock `apis.mustache`, inspect
 the marked operation context with `debugOperations`, reapply the narrow branch,
@@ -207,6 +214,18 @@ during serialization. The customization is limited to that marked schema and
 does not add validation to other generated models. `src/travelRuleContract.ts`
 fails generation if the marker moves, is duplicated, appears outside trading,
 or any hardcoded field/type/reference assumption drifts.
+
+### 9. Deadline-bounded generated REST authentication — forked template
+
+Stock `typescript-fetch` awaits asynchronous API-key and OAuth resolvers before
+calling the shared transport, which leaves secret-store stalls outside
+`timeoutMs` and caller cancellation. The API template emits a lazy
+`resolveRequestAuth` hook instead; `src/core/runtime.ts` runs that hook inside
+the same attempt deadline as request preparation, rate-limit acquisition,
+fetch, middleware, and response-body consumption. Keep all generated auth
+branches inside this hook when rebasing the template. Runtime authentication
+tests use a generated API method and fail if resolution moves outside the
+deadline again.
 
 ### Credential-gated SSE smoke
 

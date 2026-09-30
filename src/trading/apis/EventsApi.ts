@@ -67,6 +67,7 @@ export class EventsApi extends runtime.BaseAPI {
         const sseMetadata: runtime.SseOperationMetadata = {
             reconnect: true,
             bounded: false || requestParameters['until'] != null || requestParameters['untilId'] != null,
+            configuredLastEventId: new Headers(this.configuration?.headers).get('Last-Event-ID') ?? undefined,
             
             servers: [
             ],

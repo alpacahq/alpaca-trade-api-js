@@ -433,7 +433,30 @@ export class BaseAPI {
     }
 
     protected async request(context: RequestOpts, initOverrides?: RequestInit | InitOverrideFunction): Promise<Response> {
-        const { url, init } = await this.createFetchParams(context, initOverrides);
+        const directSignal =
+            typeof initOverrides === 'object'
+                ? initOverrides?.signal
+                : undefined;
+        let deadline = new AttemptDeadline(
+            this.configuration.timeoutMs,
+            directSignal,
+        );
+        let url: string;
+        let init: RequestInit;
+        try {
+            if (context.resolveAuth) {
+                await deadline.race(
+                    context.resolveAuth(deadline.signal),
+                );
+            }
+            ({ url, init } = await deadline.race(
+                this.createFetchParams(context, initOverrides),
+            ));
+            deadline.addCallerSignal(init.signal);
+        } catch (error) {
+            deadline.cancel();
+            throw error;
+        }
         const retry = this.configuration.retry;
         const maxRetries = retry?.maxRetries ?? 0;
         const method = (init.method || context.method || 'GET').toUpperCase();
@@ -445,7 +468,6 @@ export class BaseAPI {
 
         let attempt = 0;
         while (true) {
-            const deadline = new AttemptDeadline(this.configuration.timeoutMs, init.signal);
             let response: Response | undefined;
             let networkError: unknown;
             let release: (() => void) | undefined;
@@ -485,6 +507,10 @@ export class BaseAPI {
                     notifyRetry(retry, { method, url, attempt: attempt + 1, maxRetries, delayMs, error: networkError });
                     await sleep(delayMs, init.signal);
                     attempt++;
+                    deadline = new AttemptDeadline(
+                        this.configuration.timeoutMs,
+                        init.signal,
+                    );
                     continue;
                 }
                 if (isRetryable && maxRetries > 0) {
@@ -504,6 +530,10 @@ export class BaseAPI {
                 notifyRetry(retry, { method, url, attempt: attempt + 1, maxRetries, delayMs, status: response!.status });
                 await sleep(delayMs, init.signal);
                 attempt++;
+                deadline = new AttemptDeadline(
+                    this.configuration.timeoutMs,
+                    init.signal,
+                );
                 continue;
             }
             if (isRetryable && maxRetries > 0) {
@@ -619,6 +649,7 @@ export class BaseAPI {
             throw error;
         }
         let response: Response | undefined;
+        let effectiveUrl = url;
         let release: (() => void) | undefined;
         try {
             const acquire = this.configuration.rateLimiter?.acquire(deadline.signal);
@@ -628,13 +659,15 @@ export class BaseAPI {
                     (lateRelease) => lateRelease(),
                 );
             }
-            response = await deadline.race(
+            const result = await deadline.race(
                 this.fetchSseApi(
                     url,
                     deadline.signal ? { ...init, signal: deadline.signal } : init,
                 ),
-                (lateResponse) => discardResponse(lateResponse),
+                (lateResult) => discardResponse(lateResult.response),
             );
+            response = result.response;
+            effectiveUrl = result.url;
         } finally {
             release?.();
         }
@@ -665,7 +698,7 @@ export class BaseAPI {
             // End only the connect timer. The composed signal continues
             // forwarding subscription cancellation to the live body.
             deadline.stopTimer();
-            return { response, url };
+            return { response, url: effectiveUrl };
         }
         if (response.status >= 200 && response.status < 300) {
             deadline.cancel();
@@ -827,13 +860,18 @@ export class BaseAPI {
     }
 
     /** SSE middleware path: pre/onError only, never body-cloning post. */
-    private fetchSseApi = async (url: string, init: RequestInit) => {
+    private fetchSseApi = async (
+        url: string,
+        init: RequestInit,
+    ): Promise<{ response: Response; url: string }> => {
+        const middlewareFetch: FetchAPI = async (nextUrl, nextInit) =>
+            (await this.fetchSseApi(nextUrl, nextInit)).response;
         let fetchParams = { url, init };
         for (const middleware of this.middleware) {
             if (middleware.pre) {
                 fetchParams =
                     (await middleware.pre({
-                        fetch: this.fetchSseApi,
+                        fetch: middlewareFetch,
                         ...fetchParams,
                     })) || fetchParams;
             }
@@ -848,7 +886,7 @@ export class BaseAPI {
             for (const middleware of this.middleware) {
                 if (middleware.onError) {
                     const recovered = await middleware.onError({
-                            fetch: this.fetchSseApi,
+                            fetch: middlewareFetch,
                             url: fetchParams.url,
                             init: fetchParams.init,
                             error,
@@ -870,7 +908,7 @@ export class BaseAPI {
                 throw error;
             }
         }
-        return response;
+        return { response, url: fetchParams.url };
     }
 
     /**
@@ -934,43 +972,86 @@ function normalizeCancellation(error: unknown, signal?: AbortSignal): unknown {
 }
 
 /**
- * One phase-specific request deadline. The timer starts immediately before a
- * rate-limit acquisition and stays live through fetch, post middleware, and
- * response-body consumption. Retry backoff happens only after this deadline is
- * cancelled; the next attempt constructs a fresh instance.
+ * One phase-specific request deadline. The first timer starts before request
+ * preparation (including lazy credentials and init overrides) and stays live
+ * through rate-limit acquisition, fetch, post middleware, and response-body
+ * consumption. Retry backoff happens only after this deadline is cancelled;
+ * the next attempt constructs a fresh instance.
  */
 class AttemptDeadline {
-    readonly signal?: AbortSignal;
+    private controller?: AbortController;
+    signal?: AbortSignal;
+    private directCallerSignal?: AbortSignal;
     private timer?: ReturnType<typeof setTimeout>;
-    private callerSignal?: AbortSignal;
-    private onCallerAbort?: () => void;
+    private readonly callerAborts: Array<{
+        signal: AbortSignal;
+        listener: () => void;
+    }> = [];
     private onDeadlineAbort?: () => void;
     private stopped = false;
 
     constructor(timeoutMs: number | undefined, callerSignal?: AbortSignal | null) {
-        if (!timeoutMs || timeoutMs <= 0) {
-            this.signal = callerSignal ?? undefined;
+        if (timeoutMs && timeoutMs > 0) {
+            const controller = this.ensureController();
+            this.timer = setTimeout(
+                () => controller.abort(
+                    new DOMException(`Request timed out after ${timeoutMs} ms`, 'TimeoutError'),
+                ),
+                timeoutMs,
+            );
+            this.addCallerSignal(callerSignal);
+        } else if (callerSignal) {
+            this.signal = callerSignal;
+            this.directCallerSignal = callerSignal;
+        }
+    }
+
+    addCallerSignal(callerSignal?: AbortSignal | null): void {
+        if (
+            !callerSignal ||
+            this.directCallerSignal === callerSignal ||
+            this.callerAborts.some(({ signal }) => signal === callerSignal)
+        ) {
             return;
         }
-
-        const controller = new AbortController();
-        this.signal = controller.signal;
-        this.callerSignal = callerSignal ?? undefined;
-        this.onDeadlineAbort = () => this.stopClock();
-        controller.signal.addEventListener('abort', this.onDeadlineAbort, { once: true });
-        this.timer = setTimeout(
-            () => controller.abort(
-                new DOMException(`Request timed out after ${timeoutMs} ms`, 'TimeoutError'),
-            ),
-            timeoutMs,
-        );
-
-        if (callerSignal?.aborted) {
-            controller.abort(abortReason(callerSignal));
-        } else if (callerSignal) {
-            this.onCallerAbort = () => controller.abort(abortReason(callerSignal));
-            callerSignal.addEventListener('abort', this.onCallerAbort, { once: true });
+        if (!this.controller && this.directCallerSignal) {
+            const directCallerSignal = this.directCallerSignal;
+            this.directCallerSignal = undefined;
+            this.signal = undefined;
+            this.ensureController();
+            this.forwardCallerSignal(directCallerSignal);
+        } else if (!this.controller) {
+            this.signal = callerSignal;
+            this.directCallerSignal = callerSignal;
+            return;
         }
+        this.forwardCallerSignal(callerSignal);
+    }
+
+    private forwardCallerSignal(callerSignal: AbortSignal): void {
+        const controller = this.ensureController();
+        if (callerSignal.aborted) {
+            controller.abort(abortReason(callerSignal));
+            return;
+        }
+        const listener = () =>
+            controller.abort(abortReason(callerSignal));
+        callerSignal.addEventListener('abort', listener, { once: true });
+        this.callerAborts.push({ signal: callerSignal, listener });
+    }
+
+    private ensureController(): AbortController {
+        if (this.controller) return this.controller;
+        const controller = new AbortController();
+        this.controller = controller;
+        this.signal = controller.signal;
+        this.onDeadlineAbort = () => this.stopClock();
+        controller.signal.addEventListener(
+            'abort',
+            this.onDeadlineAbort,
+            { once: true },
+        );
+        return controller;
     }
 
     race<T>(
@@ -1067,10 +1148,10 @@ class AttemptDeadline {
             clearTimeout(this.timer);
             this.timer = undefined;
         }
-        if (this.callerSignal && this.onCallerAbort) {
-            this.callerSignal.removeEventListener('abort', this.onCallerAbort);
-            this.onCallerAbort = undefined;
+        for (const { signal, listener } of this.callerAborts) {
+            signal.removeEventListener('abort', listener);
         }
+        this.callerAborts.length = 0;
         if (this.signal && this.onDeadlineAbort) {
             this.signal.removeEventListener('abort', this.onDeadlineAbort);
             this.onDeadlineAbort = undefined;
@@ -1304,6 +1385,8 @@ export interface RequestOpts {
     headers: HTTPHeaders;
     query?: HTTPQuery;
     body?: HTTPBody;
+    /** Generated lazy authentication, bounded by the request deadline. */
+    resolveAuth?: (signal?: AbortSignal) => Promise<void>;
 }
 
 export function querystring(params: HTTPQuery, prefix: string = ''): string {

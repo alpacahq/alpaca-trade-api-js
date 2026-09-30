@@ -193,6 +193,7 @@ export class {{classname}} extends runtime.BaseAPI {
         {{/isArray}}
         {{/headerParams}}
         {{^vendorExtensions.x-typescript-fetch-sse}}
+        const resolveRequestAuth = async (): Promise<void> => {
         {{#authMethods}}
         {{#isBasic}}
         {{#isBasicBasic}}
@@ -233,6 +234,7 @@ export class {{classname}} extends runtime.BaseAPI {
 
         {{/isOAuth}}
         {{/authMethods}}
+        };
         {{/vendorExtensions.x-typescript-fetch-sse}}
         {{#hasFormParams}}
         const consumes: runtime.Consume[] = [
@@ -326,6 +328,7 @@ export class {{classname}} extends runtime.BaseAPI {
         const sseMetadata: runtime.SseOperationMetadata = {
             reconnect: {{#vendorExtensions.x-typescript-fetch-sse-reconnect}}true{{/vendorExtensions.x-typescript-fetch-sse-reconnect}}{{^vendorExtensions.x-typescript-fetch-sse-reconnect}}false{{/vendorExtensions.x-typescript-fetch-sse-reconnect}},
             bounded: false{{#allParams}}{{#vendorExtensions.x-typescript-fetch-sse-terminal}} || requestParameters['{{paramName}}'] != null{{/vendorExtensions.x-typescript-fetch-sse-terminal}}{{/allParams}},
+            configuredLastEventId: new Headers(this.configuration?.headers).get('Last-Event-ID') ?? undefined,
             {{#allParams}}{{#vendorExtensions.x-typescript-fetch-sse-last-event-id}}
             initialLastEventId: requestParameters['{{paramName}}'],
             {{/vendorExtensions.x-typescript-fetch-sse-last-event-id}}{{/allParams}}
@@ -432,6 +435,7 @@ export class {{classname}} extends runtime.BaseAPI {
             method: '{{httpMethod}}',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
             {{#hasBodyParam}}
             {{#bodyParam}}
             {{#isContainer}}

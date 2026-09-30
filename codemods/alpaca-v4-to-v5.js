@@ -1372,6 +1372,79 @@ module.exports = function transformer(file, api, options = {}) {
         return false;
     };
 
+    const flagRemovedDestructuredMembers = (
+        patternPath,
+        allowedNames,
+    ) => {
+        forEachObjectPatternProperty(
+            patternPath,
+            (name, _valuePath, propertyPath) => {
+                if (!name || !allowedNames.has(name)) return;
+                addTodo(
+                    propertyPath,
+                    `removed-${name}`,
+                    REMOVED_MARKET_DATA_MEMBERS.get(name),
+                );
+            },
+        );
+    };
+    const removedFacadeNames = new Set([
+        "indices",
+        "cryptoPerpetualFutures",
+        "iterateIndexValues",
+        "collectIndexValuesBySymbol",
+    ]);
+    const removedShapeNames = new Set([
+        "toIndexValue",
+        "toIndexValuesBySymbol",
+    ]);
+    root.find(j.VariableDeclarator).forEach((path) => {
+        if (
+            path.value.id.type !== "ObjectPattern" ||
+            !path.value.init
+        ) {
+            return;
+        }
+        if (
+            isMarketDataFacadeNamespaceReceiver(
+                path.get("init"),
+            )
+        ) {
+            flagRemovedDestructuredMembers(
+                path.get("id"),
+                removedFacadeNames,
+            );
+        } else if (isMarketDataShapesNamespace(path.get("init"))) {
+            flagRemovedDestructuredMembers(
+                path.get("id"),
+                removedShapeNames,
+            );
+        }
+    });
+    root.find(j.AssignmentExpression).forEach((path) => {
+        if (
+            path.value.operator !== "=" ||
+            path.value.left.type !== "ObjectPattern"
+        ) {
+            return;
+        }
+        if (
+            isMarketDataFacadeNamespaceReceiver(
+                path.get("right"),
+            )
+        ) {
+            flagRemovedDestructuredMembers(
+                path.get("left"),
+                removedFacadeNames,
+            );
+        } else if (isMarketDataShapesNamespace(path.get("right"))) {
+            flagRemovedDestructuredMembers(
+                path.get("left"),
+                removedShapeNames,
+            );
+        }
+    });
+
     const orderBodyBindings = createBindings();
     const stableObjectBindings = createBindings();
     const trackOrderBody = (objectPath) => {
@@ -1811,6 +1884,105 @@ module.exports = function transformer(file, api, options = {}) {
     const dividendDetails = createBindings();
     const activityStreams = createBindings();
     const activityEvents = createBindings();
+    const dividendTypeBindings = new Map();
+    const dividendTypeScope = (path) => {
+        let scope = path?.scope;
+        if (scope?.path?.value?.type === "TSTypeAliasDeclaration") {
+            scope = scope.parent;
+        }
+        return scope;
+    };
+    const setDividendTypeBinding = (path, value) => {
+        const scope = dividendTypeScope(path);
+        const name = path?.value?.name;
+        if (!scope || !name) return false;
+        let names = dividendTypeBindings.get(scope);
+        if (!names) {
+            names = new Map();
+            dividendTypeBindings.set(scope, names);
+        }
+        if (names.get(name) === value) return false;
+        names.set(name, value);
+        return true;
+    };
+    const getDividendTypeBinding = (path) => {
+        if (path?.value?.type !== "Identifier") return undefined;
+        let scope = dividendTypeScope(path);
+        while (scope) {
+            const names = dividendTypeBindings.get(scope);
+            if (names?.has(path.value.name)) {
+                return names.get(path.value.name) || undefined;
+            }
+            scope = scope.parent;
+        }
+        return undefined;
+    };
+
+    root.find(j.ImportDeclaration).forEach((path) => {
+        if (!PACKAGE_NAMES.has(String(path.value.source.value))) return;
+        path.get("specifiers").each((specifierPath) => {
+            const specifier = specifierPath.value;
+            if (
+                specifier.type !== "ImportSpecifier" ||
+                !specifier.local
+            ) {
+                return;
+            }
+            const importedName = propertyName(specifier.imported);
+            if (
+                importedName &&
+                TRADING_DIVIDEND_MODELS.has(importedName)
+            ) {
+                setDividendTypeBinding(
+                    specifierPath.get("local"),
+                    importedName,
+                );
+            }
+        });
+    });
+    if (j.TSTypeAliasDeclaration) {
+        root.find(j.TSTypeAliasDeclaration).forEach((path) => {
+            setDividendTypeBinding(path.get("id"), false);
+        });
+    }
+    const dividendModelForType = (typePath) => {
+        if (typePath?.value?.type !== "TSTypeReference") {
+            return undefined;
+        }
+        const directName = typeNodeName(typePath.value);
+        if (directName && TRADING_DIVIDEND_MODELS.has(directName)) {
+            return directName;
+        }
+        const typeNamePath = typePath.get("typeName");
+        if (typeNamePath.value?.type !== "Identifier") {
+            return undefined;
+        }
+        return getDividendTypeBinding(typeNamePath);
+    };
+    let addedDividendAlias;
+    do {
+        addedDividendAlias = false;
+        if (j.TSTypeAliasDeclaration) {
+            root.find(j.TSTypeAliasDeclaration).forEach((path) => {
+                const modelName = dividendModelForType(
+                    path.get("typeAnnotation"),
+                );
+                if (!modelName) return;
+                addedDividendAlias =
+                    setDividendTypeBinding(
+                        path.get("id"),
+                        modelName,
+                    ) || addedDividendAlias;
+            });
+        }
+    } while (addedDividendAlias);
+
+    const dividendModelForAnnotation = (annotationPath) =>
+        annotationPath?.value?.type === "TSTypeAnnotation"
+            ? dividendModelForType(
+                  annotationPath.get("typeAnnotation"),
+              )
+            : undefined;
 
     const isActivitySubscription = (path) => {
         let candidatePath = path;
@@ -1828,10 +2000,14 @@ module.exports = function transformer(file, api, options = {}) {
         if (path.value.init && isActivitySubscription(path.get("init"))) {
             setBinding(activityStreams, path.get("id"));
         }
-        const modelName = typeName(path.value.id.typeAnnotation);
+        const modelName = dividendModelForAnnotation(
+            path.get("id", "typeAnnotation"),
+        );
         const assertedModelName =
             path.value.init?.type === "TSAsExpression"
-                ? typeNodeName(path.value.init.typeAnnotation)
+                ? dividendModelForType(
+                      path.get("init", "typeAnnotation"),
+                  )
                 : undefined;
         if (
             (modelName && TRADING_DIVIDEND_MODELS.has(modelName)) ||
@@ -1861,8 +2037,8 @@ module.exports = function transformer(file, api, options = {}) {
             const identifierPath =
                 dividendParameterIdentifier(parameterPath);
             if (!identifierPath) return;
-            const modelName = typeName(
-                identifierPath.value.typeAnnotation,
+            const modelName = dividendModelForAnnotation(
+                identifierPath.get("typeAnnotation"),
             );
             if (
                 modelName &&
@@ -1872,6 +2048,7 @@ module.exports = function transformer(file, api, options = {}) {
             }
         });
     });
+    propagateStableAliases(dividendDetails);
 
     root.find(j.ForOfStatement).forEach((path) => {
         if (!path.value.await) return;

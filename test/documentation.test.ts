@@ -257,6 +257,13 @@ describe('canonical documentation', () => {
         expect(resilience).toContain('respectRetryAfter');
         expect(resilience).toContain('maxConcurrent');
         expect(resilience).toContain(
+            'starts before credential resolution and request',
+        );
+        expect(resilience).toContain(
+            'asynchronous API-key or OAuth loading',
+        );
+        expect(resilience).toContain('init overrides');
+        expect(resilience).toContain(
             'first argument for parameterless methods',
         );
         expect(resilience).not.toContain(

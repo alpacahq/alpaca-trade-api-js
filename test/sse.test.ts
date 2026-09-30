@@ -4,6 +4,7 @@ import {
     SSEApiResponse,
     SseDeserializationError,
     SseProtocolError,
+    type SseSubscription,
 } from '../src/trading';
 import { Alpaca } from '../src/client';
 import * as trading from '../src/trading';
@@ -538,6 +539,94 @@ describe('typed SSE subscription', () => {
         }
 
         await expect(stream.closed).resolves.toEqual({ reason: 'eof' });
+        expect(cancel).toHaveBeenCalledOnce();
+    });
+
+    it.each([
+        ['data iterator', (stream: SseSubscription<string>) => stream[Symbol.asyncIterator]()],
+        ['message iterator', (stream: SseSubscription<string>) => stream.messages()[Symbol.asyncIterator]()],
+    ])('closes an opened subscription when the %s returns before next', async (_label, iteratorFor) => {
+        const cancel = vi.fn();
+        const raw = await SSEApiResponse.open(
+            async () => ({
+                response: new Response(
+                    new ReadableStream<Uint8Array>({ cancel }),
+                    { headers: { 'Content-Type': 'text/event-stream' } },
+                ),
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => data,
+            { reconnect: false },
+        );
+        const stream = await raw.value();
+        const iterator = iteratorFor(stream);
+
+        await expect(iterator.return?.()).resolves.toEqual({
+            value: undefined,
+            done: true,
+        });
+        await expect(stream.closed).resolves.toEqual({ reason: 'aborted' });
+        expect(cancel).toHaveBeenCalledOnce();
+    });
+
+    it.each([
+        ['data iterator', (stream: SseSubscription<string>) => stream[Symbol.asyncIterator]()],
+        ['message iterator', (stream: SseSubscription<string>) => stream.messages()[Symbol.asyncIterator]()],
+    ])('actively cancels a pending read when the %s returns', async (_label, iteratorFor) => {
+        const cancel = vi.fn();
+        const raw = await SSEApiResponse.open(
+            async () => ({
+                response: new Response(
+                    new ReadableStream<Uint8Array>({
+                        pull: () => new Promise<void>(() => {}),
+                        cancel,
+                    }),
+                    { headers: { 'Content-Type': 'text/event-stream' } },
+                ),
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => data,
+            { reconnect: false },
+        );
+        const stream = await raw.value();
+        const iterator = iteratorFor(stream);
+        const next = iterator.next();
+        await Promise.resolve();
+
+        await expect(iterator.return?.()).resolves.toEqual({
+            value: undefined,
+            done: true,
+        });
+        await expect(next).resolves.toEqual({ value: undefined, done: true });
+        await expect(stream.closed).resolves.toEqual({ reason: 'aborted' });
+        expect(cancel).toHaveBeenCalledOnce();
+    });
+
+    it('actively cancels a pending read when an iterator throws', async () => {
+        const cancel = vi.fn();
+        const raw = await SSEApiResponse.open(
+            async () => ({
+                response: new Response(
+                    new ReadableStream<Uint8Array>({
+                        pull: () => new Promise<void>(() => {}),
+                        cancel,
+                    }),
+                    { headers: { 'Content-Type': 'text/event-stream' } },
+                ),
+                url: 'https://stream.example.test/events',
+            }),
+            (data) => data,
+            { reconnect: false },
+        );
+        const stream = await raw.value();
+        const iterator = stream[Symbol.asyncIterator]();
+        const next = iterator.next();
+        await Promise.resolve();
+        const consumerError = new Error('consumer stopped');
+
+        await expect(iterator.throw?.(consumerError)).rejects.toBe(consumerError);
+        await expect(next).resolves.toEqual({ value: undefined, done: true });
+        await expect(stream.closed).resolves.toEqual({ reason: 'aborted' });
         expect(cancel).toHaveBeenCalledOnce();
     });
 
@@ -1278,6 +1367,60 @@ describe('generated SSE operation metadata', () => {
 
         expect(stream.lastEventId).toBe('nested');
         expect(seenId).toBe('nested');
+        stream.close();
+    });
+
+    it('exposes a configured Last-Event-ID as initial subscription state', async () => {
+        let seenId: string | null = null;
+        const api = new trading.EventsApi(
+            new trading.Configuration({
+                headers: { 'LAST-EVENT-ID': 'configured' },
+                fetchApi: async (_url, init) => {
+                    seenId = new Headers(init?.headers).get('Last-Event-ID');
+                    return chunkedResponse([]);
+                },
+            }),
+        );
+
+        const stream = await api.subscribeToActivitiesSSE(
+            {},
+            { reconnect: false },
+        );
+
+        expect(stream.lastEventId).toBe('configured');
+        expect(seenId).toBe('configured');
+        stream.close();
+    });
+
+    it('reports the URL rewritten by SSE pre middleware', async () => {
+        const effectiveUrl = 'https://proxy.example.test/realtime/activities';
+        let fetchedUrl: string | undefined;
+        let openedUrl: string | undefined;
+        const api = new trading.EventsApi(
+            new trading.Configuration({
+                middleware: [{
+                    pre: async ({ init }) => ({ url: effectiveUrl, init }),
+                }],
+                fetchApi: async (url) => {
+                    fetchedUrl = url;
+                    return chunkedResponse([]);
+                },
+            }),
+        );
+
+        const stream = await api.subscribeToActivitiesSSE(
+            {},
+            {
+                reconnect: false,
+                onOpen: (connection) => {
+                    openedUrl = connection.url;
+                },
+            },
+        );
+
+        expect(fetchedUrl).toBe(effectiveUrl);
+        expect(stream.connection?.url).toBe(effectiveUrl);
+        expect(openedUrl).toBe(effectiveUrl);
         stream.close();
     });
 

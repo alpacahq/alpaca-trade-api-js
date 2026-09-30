@@ -757,6 +757,76 @@ for (const { name, rt } of RUNTIMES) {
             expect(res.status).toBe(200);
         });
 
+        it.each([
+            [
+                'a lazy access-token provider',
+                (cfg: InstanceType<typeof rt.Configuration>) =>
+                    call(cfg, 'GET'),
+                {
+                    accessToken: () => new Promise<string>(() => {}),
+                },
+            ],
+            [
+                'an init override',
+                (cfg: InstanceType<typeof rt.Configuration>) =>
+                    call(
+                        cfg,
+                        'GET',
+                        () => new Promise<RequestInit>(() => {}),
+                    ),
+                {},
+            ],
+        ])('bounds stalled request preparation in %s', async (_label, start, extra) => {
+            vi.useFakeTimers();
+            try {
+                const fetchApi = vi.fn(async () =>
+                    jsonResponse(200, OK_BODY),
+                );
+                const cfg = new rt.Configuration({
+                    timeoutMs: 5_000,
+                    fetchApi,
+                    ...extra,
+                });
+                const request = start(cfg);
+                const expectation = expect(request).rejects.toMatchObject({
+                    name: 'FetchError',
+                    cause: { name: 'TimeoutError' },
+                });
+
+                await vi.advanceTimersByTimeAsync(5_000);
+
+                await expectation;
+                expect(fetchApi).not.toHaveBeenCalled();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('propagates caller abort while a lazy access-token provider is pending', async () => {
+            const controller = new AbortController();
+            const fetchApi = vi.fn(async () =>
+                jsonResponse(200, OK_BODY),
+            );
+            const cfg = new rt.Configuration({
+                timeoutMs: 60_000,
+                accessToken: () => new Promise<string>(() => {}),
+                fetchApi,
+            });
+            const request = call(cfg, 'GET', {
+                signal: controller.signal,
+            });
+
+            controller.abort(
+                new DOMException('credential request cancelled', 'AbortError'),
+            );
+
+            await expect(request).rejects.toMatchObject({
+                name: 'FetchError',
+                cause: { name: 'AbortError' },
+            });
+            expect(fetchApi).not.toHaveBeenCalled();
+        });
+
         it('aborts a stalled request once timeoutMs elapses', async () => {
             vi.useFakeTimers();
             try {
