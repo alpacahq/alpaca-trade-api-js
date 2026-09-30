@@ -243,12 +243,12 @@ by language, so pick the line for your sources (run on a clean git tree):
 # JavaScript sources
 npx jscodeshift -t \
   ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js \
-  --parser=babel --extensions=js src
+  --parser=babel --extensions=js,jsx,mjs,cjs src
 
 # TypeScript sources (both flags are required)
 npx jscodeshift -t \
   ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js \
-  --parser=tsx --extensions=ts,tsx src
+  --parser=tsx --extensions=ts,tsx,mts,cts src
 ```
 
 Against a local checkout of the SDK repo, use

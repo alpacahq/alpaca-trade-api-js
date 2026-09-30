@@ -7,7 +7,7 @@
  *
  * Usage:
  *   npx jscodeshift -t codemods/alpaca-v4-to-v5.js --parser=tsx \
- *     --extensions=ts,tsx src
+ *     --extensions=ts,tsx,mts,cts src
  */
 
 "use strict";
@@ -348,6 +348,35 @@ module.exports = function transformer(file, api, options = {}) {
         }
         return undefined;
     };
+    const forEachObjectPatternProperty = (patternPath, callback) => {
+        if (patternPath.value?.type !== "ObjectPattern") return;
+        patternPath.get("properties").each((propertyPath) => {
+            const property = propertyPath.value;
+            if (
+                property.type !== "Property" &&
+                property.type !== "ObjectProperty"
+            ) {
+                return;
+            }
+            callback(
+                propertyName(property.key),
+                propertyPath.get("value"),
+                propertyPath,
+            );
+        });
+    };
+    const objectPatternProperty = (patternPath, name) => {
+        let match;
+        forEachObjectPatternProperty(
+            patternPath,
+            (propertyNameValue, valuePath, propertyPath) => {
+                if (propertyNameValue === name) {
+                    match = { valuePath, propertyPath };
+                }
+            },
+        );
+        return match;
+    };
 
     const setPropertyName = (member, name) => {
         if (
@@ -587,6 +616,60 @@ module.exports = function transformer(file, api, options = {}) {
         (path.value?.type === "MemberExpression" &&
             propertyName(path.value.property) === "ActivityType" &&
             isTradingNamespaceMember(path));
+    let hasProvenDestructuredReorg = false;
+    const inspectActivityTypePattern = (patternPath) => {
+        if (objectPatternProperty(patternPath, "Reorg")) {
+            hasProvenDestructuredReorg = true;
+        }
+    };
+    const inspectTradingPattern = (patternPath) => {
+        const activityType = objectPatternProperty(
+            patternPath,
+            "ActivityType",
+        );
+        if (activityType?.valuePath.value?.type === "Identifier") {
+            const scope = bindingScope(activityType.valuePath);
+            if (
+                !hasLaterWrite(
+                    scope,
+                    activityType.valuePath.value.name,
+                )
+            ) {
+                setBinding(
+                    activityTypeObjects,
+                    activityType.valuePath,
+                );
+            }
+        } else if (
+            activityType?.valuePath.value?.type === "ObjectPattern"
+        ) {
+            inspectActivityTypePattern(activityType.valuePath);
+        }
+    };
+    root.find(j.VariableDeclarator).forEach((path) => {
+        if (
+            path.value.id.type !== "ObjectPattern" ||
+            !path.value.init
+        ) {
+            return;
+        }
+        if (isActivityTypeObject(path.get("init"))) {
+            inspectActivityTypePattern(path.get("id"));
+        }
+        if (isTradingNamespaceObject(path.get("init"))) {
+            inspectTradingPattern(path.get("id"));
+        }
+        if (isSdkNamespaceObject(path.get("init"))) {
+            const trading = objectPatternProperty(
+                path.get("id"),
+                "trading",
+            );
+            if (trading?.valuePath.value?.type === "ObjectPattern") {
+                inspectTradingPattern(trading.valuePath);
+            }
+        }
+    });
+    propagateStableAliases(activityTypeObjects);
     const isMarketDataShapesNamespace = (path) => {
         if (
             path.value?.type === "Identifier" &&
@@ -686,19 +769,36 @@ module.exports = function transformer(file, api, options = {}) {
             .filter(Boolean),
     );
     if (configuredInstanceNames.size > 0) {
+        const configuredBindings = new Map();
         root.find(j.Identifier).forEach((path) => {
             if (!configuredInstanceNames.has(path.value.name)) return;
             const scope = bindingScope(path);
-            if (!scope || hasBinding(alpacaInstances, path)) return;
-            if (hasLaterWrite(scope, path.value.name)) {
+            if (!scope) return;
+            let bindings = configuredBindings.get(path.value.name);
+            if (!bindings) {
+                bindings = new Map();
+                configuredBindings.set(path.value.name, bindings);
+            }
+            if (!bindings.has(scope)) bindings.set(scope, path);
+        });
+        for (const [name, bindings] of configuredBindings) {
+            if (bindings.size > 1) {
                 report(
-                    `ambiguous-instance-${path.value.name}`,
-                    `--instanceName=${path.value.name} was ignored for a reassigned binding`,
+                    `ambiguous-instance-${name}`,
+                    `--instanceName=${name} matched multiple lexical bindings and was ignored; choose a unique identifier name`,
                 );
-                return;
+                continue;
+            }
+            const [[scope, path]] = bindings;
+            if (hasLaterWrite(scope, name)) {
+                report(
+                    `ambiguous-instance-${name}`,
+                    `--instanceName=${name} was ignored for a reassigned binding`,
+                );
+                continue;
             }
             setBinding(alpacaInstances, path);
-        });
+        }
     }
     root.find(j.NewExpression).forEach((path) => {
         if (!isAlpacaConstructor(path.get("callee"))) return;
@@ -825,6 +925,32 @@ module.exports = function transformer(file, api, options = {}) {
         "CryptoPerpetualFuturesApi",
     ]);
     const removedMarketDataConstructors = createBindings();
+    const registerRemovedMarketDataPattern = (patternPath) => {
+        forEachObjectPatternProperty(
+            patternPath,
+            (apiName, valuePath, propertyPath) => {
+                if (
+                    !apiName ||
+                    !removedMarketDataApiNames.has(apiName) ||
+                    valuePath.value?.type !== "Identifier"
+                ) {
+                    return;
+                }
+                const scope = bindingScope(valuePath);
+                if (hasLaterWrite(scope, valuePath.value.name)) return;
+                setBinding(
+                    removedMarketDataConstructors,
+                    valuePath,
+                    apiName,
+                );
+                addTodo(
+                    propertyPath,
+                    `removed-${apiName}`,
+                    REMOVED_MARKET_DATA_MEMBERS.get(apiName),
+                );
+            },
+        );
+    };
     root.find(j.VariableDeclarator).forEach((path) => {
         if (
             path.value.id.type === "Identifier" &&
@@ -844,39 +970,27 @@ module.exports = function transformer(file, api, options = {}) {
         }
         if (
             path.value.id.type !== "ObjectPattern" ||
-            !path.value.init ||
-            !isMarketDataNamespaceObject(path.get("init"))
+            !path.value.init
         ) {
             return;
         }
-        path.get("id", "properties").each((propertyPath) => {
-            const property = propertyPath.value;
-            const apiName =
-                property.type === "Property" ||
-                property.type === "ObjectProperty"
-                    ? propertyName(property.key)
-                    : undefined;
+        if (isMarketDataNamespaceObject(path.get("init"))) {
+            registerRemovedMarketDataPattern(path.get("id"));
+        }
+        if (isSdkNamespaceObject(path.get("init"))) {
+            const marketData = objectPatternProperty(
+                path.get("id"),
+                "marketData",
+            );
             if (
-                !apiName ||
-                !removedMarketDataApiNames.has(apiName) ||
-                property.value.type !== "Identifier"
+                marketData?.valuePath.value?.type ===
+                "ObjectPattern"
             ) {
-                return;
+                registerRemovedMarketDataPattern(
+                    marketData.valuePath,
+                );
             }
-            const valuePath = propertyPath.get("value");
-            const scope = bindingScope(valuePath);
-            if (hasLaterWrite(scope, valuePath.value.name)) return;
-            setBinding(
-                removedMarketDataConstructors,
-                valuePath,
-                apiName,
-            );
-            addTodo(
-                propertyPath,
-                `removed-${apiName}`,
-                REMOVED_MARKET_DATA_MEMBERS.get(apiName),
-            );
-        });
+        }
     });
     propagateStableAliases(removedMarketDataConstructors);
 
@@ -1397,6 +1511,9 @@ module.exports = function transformer(file, api, options = {}) {
 
     const reorgReview =
         'do not mechanically rewrite historical "REORG"; use "REO" for new reorganizations and retain "REORG"/"WRM" for worthless removals';
+    if (hasProvenDestructuredReorg) {
+        report("reorg-enum", reorgReview);
+    }
     root.find(j.MemberExpression).forEach((path) => {
         if (
             propertyName(path.value.property) === "Reorg" &&

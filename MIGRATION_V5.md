@@ -23,12 +23,12 @@ generated-contract renames and adds review diagnostics for semantic changes:
 # TypeScript
 npx jscodeshift \
   -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js \
-  --parser=tsx --extensions=ts,tsx src
+  --parser=tsx --extensions=ts,tsx,mts,cts src
 
 # JavaScript
 npx jscodeshift \
   -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js \
-  --parser=babel --extensions=js src
+  --parser=babel --extensions=js,jsx,mjs,cjs src
 ```
 
 Run it on a clean version-control branch and review the resulting diff and
@@ -38,9 +38,11 @@ See the [codemod reference](codemods/README.md) for its exact scope.
 
 Applications that receive an Alpaca client through dependency injection can
 register its exact lexical name with `--instanceName=client` (comma-separate
-multiple names). This opt-in includes function parameters and stable aliases,
-but ignores reassigned bindings. A variable merely named `alpaca` is not trusted
-without the option or a proven SDK constructor.
+multiple names). Each requested name must resolve to exactly one lexical binding
+in a source file. This opt-in includes function parameters and stable aliases,
+but ignores reassigned, shadowed, or otherwise ambiguous bindings. A variable
+merely named `alpaca` is not trusted without the option or a proven SDK
+constructor.
 
 JavaScript users must also manually audit response consumers because untyped
 data flow cannot always prove that a property came from this SDK. In particular,

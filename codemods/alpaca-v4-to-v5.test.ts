@@ -407,6 +407,18 @@ const { ActivityType: Types } = sdk.trading;
 if (activity.activityType === Types.Reorg) handle(activity);`,
         `const { ActivityType } = require("@alpacahq/alpaca-trade-api").trading;
 if (activity.activityType === ActivityType.Reorg) handle(activity);`,
+        `import { trading } from "@alpacahq/alpaca-trade-api";
+const { Reorg } = trading.ActivityType;
+if (activity.activityType === Reorg) handle(activity);`,
+        `const {
+  trading: { ActivityType: { Reorg: LegacyReorg } }
+} = require("@alpacahq/alpaca-trade-api");
+if (activity.activityType === LegacyReorg) handle(activity);`,
+        `const {
+  trading: { ActivityType }
+} = require("@alpacahq/alpaca-trade-api");
+const { Reorg } = ActivityType;
+if (activity.activityType === Reorg) handle(activity);`,
     ])(
         "reports proven ActivityType.Reorg without rewriting it",
         (source) => {
@@ -494,6 +506,11 @@ api.cryptoPerpLatestBars({});`,
         `const { IndexApi } = require("@alpacahq/alpaca-trade-api").marketData;
 const api = new IndexApi();
 api.indexLatestValues({});`,
+        `const {
+  marketData: { IndexApi: RemovedIndex }
+} = require("@alpacahq/alpaca-trade-api");
+const api = new RemovedIndex();
+api.indexValues({});`,
     ])(
         "flags destructured generated Market Data constructors",
         (source) => {
@@ -540,6 +557,34 @@ api.indexLatestValues({});`,
                 instanceName: "client",
             }).source,
         ).toBeUndefined();
+    });
+
+    it("ignores an explicitly named client when the file has shadowed bindings", () => {
+        const source = `function migrate(client) {
+  return client.trading.corporateActions.getV2CorporateActionsAnnouncements({
+    caTypes: "Dividend"
+  });
+}
+function unrelated(client) {
+  return client.trading.corporateActions.getV2CorporateActionsAnnouncements({
+    caTypes: "Dividend"
+  });
+}`;
+        const result = transform(source, "babel", {
+            instanceName: "client",
+        });
+
+        expect(result.source).toBeUndefined();
+        expect(result.reports).toEqual(
+            expect.arrayContaining([
+                expect.stringContaining(
+                    "--instanceName=client matched multiple lexical bindings and was ignored",
+                ),
+                expect.stringContaining(
+                    "an unproven `.trading.corporateActions` receiver was left unchanged",
+                ),
+            ]),
+        );
     });
 
     it("ignores an explicitly named facade binding when it is reassigned", () => {

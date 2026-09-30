@@ -21,7 +21,7 @@ if (rest.trading.USER_AGENT !== expectedUserAgent) {
 
 const sseWatchdog = setTimeout(() => {
     console.error("CJS SSE package smoke did not settle");
-    process.exitCode = 1;
+    process.exit(1);
 }, 5_000);
 
 void Promise.all([

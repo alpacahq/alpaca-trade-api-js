@@ -19,10 +19,10 @@ codemod are included in the published npm package.
 
 ```bash
 # JavaScript sources
-npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=babel --extensions=js src
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=babel --extensions=js,jsx,mjs,cjs src
 
 # TypeScript sources
-npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=tsx --extensions=ts,tsx src
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=tsx --extensions=ts,tsx,mts,cts src
 
 # Preview without writing
 npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js --parser=babel --dry --print src/bot.js
@@ -112,10 +112,10 @@ the [`4.x` → `5.0` guide](../MIGRATION_V5.md) alongside it.
 
 ```bash
 # JavaScript sources
-npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=babel --extensions=js src
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=babel --extensions=js,jsx,mjs,cjs src
 
 # TypeScript sources
-npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=tsx --extensions=ts,tsx src
+npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=tsx --extensions=ts,tsx,mts,cts src
 
 # Preview without writing
 npx jscodeshift -t ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v4-to-v5.js --parser=tsx --dry --print src/bot.ts
@@ -127,10 +127,11 @@ When running from a checkout of this repository, use
 ### Options
 
 - `--instanceName=foo,bar` — additional dependency-injected Alpaca client
-  identifiers to trust. Every exact lexical binding with a requested name,
-  including function parameters, is eligible; reassigned bindings are ignored.
-  Stable aliases are followed. No identifier is trusted from its name unless
-  this option is supplied.
+  identifiers to trust. Each requested name must resolve to exactly one lexical
+  binding in a source file; reassigned, shadowed, or otherwise ambiguous
+  bindings are ignored. Function parameters are eligible and stable aliases are
+  followed. No identifier is trusted from its name unless this option is
+  supplied.
 
 ### What it rewrites automatically
 

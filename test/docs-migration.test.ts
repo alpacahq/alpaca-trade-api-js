@@ -116,16 +116,16 @@ describe("docs migration generator", () => {
             expect(guide).not.toMatch(/["']src\/\*\*/);
         }
         expect(guides[0]).toContain(
-            "--parser=babel --extensions=js src",
+            "--parser=babel --extensions=js,jsx,mjs,cjs src",
         );
         expect(guides[0]).toContain(
-            "--parser=tsx --extensions=ts,tsx src",
+            "--parser=tsx --extensions=ts,tsx,mts,cts src",
         );
         expect(guides[1]).toContain(
-            "--parser=babel --extensions=js src",
+            "--parser=babel --extensions=js,jsx,mjs,cjs src",
         );
         expect(guides[1]).toContain(
-            "--parser=tsx --extensions=ts,tsx src",
+            "--parser=tsx --extensions=ts,tsx,mts,cts src",
         );
     });
 
@@ -147,6 +147,30 @@ const client = new Alpaca({ secretKey: "secret" });
 export const view = <div>{String(client)}</div>;`,
         },
         {
+            version: "v3-to-v4",
+            extension: "mjs",
+            parser: "babel",
+            source: `import Alpaca from "@alpacahq/alpaca-trade-api";
+const client = new Alpaca({ secretKey: "secret" });
+console.log(client);`,
+        },
+        {
+            version: "v3-to-v4",
+            extension: "jsx",
+            parser: "babel",
+            source: `import Alpaca from "@alpacahq/alpaca-trade-api";
+const client = new Alpaca({ secretKey: "secret" });
+export const view = <div>{String(client)}</div>;`,
+        },
+        {
+            version: "v3-to-v4",
+            extension: "mts",
+            parser: "tsx",
+            source: `import Alpaca from "@alpacahq/alpaca-trade-api";
+const client = new Alpaca({ secretKey: "secret" });
+console.log(client);`,
+        },
+        {
             version: "v4-to-v5",
             extension: "js",
             parser: "babel",
@@ -159,6 +183,20 @@ console.log(trading.PostOrderRequestTakeProfit);`,
             parser: "tsx",
             source: `import { trading } from "@alpacahq/alpaca-trade-api";
 export const value = <div>{String(trading.PostOrderRequestTakeProfit)}</div>;`,
+        },
+        {
+            version: "v4-to-v5",
+            extension: "cjs",
+            parser: "babel",
+            source: `const { trading } = require("@alpacahq/alpaca-trade-api");
+console.log(trading.PostOrderRequestTakeProfit);`,
+        },
+        {
+            version: "v4-to-v5",
+            extension: "cts",
+            parser: "tsx",
+            source: `const { trading } = require("@alpacahq/alpaca-trade-api");
+console.log(trading.PostOrderRequestTakeProfit);`,
         },
     ])(
         "the $version $extension directory command transforms a fixture",
@@ -186,7 +224,9 @@ export const value = <div>{String(trading.PostOrderRequestTakeProfit)}</div>;`,
                             `alpaca-${version}.js`,
                         ),
                         `--parser=${parser}`,
-                        `--extensions=${extension}`,
+                        parser === "babel"
+                            ? "--extensions=js,jsx,mjs,cjs"
+                            : "--extensions=ts,tsx,mts,cts",
                         "src",
                     ],
                     {
@@ -296,6 +336,12 @@ export const value = <div>{String(trading.PostOrderRequestTakeProfit)}</div>;`,
             'Do not mechanically rewrite persisted historical `"REORG"` values to `"REO"`',
         );
         expect(source).toContain("`--instanceName=client`");
+        expect(source).toContain(
+            "must resolve to exactly one lexical binding",
+        );
+        expect(source).toContain(
+            "reassigned, shadowed, or otherwise ambiguous bindings",
+        );
     });
 
     it("warns against truthiness for string-valued dividend flags", () => {
