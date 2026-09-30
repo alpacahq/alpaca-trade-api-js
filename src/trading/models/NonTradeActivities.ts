@@ -121,7 +121,7 @@ export interface NonTradeActivities {
      */
     activityType?: ActivityType;
     /**
-     * Valid only for non-trading activity types. Null for trading activites.
+     * Valid only for non-trading activity types. Null for trading activities.
      * @type {Date}
      * @memberof NonTradeActivities
      */

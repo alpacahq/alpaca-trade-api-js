@@ -407,6 +407,23 @@ console.log(trading.PostOrderRequestTakeProfit);`,
         );
     });
 
+    it("documents the corrected position-close response name", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),
+            "utf8",
+        );
+
+        expect(source).toContain(
+            "`PositionClosedReponse` → `PositionClosedResponse`",
+        );
+        expect(source).toContain(
+            "response payload and runtime behavior are unchanged",
+        );
+        expect(source).toMatch(
+            /generated JSON conversion and type-guard\s+helpers/,
+        );
+    });
+
     it("documents activity union narrowing and optional group IDs", () => {
         const source = readFileSync(
             resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),

@@ -139,8 +139,8 @@ When running from a checkout of this repository, use
   operation wrapper to `PostOrderRequest`.
 - `postOrderRequest` to `createOrderRequest` in inline generated order calls,
   preserving shorthand values.
-- Generated option-contract response, corporate-announcement, and tokenization
-  issuer symbol names.
+- Generated option-contract, corporate-announcement, position-close response,
+  and tokenization issuer symbol names.
 - Literal `caTypes: "Dividend,Merger"` CSV values to canonical arrays such as
   `["Dividend", "Merger"]` in announcement calls. Matching is
   case-insensitive; empty or unknown values are left for review.

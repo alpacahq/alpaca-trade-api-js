@@ -123,6 +123,77 @@ console.log(generated.PostOrderRequest, sdk.trading.PostOrderOperationRequest);`
         );
     });
 
+    it("renames position-close response types and helpers across ESM and CommonJS", () => {
+        const esm = transform(
+            `import { trading } from "@alpacahq/alpaca-trade-api";
+type Closed = trading.PositionClosedReponse;
+const { PositionClosedReponseFromJSON: parse } = trading;
+console.log(parse, trading.instanceOfPositionClosedReponse);`,
+        );
+
+        expect(esm.source).toContain(
+            "type Closed = trading.PositionClosedResponse;",
+        );
+        expect(esm.source).toContain(
+            "PositionClosedResponseFromJSON: parse",
+        );
+        expect(esm.source).toContain(
+            "trading.instanceOfPositionClosedResponse",
+        );
+        expect(esm.source).not.toContain("PositionClosedReponse");
+
+        const commonJs = transform(
+            `const sdk = require("@alpacahq/alpaca-trade-api/rest");
+const { trading: { PositionClosedReponseToJSON: serialize } } = sdk;
+console.log(sdk.trading.PositionClosedReponseFromJSONTyped, serialize);`,
+            "babel",
+        );
+
+        expect(commonJs.source).toContain(
+            "PositionClosedResponseToJSON: serialize",
+        );
+        expect(commonJs.source).toContain(
+            "sdk.trading.PositionClosedResponseFromJSONTyped",
+        );
+        expect(commonJs.source).not.toContain("PositionClosedReponse");
+    });
+
+    it("leaves dynamic computed destructuring keys unchanged", () => {
+        const source = `const { trading } = require("@alpacahq/alpaca-trade-api");
+const sdk = require("@alpacahq/alpaca-trade-api/rest");
+const PositionClosedReponseFromJSON = getKey();
+const tradingKey = getTradingKey();
+const { [PositionClosedReponseFromJSON]: parse } = trading;
+const { [tradingKey]: { PositionClosedReponseToJSON: serialize } } = sdk;
+console.log(parse, serialize);`;
+
+        expect(transform(source, "babel")).toEqual({
+            source: undefined,
+            reports: [],
+        });
+    });
+
+    it("renames generated helpers in proven destructuring assignments", () => {
+        const source = `const sdk = require("@alpacahq/alpaca-trade-api/rest");
+let parse;
+let serialize;
+({ ["PositionClosedReponseFromJSON"]: parse } = sdk.trading);
+({ trading: { PositionClosedReponseToJSON: serialize } } = sdk);
+console.log(parse, serialize);`;
+        const result = transform(source, "babel");
+
+        expect(result.source).toContain(
+            '["PositionClosedResponseFromJSON"]: parse',
+        );
+        expect(result.source).toContain(
+            "PositionClosedResponseToJSON: serialize",
+        );
+        expect(result.source).not.toContain("PositionClosedReponse");
+        expect(
+            transform(result.source ?? source, "babel").source,
+        ).toBeUndefined();
+    });
+
     it("leaves reassigned CommonJS SDK bindings unchanged", () => {
         const source = `let { trading } = require("@alpacahq/alpaca-trade-api");
 trading = custom;

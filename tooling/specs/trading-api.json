@@ -3574,7 +3574,7 @@
             "$ref": "#/components/schemas/ActivityType"
           },
           "created_at": {
-            "description": "Valid only for non-trading activity types. Null for trading activites.",
+            "description": "Valid only for non-trading activity types. Null for trading activities.",
             "format": "date-time",
             "type": "string"
           },
@@ -4961,7 +4961,7 @@
         "title": "Position",
         "type": "object"
       },
-      "PositionClosedReponse": {
+      "PositionClosedResponse": {
         "description": "Represents the result of asking the api to close a position. ",
         "examples": [
           {
@@ -5020,7 +5020,7 @@
           "symbol",
           "status"
         ],
-        "title": "PositionClosedReponse",
+        "title": "PositionClosedResponse",
         "type": "object"
       },
       "PositionIntent": {
@@ -7584,7 +7584,7 @@
             }
           },
           {
-            "description": "The timestamp the data is returned starting from in RFC3339 format (including timezone specification). Defaults to `end` minus `period`\n\nIf provided, the `start` value is always normalized to the `America/New_York` timezone and adjusted to the nearest `timeframe` interval, e.g. seconds are always truncated and the time is rounded backwards to the nearest interval of `1Min`, `5Min`, `15Min`, or `1H`.\n\nIf `timeframe=1D` and `start` is not a valid trading date, find the next available trading date. For example, if `start` occurs on Saturday or Sunday after converting to the America/New_York timezone, `start` is adjusted to the first weekday that is not a market holiday (e.g. Monday).\n\nIf `timeframe` is less than `1D` and `intraday_reporting` is not `continuous`, `start` always reflects the beginning of a market session. If `start` is between midnight and the end (inclusive) of an active trading day, `start` is set to the beginning of the session on the specified day. Otherwise, if `start` occurs outside of the market session, the next available market date is used.\n\nFor example, when `intraday_reporting=market_hours` and `start=2023-10-19T23:59:59-04:00`, the provided `start` date occurs outside of the regular market session. The effective `start` timestamp is adjusted to the beginning of the next session: `2023-10-20T09:30:00-04:00`\n\n`start` may be be combined with one of `end` or `period`.\n\nProviding all of `start`, `end`, and `period` is invalid.\n",
+            "description": "The timestamp the data is returned starting from in RFC3339 format (including timezone specification). Defaults to `end` minus `period`\n\nIf provided, the `start` value is always normalized to the `America/New_York` timezone and adjusted to the nearest `timeframe` interval, e.g. seconds are always truncated and the time is rounded backwards to the nearest interval of `1Min`, `5Min`, `15Min`, or `1H`.\n\nIf `timeframe=1D` and `start` is not a valid trading date, find the next available trading date. For example, if `start` occurs on Saturday or Sunday after converting to the America/New_York timezone, `start` is adjusted to the first weekday that is not a market holiday (e.g. Monday).\n\nIf `timeframe` is less than `1D` and `intraday_reporting` is not `continuous`, `start` always reflects the beginning of a market session. If `start` is between midnight and the end (inclusive) of an active trading day, `start` is set to the beginning of the session on the specified day. Otherwise, if `start` occurs outside of the market session, the next available market date is used.\n\nFor example, when `intraday_reporting=market_hours` and `start=2023-10-19T23:59:59-04:00`, the provided `start` date occurs outside of the regular market session. The effective `start` timestamp is adjusted to the beginning of the next session: `2023-10-20T09:30:00-04:00`\n\n`start` may be combined with one of `end` or `period`.\n\nProviding all of `start`, `end`, and `period` is invalid.\n",
             "in": "query",
             "name": "start",
             "schema": {
@@ -8963,7 +8963,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/PositionClosedReponse"
+                    "$ref": "#/components/schemas/PositionClosedResponse"
                   },
                   "type": "array"
                 }

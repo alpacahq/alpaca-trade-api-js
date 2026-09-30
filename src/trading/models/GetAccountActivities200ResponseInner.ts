@@ -210,7 +210,7 @@ export interface GetAccountActivities200ResponseInner extends Record<string, unk
      */
     activitySubType?: string;
     /**
-     * Valid only for non-trading activity types. Null for trading activites.
+     * Valid only for non-trading activity types. Null for trading activities.
      * @type {Date}
      * @memberof GetAccountActivities200ResponseInner
      */

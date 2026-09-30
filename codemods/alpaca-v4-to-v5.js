@@ -62,6 +62,10 @@ const GENERATED_RENAMES = new Map([
         "GetV2CorporateActionsAnnouncementsId200Response",
         "CorporateAnnouncement",
     ),
+    ...modelRenames(
+        "PositionClosedReponse",
+        "PositionClosedResponse",
+    ),
     ["GetTokenizationRequestsIssuerEnum", "TokenizationIssuer"],
 ]);
 
@@ -358,6 +362,13 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 return;
             }
+            if (
+                property.computed &&
+                property.key.type !== "Literal" &&
+                property.key.type !== "StringLiteral"
+            ) {
+                return;
+            }
             callback(
                 propertyName(property.key),
                 propertyPath.get("value"),
@@ -392,6 +403,22 @@ module.exports = function transformer(file, api, options = {}) {
         } else {
             member.property = j.identifier(name);
         }
+    };
+    const setPatternPropertyName = (property, name) => {
+        if (
+            property.computed ||
+            property.key.type === "Literal" ||
+            property.key.type === "StringLiteral"
+        ) {
+            property.key =
+                property.key.type === "StringLiteral"
+                    ? j.stringLiteral(name)
+                    : j.literal(name);
+            property.computed = true;
+        } else {
+            property.key = j.identifier(name);
+        }
+        property.shorthand = false;
     };
 
     const tradingNamespaces = createBindings();
@@ -622,7 +649,23 @@ module.exports = function transformer(file, api, options = {}) {
             hasProvenDestructuredReorg = true;
         }
     };
+    const renameGeneratedPattern = (patternPath) => {
+        forEachObjectPatternProperty(
+            patternPath,
+            (oldName, _valuePath, propertyPath) => {
+                const newName =
+                    oldName && GENERATED_RENAMES.get(oldName);
+                if (!newName) return;
+                setPatternPropertyName(
+                    propertyPath.value,
+                    newName,
+                );
+                mutated = true;
+            },
+        );
+    };
     const inspectTradingPattern = (patternPath) => {
+        renameGeneratedPattern(patternPath);
         const activityType = objectPatternProperty(
             patternPath,
             "ActivityType",
@@ -666,6 +709,26 @@ module.exports = function transformer(file, api, options = {}) {
             );
             if (trading?.valuePath.value?.type === "ObjectPattern") {
                 inspectTradingPattern(trading.valuePath);
+            }
+        }
+    });
+    root.find(j.AssignmentExpression).forEach((path) => {
+        if (
+            path.value.operator !== "=" ||
+            path.value.left.type !== "ObjectPattern"
+        ) {
+            return;
+        }
+        if (isTradingNamespaceObject(path.get("right"))) {
+            renameGeneratedPattern(path.get("left"));
+        }
+        if (isSdkNamespaceObject(path.get("right"))) {
+            const trading = objectPatternProperty(
+                path.get("left"),
+                "trading",
+            );
+            if (trading?.valuePath.value?.type === "ObjectPattern") {
+                renameGeneratedPattern(trading.valuePath);
             }
         }
     });

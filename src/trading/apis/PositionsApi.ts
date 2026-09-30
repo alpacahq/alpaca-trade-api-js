@@ -17,15 +17,15 @@ import * as runtime from '../runtime';
 import type {
   Order,
   Position,
-  PositionClosedReponse,
+  PositionClosedResponse,
 } from '../models/index';
 import {
     OrderFromJSON,
     OrderToJSON,
     PositionFromJSON,
     PositionToJSON,
-    PositionClosedReponseFromJSON,
-    PositionClosedReponseToJSON,
+    PositionClosedResponseFromJSON,
+    PositionClosedResponseToJSON,
 } from '../models/index';
 
 export interface DeleteAllOpenPositionsRequest {
@@ -59,7 +59,7 @@ export class PositionsApi extends runtime.BaseAPI {
      * Closes (liquidates) all of the account\'s open long and short positions. A response will be provided for each order that is attempted to be cancelled. If an order is no longer cancelable, the server will respond with status 500 and reject the request.
      * Close All Positions
      */
-    async deleteAllOpenPositionsRaw(requestParameters: DeleteAllOpenPositionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PositionClosedReponse>>> {
+    async deleteAllOpenPositionsRaw(requestParameters: DeleteAllOpenPositionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PositionClosedResponse>>> {
         const queryParameters: any = {};
 
         if (requestParameters['cancelOrders'] != null) {
@@ -86,14 +86,14 @@ export class PositionsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PositionClosedReponseFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(PositionClosedResponseFromJSON));
     }
 
     /**
      * Closes (liquidates) all of the account\'s open long and short positions. A response will be provided for each order that is attempted to be cancelled. If an order is no longer cancelable, the server will respond with status 500 and reject the request.
      * Close All Positions
      */
-    async deleteAllOpenPositions(requestParameters: DeleteAllOpenPositionsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PositionClosedReponse>> {
+    async deleteAllOpenPositions(requestParameters: DeleteAllOpenPositionsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PositionClosedResponse>> {
         const response = await this.deleteAllOpenPositionsRaw(requestParameters, initOverrides);
         return await response.value();
     }

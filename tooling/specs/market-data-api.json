@@ -1975,7 +1975,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\ncapital_gains_distribution_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\ncapital_gains_distribution_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_cash_dividend": {
         "allOf": [
@@ -2001,7 +2001,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\ncash_dividend_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\ncash_dividend_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_cash_merger": {
         "allOf": [
@@ -2027,7 +2027,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\ncash_merger_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\ncash_merger_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_equity_partial_call": {
         "allOf": [
@@ -2053,7 +2053,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nequity_partial_call_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nequity_partial_call_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_forward_split": {
         "allOf": [
@@ -2079,7 +2079,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nforward_split_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nforward_split_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_name_change": {
         "allOf": [
@@ -2105,7 +2105,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nname_change_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nname_change_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_redemption": {
         "allOf": [
@@ -2131,7 +2131,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nredemption_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nredemption_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_region": {
         "description": "Envelope-level classification derived from `metadata.global` on the upstream\ncorporate-action record. This is the only field the SSE `region` filter\ninspects on each event.\n\n- `us`: US-listed / US-regulated corporate action.\n- `non_us`: everything else.\n",
@@ -2165,7 +2165,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nreorganization_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nreorganization_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_reverse_split": {
         "allOf": [
@@ -2191,7 +2191,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nreverse_split_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nreverse_split_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_rights_distribution": {
         "allOf": [
@@ -2217,7 +2217,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nrights_distribution_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nrights_distribution_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_spin_off": {
         "allOf": [
@@ -2243,7 +2243,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nspin_off_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nspin_off_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_stock_and_cash_merger": {
         "allOf": [
@@ -2269,7 +2269,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nstock_and_cash_merger_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nstock_and_cash_merger_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_stock_dividend": {
         "allOf": [
@@ -2295,7 +2295,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nstock_dividend_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nstock_dividend_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_stock_merger": {
         "allOf": [
@@ -2321,7 +2321,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nstock_merger_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nstock_merger_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_type": {
         "description": "Discriminator that determines the shape of the `ca` field on a\n[`corporate_action_event`](#/components/schemas/corporate_action_event).\n\nEach value corresponds to a per-type payload schema:\n\n| `event_type` | `ca` schema |\n| --- | --- |\n| `capital_gains_distribution_corporateaction_event` | [`ca_event_capital_gains_distribution`](#/components/schemas/ca_event_capital_gains_distribution) |\n| `cash_dividend_corporateaction_event` | [`ca_event_cash_dividend`](#/components/schemas/ca_event_cash_dividend) |\n| `cash_merger_corporateaction_event` | [`ca_event_cash_merger`](#/components/schemas/ca_event_cash_merger) |\n| `equity_partial_call_corporateaction_event` | [`ca_event_equity_partial_call`](#/components/schemas/ca_event_equity_partial_call) |\n| `forward_split_corporateaction_event` | [`ca_event_forward_split`](#/components/schemas/ca_event_forward_split) |\n| `name_change_corporateaction_event` | [`ca_event_name_change`](#/components/schemas/ca_event_name_change) |\n| `redemption_corporateaction_event` | [`ca_event_redemption`](#/components/schemas/ca_event_redemption) |\n| `reorganization_corporateaction_event` | [`ca_event_reorganization`](#/components/schemas/ca_event_reorganization) |\n| `reverse_split_corporateaction_event` | [`ca_event_reverse_split`](#/components/schemas/ca_event_reverse_split) |\n| `rights_distribution_corporateaction_event` | [`ca_event_rights_distribution`](#/components/schemas/ca_event_rights_distribution) |\n| `spin_off_corporateaction_event` | [`ca_event_spin_off`](#/components/schemas/ca_event_spin_off) |\n| `stock_and_cash_merger_corporateaction_event` | [`ca_event_stock_and_cash_merger`](#/components/schemas/ca_event_stock_and_cash_merger) |\n| `stock_dividend_corporateaction_event` | [`ca_event_stock_dividend`](#/components/schemas/ca_event_stock_dividend) |\n| `stock_merger_corporateaction_event` | [`ca_event_stock_merger`](#/components/schemas/ca_event_stock_merger) |\n| `unit_split_corporateaction_event` | [`ca_event_unit_split`](#/components/schemas/ca_event_unit_split) |\n| `worthless_removal_corporateaction_event` | [`ca_event_worthless_removal`](#/components/schemas/ca_event_worthless_removal) |\n",
@@ -2369,7 +2369,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nunit_split_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nunit_split_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_action_event_worthless_removal": {
         "allOf": [
@@ -2395,7 +2395,7 @@
             "type": "object"
           }
         ],
-        "description": "`corporate_action_event` envelope specialised to `event_type ==\nworthless_removal_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nworthless_removal_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
       },
       "corporate_actions": {
         "properties": {

@@ -24,43 +24,43 @@ import {
 /**
  * Represents the result of asking the api to close a position. 
  * @export
- * @interface PositionClosedReponse
+ * @interface PositionClosedResponse
  */
-export interface PositionClosedReponse {
+export interface PositionClosedResponse {
     /**
      * 
      * @type {Order}
-     * @memberof PositionClosedReponse
+     * @memberof PositionClosedResponse
      */
     body?: Order;
     /**
      * HTTP status code for the attempt to close this position
      * @type {number}
-     * @memberof PositionClosedReponse
+     * @memberof PositionClosedResponse
      */
     status: number;
     /**
      * Symbol name of the asset
      * @type {string}
-     * @memberof PositionClosedReponse
+     * @memberof PositionClosedResponse
      */
     symbol: string;
 }
 
 /**
- * Check if a given object implements the PositionClosedReponse interface.
+ * Check if a given object implements the PositionClosedResponse interface.
  */
-export function instanceOfPositionClosedReponse(value: object): value is PositionClosedReponse {
+export function instanceOfPositionClosedResponse(value: object): value is PositionClosedResponse {
     if (!('status' in value) || value['status'] === undefined) return false;
     if (!('symbol' in value) || value['symbol'] === undefined) return false;
     return true;
 }
 
-export function PositionClosedReponseFromJSON(json: any): PositionClosedReponse {
-    return PositionClosedReponseFromJSONTyped(json, false);
+export function PositionClosedResponseFromJSON(json: any): PositionClosedResponse {
+    return PositionClosedResponseFromJSONTyped(json, false);
 }
 
-export function PositionClosedReponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): PositionClosedReponse {
+export function PositionClosedResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): PositionClosedResponse {
     if (json == null) {
         return json;
     }
@@ -72,11 +72,11 @@ export function PositionClosedReponseFromJSONTyped(json: any, ignoreDiscriminato
     };
 }
 
-export function PositionClosedReponseToJSON(json: any): PositionClosedReponse {
-    return PositionClosedReponseToJSONTyped(json, false);
+export function PositionClosedResponseToJSON(json: any): PositionClosedResponse {
+    return PositionClosedResponseToJSONTyped(json, false);
 }
 
-export function PositionClosedReponseToJSONTyped(value?: PositionClosedReponse | null, ignoreDiscriminator: boolean = false): any {
+export function PositionClosedResponseToJSONTyped(value?: PositionClosedResponse | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

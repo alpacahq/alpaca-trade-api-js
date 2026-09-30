@@ -116,12 +116,18 @@ If you explicitly imported the generated operation wrapper, replace the v4
 - v5 wrapper: `PostOrderRequest`, containing
   `createOrderRequest: CreateOrderRequest`.
 
-Two response models also received stable upstream names:
+Response models also received stable upstream names:
 
 - `GetOptionsContracts200Response` → `OptionContractsResponse`;
 - `GetV2CorporateActionsAnnouncements200ResponseInner` and
   `GetV2CorporateActionsAnnouncementsId200Response` →
-  `CorporateAnnouncement`.
+  `CorporateAnnouncement`;
+- `PositionClosedReponse` → `PositionClosedResponse`.
+
+The position-close rename only corrects the generated TypeScript name; the
+`closeAllPositions()` response payload and runtime behavior are unchanged. The
+codemod updates the model name and its generated JSON conversion and type-guard
+helpers.
 
 `CorporateAnnouncement` also adopts the current upstream field contract; this
 is not only a type rename:

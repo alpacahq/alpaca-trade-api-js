@@ -573,7 +573,7 @@ export class TradingClient {
      */
     closeAllPositions(
         options: trading.DeleteAllOpenPositionsRequest = {},
-    ): Promise<trading.PositionClosedReponse[]> {
+    ): Promise<trading.PositionClosedResponse[]> {
         return this.positions.deleteAllOpenPositions(options);
     }
 

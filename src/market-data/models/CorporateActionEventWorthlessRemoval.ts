@@ -36,7 +36,7 @@ import {
 } from './CorporateActionEventAction';
 
 /**
- * `corporate_action_event` envelope specialised to `event_type ==
+ * `corporate_action_event` envelope specialized to `event_type ==
  * worthless_removal_corporateaction_event`. Emitted through
  * [Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).
  * 

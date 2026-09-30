@@ -129,7 +129,7 @@ models/PatchOrderRequest.ts
 models/Phase.ts
 models/PortfolioHistory.ts
 models/Position.ts
-models/PositionClosedReponse.ts
+models/PositionClosedResponse.ts
 models/PositionIntent.ts
 models/PublicCalendarResp.ts
 models/PublicMarket.ts

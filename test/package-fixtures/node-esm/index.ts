@@ -28,9 +28,13 @@ const client = new Alpaca(options);
 const values: [Auction?, DailyAuctions?] = [];
 const activities: Promise<SseSubscription<trading.ActivityEventV2>> =
     client.trading.subscribeActivities({}, { reconnect: false });
+const closeAllPositions: () => Promise<
+    trading.PositionClosedResponse[]
+> = () => client.trading.closeAllPositions();
 
 void client;
 void activities;
+void closeAllPositions;
 void invalidTravelRuleInfo;
 void transport;
 void travelRuleInfo;

@@ -36,7 +36,7 @@ import {
 } from './CaEventStockAndCashMerger';
 
 /**
- * `corporate_action_event` envelope specialised to `event_type ==
+ * `corporate_action_event` envelope specialized to `event_type ==
  * stock_and_cash_merger_corporateaction_event`. Emitted through
  * [Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).
  * 

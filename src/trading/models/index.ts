@@ -114,7 +114,7 @@ export * from './PatchOrderRequest';
 export * from './Phase';
 export * from './PortfolioHistory';
 export * from './Position';
-export * from './PositionClosedReponse';
+export * from './PositionClosedResponse';
 export * from './PositionIntent';
 export * from './PublicCalendarResp';
 export * from './PublicMarket';
