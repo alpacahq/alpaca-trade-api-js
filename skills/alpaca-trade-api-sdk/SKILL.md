@@ -40,7 +40,7 @@ published tarball includes `src/`.
 
 | You need… | Read / search |
 | --- | --- |
-| Workflows, conventions, and safety guidance | Hosted guides: [Getting started](https://alpacahq.github.io/alpaca-trade-api-js/getting-started), [Trading](https://alpacahq.github.io/alpaca-trade-api-js/trading), [Market data](https://alpacahq.github.io/alpaca-trade-api-js/market-data), [Streaming & events](https://alpacahq.github.io/alpaca-trade-api-js/streaming), [Authentication](https://alpacahq.github.io/alpaca-trade-api-js/authentication), [Resilience & configuration](https://alpacahq.github.io/alpaca-trade-api-js/resilience), [Pagination](https://alpacahq.github.io/alpaca-trade-api-js/pagination), [Values & types](https://alpacahq.github.io/alpaca-trade-api-js/types-and-values), [Testing](https://alpacahq.github.io/alpaca-trade-api-js/testing), [Runtime compatibility](https://alpacahq.github.io/alpaca-trade-api-js/runtime-compatibility), [Examples](https://alpacahq.github.io/alpaca-trade-api-js/examples), and [Migration from 3.x](https://alpacahq.github.io/alpaca-trade-api-js/migration). |
+| Workflows, conventions, and safety guidance | Hosted guides: [Getting started](https://alpacahq.github.io/alpaca-trade-api-js/getting-started), [Trading](https://alpacahq.github.io/alpaca-trade-api-js/trading), [Market data](https://alpacahq.github.io/alpaca-trade-api-js/market-data), [Streaming & events](https://alpacahq.github.io/alpaca-trade-api-js/streaming), [Authentication](https://alpacahq.github.io/alpaca-trade-api-js/authentication), [Resilience & configuration](https://alpacahq.github.io/alpaca-trade-api-js/resilience), [Pagination](https://alpacahq.github.io/alpaca-trade-api-js/pagination), [Values & types](https://alpacahq.github.io/alpaca-trade-api-js/types-and-values), [Testing](https://alpacahq.github.io/alpaca-trade-api-js/testing), [Runtime compatibility](https://alpacahq.github.io/alpaca-trade-api-js/runtime-compatibility), [Examples](https://alpacahq.github.io/alpaca-trade-api-js/examples), the [migration overview](https://alpacahq.github.io/alpaca-trade-api-js/migrations), the primary [migration from 3.x](https://alpacahq.github.io/alpaca-trade-api-js/migration), and the separate [4.x to 5.0 migration](https://alpacahq.github.io/alpaca-trade-api-js/migration-v5). |
 | Curated per-method discovery and examples | Hosted [API Reference](https://alpacahq.github.io/alpaca-trade-api-js/api): [Trading](https://alpacahq.github.io/alpaca-trade-api-js/api/trading), [Market data](https://alpacahq.github.io/alpaca-trade-api-js/api/market-data), [Streaming](https://alpacahq.github.io/alpaca-trade-api-js/api/streaming), and [Ergonomic helpers](https://alpacahq.github.io/alpaca-trade-api-js/api/ergonomic-helpers). |
 | Exact installed-version signatures and model fields | Installed `dist/*.d.ts`, your editor's type information, or installed `src/`. |
 | Runnable end-to-end examples | Hosted [Examples](https://alpacahq.github.io/alpaca-trade-api-js/examples) or the [repository examples](https://github.com/alpacahq/alpaca-trade-api-js/tree/master/examples). |
@@ -48,8 +48,8 @@ published tarball includes `src/`.
 | Order builders | `src/orders.ts` |
 | Normalized bar/trade/quote shapes + chart helpers | `src/marketDataShapes.ts` |
 | Curated, representative discovery maps | `src/capabilities.ts` |
-| Shared transport (retry/timeout/rate-limit/errors) | `src/core/runtime.ts` |
-| Streaming clients | `src/streaming/` |
+| Shared REST/SSE transport (retry/timeout/rate-limit/errors) | `src/core/runtime.ts`, `src/core/sse.ts` |
+| WebSocket clients | `src/streaming/` |
 
 When unsure where a method lives, prefer the programmatic lookups below over
 guessing, then confirm against the hosted API Reference and installed
@@ -60,13 +60,14 @@ TypeScript declarations.
 The `Alpaca` client bundles every Trading and Market Data API behind one
 constructor, reached via the `.trading` and `.marketData` namespaces.
 
-1. **Generated (always present, uniform).** Every generated REST method is
+1. **Generated (always present, uniform).** Every generated API method is
    reachable raw at `alpaca.<group>.<resource>.<method>(...)`—for example,
    `alpaca.trading.assets.getV2Assets()` and
    `alpaca.marketData.stocks.stockBars(...)`. Nothing is hidden.
 2. **Ergonomic (additive, never replaces layer 1).** Hand-written conveniences
-   sit on top: order builders, normalized market-data accessors, pagination, and
-   workflow helpers. The raw method each one wraps remains available.
+   sit on top: order builders, normalized market-data accessors, pagination,
+   typed SSE subscriptions, and workflow helpers. The raw method each one wraps
+   remains available.
 
 **The rule:** if there is no ergonomic helper for what you need, use the raw
 generated method. You never have to choose between the two layers.
@@ -85,15 +86,16 @@ const alpaca = new Alpaca({
 
 - Credentials resolve from environment variables when omitted:
   `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`, and `APCA_API_OAUTH_TOKEN`. A
-  non-empty explicit `accessToken` selects OAuth; otherwise any non-empty
-  explicit key field selects key authentication ahead of an environment token.
-  Empty strings are absent. With no explicit scheme, environment OAuth takes
-  precedence over environment keys.
+  non-empty explicit `accessToken`, Promise, or provider selects OAuth;
+  otherwise any non-empty explicit key field selects key authentication ahead
+  of an environment token. Empty strings are absent. With no explicit scheme,
+  environment OAuth takes precedence over environment keys. Token providers
+  are evaluated before every REST request and fetch-based SSE reconnect.
 - **Never** pass `apiKey` as a plain string. Alpaca needs two distinct headers
   and rejects a single value. Use OAuth via `accessToken`, or
   `auth.apiKeyAuth({ keyId, secret })` for lazy credentials.
-- OAuth-only clients **cannot** open WebSocket streams; streaming needs a key
-  and secret.
+- OAuth-only clients **cannot** open WebSocket streams; WebSocket authentication
+  needs a key and secret. Fetch-based SSE accepts OAuth or key credentials.
 
 ## Idioms agents get wrong
 
@@ -106,7 +108,7 @@ const alpaca = new Alpaca({
   `TimeFrameString` required by facade bar methods.
 - **Orders:** prefer ergonomic builders on `alpaca.trading.orders`
   (`market`, `limit`, `stop`, `stopLimit`, `trailingStop`, `bracket`, `oco`,
-  and `oto`). They remove the `postOrder({ postOrderRequest })` wrapper and
+  and `oto`). They remove the `postOrder({ createOrderRequest })` wrapper and
   enforce required fields per order kind at compile time. For uncovered shapes
   such as multi-leg `mleg`, use `orders.submit(input)` or raw `postOrder`.
 - **Order safety:** agent-generated trading code must put a stable, unique
@@ -153,7 +155,12 @@ const alpaca = new Alpaca({
   and covers rate-limit waits, middleware, fetch, and response-body reads.
   Backoff is outside that attempt budget; caller abort spans the entire
   operation and backoff. Every cancellation phase throws `FetchError` with an
-  `AbortError` or `TimeoutError` cause.
+  `AbortError` or `TimeoutError` cause. For a successful 200/204 SSE connection,
+  `timeoutMs` ends after validated response headers; on non-2xx it remains
+  active while the bounded error body is read for a typed `ApiError`.
+  `connectTimeoutMs` overrides this deadline per subscription, and `0` disables
+  it. Use SSE `idleTimeoutMs` or `maxDurationMs` only when you deliberately want
+  to bound the live body.
 - **Redirects reject by default.** Requests use `redirect: "error"` so secret
   `APCA-API-*` headers cannot follow an off-host redirect. Set
   `redirect: "follow"` only when deliberately opting out.
@@ -162,9 +169,11 @@ const alpaca = new Alpaca({
   `{ data, status, headers, rateLimit }` as `AlpacaApiResponse<T>`.
 - **REST-only builds:** import `@alpacahq/alpaca-trade-api/rest` to keep `ws` and
   `@msgpack/msgpack` out of the module graph. Stream factories and
-  `submitAndWait` throw from this entrypoint. Edge and browser runtimes resolve
-  the root import to this REST-only build through package export conditions, so
-  REST works but streaming does not.
+  `submitAndWait` throw from this entrypoint. Fetch-based SSE, including
+  `subscribeActivities` and `subscribeCorporateActions`, remains available.
+  Edge and browser runtimes resolve the root import to this build; direct
+  browser API use is still discouraged because it exposes credentials and
+  depends on API CORS.
 - **ESM and CJS:** do not load the SDK through both `import` and `require` in one
   process if you rely on `instanceof` against classes such as `ApiError`; the
   process may contain two class copies.
@@ -204,7 +213,39 @@ placement, and waiting. Only this helper performs one client-ID lookup after an
 ambiguous `FetchError`; generic builders do not reconcile automatically. It
 does not guarantee exactly-once execution or eventual lookup visibility.
 
-Every stream also exposes:
+Activity and corporate-action SSE use a different, fetch-based shape. Prefer
+the short facade helpers:
+
+```ts
+const events = await alpaca.trading.subscribeActivities(
+  {},
+  { signal: controller.signal },
+);
+for await (const event of events) {
+  console.log(event.activityType, event.details);
+}
+```
+
+`subscribeActivities` and `subscribeCorporateActions` return single-consumer
+`SseSubscription<T>` async iterables. Live queries reconnect by default with
+`Last-Event-ID`; initial opening defaults to two retries while reconnects after
+opening remain unlimited. Pass `reconnect: false` or reconnect limits to
+override. Bounded `until` / `untilId` queries end without reconnecting. Replay
+may include the last event again, so deduplicate side effects by event id. Break
+iteration or call `close()` / `abort()` to release the connection; also close a
+subscription that was opened but never iterated. Use `.messages()` for the SSE
+envelope, `.closed` to distinguish EOF/abort/error, and callbacks such as
+`onComment` / `onReconnect` for diagnostics. SSE middleware runs `pre` and
+`onError`, but intentionally skips response-cloning `post` hooks.
+
+The raw generated
+`trading.events.subscribeToActivitiesSSE` and
+`marketData.corporateActions.subscribeToCorporateActionsEventsSSE` operations
+remain available. Account-activity SSE is not the Trading WebSocket
+`trade_updates` channel and must not replace `trading.stream()` or
+`submitAndWait`.
+
+Every WebSocket stream also exposes:
 
 - **Awaitable authentication:** `await stream.whenAuthenticated()` returns
   `StreamAuthResult { status, authenticated, code?, message }` and never

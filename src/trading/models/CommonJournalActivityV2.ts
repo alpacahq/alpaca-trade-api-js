@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * 
+ * Shared fields for journal non-trade activity records.
  * @export
  * @interface CommonJournalActivityV2
  */

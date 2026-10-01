@@ -34,7 +34,11 @@
  * bars.connect();
  * ```
  */
-import type { AlpacaCredentials, ResolvedCredentials } from "./auth";
+import type {
+    AccessToken,
+    AlpacaCredentials,
+    ResolvedCredentials,
+} from "./auth";
 import { resolveCredentials } from "./auth";
 import { ApiError, FetchError } from "./errors";
 import * as trading from "./trading";
@@ -49,6 +53,7 @@ import * as pagination from "./pagination";
 import * as orders from "./orders";
 import * as values from "./values";
 import * as marketDataShapes from "./marketDataShapes";
+import type { SseOptions, SseSubscription } from "./core/sse";
 
 /**
  * Live trading host. Paper trading uses the package default (`paper-api`).
@@ -67,14 +72,14 @@ export type AlpacaRequestRedirect = "error" | "follow" | "manual";
  * Options accepted by the top-level {@link Alpaca} client.
  *
  * Provide credentials as either an API `keyId`/`secret` pair or an OAuth
- * `accessToken`. Any of them may be omitted and resolved from the standard
+ * `accessToken` or token provider. Any of them may be omitted and resolved from the standard
  * Alpaca environment variables (`APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`,
- * `APCA_API_OAUTH_TOKEN`). A non-empty explicit token selects OAuth; otherwise
- * any non-empty explicit key field selects key authentication ahead of an
- * environment token. Empty strings are treated as absent. With no explicit
- * scheme, environment OAuth takes precedence over environment keys. Every
- * other field is an optional passthrough shared by both the trading and
- * market-data REST configurations.
+ * `APCA_API_OAUTH_TOKEN`). A non-empty explicit token, Promise, or provider
+ * selects OAuth; otherwise any non-empty explicit key field selects key
+ * authentication ahead of an environment token. Empty strings are treated as
+ * absent. With no explicit scheme, environment OAuth takes precedence over
+ * environment keys. Every other field is an optional passthrough shared by
+ * both the trading and market-data REST configurations.
  */
 export interface AlpacaClientOptions {
     /** API key id, or set `APCA_API_KEY_ID`. Pair with {@link secret}. */
@@ -83,12 +88,12 @@ export interface AlpacaClientOptions {
     secret?: string;
     /**
      * OAuth2 access token sent as `Authorization: Bearer <token>` (or set
-     * `APCA_API_OAUTH_TOKEN`). An explicitly passed token takes precedence over
-     * key credentials for REST requests. Note: the real-time streaming
-     * endpoints authenticate with a key/secret pair, so OAuth-only clients
-     * cannot open WebSocket streams.
+     * `APCA_API_OAUTH_TOKEN`). A provider is evaluated for every REST request
+     * and fetch-based SSE reconnect so expiring tokens can be refreshed. An
+     * explicitly passed token or provider takes precedence over key
+     * credentials. WebSocket streams still require a key/secret pair.
      */
-    accessToken?: string;
+    accessToken?: AccessToken;
     /**
      * Use the paper-trading environment. Defaults to `true`.
      *
@@ -210,7 +215,7 @@ function sharedRestConfig(options: AlpacaClientOptions, creds: ResolvedCredentia
  * Illustrates the SDK's two-layer model on one class: it *inherits* every
  * generated method (`postOrder`, `getAllOrders`, `deleteOrderByOrderID`, ...)
  * unchanged (layer 1, always available), and *adds* one ergonomic builder per
- * common order kind (layer 2) that drops the `postOrder({ postOrderRequest })`
+ * common order kind (layer 2) that drops the `postOrder({ createOrderRequest })`
  * wrapper, accepts `number | string` amounts, and requires the fields each kind
  * needs at compile time (see {@link orders}). Each returns the created
  * {@link trading.Order}. The additive builders never hide the raw `postOrder`;
@@ -238,35 +243,35 @@ export type GetAllOrdersInput = Omit<trading.GetAllOrdersRequest, "side" | "symb
 export class OrdersApi extends trading.OrdersApi {
     /** Place a market order (requires `qty` or `notional`). */
     market(input: orders.MarketOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildMarketOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildMarketOrder(input) });
     }
     /** Place a limit order. */
     limit(input: orders.LimitOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildLimitOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildLimitOrder(input) });
     }
     /** Place a stop (stop-market) order. */
     stop(input: orders.StopOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildStopOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildStopOrder(input) });
     }
     /** Place a stop-limit order. */
     stopLimit(input: orders.StopLimitOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildStopLimitOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildStopLimitOrder(input) });
     }
     /** Place a trailing-stop order (requires `trailPrice` or `trailPercent`). */
     trailingStop(input: orders.TrailingStopOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildTrailingStopOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildTrailingStopOrder(input) });
     }
     /** Place a bracket order (entry + take-profit + stop-loss). */
     bracket(input: orders.BracketOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildBracketOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildBracketOrder(input) });
     }
     /** Place a one-cancels-other (OCO) order. */
     oco(input: orders.OcoOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildOcoOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildOcoOrder(input) });
     }
     /** Place a one-triggers-other (OTO) order. */
     oto(input: orders.OtoOrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildOtoOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildOtoOrder(input) });
     }
     /**
      * Generic escape hatch: submit a near-raw order, normalizing amount fields
@@ -276,7 +281,7 @@ export class OrdersApi extends trading.OrdersApi {
      * deciding whether to submit another order.
      */
     submit(input: orders.OrderInput): Promise<trading.Order> {
-        return this.postOrder({ postOrderRequest: orders.buildOrder(input) });
+        return this.postOrder({ createOrderRequest: orders.buildOrder(input) });
     }
 
     /**
@@ -428,8 +433,9 @@ export class TradingClient {
 
     constructor(options: AlpacaClientOptions) {
         const creds = resolveCredentials(options);
-        // Streaming authenticates with a key/secret pair; OAuth-only clients
-        // resolve to empty values here and cannot open streams.
+        // WebSocket streaming authenticates with a key/secret pair; OAuth-only
+        // clients resolve to empty values here and cannot open WebSockets.
+        // Fetch-based SSE uses the REST configuration below and supports OAuth.
         this.credentials = { keyId: creds.keyId ?? "", secret: creds.secret ?? "" };
         this.paper = options.paper ?? true;
         this.config = new trading.Configuration({
@@ -482,6 +488,36 @@ export class TradingClient {
     }
     get watchlists(): trading.WatchlistsApi {
         return (this._watchlists ??= new trading.WatchlistsApi(this.config));
+    }
+
+    /**
+     * Subscribe to typed account-activity events over SSE.
+     *
+     * This is the short ergonomic form of
+     * {@link trading.EventsApi.subscribeToActivitiesSSE}; request filters and
+     * {@link SseOptions} are forwarded unchanged. The returned subscription is
+     * a single-consumer async iterable. Breaking or completing iteration closes
+     * its active response; call `close()` if you open it without iterating.
+     *
+     * Account activities are distinct from the WebSocket `trade_updates`
+     * channel exposed by {@link stream}.
+     *
+     * @example
+     * ```ts
+     * const activities = await alpaca.trading.subscribeActivities(
+     *   { since: new Date("2026-01-01") },
+     *   { signal: controller.signal },
+     * );
+     * for await (const activity of activities) {
+     *   console.log(activity.activityType, activity.details);
+     * }
+     * ```
+     */
+    subscribeActivities(
+        request: trading.SubscribeToActivitiesSSERequest = {},
+        options: SseOptions = {},
+    ): Promise<SseSubscription<trading.ActivityEventV2>> {
+        return this.events.subscribeToActivitiesSSE(request, options);
     }
 
     /**
@@ -541,7 +577,7 @@ export class TradingClient {
      */
     closeAllPositions(
         options: trading.DeleteAllOpenPositionsRequest = {},
-    ): Promise<trading.PositionClosedReponse[]> {
+    ): Promise<trading.PositionClosedResponse[]> {
         return this.positions.deleteAllOpenPositions(options);
     }
 
@@ -631,7 +667,7 @@ export class TradingClient {
             const place = async (): Promise<void> => {
                 try {
                     const placed = await this.orders.postOrder(
-                        { postOrderRequest: orders.buildOrder(submittedInput) },
+                        { createOrderRequest: orders.buildOrder(submittedInput) },
                         { signal: workflowController.signal },
                     );
                     if (settled) return;
@@ -891,22 +927,25 @@ function collectSymbolMap<T>(
  *
  *   1. **Generated (always present).** Every market-data `Api` is a lazily
  *      constructed, memoized accessor — `stocks`, `crypto`, `options`,
- *      `forex`, `indices`, `news`, `screener`, ... — each exposing its raw
+ *      `forex`, `news`, `screener`, `corporateActions`, ... — each exposing its raw
  *      generated methods (which keep Alpaca's compact wire keys).
  *   2. **Ergonomic (additive).** Hand-written conveniences on top: the
  *      normalized `get<Asset><Thing>` / `get<Asset>Candles` accessors (canonical
  *      symbol-keyed shapes, unified with streaming), the `getLatestPrice`
- *      workflow helper, and the `iterate*` / `collect*` pagination helpers.
- *      These never replace a raw method.
+ *      workflow helper, the typed `subscribeCorporateActions` SSE helper, and
+ *      the `iterate*` / `collect*` pagination helpers. These never replace a raw
+ *      method.
  *
  * The ergonomic helpers on this client are enumerated in `ergonomicCapabilities`
  * (find one with `findErgonomic`); the generated accessors in `capabilities`
  * (find one with `findCapabilities`).
  *
  * The `paper` option is accepted (it shares {@link AlpacaClientOptions} with the
- * trading client) but has no effect here: market data always uses
- * `data.alpaca.markets`. Free vs paid data is selected by your subscription and
- * the per-request `feed` parameter (`iex` is the only feed available for free).
+ * trading client) but has no effect here. Market-data REST requests use
+ * `data.alpaca.markets`, while corporate-action SSE uses
+ * `stream.data.alpaca.markets`; `sandbox: true` selects each host's sandbox
+ * equivalent. Free vs paid data is selected by your subscription and the
+ * per-request `feed` parameter (`iex` is the only feed available for free).
  */
 export class MarketDataClient {
     private readonly config: marketData.Configuration;
@@ -915,10 +954,8 @@ export class MarketDataClient {
 
     private _stocks?: marketData.StockApi;
     private _crypto?: marketData.CryptoApi;
-    private _cryptoPerpetualFutures?: marketData.CryptoPerpetualFuturesApi;
     private _fixedIncome?: marketData.FixedIncomeApi;
     private _forex?: marketData.ForexApi;
-    private _indices?: marketData.IndexApi;
     private _logos?: marketData.LogosApi;
     private _news?: marketData.NewsApi;
     private _options?: marketData.OptionApi;
@@ -927,8 +964,9 @@ export class MarketDataClient {
 
     constructor(options: AlpacaClientOptions) {
         const creds = resolveCredentials(options);
-        // Streaming authenticates with a key/secret pair; OAuth-only clients
-        // resolve to empty values here and cannot open streams.
+        // WebSocket streaming authenticates with a key/secret pair; OAuth-only
+        // clients resolve to empty values here and cannot open WebSockets.
+        // Fetch-based SSE uses the REST configuration below and supports OAuth.
         this.credentials = { keyId: creds.keyId ?? "", secret: creds.secret ?? "" };
         this.sandbox = options.sandbox ?? false;
         this.config = new marketData.Configuration(sharedRestConfig(options, creds));
@@ -940,17 +978,11 @@ export class MarketDataClient {
     get crypto(): marketData.CryptoApi {
         return (this._crypto ??= new marketData.CryptoApi(this.config));
     }
-    get cryptoPerpetualFutures(): marketData.CryptoPerpetualFuturesApi {
-        return (this._cryptoPerpetualFutures ??= new marketData.CryptoPerpetualFuturesApi(this.config));
-    }
     get fixedIncome(): marketData.FixedIncomeApi {
         return (this._fixedIncome ??= new marketData.FixedIncomeApi(this.config));
     }
     get forex(): marketData.ForexApi {
         return (this._forex ??= new marketData.ForexApi(this.config));
-    }
-    get indices(): marketData.IndexApi {
-        return (this._indices ??= new marketData.IndexApi(this.config));
     }
     get logos(): marketData.LogosApi {
         return (this._logos ??= new marketData.LogosApi(this.config));
@@ -966,6 +998,37 @@ export class MarketDataClient {
     }
     get corporateActions(): marketData.CorporateActionsApi {
         return (this._corporateActions ??= new marketData.CorporateActionsApi(this.config));
+    }
+
+    /**
+     * Subscribe to typed corporate-action mutations over SSE.
+     *
+     * This is the short ergonomic form of
+     * {@link marketData.CorporateActionsApi.subscribeToCorporateActionsEventsSSE};
+     * filters and {@link SseOptions} are forwarded unchanged. The returned
+     * subscription is a single-consumer async iterable with automatic live
+     * reconnection and `Last-Event-ID` resumption by default. Finite `until` /
+     * `untilId` requests complete without reconnecting.
+     *
+     * @example
+     * ```ts
+     * const actions = await alpaca.marketData.subscribeCorporateActions(
+     *   { region: "us" },
+     *   { signal: controller.signal },
+     * );
+     * for await (const event of actions) {
+     *   console.log(event.eventType, event.action);
+     * }
+     * ```
+     */
+    subscribeCorporateActions(
+        request: marketData.SubscribeToCorporateActionsEventsSSERequest = {},
+        options: SseOptions = {},
+    ): Promise<SseSubscription<marketData.CorporateActionEvent>> {
+        return this.corporateActions.subscribeToCorporateActionsEventsSSE(
+            request,
+            options,
+        );
     }
 
     /** Open a real-time US-equities data stream. */
@@ -1075,18 +1138,6 @@ export class MarketDataClient {
         opts?: SymbolCollectOptions,
     ): Promise<{ [symbol: string]: marketDataShapes.Quote[] }> {
         return marketDataShapes.toQuotesBySymbol(await this.collectCryptoQuotesBySymbol(req, opts), marketDataShapes.toCryptoQuote);
-    }
-
-    /**
-     * Historical index values as canonical {@link marketDataShapes.IndexValue}s,
-     * keyed by symbol. Preserves the full-precision `timestampRaw` (the generated
-     * model truncates the timestamp to a `Date`).
-     */
-    async getIndexValues(
-        req: Omit<WithSymbolList<marketData.IndexValuesRequest>, "pageToken">,
-        opts?: SymbolCollectOptions,
-    ): Promise<{ [symbol: string]: marketDataShapes.IndexValue[] }> {
-        return marketDataShapes.toIndexValuesBySymbol(await this.collectIndexValuesBySymbol(req, opts));
     }
 
     /**
@@ -1337,20 +1388,6 @@ export class MarketDataClient {
         );
     }
 
-    /** Iterate historical index values across all symbols and pages. */
-    iterateIndexValues(req: Omit<WithSymbolList<marketData.IndexValuesRequest>, "pageToken">) {
-        return pagination.paginateSymbolMap<marketData.IndexValue>((pageToken) =>
-            this.indices.indexValues({ ...req, symbols: values.normalizeSymbols(req.symbols), pageToken }).then((r) => ({ data: r.values ?? {}, nextPageToken: r.nextPageToken })),
-        );
-    }
-    /** Collect historical index values merged into a `{ [symbol]: IndexValue[] }` map. */
-    collectIndexValuesBySymbol(req: Omit<WithSymbolList<marketData.IndexValuesRequest>, "pageToken">, opts?: SymbolCollectOptions) {
-        return collectSymbolMap<marketData.IndexValue>(req.symbols, (symbols, pageToken) =>
-            this.indices.indexValues({ ...req, symbols, pageToken }).then((r) => ({ data: r.values ?? {}, nextPageToken: r.nextPageToken })),
-            opts,
-        );
-    }
-
     /** Iterate historical forex rates across all currency pairs and pages. */
     iterateForexRates(req: Omit<WithCurrencyPairList<marketData.RatesRequest>, "pageToken">) {
         return pagination.paginateSymbolMap<marketData.ForexRate>((pageToken) =>
@@ -1540,9 +1577,11 @@ export class Alpaca {
     }
 
     /**
-     * Market-data APIs and the market-data streams. The `paper` flag does not
-     * apply here — every call targets `data.alpaca.markets`; free vs paid data
-     * is governed by your subscription and the `feed` parameter.
+     * Market-data APIs and streams. The `paper` flag does not apply here.
+     * REST requests use `data.alpaca.markets`, while corporate-action SSE uses
+     * `stream.data.alpaca.markets`; `sandbox: true` selects their sandbox
+     * equivalents. Free vs paid data is governed by your subscription and the
+     * `feed` parameter.
      */
     get marketData(): MarketDataClient {
         return (this._marketData ??= new MarketDataClient(this.options));

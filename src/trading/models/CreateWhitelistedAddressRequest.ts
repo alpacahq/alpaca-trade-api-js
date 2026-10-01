@@ -20,9 +20,16 @@ import {
     CryptoChainToJSON,
     CryptoChainToJSONTyped,
 } from './CryptoChain';
+import type { TravelRuleInfo } from './TravelRuleInfo';
+import {
+    TravelRuleInfoFromJSON,
+    TravelRuleInfoFromJSONTyped,
+    TravelRuleInfoToJSON,
+    TravelRuleInfoToJSONTyped,
+} from './TravelRuleInfo';
 
 /**
- * 
+ * Request format used for whitelisting a crypto address for transfers.
  * @export
  * @interface CreateWhitelistedAddressRequest
  */
@@ -45,6 +52,12 @@ export interface CreateWhitelistedAddressRequest {
      * @memberof CreateWhitelistedAddressRequest
      */
     chain?: CryptoChain;
+    /**
+     * 
+     * @type {TravelRuleInfo}
+     * @memberof CreateWhitelistedAddressRequest
+     */
+    travelRuleInfo?: TravelRuleInfo;
 }
 
 
@@ -69,6 +82,7 @@ export function CreateWhitelistedAddressRequestFromJSONTyped(json: any, ignoreDi
         'address': json['address'] == null ? undefined : json['address'],
         'asset': json['asset'] == null ? undefined : json['asset'],
         'chain': json['chain'] == null ? undefined : CryptoChainFromJSON(json['chain']),
+        'travelRuleInfo': json['travel_rule_info'] == null ? undefined : TravelRuleInfoFromJSON(json['travel_rule_info']),
     };
 }
 
@@ -86,6 +100,7 @@ export function CreateWhitelistedAddressRequestToJSONTyped(value?: CreateWhiteli
         'address': value['address'],
         'asset': value['asset'],
         'chain': CryptoChainToJSON(value['chain']),
+        'travel_rule_info': TravelRuleInfoToJSON(value['travelRuleInfo']),
     };
 }
 

@@ -3,6 +3,12 @@
 This guide moves you from **`@alpacahq/alpaca-trade-api@3.x`** to the rewritten
 stable **`4.x`** SDK.
 
+> Not sure which version you are starting from? Use the
+> [migration guide index](MIGRATIONS.md).
+
+> Already using 4.x? See the separate
+> [4.x → 5.0 migration guide](MIGRATION_V5.md).
+
 > **TL;DR**
 > - The package name is **unchanged** (`@alpacahq/alpaca-trade-api`). Only the
 >   API surface changed.
@@ -237,12 +243,12 @@ by language, so pick the line for your sources (run on a clean git tree):
 # JavaScript sources
 npx jscodeshift -t \
   ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js \
-  --parser=babel "src/**/*.js"
+  --parser=babel --extensions=js,jsx,mjs,cjs src
 
 # TypeScript sources (both flags are required)
 npx jscodeshift -t \
   ./node_modules/@alpacahq/alpaca-trade-api/codemods/alpaca-v3-to-v4.js \
-  --parser=tsx --extensions=ts,tsx "src/**/*.ts"
+  --parser=tsx --extensions=ts,tsx,mts,cts src
 ```
 
 Against a local checkout of the SDK repo, use

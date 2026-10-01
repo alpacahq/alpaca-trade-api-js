@@ -31,6 +31,7 @@ import {
 export interface GetAccountActivitiesRequest {
     activityTypes?: Array<ActivityType>;
     category?: GetAccountActivitiesCategoryEnum;
+    orderId?: string;
     date?: Date;
     until?: Date;
     after?: Date;
@@ -41,6 +42,7 @@ export interface GetAccountActivitiesRequest {
 
 export interface GetAccountActivitiesByActivityTypeRequest {
     activityType: string;
+    orderId?: string;
     date?: Date;
     until?: Date;
     after?: Date;
@@ -69,6 +71,10 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
             queryParameters['category'] = requestParameters['category'];
         }
 
+        if (requestParameters['orderId'] != null) {
+            queryParameters['order_id'] = requestParameters['orderId'];
+        }
+
         if (requestParameters['date'] != null) {
             queryParameters['date'] = (requestParameters['date'] as any).toISOString();
         }
@@ -95,6 +101,7 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -103,6 +110,7 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/account/activities`;
 
@@ -111,6 +119,7 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GetAccountActivities200ResponseInnerFromJSON));
@@ -139,6 +148,10 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters['orderId'] != null) {
+            queryParameters['order_id'] = requestParameters['orderId'];
+        }
+
         if (requestParameters['date'] != null) {
             queryParameters['date'] = (requestParameters['date'] as any).toISOString();
         }
@@ -165,6 +178,7 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -173,6 +187,7 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/account/activities/{activity_type}`;
         urlPath = urlPath.replace(`{${"activity_type"}}`, encodeURIComponent(String(requestParameters['activityType'])));
@@ -182,6 +197,7 @@ export class AccountActivitiesApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GetAccountActivitiesByActivityType200ResponseInnerFromJSON));

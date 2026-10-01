@@ -32,6 +32,12 @@ export interface CommonSDIVActivityV2 {
      */
     exDate?: Date;
     /**
+     * The ISIN of the security involved with the activity
+     * @type {string}
+     * @memberof CommonSDIVActivityV2
+     */
+    isin?: string;
+    /**
      * The payable_date for this corporate action
      * @type {Date}
      * @memberof CommonSDIVActivityV2
@@ -79,6 +85,7 @@ export function CommonSDIVActivityV2FromJSONTyped(json: any, ignoreDiscriminator
         
         'cusip': json['cusip'],
         'exDate': json['ex_date'] == null ? undefined : (new Date(json['ex_date'])),
+        'isin': json['isin'] == null ? undefined : json['isin'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'rate': json['rate'],
         'recordDate': json['record_date'] == null ? undefined : (new Date(json['record_date'])),
@@ -99,6 +106,7 @@ export function CommonSDIVActivityV2ToJSONTyped(value?: CommonSDIVActivityV2 | n
         
         'cusip': value['cusip'],
         'ex_date': value['exDate'] == null ? undefined : ((value['exDate']).toISOString().substring(0,10)),
+        'isin': value['isin'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'rate': value['rate'],
         'record_date': value['recordDate'] == null ? undefined : ((value['recordDate']).toISOString().substring(0,10)),

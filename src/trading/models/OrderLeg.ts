@@ -148,7 +148,7 @@ export interface OrderLeg {
      */
     id?: string;
     /**
-     * Always null for an order leg; legs are not nested beyond one level.
+     * Always null for an order leg; legs are not nested beyond one level. An empty array is accepted for generated-client compatibility.
      * @type {Array<object>}
      * @memberof OrderLeg
      */

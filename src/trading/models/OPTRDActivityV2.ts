@@ -20,11 +20,29 @@ import { mapValues } from '../runtime';
  */
 export interface OPTRDActivityV2 {
     /**
+     * The contract symbol of the security involved with the activity
+     * @type {string}
+     * @memberof OPTRDActivityV2
+     */
+    contractSymbol?: string;
+    /**
+     * The CUSIP of the security involved with the activity
+     * @type {string}
+     * @memberof OPTRDActivityV2
+     */
+    cusip?: string;
+    /**
+     * The symbol of the security involved with the activity
+     * @type {string}
+     * @memberof OPTRDActivityV2
+     */
+    symbol?: string;
+    /**
      * Optional group ID which can help grouping together related activities
      * @type {string}
      * @memberof OPTRDActivityV2
      */
-    groupId: string;
+    groupId?: string;
     /**
      * The date when the activity was booked
      * @type {Date}
@@ -37,7 +55,6 @@ export interface OPTRDActivityV2 {
  * Check if a given object implements the OPTRDActivityV2 interface.
  */
 export function instanceOfOPTRDActivityV2(value: object): value is OPTRDActivityV2 {
-    if (!('groupId' in value) || value['groupId'] === undefined) return false;
     if (!('systemDate' in value) || value['systemDate'] === undefined) return false;
     return true;
 }
@@ -52,7 +69,10 @@ export function OPTRDActivityV2FromJSONTyped(json: any, ignoreDiscriminator: boo
     }
     return {
         
-        'groupId': json['group_id'],
+        'contractSymbol': json['contract_symbol'] == null ? undefined : json['contract_symbol'],
+        'cusip': json['cusip'] == null ? undefined : json['cusip'],
+        'symbol': json['symbol'] == null ? undefined : json['symbol'],
+        'groupId': json['group_id'] == null ? undefined : json['group_id'],
         'systemDate': (new Date(json['system_date'])),
     };
 }
@@ -68,6 +88,9 @@ export function OPTRDActivityV2ToJSONTyped(value?: OPTRDActivityV2 | null, ignor
 
     return {
         
+        'contract_symbol': value['contractSymbol'],
+        'cusip': value['cusip'],
+        'symbol': value['symbol'],
         'group_id': value['groupId'],
         'system_date': ((value['systemDate']).toISOString().substring(0,10)),
     };

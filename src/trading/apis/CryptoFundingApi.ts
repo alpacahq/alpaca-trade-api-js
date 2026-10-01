@@ -20,6 +20,9 @@ import type {
   CryptoChain,
   CryptoTransfer,
   CryptoWallet,
+  SearchVASPsResponse,
+  TravelRuleErrorResponse,
+  UpdateWhitelistedAddressTravelRuleInfoRequest,
   WalletFeeEstimateResponse,
   WhitelistedAddress,
 } from '../models/index';
@@ -34,6 +37,12 @@ import {
     CryptoTransferToJSON,
     CryptoWalletFromJSON,
     CryptoWalletToJSON,
+    SearchVASPsResponseFromJSON,
+    SearchVASPsResponseToJSON,
+    TravelRuleErrorResponseFromJSON,
+    TravelRuleErrorResponseToJSON,
+    UpdateWhitelistedAddressTravelRuleInfoRequestFromJSON,
+    UpdateWhitelistedAddressTravelRuleInfoRequestToJSON,
     WalletFeeEstimateResponseFromJSON,
     WalletFeeEstimateResponseToJSON,
     WhitelistedAddressFromJSON,
@@ -69,6 +78,22 @@ export interface ListCryptoFundingWalletsRequest {
     network?: ListCryptoFundingWalletsNetworkEnum;
 }
 
+export interface SearchVASPsRequest {
+    q?: string;
+    emailDomain?: string;
+    chainalysisName?: string;
+    fields?: string;
+    page?: number;
+    perPage?: number;
+    order?: string;
+    includeSubsidiaryVASPs?: boolean;
+}
+
+export interface UpdateWhitelistedAddressTravelRuleInfoOperationRequest {
+    whitelistedAddressId: string;
+    updateWhitelistedAddressTravelRuleInfoRequest: UpdateWhitelistedAddressTravelRuleInfoRequest;
+}
+
 /**
  * 
  */
@@ -93,6 +118,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -101,6 +127,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/wallets/transfers`;
 
@@ -109,6 +136,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
             body: CreateCryptoTransferRequestToJSON(requestParameters['createCryptoTransferRequest']),
         }, initOverrides);
 
@@ -126,7 +154,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
     }
 
     /**
-     * Submits a new whitelisted withdrawal address for your account. The chain is derived from the supplied asset symbol and address, and the same address cannot be whitelisted twice on the same chain.  Where travel rule reporting applies to your account, address details are validated against the travel rule provider before being persisted.  Note that whitelisted addresses must wait at least 24 hours before they can be used as a withdrawal destination.
+     * Submits a new whitelisted withdrawal address for your account. The chain is derived from the supplied asset symbol and address, and the same address cannot be whitelisted twice on the same chain.  Where travel rule reporting applies to your account, supply travel rule information for the destination wallet. Use the `Search VASPs` endpoint to find the VASP DID for the destination exchange. For a self-hosted wallet, set `beneficiary_is_self_hosted` to true. If the exchange is not in the directory, provide its information in `beneficiary_manual_entry`.  Note that whitelisted addresses must wait at least 24 hours before they can be used as a withdrawal destination.
      * Request a new whitelisted address
      */
     async createWhitelistedAddressRaw(requestParameters: CreateWhitelistedAddressOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WhitelistedAddress>> {
@@ -143,6 +171,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -151,6 +180,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/wallets/whitelists`;
 
@@ -159,6 +189,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
             body: CreateWhitelistedAddressRequestToJSON(requestParameters['createWhitelistedAddressRequest']),
         }, initOverrides);
 
@@ -166,7 +197,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
     }
 
     /**
-     * Submits a new whitelisted withdrawal address for your account. The chain is derived from the supplied asset symbol and address, and the same address cannot be whitelisted twice on the same chain.  Where travel rule reporting applies to your account, address details are validated against the travel rule provider before being persisted.  Note that whitelisted addresses must wait at least 24 hours before they can be used as a withdrawal destination.
+     * Submits a new whitelisted withdrawal address for your account. The chain is derived from the supplied asset symbol and address, and the same address cannot be whitelisted twice on the same chain.  Where travel rule reporting applies to your account, supply travel rule information for the destination wallet. Use the `Search VASPs` endpoint to find the VASP DID for the destination exchange. For a self-hosted wallet, set `beneficiary_is_self_hosted` to true. If the exchange is not in the directory, provide its information in `beneficiary_manual_entry`.  Note that whitelisted addresses must wait at least 24 hours before they can be used as a withdrawal destination.
      * Request a new whitelisted address
      */
     async createWhitelistedAddress(requestParameters: CreateWhitelistedAddressOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WhitelistedAddress> {
@@ -190,6 +221,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -198,6 +230,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/wallets/whitelists/{whitelisted_address_id}`;
         urlPath = urlPath.replace(`{${"whitelisted_address_id"}}`, encodeURIComponent(String(requestParameters['whitelistedAddressId'])));
@@ -207,6 +240,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             method: 'DELETE',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.VoidApiResponse(response);
@@ -236,6 +270,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -244,6 +279,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/wallets/transfers/{transfer_id}`;
         urlPath = urlPath.replace(`{${"transfer_id"}}`, encodeURIComponent(String(requestParameters['transferId'])));
@@ -253,6 +289,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoTransferFromJSON(jsonValue));
@@ -292,6 +329,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -300,6 +338,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/wallets/fees/estimate`;
 
@@ -308,6 +347,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => WalletFeeEstimateResponseFromJSON(jsonValue));
@@ -331,6 +371,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -339,6 +380,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/wallets/transfers`;
 
@@ -347,6 +389,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoTransferFromJSON(jsonValue));
@@ -382,6 +425,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -390,6 +434,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/wallets`;
 
@@ -398,6 +443,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoWalletFromJSON(jsonValue));
@@ -421,6 +467,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -429,6 +476,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/wallets/whitelists`;
 
@@ -437,6 +485,7 @@ export class CryptoFundingApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => WhitelistedAddressFromJSON(jsonValue));
@@ -449,6 +498,139 @@ export class CryptoFundingApi extends runtime.BaseAPI {
     async listWhitelistedAddress(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WhitelistedAddress> {
         const response = await this.listWhitelistedAddressRaw(initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Search for Virtual Asset Service Providers, or crypto exchanges, on Notabene\'s network. This endpoint can be used to find the VASP DID for your beneficiary\'s exchange when submitting travel rule information for your whitelisted wallets. Use the `q` parameter to search for exchanges.
+     * Search for VASPs
+     */
+    async searchVASPsRaw(requestParameters: SearchVASPsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SearchVASPsResponse>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['q'] != null) {
+            queryParameters['q'] = requestParameters['q'];
+        }
+
+        if (requestParameters['emailDomain'] != null) {
+            queryParameters['emailDomain'] = requestParameters['emailDomain'];
+        }
+
+        if (requestParameters['chainalysisName'] != null) {
+            queryParameters['chainalysisName'] = requestParameters['chainalysisName'];
+        }
+
+        if (requestParameters['fields'] != null) {
+            queryParameters['fields'] = requestParameters['fields'];
+        }
+
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['perPage'] != null) {
+            queryParameters['per_page'] = requestParameters['perPage'];
+        }
+
+        if (requestParameters['order'] != null) {
+            queryParameters['order'] = requestParameters['order'];
+        }
+
+        if (requestParameters['includeSubsidiaryVASPs'] != null) {
+            queryParameters['includeSubsidiaryVASPs'] = requestParameters['includeSubsidiaryVASPs'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
+        }
+
+        };
+
+        let urlPath = `/v2/wallets/travel-rule/vasps`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+            resolveAuth: resolveRequestAuth,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SearchVASPsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Search for Virtual Asset Service Providers, or crypto exchanges, on Notabene\'s network. This endpoint can be used to find the VASP DID for your beneficiary\'s exchange when submitting travel rule information for your whitelisted wallets. Use the `q` parameter to search for exchanges.
+     * Search for VASPs
+     */
+    async searchVASPs(requestParameters: SearchVASPsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SearchVASPsResponse> {
+        const response = await this.searchVASPsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * You are required to supply travel rule information for the crypto wallets you\'re withdrawing to.  It is preferred that you use the `Search VASPs` endpoint to find the VASP DID for the exchange you are withdrawing to, otherwise, if it\'s a self-hosted wallet, please set `beneficiary_is_self_hosted` to true.  If the exchange cannot be found in our directory, please supply the information manually using the `beneficiary_manual_entry` object.
+     * Update travel rule information for a whitelisted wallet
+     */
+    async updateWhitelistedAddressTravelRuleInfoRaw(requestParameters: UpdateWhitelistedAddressTravelRuleInfoOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['whitelistedAddressId'] == null) {
+            throw new runtime.RequiredError(
+                'whitelistedAddressId',
+                'Required parameter "whitelistedAddressId" was null or undefined when calling updateWhitelistedAddressTravelRuleInfo().'
+            );
+        }
+
+        if (requestParameters['updateWhitelistedAddressTravelRuleInfoRequest'] == null) {
+            throw new runtime.RequiredError(
+                'updateWhitelistedAddressTravelRuleInfoRequest',
+                'Required parameter "updateWhitelistedAddressTravelRuleInfoRequest" was null or undefined when calling updateWhitelistedAddressTravelRuleInfo().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
+        }
+
+        };
+
+        let urlPath = `/v2/wallets/whitelists/{whitelisted_address_id}/travel-rule-info`;
+        urlPath = urlPath.replace(`{${"whitelisted_address_id"}}`, encodeURIComponent(String(requestParameters['whitelistedAddressId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            resolveAuth: resolveRequestAuth,
+            body: UpdateWhitelistedAddressTravelRuleInfoRequestToJSON(requestParameters['updateWhitelistedAddressTravelRuleInfoRequest']),
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * You are required to supply travel rule information for the crypto wallets you\'re withdrawing to.  It is preferred that you use the `Search VASPs` endpoint to find the VASP DID for the exchange you are withdrawing to, otherwise, if it\'s a self-hosted wallet, please set `beneficiary_is_self_hosted` to true.  If the exchange cannot be found in our directory, please supply the information manually using the `beneficiary_manual_entry` object.
+     * Update travel rule information for a whitelisted wallet
+     */
+    async updateWhitelistedAddressTravelRuleInfo(requestParameters: UpdateWhitelistedAddressTravelRuleInfoOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.updateWhitelistedAddressTravelRuleInfoRaw(requestParameters, initOverrides);
     }
 
 }

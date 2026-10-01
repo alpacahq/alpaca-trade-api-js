@@ -3,5 +3,9 @@
   "compilerOptions": {
     "rootDir": "."
   },
-  "include": ["examples/**/*", "test/types/**/*.typecheck.ts"]
+  "include": [
+    "examples/**/*",
+    "scripts/smoke-sse.ts",
+    "test/types/**/*.typecheck.ts"
+  ]
 }

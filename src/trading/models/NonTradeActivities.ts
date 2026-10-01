@@ -34,8 +34,13 @@ export interface NonTradeActivities {
      * 
      * Full mapping of `activity_type` to `activity_sub_type`:
      * 
+     * - **CGD**: Capital Gains Distribution activity sub-types:
+     *   - **LTCG**: Long-Term Capital Gain
+     *   - **STCG**: Short-Term Capital Gain
+     * 
      * - **DIV**: Dividend activity sub-types:
      *   - **CDIV**: Cash Dividend
+     *   - **ROC**: Return of Capital
      *   - **SDIV**: Stock Dividend
      *   - **SPD**: Substitute Payment In Lieu Of Dividend
      * 
@@ -55,6 +60,7 @@ export interface NonTradeActivities {
      *   - **CDT**: Credit Interest
      *   - **SWP**: Sweep Interest
      *   - **QII**: Qualified Interest
+     *   - **FI**: Fixed Income Interest (coupon or accrued)
      * 
      * - **MA**: Merger and Acquisition activity sub-types:
      *   - **CMA**: Cash Merger
@@ -68,6 +74,7 @@ export interface NonTradeActivities {
      * 
      * - **OPCA**: Option Corporate Action activity sub-types:
      *   - **DIV.CDIV**: Cash Dividend
+     *   - **DIV.ROC**: Return of Capital
      *   - **DIV.SDIV**: Stock Dividend
      *   - **MA.CMA**: Cash Merger
      *   - **MA.SMA**: Stock Merger
@@ -80,7 +87,12 @@ export interface NonTradeActivities {
      *   - **SPLIT.RSPLIT**: Reverse Stock Split
      *   - **SPLIT.USPLIT**: Unit Split
      * 
-     * - **REORG**: Reorganization activity sub-types:
+     * - **REO**: Reorganization activity sub-types
+     *   - **REOS**: Stock only (1 or more stock legs)
+     *   - **REOC**: Cash only (1 cash leg)
+     *   - **REOSC**: Stock and cash
+     * 
+     * - **REORG**: Activity sub-types:
      *   - **WRM**: Worthless Removal
      * 
      * - **SPLIT**: Stock Split activity sub-types:
@@ -109,7 +121,7 @@ export interface NonTradeActivities {
      */
     activityType?: ActivityType;
     /**
-     * Valid only for non-trading activity types. Null for trading activites.
+     * Valid only for non-trading activity types. Null for trading activities.
      * @type {Date}
      * @memberof NonTradeActivities
      */

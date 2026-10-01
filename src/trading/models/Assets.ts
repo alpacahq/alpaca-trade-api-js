@@ -69,15 +69,6 @@ export interface Assets {
      */
     cusip?: string | null;
     /**
-     * **deprecated**: Please use borrow_status instead.
-     * Asset is easy-to-borrow or not (filtering for easy_to_borrow = True is the best way to check whether the name is currently available to short at Alpaca).
-     * 
-     * @type {boolean}
-     * @memberof Assets
-     * @deprecated
-     */
-    easyToBorrow?: boolean;
-    /**
      * 
      * @type {Exchange}
      * @memberof Assets
@@ -105,13 +96,13 @@ export interface Assets {
      */
     maintenanceMarginRequirement?: number;
     /**
-     * The margin requirement percentage for the asset's long positions (equities only).
+     * The margin requirement percentage for the asset's long positions (equities only), encoded as a decimal string.
      * @type {string}
      * @memberof Assets
      */
     marginRequirementLong?: string;
     /**
-     * The margin requirement percentage for the asset's short positions (equities only).
+     * The margin requirement percentage for the asset's short positions (equities only), encoded as a decimal string.
      * @type {string}
      * @memberof Assets
      */
@@ -223,7 +214,6 @@ export function AssetsFromJSONTyped(json: any, ignoreDiscriminator: boolean): As
         'borrowStatus': json['borrow_status'] == null ? undefined : json['borrow_status'],
         '_class': AssetClassFromJSON(json['class']),
         'cusip': json['cusip'] == null ? undefined : json['cusip'],
-        'easyToBorrow': json['easy_to_borrow'] == null ? undefined : json['easy_to_borrow'],
         'exchange': ExchangeFromJSON(json['exchange']),
         'fractionable': json['fractionable'],
         'id': json['id'],
@@ -257,7 +247,6 @@ export function AssetsToJSONTyped(value?: Assets | null, ignoreDiscriminator: bo
         'borrow_status': value['borrowStatus'],
         'class': AssetClassToJSON(value['_class']),
         'cusip': value['cusip'],
-        'easy_to_borrow': value['easyToBorrow'],
         'exchange': ExchangeToJSON(value['exchange']),
         'fractionable': value['fractionable'],
         'id': value['id'],

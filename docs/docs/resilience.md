@@ -98,9 +98,10 @@ ambiguous.
 ## Timeouts
 
 `timeoutMs` is a fresh **per-attempt** deadline (default 30s; pass `0` to
-disable). Each attempt's budget starts before client-side rate-limit acquisition
-and covers the rate-limit wait, pre middleware, `fetch`, error/post middleware,
-and successful or error response-body consumption.
+disable). Each attempt's budget starts before credential resolution and request
+preparation. It covers asynchronous API-key or OAuth loading, init overrides,
+client-side rate-limit acquisition and waiting, pre middleware, `fetch`,
+error/post middleware, and successful or error response-body consumption.
 
 Retry backoff is outside the finished attempt's budget; the next attempt gets a
 new full deadline. A caller `AbortSignal` spans the whole operation and can
@@ -157,7 +158,7 @@ import {
 } from "@alpacahq/alpaca-trade-api";
 
 const clientOrderId = `resilient-order-${crypto.randomUUID()}`;
-const postOrderRequest = orders.buildMarketOrder({
+const createOrderRequest = orders.buildMarketOrder({
   symbol: "AAPL",
   side: "buy",
   qty: 1,
@@ -165,7 +166,7 @@ const postOrderRequest = orders.buildMarketOrder({
 });
 
 try {
-  await alpaca.trading.orders.postOrder({ postOrderRequest });
+  await alpaca.trading.orders.postOrder({ createOrderRequest });
 } catch (error) {
   if (error instanceof ApiError) {
     console.error({

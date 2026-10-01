@@ -24,20 +24,37 @@ export interface CommonOptionsActivityV2 {
      * @type {string}
      * @memberof CommonOptionsActivityV2
      */
-    groupId: string;
+    groupId?: string;
     /**
      * The date when the activity was booked
      * @type {Date}
      * @memberof CommonOptionsActivityV2
      */
     systemDate: Date;
+    /**
+     * The contract symbol of the security involved with the activity
+     * @type {string}
+     * @memberof CommonOptionsActivityV2
+     */
+    contractSymbol?: string;
+    /**
+     * The CUSIP of the security involved with the activity
+     * @type {string}
+     * @memberof CommonOptionsActivityV2
+     */
+    cusip?: string;
+    /**
+     * The symbol of the security involved with the activity
+     * @type {string}
+     * @memberof CommonOptionsActivityV2
+     */
+    symbol?: string;
 }
 
 /**
  * Check if a given object implements the CommonOptionsActivityV2 interface.
  */
 export function instanceOfCommonOptionsActivityV2(value: object): value is CommonOptionsActivityV2 {
-    if (!('groupId' in value) || value['groupId'] === undefined) return false;
     if (!('systemDate' in value) || value['systemDate'] === undefined) return false;
     return true;
 }
@@ -52,8 +69,11 @@ export function CommonOptionsActivityV2FromJSONTyped(json: any, ignoreDiscrimina
     }
     return {
         
-        'groupId': json['group_id'],
+        'groupId': json['group_id'] == null ? undefined : json['group_id'],
         'systemDate': (new Date(json['system_date'])),
+        'contractSymbol': json['contract_symbol'] == null ? undefined : json['contract_symbol'],
+        'cusip': json['cusip'] == null ? undefined : json['cusip'],
+        'symbol': json['symbol'] == null ? undefined : json['symbol'],
     };
 }
 
@@ -70,6 +90,9 @@ export function CommonOptionsActivityV2ToJSONTyped(value?: CommonOptionsActivity
         
         'group_id': value['groupId'],
         'system_date': ((value['systemDate']).toISOString().substring(0,10)),
+        'contract_symbol': value['contractSymbol'],
+        'cusip': value['cusip'],
+        'symbol': value['symbol'],
     };
 }
 

@@ -153,13 +153,15 @@ export const capabilities: readonly CapabilityEntry[] = [
             "createWhitelistedAddress",
             "deleteWhitelistedAddress",
             "listWhitelistedAddress",
+            "searchVASPs",
+            "updateWhitelistedAddressTravelRuleInfo",
         ],
     },
     {
         accessor: "trading.events",
         api: "EventsApi",
         group: "trading",
-        summary: "Server-sent event streams for account activity.",
+        summary: "Typed, resumable async SSE stream for account activity.",
         methods: ["subscribeToActivitiesSSE"],
     },
     {
@@ -273,19 +275,6 @@ export const capabilities: readonly CapabilityEntry[] = [
         ],
     },
     {
-        accessor: "marketData.cryptoPerpetualFutures",
-        api: "CryptoPerpetualFuturesApi",
-        group: "marketData",
-        summary: "Crypto perpetual-futures latest market data.",
-        methods: [
-            "cryptoPerpLatestBars",
-            "cryptoPerpLatestQuotes",
-            "cryptoPerpLatestTrades",
-            "cryptoPerpLatestOrderbooks",
-            "cryptoPerpLatestFuturesPricing",
-        ],
-    },
-    {
         accessor: "marketData.fixedIncome",
         api: "FixedIncomeApi",
         group: "marketData",
@@ -298,13 +287,6 @@ export const capabilities: readonly CapabilityEntry[] = [
         group: "marketData",
         summary: "Foreign-exchange historical and latest rates.",
         methods: ["rates", "latestRates"],
-    },
-    {
-        accessor: "marketData.indices",
-        api: "IndexApi",
-        group: "marketData",
-        summary: "Index historical and latest values.",
-        methods: ["indexValues", "indexLatestValues"],
     },
     {
         accessor: "marketData.logos",
@@ -347,8 +329,8 @@ export const capabilities: readonly CapabilityEntry[] = [
         accessor: "marketData.corporateActions",
         api: "CorporateActionsApi",
         group: "marketData",
-        summary: "Historical corporate-action data.",
-        methods: ["corporateActions"],
+        summary: "Historical corporate actions and typed, resumable async SSE updates.",
+        methods: ["corporateActions", "subscribeToCorporateActionsEventsSSE"],
     },
 ] as const;
 
@@ -399,7 +381,12 @@ export function findCapabilities(methodName: string): CapabilityEntry[] {
 }
 
 /** Which kind of ergonomic helper an {@link ErgonomicHelperEntry} groups. */
-export type ErgonomicKind = "orderBuilder" | "workflow" | "normalized" | "pagination";
+export type ErgonomicKind =
+    | "orderBuilder"
+    | "workflow"
+    | "sse"
+    | "normalized"
+    | "pagination";
 
 /**
  * One row of the ergonomic (layer 2) map: a group of hand-written convenience
@@ -425,7 +412,8 @@ export interface ErgonomicHelperEntry {
  * of the generated APIs. Each row lists the helper methods on a facade object;
  * the raw generated methods they build on remain available (see
  * {@link capabilities}). Keep this in sync with {@link "./client"} — a test
- * asserts every listed helper exists on the facade.
+ * asserts every listed helper exists and every own public facade method is
+ * represented by the raw, streaming, or ergonomic maps.
  */
 export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
     // --- Trading ---------------------------------------------------------
@@ -443,6 +431,14 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
         kind: "workflow",
         summary: "High-level trading flows that would otherwise be boilerplate.",
         methods: ["validateConnection", "submitAndWait", "closeAllPositions"],
+    },
+    {
+        accessor: "trading",
+        group: "trading",
+        kind: "sse",
+        summary: "Typed, resumable async account-activity subscription.",
+        wraps: "EventsApi.subscribeToActivitiesSSE",
+        methods: ["subscribeActivities"],
     },
     {
         accessor: "trading",
@@ -470,6 +466,14 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
     {
         accessor: "marketData",
         group: "marketData",
+        kind: "sse",
+        summary: "Typed, resumable async corporate-action subscription.",
+        wraps: "CorporateActionsApi.subscribeToCorporateActionsEventsSSE",
+        methods: ["subscribeCorporateActions"],
+    },
+    {
+        accessor: "marketData",
+        group: "marketData",
         kind: "normalized",
         summary: "Auto-paginated, symbol-keyed accessors returning canonical Bar/Trade/Quote shapes (and chart-ready Candles), unified with the streaming layer. Each single-symbol `*For(symbol)` reads only the exact requested key and returns an empty array/Candles when absent.",
         methods: [
@@ -480,7 +484,6 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
             "getCryptoTrades",
             "getStockQuotes",
             "getCryptoQuotes",
-            "getIndexValues",
             "getStockAuctions",
             "getStockCandles",
             "getCryptoCandles",
@@ -519,8 +522,6 @@ export const ergonomicCapabilities: readonly ErgonomicHelperEntry[] = [
             "collectOptionBarsBySymbol",
             "iterateOptionTrades",
             "collectOptionTradesBySymbol",
-            "iterateIndexValues",
-            "collectIndexValuesBySymbol",
             "iterateForexRates",
             "collectForexRatesBySymbol",
             "iterateOptionSnapshots",

@@ -1,8 +1,24 @@
-import { readFileSync } from "node:fs";
+import {
+    mkdirSync,
+    mkdtempSync,
+    readFileSync,
+    rmSync,
+    writeFileSync,
+} from "node:fs";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { renderDocsExamples } from "../scripts/gen-docs-examples";
-import { renderDocsMigration } from "../scripts/gen-docs-migration";
+import {
+    migrationPages,
+    renderDocsMigration,
+    renderDocsMigrationIndex,
+    renderDocsV5Migration,
+} from "../scripts/gen-docs-migration";
+
+const nodeRequire = createRequire(import.meta.url);
 
 describe("docs migration generator", () => {
     it("adds generated frontmatter and rewrites only repository-relative links", () => {
@@ -42,7 +58,419 @@ describe("docs migration generator", () => {
         const lines = gitignore.split(/\r?\n/);
         const examplesIndex = lines.indexOf("docs/docs/examples.md");
         expect(examplesIndex).toBeGreaterThan(-1);
-        expect(lines[examplesIndex + 1]).toBe("docs/docs/migration.md");
+        expect(lines[examplesIndex + 1]).toBe("docs/docs/migrations.md");
+        expect(lines[examplesIndex + 2]).toBe("docs/docs/migration.md");
+        expect(lines[examplesIndex + 3]).toBe("docs/docs/migration-v5.md");
+    });
+
+    it("keeps 3.x to 4.0 primary and publishes 5.0 separately", () => {
+        const root = resolve(import.meta.dirname, "..");
+        const index = readFileSync(resolve(root, "MIGRATIONS.md"), "utf8");
+        const primary = readFileSync(resolve(root, "MIGRATION.md"), "utf8");
+        const v5 = readFileSync(resolve(root, "MIGRATION_V5.md"), "utf8");
+
+        expect(index.indexOf("### `3.x` → `4.0`")).toBeLessThan(
+            index.indexOf("### `4.x` → `5.0`"),
+        );
+        expect(index).toContain(
+            "Do not run the `4.x` → `5.0` codemod directly against a `3.x` codebase",
+        );
+        expect(primary).toMatch(/^# Migration guide: `3\.x` → `4\.0`/);
+        expect(primary).toContain("[4.x → 5.0 migration guide](MIGRATION_V5.md)");
+        expect(v5).toMatch(/^# Migration guide: `4\.x` → `5\.0`/);
+        expect(migrationPages.filter((page) => page.primary)).toEqual([
+            expect.objectContaining({
+                sourceFile: "MIGRATION.md",
+                outputFile: "migration.md",
+            }),
+        ]);
+        expect(renderDocsMigrationIndex(index)).toContain(
+            "title: Migration overview",
+        );
+        expect(renderDocsMigrationIndex(index)).toContain(
+            "[`3.x` → `4.0` migration guide](./migration.md)",
+        );
+        expect(renderDocsMigration(primary)).toContain(
+            "[4.x → 5.0 migration guide](./migration-v5.md)",
+        );
+        expect(renderDocsV5Migration(v5)).toContain(
+            "title: Migrate from 4.x to 5.0",
+        );
+        expect(renderDocsV5Migration(v5)).toContain(
+            "codemods/alpaca-v4-to-v5.js",
+        );
+        expect(v5).toContain(
+            "The transform does not silently rewrite removed APIs",
+        );
+    });
+
+    it("publishes directory-based codemod commands that select JavaScript and TypeScript", () => {
+        const root = resolve(import.meta.dirname, "..");
+        const guides = [
+            readFileSync(resolve(root, "MIGRATION.md"), "utf8"),
+            readFileSync(resolve(root, "MIGRATION_V5.md"), "utf8"),
+            readFileSync(resolve(root, "codemods", "README.md"), "utf8"),
+        ];
+
+        for (const guide of guides) {
+            expect(guide).not.toMatch(/["']src\/\*\*/);
+        }
+        expect(guides[0]).toContain(
+            "--parser=babel --extensions=js,jsx,mjs,cjs src",
+        );
+        expect(guides[0]).toContain(
+            "--parser=tsx --extensions=ts,tsx,mts,cts src",
+        );
+        expect(guides[1]).toContain(
+            "--parser=babel --extensions=js,jsx,mjs,cjs src",
+        );
+        expect(guides[1]).toContain(
+            "--parser=tsx --extensions=ts,tsx,mts,cts src",
+        );
+    });
+
+    it.each([
+        {
+            version: "v3-to-v4",
+            extension: "js",
+            parser: "babel",
+            source: `const Alpaca = require("@alpacahq/alpaca-trade-api");
+const client = new Alpaca({ secretKey: "secret" });
+console.log(client);`,
+        },
+        {
+            version: "v3-to-v4",
+            extension: "tsx",
+            parser: "tsx",
+            source: `import Alpaca from "@alpacahq/alpaca-trade-api";
+const client = new Alpaca({ secretKey: "secret" });
+export const view = <div>{String(client)}</div>;`,
+        },
+        {
+            version: "v3-to-v4",
+            extension: "mjs",
+            parser: "babel",
+            source: `import Alpaca from "@alpacahq/alpaca-trade-api";
+const client = new Alpaca({ secretKey: "secret" });
+console.log(client);`,
+        },
+        {
+            version: "v3-to-v4",
+            extension: "jsx",
+            parser: "babel",
+            source: `import Alpaca from "@alpacahq/alpaca-trade-api";
+const client = new Alpaca({ secretKey: "secret" });
+export const view = <div>{String(client)}</div>;`,
+        },
+        {
+            version: "v3-to-v4",
+            extension: "mts",
+            parser: "tsx",
+            source: `import Alpaca from "@alpacahq/alpaca-trade-api";
+const client = new Alpaca({ secretKey: "secret" });
+console.log(client);`,
+        },
+        {
+            version: "v4-to-v5",
+            extension: "js",
+            parser: "babel",
+            source: `const { trading } = require("@alpacahq/alpaca-trade-api");
+console.log(trading.PostOrderRequestTakeProfit);`,
+        },
+        {
+            version: "v4-to-v5",
+            extension: "tsx",
+            parser: "tsx",
+            source: `import { trading } from "@alpacahq/alpaca-trade-api";
+export const value = <div>{String(trading.PostOrderRequestTakeProfit)}</div>;`,
+        },
+        {
+            version: "v4-to-v5",
+            extension: "cjs",
+            parser: "babel",
+            source: `const { trading } = require("@alpacahq/alpaca-trade-api");
+console.log(trading.PostOrderRequestTakeProfit);`,
+        },
+        {
+            version: "v4-to-v5",
+            extension: "cts",
+            parser: "tsx",
+            source: `const { trading } = require("@alpacahq/alpaca-trade-api");
+console.log(trading.PostOrderRequestTakeProfit);`,
+        },
+    ])(
+        "the $version $extension directory command transforms a fixture",
+        ({ version, extension, parser, source }) => {
+            const root = resolve(import.meta.dirname, "..");
+            const fixture = mkdtempSync(
+                resolve(tmpdir(), `alpaca-${version}-${extension}-`),
+            );
+            const sourceDir = resolve(fixture, "src");
+            const sourceFile = resolve(sourceDir, `input.${extension}`);
+            mkdirSync(sourceDir);
+            writeFileSync(sourceFile, source);
+
+            try {
+                const result = spawnSync(
+                    process.execPath,
+                    [
+                        nodeRequire.resolve(
+                            "jscodeshift/bin/jscodeshift.js",
+                        ),
+                        "-t",
+                        resolve(
+                            root,
+                            "codemods",
+                            `alpaca-${version}.js`,
+                        ),
+                        `--parser=${parser}`,
+                        parser === "babel"
+                            ? "--extensions=js,jsx,mjs,cjs"
+                            : "--extensions=ts,tsx,mts,cts",
+                        "src",
+                    ],
+                    {
+                        cwd: fixture,
+                        encoding: "utf8",
+                    },
+                );
+
+                expect(
+                    result.status,
+                    result.stderr || result.stdout,
+                ).toBe(0);
+                expect(readFileSync(sourceFile, "utf8")).not.toBe(source);
+            } finally {
+                rmSync(fixture, { recursive: true, force: true });
+            }
+        },
+    );
+
+    it("keeps the 3.x migration in the announcement and navbar", () => {
+        const config = readFileSync(
+            resolve(import.meta.dirname, "..", "docs", "docusaurus.config.ts"),
+            "utf8",
+        );
+        const announcement = config.slice(
+            config.indexOf("announcementBar:"),
+            config.indexOf("navbar:"),
+        );
+
+        expect(announcement).toContain("widely used <strong>3.x</strong>");
+        expect(announcement).toMatch(/\$\{baseUrl\}migration/);
+        expect(announcement).not.toContain("migration-v5");
+        expect(config).toMatch(/docId:\s*"migration"/);
+    });
+
+    it("lists every migration in the docs sidebar with 3.x first", () => {
+        const sidebar = readFileSync(
+            resolve(import.meta.dirname, "..", "docs", "sidebars.ts"),
+            "utf8",
+        );
+        const migrations = sidebar.slice(
+            sidebar.indexOf('label: "Migrations"'),
+            sidebar.indexOf('label: "SDK Areas"'),
+        );
+
+        expect(migrations).toContain('id: "migrations"');
+        expect(migrations.indexOf('id: "migration"')).toBeLessThan(
+            migrations.indexOf('id: "migration-v5"'),
+        );
+        expect(migrations).toContain("3.x → 4.0 (most users)");
+    });
+
+    it("redeploys docs for every migration and codemod source", () => {
+        const workflow = readFileSync(
+            resolve(
+                import.meta.dirname,
+                "..",
+                ".github",
+                "workflows",
+                "docs.yaml",
+            ),
+            "utf8",
+        );
+
+        expect(workflow).toContain('"MIGRATION*.md"');
+        expect(workflow).toContain('"codemods/**"');
+    });
+
+    it("ships the migration index and both transforms without test fixtures", () => {
+        const root = resolve(import.meta.dirname, "..");
+        const packageJson = JSON.parse(
+            readFileSync(resolve(root, "package.json"), "utf8"),
+        );
+        const verifier = readFileSync(
+            resolve(root, "scripts", "verify-package.mjs"),
+            "utf8",
+        );
+
+        for (const path of [
+            "MIGRATIONS.md",
+            "MIGRATION.md",
+            "MIGRATION_V5.md",
+            "codemods/README.md",
+            "codemods/alpaca-v3-to-v4.js",
+            "codemods/alpaca-v4-to-v5.js",
+        ]) {
+            expect(packageJson.files).toContain(path);
+            expect(verifier).toContain(`"${path}"`);
+        }
+        expect(packageJson.scripts["verify:codemod"]).toBe(
+            "vitest run codemods",
+        );
+        expect(verifier).toContain("codemods/test-fixtures/");
+    });
+
+    it("documents the new REO code without rewriting historical REORG values", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),
+            "utf8",
+        );
+
+        expect(source).toContain("`REO` represents a reorganization");
+        expect(source).toContain(
+            "`REORG` remains the code for a worthless-removal corporate action",
+        );
+        expect(source).toContain(
+            'Do not mechanically rewrite persisted historical `"REORG"` values to `"REO"`',
+        );
+        expect(source).toContain("`--instanceName=client`");
+        expect(source).toContain(
+            "must resolve to exactly one lexical binding",
+        );
+        expect(source).toContain(
+            "reassigned, shadowed, or otherwise ambiguous bindings",
+        );
+    });
+
+    it("warns against truthiness for string-valued dividend flags", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),
+            "utf8",
+        );
+
+        expect(source).toContain(
+            'match the existing API wire format; it does not convert these flags from',
+        );
+        expect(source).toContain('Boolean(details.foreign)');
+        expect(source).toContain('details.foreign === "true"');
+        expect(source).toContain(
+            "TypeScript permits those truthiness checks",
+        );
+        expect(source).toContain(
+            "JavaScript and TypeScript users must both audit",
+        );
+        expect(source).toContain(
+            "Market Data corporate-action models continue to expose their `foreign` and",
+        );
+    });
+
+    it("documents CorporateAnnouncement field and date migrations", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),
+            "utf8",
+        );
+
+        expect(source).toContain(
+            "`CorporateAnnouncement` also adopts the current upstream field contract",
+        );
+        expect(source).toContain(
+            "are now `Date`\n  values instead of strings",
+        );
+        expect(source).toContain(
+            "use `corporateActionId` instead of the removed `corporateActionsId`",
+        );
+        expect(source).toContain(
+            "`expirationDate` was removed, while `effectiveDate?: Date` was added",
+        );
+        expect(source).toContain(
+            "JavaScript users must also manually audit response consumers",
+        );
+        expect(source).toContain("`Assets.easyToBorrow`");
+        expect(source).toContain(
+            "truthiness checks on Trading dividend `foreign` / `special` string flags",
+        );
+        expect(source).toMatch(
+            /The codemod deliberately does\s+not match property names globally/,
+        );
+    });
+
+    it("maps both generated order wrapper and body-model renames", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),
+            "utf8",
+        );
+
+        expect(source).toContain(
+            "v4\n`PostOrderOperationRequest` type with v5 `PostOrderRequest`",
+        );
+        expect(source).toContain(
+            "`postOrderRequest` property with `createOrderRequest`",
+        );
+        expect(source).toContain(
+            "`createOrderRequest: CreateOrderRequest`",
+        );
+    });
+
+    it("documents the corrected position-close response name", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),
+            "utf8",
+        );
+
+        expect(source).toContain(
+            "`PositionClosedReponse` → `PositionClosedResponse`",
+        );
+        expect(source).toContain(
+            "response payload and runtime behavior are unchanged",
+        );
+        expect(source).toMatch(
+            /generated JSON conversion and type-guard\s+helpers/,
+        );
+    });
+
+    it("documents activity union narrowing and optional group IDs", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),
+            "utf8",
+        );
+
+        expect(source).toContain(
+            "`groupId` is now optional on options activity models",
+        );
+        expect(source).toContain(
+            "trading.instanceOfOPTRDActivityV2(event.details)",
+        );
+        expect(source).toContain(
+            'event.details.groupId ?? "ungrouped"',
+        );
+        expect(source).toContain(
+            "TypeScript does not automatically correlate that string",
+        );
+    });
+
+    it("documents safe tokenization-mint retries", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V5.md"),
+            "utf8",
+        );
+
+        expect(source).toContain(
+            "`trading.tokenization.postTokenizationMint()` now accepts an optional",
+        );
+        expect(source).toContain(
+            "idempotencyKey: crypto.randomUUID()",
+        );
+        expect(source).toContain(
+            "Reusing the key with a different\nbody returns HTTP `422`",
+        );
+        expect(source).toContain(
+            "The SDK does not automatically retry `POST` requests",
+        );
+        expect(source).toContain(
+            "retain the same key and body for every attempt",
+        );
     });
 
     it("preserves stable 4.x install guidance", () => {
@@ -58,6 +486,22 @@ describe("docs migration generator", () => {
             expect(guide).not.toContain("prerelease");
             expect(guide).not.toContain("After stable `4.0.0` publishes");
         }
+    });
+
+    it("keeps generated order examples on the published 4.x signature", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION.md"),
+            "utf8",
+        );
+
+        expect(source).toContain("postOrder({ postOrderRequest })");
+        expect(source).toContain(
+            "orders.postOrder({ postOrderRequest: {...} })",
+        );
+        expect(source).toContain(
+            "await alpaca.trading.orders.postOrder({\n  postOrderRequest:",
+        );
+        expect(source).not.toContain("createOrderRequest");
     });
 
     it("keeps current-version examples aligned with the 4.x types and semantics", () => {

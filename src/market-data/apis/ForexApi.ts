@@ -38,7 +38,7 @@ export interface RatesRequest {
     start?: Date;
     end?: Date;
     limit?: number;
-    sort?: Sort;
+    sort?: string & Sort;
     pageToken?: string;
 }
 
@@ -67,6 +67,10 @@ export class ForexApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
         }
@@ -75,6 +79,7 @@ export class ForexApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
         }
 
+        };
 
         let urlPath = `/v1beta1/forex/latest/rates`;
 
@@ -83,6 +88,7 @@ export class ForexApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => ForexLatestRatesRespFromJSON(jsonValue));
@@ -141,6 +147,10 @@ export class ForexApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
         }
@@ -149,6 +159,7 @@ export class ForexApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
         }
 
+        };
 
         let urlPath = `/v1beta1/forex/rates`;
 
@@ -157,6 +168,7 @@ export class ForexApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => ForexRatesRespFromJSON(jsonValue));

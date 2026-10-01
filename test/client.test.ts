@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-import { Alpaca, TradingClient, MarketDataClient, LIVE_TRADING_BASE_PATH, DEFAULT_RATE_LIMIT } from '../src/client';
+import {
+    Alpaca,
+    OrdersApi,
+    TradingClient,
+    MarketDataClient,
+    LIVE_TRADING_BASE_PATH,
+    DEFAULT_RATE_LIMIT,
+} from '../src/client';
 import * as trading from '../src/trading';
 import * as marketData from '../src/market-data';
 import * as streaming from '../src/streaming';
@@ -128,6 +135,22 @@ describe('Credential resolution (env + OAuth)', () => {
         expect(headerValue(calls[0].init, 'APCA-API-SECRET-KEY')).toBeUndefined();
     });
 
+    it('refreshes a function-backed OAuth token for each facade request', async () => {
+        restoreEnv = withCleanEnv();
+        let token = 0;
+        const { calls, fetchApi } = capturingFetch();
+        const alpaca = new Alpaca({
+            accessToken: async () => `tok-${++token}`,
+            fetchApi,
+        });
+
+        await alpaca.trading.account.getAccount();
+        await alpaca.trading.account.getAccount();
+
+        expect(headerValue(calls[0].init, 'Authorization')).toBe('Bearer tok-1');
+        expect(headerValue(calls[1].init, 'Authorization')).toBe('Bearer tok-2');
+    });
+
     it('falls back to the APCA_API_OAUTH_TOKEN env var', async () => {
         restoreEnv = withCleanEnv();
         process.env.APCA_API_OAUTH_TOKEN = 'env-tok';
@@ -195,10 +218,8 @@ describe('Market-data sub-client', () => {
         const { marketData: md } = new Alpaca({ ...CREDS });
         expect(md.stocks).toBeInstanceOf(marketData.StockApi);
         expect(md.crypto).toBeInstanceOf(marketData.CryptoApi);
-        expect(md.cryptoPerpetualFutures).toBeInstanceOf(marketData.CryptoPerpetualFuturesApi);
         expect(md.fixedIncome).toBeInstanceOf(marketData.FixedIncomeApi);
         expect(md.forex).toBeInstanceOf(marketData.ForexApi);
-        expect(md.indices).toBeInstanceOf(marketData.IndexApi);
         expect(md.logos).toBeInstanceOf(marketData.LogosApi);
         expect(md.news).toBeInstanceOf(marketData.NewsApi);
         expect(md.options).toBeInstanceOf(marketData.OptionApi);
@@ -586,7 +607,7 @@ describe('Capability map', () => {
     });
 
     it('every ergonomic entry is well-formed', () => {
-        const kinds = new Set(['orderBuilder', 'workflow', 'normalized', 'pagination']);
+        const kinds = new Set(['orderBuilder', 'workflow', 'sse', 'normalized', 'pagination']);
         for (const entry of ergonomicCapabilities) {
             expect(entry.accessor).toMatch(/^(trading|marketData)(\.[a-zA-Z]+)?$/);
             expect(entry.group === 'trading' || entry.group === 'marketData', entry.accessor).toBe(true);
@@ -611,6 +632,44 @@ describe('Capability map', () => {
         }
     });
 
+    it('maps every own public facade method to a capability entry', () => {
+        const facades = [
+            ['trading.orders', OrdersApi],
+            ['trading', TradingClient],
+            ['marketData', MarketDataClient],
+        ] as const;
+
+        for (const [accessor, Facade] of facades) {
+            const mapped = new Set([
+                ...capabilities
+                    .filter((entry) => entry.accessor === accessor)
+                    .flatMap((entry) => entry.methods),
+                ...ergonomicCapabilities
+                    .filter((entry) => entry.accessor === accessor)
+                    .flatMap((entry) => entry.methods),
+                ...streamingCapabilities
+                    .filter((entry) => entry.accessor.startsWith(`${accessor}.`))
+                    .map((entry) => entry.accessor.slice(accessor.length + 1)),
+            ]);
+            const ownMethods = Object.getOwnPropertyNames(Facade.prototype)
+                .filter((method) => method !== 'constructor')
+                .filter(
+                    (method) =>
+                        typeof Object.getOwnPropertyDescriptor(
+                            Facade.prototype,
+                            method,
+                        )?.value === 'function',
+                );
+
+            for (const method of ownMethods) {
+                expect(
+                    mapped.has(method),
+                    `${accessor}.${method} is missing from the capability maps`,
+                ).toBe(true);
+            }
+        }
+    });
+
     it('locates an ergonomic helper by name', () => {
         const market = findErgonomic('market');
         expect(market).toHaveLength(1);
@@ -620,5 +679,13 @@ describe('Capability map', () => {
         const stockBars = findErgonomic('getStockBars');
         expect(stockBars[0].accessor).toBe('marketData');
         expect(stockBars[0].kind).toBe('normalized');
+
+        const activities = findErgonomic('subscribeActivities');
+        expect(activities[0].accessor).toBe('trading');
+        expect(activities[0].kind).toBe('sse');
+
+        const corporateActions = findErgonomic('subscribeCorporateActions');
+        expect(corporateActions[0].accessor).toBe('marketData');
+        expect(corporateActions[0].kind).toBe('sse');
     });
 });

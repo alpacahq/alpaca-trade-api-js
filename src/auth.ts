@@ -49,6 +49,18 @@ export interface AlpacaCredentials {
     secret: string;
 }
 
+/** Lazily resolves an OAuth token for each HTTP request or SSE reconnect. */
+export type AccessTokenProvider = (
+    name?: string,
+    scopes?: string[],
+) => string | Promise<string>;
+
+/** Static or lazily refreshed OAuth credential accepted by the SDK. */
+export type AccessToken =
+    | string
+    | Promise<string>
+    | AccessTokenProvider;
+
 /**
  * Credentials a caller may supply: either an OAuth `accessToken` or an API
  * `keyId`/`secret` pair. Any field may be omitted and resolved from the
@@ -61,11 +73,13 @@ export interface CredentialOptions {
     secret?: string;
     /**
      * OAuth2 access token sent as `Authorization: Bearer <token>` (or set
-     * `APCA_API_OAUTH_TOKEN`). An explicitly passed token takes precedence over
-     * explicit or environment key credentials. When no auth option is passed,
-     * the environment OAuth token takes precedence over environment keys.
+     * `APCA_API_OAUTH_TOKEN`). A function is called for every HTTP request and
+     * SSE reconnect, allowing expiring tokens to be refreshed. An explicitly
+     * passed token or provider takes precedence over explicit or environment
+     * key credentials. When no auth option is passed, the environment OAuth
+     * token takes precedence over environment keys.
      */
-    accessToken?: string;
+    accessToken?: AccessToken;
 }
 
 /**
@@ -73,7 +87,7 @@ export interface CredentialOptions {
  * `accessToken`, or a `keyId`/`secret` pair — never both.
  */
 export type ResolvedCredentials =
-    | { accessToken: string; keyId?: undefined; secret?: undefined }
+    | { accessToken: AccessToken; keyId?: undefined; secret?: undefined }
     | { keyId: string; secret: string; accessToken?: undefined };
 
 /**
@@ -95,14 +109,15 @@ function readEnv(name: string): string | undefined {
  *
  * Precedence is selected by the caller before environment fallback:
  *
- * 1. A non-empty explicit `accessToken` selects OAuth.
+ * 1. A non-empty static `accessToken`, Promise, or provider selects OAuth.
  * 2. Any non-empty explicit `keyId` or `secret` selects key authentication,
  *    resolving only the missing half from its corresponding environment
  *    variable.
  * 3. With no explicit scheme, an environment OAuth token takes precedence over
  *    an environment key pair.
  *
- * Empty explicit strings are treated as absent.
+ * Empty explicit strings are treated as absent. Promises and providers select
+ * OAuth immediately; their resolved value is evaluated when a request begins.
  *
  * This prevents a process-level OAuth token from silently replacing an
  * explicitly selected key account while preserving both explicit and

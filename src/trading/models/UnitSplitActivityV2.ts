@@ -56,6 +56,12 @@ export interface UnitSplitActivityV2 {
      */
     newCusip: string;
     /**
+     * ISIN of the new security after the split
+     * @type {string}
+     * @memberof UnitSplitActivityV2
+     */
+    newIsin?: string;
+    /**
      * Ratio of new shares received
      * @type {string}
      * @memberof UnitSplitActivityV2
@@ -67,6 +73,12 @@ export interface UnitSplitActivityV2 {
      * @memberof UnitSplitActivityV2
      */
     oldCusip: string;
+    /**
+     * ISIN of the old security before the split
+     * @type {string}
+     * @memberof UnitSplitActivityV2
+     */
+    oldIsin?: string;
     /**
      * Ratio of old shares exchanged
      * @type {string}
@@ -97,6 +109,12 @@ export interface UnitSplitActivityV2 {
      * @memberof UnitSplitActivityV2
      */
     alternateCusip: string;
+    /**
+     * ISIN for the alternate security after the split
+     * @type {string}
+     * @memberof UnitSplitActivityV2
+     */
+    alternateIsin?: string;
     /**
      * Quantity of alternate shares received
      * @type {string}
@@ -173,13 +191,16 @@ export function UnitSplitActivityV2FromJSONTyped(json: any, ignoreDiscriminator:
         'positionDate': (new Date(json['position_date'])),
         'reorgId': json['reorg_id'] == null ? undefined : json['reorg_id'],
         'newCusip': json['new_cusip'],
+        'newIsin': json['new_isin'] == null ? undefined : json['new_isin'],
         'newRate': json['new_rate'],
         'oldCusip': json['old_cusip'],
+        'oldIsin': json['old_isin'] == null ? undefined : json['old_isin'],
         'oldRate': json['old_rate'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'newQty': json['new_qty'],
         'oldQty': json['old_qty'],
         'alternateCusip': json['alternate_cusip'],
+        'alternateIsin': json['alternate_isin'] == null ? undefined : json['alternate_isin'],
         'alternateQty': json['alternate_qty'],
         'alternateRate': json['alternate_rate'],
         'alternateSymbol': json['alternate_symbol'],
@@ -206,13 +227,16 @@ export function UnitSplitActivityV2ToJSONTyped(value?: UnitSplitActivityV2 | nul
         'position_date': ((value['positionDate']).toISOString().substring(0,10)),
         'reorg_id': value['reorgId'],
         'new_cusip': value['newCusip'],
+        'new_isin': value['newIsin'],
         'new_rate': value['newRate'],
         'old_cusip': value['oldCusip'],
+        'old_isin': value['oldIsin'],
         'old_rate': value['oldRate'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'new_qty': value['newQty'],
         'old_qty': value['oldQty'],
         'alternate_cusip': value['alternateCusip'],
+        'alternate_isin': value['alternateIsin'],
         'alternate_qty': value['alternateQty'],
         'alternate_rate': value['alternateRate'],
         'alternate_symbol': value['alternateSymbol'],

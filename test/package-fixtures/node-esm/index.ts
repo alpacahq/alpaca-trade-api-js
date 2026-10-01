@@ -1,9 +1,10 @@
 import {
     Alpaca,
+    type AccessTokenProvider,
     type AlpacaClientOptions,
     type Auction,
     type DailyAuctions,
-    type IndexValue,
+    type SseSubscription,
     type trading,
 } from "@alpacahq/alpaca-trade-api";
 
@@ -13,13 +14,32 @@ const options: AlpacaClientOptions = {
     credentials: "same-origin",
     redirect: "manual",
 };
+const accessToken: AccessTokenProvider = async () => "token";
+const oauthOptions: AlpacaClientOptions = { accessToken };
 const transport: trading.ConfigurationParameters = {
     credentials: "include",
     redirect: "error",
 };
+const travelRuleInfo: trading.TravelRuleInfo = {
+    beneficiaryIsSelfHosted: true,
+    beneficiaryGivenName: "Ada",
+    beneficiaryFamilyName: "Lovelace",
+};
+// @ts-expect-error Travel Rule requests require destination and identity fields.
+const invalidTravelRuleInfo: trading.TravelRuleInfo = {};
 const client = new Alpaca(options);
-const values: [IndexValue?, Auction?, DailyAuctions?] = [];
+const values: [Auction?, DailyAuctions?] = [];
+const activities: Promise<SseSubscription<trading.ActivityEventV2>> =
+    client.trading.subscribeActivities({}, { reconnect: false });
+const closeAllPositions: () => Promise<
+    trading.PositionClosedResponse[]
+> = () => client.trading.closeAllPositions();
 
 void client;
+void oauthOptions;
+void activities;
+void closeAllPositions;
+void invalidTravelRuleInfo;
 void transport;
+void travelRuleInfo;
 void values;

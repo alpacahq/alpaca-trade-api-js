@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * 
+ * Shared fields for non-trade (NTA) activity records.
  * @export
  * @interface CommonNTAActivityV2
  */

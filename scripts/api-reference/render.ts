@@ -28,6 +28,7 @@ const MAX_WIDTH = 76;
 const KIND_LABELS: Record<ErgonomicHelperEntry["kind"], string> = {
     orderBuilder: "order builders",
     workflow: "workflow helpers",
+    sse: "SSE subscriptions",
     normalized: "normalized accessors",
     pagination: "pagination helpers",
 };

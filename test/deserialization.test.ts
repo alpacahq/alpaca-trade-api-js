@@ -7,6 +7,9 @@ import {
     MoversRespFromJSON,
     MostActivesRespFromJSON,
     CryptoOrderbookFromJSON,
+    CorporateActionEventFromJSON,
+    CorporateActionEventToJSON,
+    instanceOfCorporateActionEvent,
     StockAuctionsRespSingleFromJSON,
     StockBarsRespFromJSON,
     StockLatestBarsRespFromJSON,
@@ -15,10 +18,12 @@ import {
     StockQuotesRespSingleFromJSON,
     StockTradesRespFromJSON,
     StockTradesRespSingleFromJSON,
+    StockTradeFromJSON,
+    StockQuoteFromJSON,
 } from '../src/market-data';
 import {
     ClockRespFromJSON,
-    GetOptionsContracts200ResponseFromJSON,
+    OptionContractsResponseFromJSON,
     PublicCalendarRespFromJSON,
     AccountFromJSON,
     AccountToJSON,
@@ -26,7 +31,17 @@ import {
     AccountConfigurationsFromJSON,
     OptionContractFromJSON,
     GetAccountActivities200ResponseInnerFromJSON,
-    GetV2CorporateActionsAnnouncements200ResponseInnerFromJSON,
+    CorporateAnnouncementFromJSON,
+    ActivityV2DetailNTAFromJSON,
+    ActivityV2DetailNTAToJSON,
+    ActivityEventV2AllOfDetailsFromJSON,
+    ActivityEventV2AllOfDetailsToJSON,
+    GetAccountActivitiesByActivityType200ResponseInnerFromJSON,
+    CDIVActivityV2FromJSON,
+    CommonCDIVActivityV2FromJSON,
+    DIVSPDActivityV2FromJSON,
+    OpcaCDIVActivityV2FromJSON,
+    PortfolioHistoryFromJSON,
 } from '../src/trading';
 
 // --- G01: null-safe array deserialization ----------------------------------
@@ -52,8 +67,22 @@ const G01_CASES: G01Case[] = [
     { name: 'StockQuotesRespSingle', fn: StockQuotesRespSingleFromJSON, input: { quotes: null }, arrayFields: ['quotes'] },
     { name: 'StockTradesRespSingle', fn: StockTradesRespSingleFromJSON, input: { trades: null }, arrayFields: ['trades'] },
     { name: 'ClockResp', fn: ClockRespFromJSON, input: { clocks: null }, arrayFields: ['clocks'] },
-    { name: 'GetOptionsContracts200Response', fn: GetOptionsContracts200ResponseFromJSON, input: { option_contracts: null }, arrayFields: ['optionContracts'] },
+    { name: 'OptionContractsResponse', fn: OptionContractsResponseFromJSON, input: { option_contracts: null }, arrayFields: ['optionContracts'] },
     { name: 'PublicCalendarResp', fn: PublicCalendarRespFromJSON, input: { calendar: null }, arrayFields: ['calendar'] },
+    { name: 'StockTrade', fn: StockTradeFromJSON, input: { c: null }, arrayFields: ['c'] },
+    { name: 'StockQuote', fn: StockQuoteFromJSON, input: { c: null }, arrayFields: ['c'] },
+    { name: 'News primitive symbols', fn: NewsFromJSON, input: { symbols: null }, arrayFields: ['symbols'] },
+    {
+        name: 'PortfolioHistory primitive series',
+        fn: PortfolioHistoryFromJSON,
+        input: {
+            equity: null,
+            profit_loss: null,
+            profit_loss_pct: null,
+            timestamp: null,
+        },
+        arrayFields: ['equity', 'profitLoss', 'profitLossPct', 'timestamp'],
+    },
 ];
 
 describe('G01 null-safe array deserialization', () => {
@@ -156,6 +185,168 @@ describe('G08 null-safe map deserialization', () => {
     });
 });
 
+describe('oneOf conversion fidelity', () => {
+    it('selects the most specific overlapping activity detail model', () => {
+        const wire = {
+            system_date: '2026-09-25',
+            external_id: 'external',
+            request_id: 'request',
+            symbol: 'AAPL',
+        };
+
+        const model = ActivityV2DetailNTAFromJSON(wire);
+
+        expect(model).toMatchObject({ symbol: 'AAPL' });
+        expect(ActivityV2DetailNTAToJSON(model)).toMatchObject(wire);
+    });
+
+    it('merges recognized fields from overlapping activity detail models', () => {
+        const wire = {
+            system_date: '2026-09-25',
+            position_date: '2026-09-24',
+            cusip: '037833100',
+            foreign: 'false',
+            rate: '0.24',
+            special: 'true',
+            symbol: 'AAPL',
+            cash_payout: '24.00',
+            entitled_qty: '100',
+            long_term_rate: '0.18',
+            journal_id: 'unrelated-journal',
+            transfer_id: 'unrelated-transfer',
+        };
+
+        const model = ActivityV2DetailNTAFromJSON(wire);
+        const roundTrip = ActivityV2DetailNTAToJSON(model);
+
+        expect(model).toMatchObject({
+            foreign: 'false',
+            special: 'true',
+            longTermRate: '0.18',
+        });
+        expect(model).not.toHaveProperty('journalId');
+        expect(model).not.toHaveProperty('transferId');
+        expect(roundTrip).toMatchObject({
+            system_date: wire.system_date,
+            position_date: wire.position_date,
+            cusip: wire.cusip,
+            foreign: wire.foreign,
+            rate: wire.rate,
+            special: wire.special,
+            symbol: wire.symbol,
+            cash_payout: wire.cash_payout,
+            entitled_qty: wire.entitled_qty,
+            long_term_rate: wire.long_term_rate,
+        });
+        expect(roundTrip).not.toHaveProperty('journal_id');
+        expect(roundTrip).not.toHaveProperty('transfer_id');
+    });
+
+    it('keeps exclusive trading and non-trading activity variants separate', () => {
+        const model = GetAccountActivitiesByActivityType200ResponseInnerFromJSON({
+            id: 'trade-1',
+            symbol: 'AAPL',
+            qty: '1',
+            side: 'buy',
+            price: '10',
+            order_id: 'order-1',
+            cum_qty: '1',
+            leaves_qty: '0',
+            order_status: 'filled',
+            type: 'fill',
+            transaction_time: '2026-01-01T00:00:00.000Z',
+            net_amount: 'unrelated',
+        });
+
+        expect(model).not.toHaveProperty('netAmount');
+    });
+
+    it('does not graft non-trading fields onto trading event details', () => {
+        const model = ActivityEventV2AllOfDetailsFromJSON({
+            asset_id: 'asset-1',
+            cum_qty: '1',
+            execution_type: 'fill',
+            leaves_qty: '0',
+            order_id: 'order-1',
+            order_status: 'filled',
+            side: 'buy',
+            symbol: 'AAPL',
+            commission: '1.0',
+            system_date: '2026-09-25',
+            group_id: 'unrelated-group',
+        });
+        const roundTrip = ActivityEventV2AllOfDetailsToJSON(model);
+
+        expect(model).not.toHaveProperty('systemDate');
+        expect(model).not.toHaveProperty('groupId');
+        expect(roundTrip).not.toHaveProperty('system_date');
+        expect(roundTrip).not.toHaveProperty('group_id');
+    });
+
+    it('uses typed discriminator names and emits only the wire discriminator', () => {
+        const wire = {
+            action: 'insert',
+            at: '2026-09-25T12:00:00Z',
+            event_id: '01K00000000000000000000000',
+            event_type: 'cash_dividend_corporateaction_event',
+            region: 'us',
+            ca: {
+                id: 'ca-id',
+                process_date: '2026-09-25',
+                cusip: '037833100',
+                ex_date: '2026-09-25',
+                foreign: false,
+                rate: '0.24',
+                special: false,
+                symbol: 'AAPL',
+            },
+        };
+
+        const model = CorporateActionEventFromJSON(wire);
+        const roundTrip = CorporateActionEventToJSON(model);
+
+        expect(instanceOfCorporateActionEvent(model)).toBe(true);
+        expect(roundTrip.event_type).toBe(wire.event_type);
+        expect(roundTrip).not.toHaveProperty('eventType');
+    });
+
+    it('rejects incomplete and unknown discriminated corporate-action events', () => {
+        expect(instanceOfCorporateActionEvent({
+            eventType: 'cash_dividend_corporateaction_event',
+        })).toBe(false);
+        expect(() =>
+            CorporateActionEventFromJSON({
+                event_type: 'cash_dividend_corporateaction_event',
+            }),
+        ).toThrow(/Invalid CorporateActionEvent payload/);
+        expect(() =>
+            CorporateActionEventFromJSON({
+                event_type: 'future_corporateaction_event',
+                ca: {},
+            }),
+        ).toThrow(/Unknown CorporateActionEvent discriminator/);
+    });
+});
+
+describe('Trading dividend activity string flags', () => {
+    it.each([
+        ['CDIVActivityV2', CDIVActivityV2FromJSON],
+        ['CommonCDIVActivityV2', CommonCDIVActivityV2FromJSON],
+        ['DIVSPDActivityV2', DIVSPDActivityV2FromJSON],
+        ['OpcaCDIVActivityV2', OpcaCDIVActivityV2FromJSON],
+    ])('%s preserves wire string flags without boolean coercion', (_name, fromJSON) => {
+        const model = fromJSON({
+            foreign: 'false',
+            special: 'true',
+        });
+
+        expect(model.foreign).toBe('false');
+        expect(model.special).toBe('true');
+        expect(typeof model.foreign).toBe('string');
+        expect(typeof model.special).toBe('string');
+    });
+});
+
 // --- G02: undocumented field passthrough ------------------------------------
 
 type G02Case = { name: string; fn: (json: any) => any; base: any };
@@ -166,7 +357,7 @@ const G02_CASES: G02Case[] = [
     { name: 'AccountConfigurations', fn: AccountConfigurationsFromJSON, base: {} },
     { name: 'OptionContract', fn: OptionContractFromJSON, base: {} },
     { name: 'GetAccountActivities200ResponseInner', fn: GetAccountActivities200ResponseInnerFromJSON, base: {} },
-    { name: 'GetV2CorporateActionsAnnouncements200ResponseInner', fn: GetV2CorporateActionsAnnouncements200ResponseInnerFromJSON, base: {} },
+    { name: 'CorporateAnnouncement', fn: CorporateAnnouncementFromJSON, base: {} },
 ];
 
 describe('G02 undocumented field passthrough', () => {

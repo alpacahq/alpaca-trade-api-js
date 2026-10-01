@@ -242,17 +242,25 @@ function errorForStatus(
 /**
  * Build the right {@link ApiError} subclass from a non-2xx {@link Response}.
  * Parses the `{ code, message }` envelope (falling back to the raw body) plus
- * the rate-limit headers. Reads a clone so the caller's `response.body` stays
- * available.
+ * the rate-limit headers. Reads a clone by default so the caller's
+ * `response.body` stays available; streaming transports can opt out when they
+ * own the response and must not leave the other tee branch unread. They can
+ * also retain the status-derived typed error if a bounded error-body read times
+ * out after headers have already established the HTTP failure.
  */
 export async function buildApiError(
     response: Response,
     readBody?: (response: Response) => Promise<string>,
+    options: {
+        preserveBody?: boolean;
+        preserveTypedErrorOnBodyTimeout?: boolean;
+    } = {},
 ): Promise<ApiError> {
     let code: number | string | undefined;
     let message = `Response returned an error code (HTTP ${response.status})`;
     try {
-        const body = response.clone();
+        const body =
+            options.preserveBody === false ? response : response.clone();
         const text = await (readBody ? readBody(body) : body.text());
         if (text) {
             try {
@@ -274,7 +282,13 @@ export async function buildApiError(
         }
     } catch (error) {
         if (readBody && error instanceof FetchError) {
-            throw error;
+            const causeName = error.cause?.name;
+            if (
+                options.preserveTypedErrorOnBodyTimeout !== true ||
+                causeName !== "TimeoutError"
+            ) {
+                throw error;
+            }
         }
         // body already consumed or unreadable; keep the default message
     }

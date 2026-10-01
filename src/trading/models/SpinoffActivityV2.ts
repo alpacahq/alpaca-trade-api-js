@@ -68,6 +68,12 @@ export interface SpinoffActivityV2 {
      */
     newCusip: string;
     /**
+     * ISIN of the new security
+     * @type {string}
+     * @memberof SpinoffActivityV2
+     */
+    newIsin?: string;
+    /**
      * Market price of new shares after the spinoff
      * @type {string}
      * @memberof SpinoffActivityV2
@@ -103,6 +109,12 @@ export interface SpinoffActivityV2 {
      * @memberof SpinoffActivityV2
      */
     sourceCusip: string;
+    /**
+     * ISIN of the parent security
+     * @type {string}
+     * @memberof SpinoffActivityV2
+     */
+    sourceIsin?: string;
     /**
      * Market price of parent shares before the spinoff
      * @type {string}
@@ -172,12 +184,14 @@ export function SpinoffActivityV2FromJSONTyped(json: any, ignoreDiscriminator: b
         'dueBillRedemptionDate': json['due_bill_redemption_date'] == null ? undefined : (new Date(json['due_bill_redemption_date'])),
         'exDate': json['ex_date'] == null ? undefined : (new Date(json['ex_date'])),
         'newCusip': json['new_cusip'],
+        'newIsin': json['new_isin'] == null ? undefined : json['new_isin'],
         'newPrice': json['new_price'],
         'newRate': json['new_rate'],
         'newSymbol': json['new_symbol'],
         'payableDate': json['payable_date'] == null ? undefined : (new Date(json['payable_date'])),
         'recordDate': json['record_date'] == null ? undefined : (new Date(json['record_date'])),
         'sourceCusip': json['source_cusip'],
+        'sourceIsin': json['source_isin'] == null ? undefined : json['source_isin'],
         'sourcePrice': json['source_price'],
         'sourceRate': json['source_rate'],
         'sourceSymbol': json['source_symbol'],
@@ -205,12 +219,14 @@ export function SpinoffActivityV2ToJSONTyped(value?: SpinoffActivityV2 | null, i
         'due_bill_redemption_date': value['dueBillRedemptionDate'] == null ? undefined : ((value['dueBillRedemptionDate']).toISOString().substring(0,10)),
         'ex_date': value['exDate'] == null ? undefined : ((value['exDate']).toISOString().substring(0,10)),
         'new_cusip': value['newCusip'],
+        'new_isin': value['newIsin'],
         'new_price': value['newPrice'],
         'new_rate': value['newRate'],
         'new_symbol': value['newSymbol'],
         'payable_date': value['payableDate'] == null ? undefined : ((value['payableDate']).toISOString().substring(0,10)),
         'record_date': value['recordDate'] == null ? undefined : ((value['recordDate']).toISOString().substring(0,10)),
         'source_cusip': value['sourceCusip'],
+        'source_isin': value['sourceIsin'],
         'source_price': value['sourcePrice'],
         'source_rate': value['sourceRate'],
         'source_symbol': value['sourceSymbol'],

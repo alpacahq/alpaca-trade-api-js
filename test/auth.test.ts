@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
 import * as trading from '../src/trading';
 import * as marketData from '../src/market-data';
@@ -60,6 +60,14 @@ describe('auth.resolveCredentials', () => {
     it('returns the access token when passed (no key/secret)', () => {
         restoreEnv = withCleanEnv();
         expect(auth.resolveCredentials({ accessToken: 'tok' })).toEqual({ accessToken: 'tok' });
+    });
+
+    it('preserves a lazy access-token provider for per-request refresh', () => {
+        restoreEnv = withCleanEnv();
+        const provider: auth.AccessTokenProvider = async () => 'refreshed';
+        expect(auth.resolveCredentials({ accessToken: provider })).toEqual({
+            accessToken: provider,
+        });
     });
 
     it('prefers OAuth and ignores key/secret when both are provided', () => {
@@ -210,6 +218,44 @@ describe('[trading] credentials reach the wire', () => {
         await new trading.AccountsApi(config).getAccount();
         expect(headerValue(seen, 'APCA-API-KEY-ID')).toBe(KEY_ID);
         expect(headerValue(seen, 'APCA-API-SECRET-KEY')).toBe(SECRET);
+    });
+
+    it('times out while an asynchronous API-key resolver is pending', async () => {
+        const fetchApi = vi.fn();
+        const config = new trading.Configuration({
+            apiKey: async () => new Promise<string>(() => {}),
+            timeoutMs: 10,
+            fetchApi,
+        });
+
+        await expect(
+            new trading.AccountsApi(config).getAccount(),
+        ).rejects.toMatchObject({
+            name: 'FetchError',
+            cause: { name: 'TimeoutError' },
+        });
+        expect(fetchApi).not.toHaveBeenCalled();
+    });
+
+    it('honors caller cancellation while an API-key resolver is pending', async () => {
+        const fetchApi = vi.fn();
+        const controller = new AbortController();
+        const config = new trading.Configuration({
+            apiKey: async () => new Promise<string>(() => {}),
+            timeoutMs: 0,
+            fetchApi,
+        });
+        const request = new trading.AccountsApi(config).getAccount({
+            signal: controller.signal,
+        });
+
+        controller.abort(new DOMException('cancelled', 'AbortError'));
+
+        await expect(request).rejects.toMatchObject({
+            name: 'FetchError',
+            cause: { name: 'AbortError' },
+        });
+        expect(fetchApi).not.toHaveBeenCalled();
     });
 
     it('attaches an Authorization: Bearer header when an accessToken is configured', async () => {

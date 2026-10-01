@@ -17,24 +17,24 @@ import * as runtime from '../runtime';
 import type {
   AssetAttribute,
   Assets,
-  GetOptionsContracts200Response,
   OptionContract,
   OptionContractStyle,
   OptionContractType,
+  OptionContractsResponse,
 } from '../models/index';
 import {
     AssetAttributeFromJSON,
     AssetAttributeToJSON,
     AssetsFromJSON,
     AssetsToJSON,
-    GetOptionsContracts200ResponseFromJSON,
-    GetOptionsContracts200ResponseToJSON,
     OptionContractFromJSON,
     OptionContractToJSON,
     OptionContractStyleFromJSON,
     OptionContractStyleToJSON,
     OptionContractTypeFromJSON,
     OptionContractTypeToJSON,
+    OptionContractsResponseFromJSON,
+    OptionContractsResponseToJSON,
 } from '../models/index';
 
 export interface GetOptionContractSymbolOrIdRequest {
@@ -90,6 +90,7 @@ export class AssetsApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -98,6 +99,7 @@ export class AssetsApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/options/contracts/{symbol_or_id}`;
         urlPath = urlPath.replace(`{${"symbol_or_id"}}`, encodeURIComponent(String(requestParameters['symbolOrId'])));
@@ -107,6 +109,7 @@ export class AssetsApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => OptionContractFromJSON(jsonValue));
@@ -125,7 +128,7 @@ export class AssetsApi extends runtime.BaseAPI {
      * This endpoint allows you to retrieve a list of option contracts based on various filtering criteria. By default only active contracts that expire before the upcoming weekend are returned. 
      * Get Option Contracts
      */
-    async getOptionsContractsRaw(requestParameters: GetOptionsContractsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetOptionsContracts200Response>> {
+    async getOptionsContractsRaw(requestParameters: GetOptionsContractsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OptionContractsResponse>> {
         const queryParameters: any = {};
 
         if (requestParameters['underlyingSymbols'] != null) {
@@ -186,6 +189,7 @@ export class AssetsApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -194,6 +198,7 @@ export class AssetsApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/options/contracts`;
 
@@ -202,16 +207,17 @@ export class AssetsApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetOptionsContracts200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => OptionContractsResponseFromJSON(jsonValue));
     }
 
     /**
      * This endpoint allows you to retrieve a list of option contracts based on various filtering criteria. By default only active contracts that expire before the upcoming weekend are returned. 
      * Get Option Contracts
      */
-    async getOptionsContracts(requestParameters: GetOptionsContractsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetOptionsContracts200Response> {
+    async getOptionsContracts(requestParameters: GetOptionsContractsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OptionContractsResponse> {
         const response = await this.getOptionsContractsRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -241,6 +247,7 @@ export class AssetsApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -249,6 +256,7 @@ export class AssetsApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/assets`;
 
@@ -257,6 +265,7 @@ export class AssetsApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(AssetsFromJSON));
@@ -287,6 +296,7 @@ export class AssetsApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -295,6 +305,7 @@ export class AssetsApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/assets/{symbol_or_asset_id}`;
         urlPath = urlPath.replace(`{${"symbol_or_asset_id"}}`, encodeURIComponent(String(requestParameters['symbolOrAssetId'])));
@@ -304,6 +315,7 @@ export class AssetsApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => AssetsFromJSON(jsonValue));

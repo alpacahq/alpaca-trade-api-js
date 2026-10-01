@@ -15,13 +15,22 @@
 
 import * as runtime from '../runtime';
 import type {
+  CorporateActionEvent,
+  CorporateActionEventType,
   CorporateActionsResp,
+  DataQuality,
   Region,
   Sort,
 } from '../models/index';
 import {
+    CorporateActionEventFromJSON,
+    CorporateActionEventToJSON,
+    CorporateActionEventTypeFromJSON,
+    CorporateActionEventTypeToJSON,
     CorporateActionsRespFromJSON,
     CorporateActionsRespToJSON,
+    DataQualityFromJSON,
+    DataQualityToJSON,
     RegionFromJSON,
     RegionToJSON,
     SortFromJSON,
@@ -37,8 +46,19 @@ export interface CorporateActionsRequest {
     end?: Date;
     ids?: string;
     limit?: number;
+    dataQuality?: DataQuality;
     pageToken?: string;
-    sort?: Sort;
+    sort?: string & Sort;
+}
+
+export interface SubscribeToCorporateActionsEventsSSERequest {
+    type?: Array<CorporateActionEventType>;
+    region?: SubscribeToCorporateActionsEventsSSERegionEnum;
+    since?: Date;
+    until?: Date;
+    sinceId?: string;
+    untilId?: string;
+    lastEventId?: string;
 }
 
 /**
@@ -47,7 +67,7 @@ export interface CorporateActionsRequest {
 export class CorporateActionsApi extends runtime.BaseAPI {
 
     /**
-     * This endpoint provides data about the corporate actions for each given symbol over a specified time period.  > ⚠️ Warning > > Currently Alpaca has no guarantees on the creation time of corporate actions. There may be delays in receiving corporate actions from our data providers, and there may be delays in processing and making them available via this API. As a result, corporate actions may not be available immediately after they are announced. 
+     * This endpoint provides data about the corporate actions for each given symbol over a specified time period.  By default (`data_quality=complete`), corporate actions that are still incomplete (for example, missing required fields such as ex-date or CUSIP/ISIN) and have not yet been processed are excluded from the response. Pass `data_quality=all` to also receive those early, incomplete records. Already-processed corporate actions are always returned when `data_quality=complete`, even if they would otherwise be considered incomplete.  > ⚠️ Warning > > Currently Alpaca has no guarantees on the creation time of corporate actions. There may be delays in receiving corporate actions from our data providers, and there may be delays in processing and making them available via this API. As a result, corporate actions may not be available immediately after they are announced. 
      * Corporate actions
      */
     async corporateActionsRaw(requestParameters: CorporateActionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CorporateActionsResp>> {
@@ -85,6 +105,10 @@ export class CorporateActionsApi extends runtime.BaseAPI {
             queryParameters['limit'] = requestParameters['limit'];
         }
 
+        if (requestParameters['dataQuality'] != null) {
+            queryParameters['data_quality'] = requestParameters['dataQuality'];
+        }
+
         if (requestParameters['pageToken'] != null) {
             queryParameters['page_token'] = requestParameters['pageToken'];
         }
@@ -95,14 +119,19 @@ export class CorporateActionsApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
         }
 
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
         }
 
+        };
 
         let urlPath = `/v1/corporate-actions`;
 
@@ -111,13 +140,14 @@ export class CorporateActionsApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CorporateActionsRespFromJSON(jsonValue));
     }
 
     /**
-     * This endpoint provides data about the corporate actions for each given symbol over a specified time period.  > ⚠️ Warning > > Currently Alpaca has no guarantees on the creation time of corporate actions. There may be delays in receiving corporate actions from our data providers, and there may be delays in processing and making them available via this API. As a result, corporate actions may not be available immediately after they are announced. 
+     * This endpoint provides data about the corporate actions for each given symbol over a specified time period.  By default (`data_quality=complete`), corporate actions that are still incomplete (for example, missing required fields such as ex-date or CUSIP/ISIN) and have not yet been processed are excluded from the response. Pass `data_quality=all` to also receive those early, incomplete records. Already-processed corporate actions are always returned when `data_quality=complete`, even if they would otherwise be considered incomplete.  > ⚠️ Warning > > Currently Alpaca has no guarantees on the creation time of corporate actions. There may be delays in receiving corporate actions from our data providers, and there may be delays in processing and making them available via this API. As a result, corporate actions may not be available immediately after they are announced. 
      * Corporate actions
      */
     async corporateActions(requestParameters: CorporateActionsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CorporateActionsResp> {
@@ -125,4 +155,113 @@ export class CorporateActionsApi extends runtime.BaseAPI {
         return await response.value();
     }
 
+    /**
+     * Server-Sent Events (SSE) stream that delivers every corporate-action mutation (`insert` / `update` / `delete`) across all supported CA types on a single long-lived `text/event-stream` connection. When `since`, `since_id`, or the `Last-Event-Id` reconnect header is provided, historical events are replayed first; otherwise only live events are pushed.  Each event carries an `event_type` discriminator that selects the shape of the `ca` payload -- see the [`corporate_action_event`](#/components/schemas/corporate_action_event) schema for the mapping to each per-type schema. The same underlying data is available on demand via [`GET /v1/corporate-actions`](#operation/CorporateActions). 
+     * Subscribe to Corporate Actions Events (SSE)
+     */
+    async subscribeToCorporateActionsEventsSSERaw(requestParameters: SubscribeToCorporateActionsEventsSSERequest, sseOptions: runtime.SseOptions = {}): Promise<runtime.SSEApiResponse<CorporateActionEvent>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['type'] != null) {
+            queryParameters['type'] = requestParameters['type']!.join(runtime.COLLECTION_FORMATS["csv"]);
+        }
+
+        if (requestParameters['region'] != null) {
+            queryParameters['region'] = requestParameters['region'];
+        }
+
+        if (requestParameters['since'] != null) {
+            queryParameters['since'] = (requestParameters['since'] as any).toISOString();
+        }
+
+        if (requestParameters['until'] != null) {
+            queryParameters['until'] = (requestParameters['until'] as any).toISOString();
+        }
+
+        if (requestParameters['sinceId'] != null) {
+            queryParameters['since_id'] = requestParameters['sinceId'];
+        }
+
+        if (requestParameters['untilId'] != null) {
+            queryParameters['until_id'] = requestParameters['untilId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Accept'] = 'text/event-stream';
+
+        if (requestParameters['lastEventId'] != null) {
+            headerParameters['Last-Event-Id'] = String(requestParameters['lastEventId']);
+        }
+
+
+        let urlPath = `/v1beta1/events/corporate-actions`;
+
+        const sseMetadata: runtime.SseOperationMetadata = {
+            reconnect: true,
+            bounded: false || requestParameters['until'] != null || requestParameters['untilId'] != null,
+            configuredLastEventId: new Headers(this.configuration?.headers).get('Last-Event-ID') ?? undefined,
+            
+            initialLastEventId: requestParameters['lastEventId'],
+            
+            sandboxServerIndex: 1,
+            servers: [
+                { url: 'https://stream.data.alpaca.markets' },
+                { url: 'https://stream.data.sandbox.alpaca.markets' },
+                { url: 'https://stream.data.staging-v2.tradetalk.us' },
+            ],
+        };
+        return runtime.SSEApiResponse.open(
+            async (lastEventId, signal) => {
+                return this.requestSse({
+                    path: urlPath,
+                    method: 'GET',
+                    headers: headerParameters,
+                    query: queryParameters,
+                }, { ...sseOptions, signal }, sseMetadata, lastEventId, async (overrideHeaders) => {
+                    const streamHeaders = { ...headerParameters };
+                    if (!overrideHeaders.has("APCA-API-KEY-ID") && this.configuration && this.configuration.apiKey) {
+                        streamHeaders["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
+                    }
+                    if (!overrideHeaders.has("Authorization") && this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+                        streamHeaders["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+                    }
+                    if (!overrideHeaders.has("APCA-API-SECRET-KEY") && this.configuration && this.configuration.apiKey) {
+                        streamHeaders["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
+                    }
+                    if (lastEventId !== undefined) {
+                        if (lastEventId === '') {
+                            delete streamHeaders['Last-Event-Id'];
+                        } else {
+                            streamHeaders['Last-Event-Id'] = lastEventId;
+                        }
+                    }
+                    return streamHeaders;
+                });
+            },
+            (data) => CorporateActionEventFromJSON(runtime.parseSseJson(data)),
+            sseOptions,
+            sseMetadata,
+        );
+    }
+
+    /**
+     * Server-Sent Events (SSE) stream that delivers every corporate-action mutation (`insert` / `update` / `delete`) across all supported CA types on a single long-lived `text/event-stream` connection. When `since`, `since_id`, or the `Last-Event-Id` reconnect header is provided, historical events are replayed first; otherwise only live events are pushed.  Each event carries an `event_type` discriminator that selects the shape of the `ca` payload -- see the [`corporate_action_event`](#/components/schemas/corporate_action_event) schema for the mapping to each per-type schema. The same underlying data is available on demand via [`GET /v1/corporate-actions`](#operation/CorporateActions). 
+     * Subscribe to Corporate Actions Events (SSE)
+     */
+    async subscribeToCorporateActionsEventsSSE(requestParameters: SubscribeToCorporateActionsEventsSSERequest = {}, sseOptions: runtime.SseOptions = {}): Promise<runtime.SseSubscription<CorporateActionEvent>> {
+        const response = await this.subscribeToCorporateActionsEventsSSERaw(requestParameters, sseOptions);
+        return await response.value();
+    }
+
 }
+
+/**
+ * @export
+ */
+export const SubscribeToCorporateActionsEventsSSERegionEnum = {
+    All: 'all',
+    Us: 'us',
+    NonUs: 'non_us'
+} as const;
+export type SubscribeToCorporateActionsEventsSSERegionEnum = typeof SubscribeToCorporateActionsEventsSSERegionEnum[keyof typeof SubscribeToCorporateActionsEventsSSERegionEnum];

@@ -107,7 +107,7 @@ export function StockTradeFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
-        'c': json['c'],
+        'c': json['c'] == null ? [] : json['c'],
         'i': json['i'],
         'p': json['p'],
         's': json['s'],

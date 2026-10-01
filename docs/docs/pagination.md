@@ -50,7 +50,7 @@ const bySymbol = await alpaca.marketData.collectStockBarsBySymbol({
 The exact collected shape follows the endpoint:
 
 - **Symbol-keyed arrays** cover stock bars/trades/quotes/auctions, crypto
-  bars/trades/quotes, option bars/trades, index values, and forex rates.
+  bars/trades/quotes, option bars/trades, and forex rates.
 - **Symbol-keyed objects** cover option snapshots and option chains, where each
   symbol has one snapshot rather than an array.
 - **Top-level arrays** cover news and the single-symbol stock

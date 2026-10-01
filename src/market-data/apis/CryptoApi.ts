@@ -60,7 +60,7 @@ export interface CryptoBarsRequest {
     end?: Date;
     limit?: number;
     pageToken?: string;
-    sort?: Sort;
+    sort?: string & Sort;
 }
 
 export interface CryptoLatestBarsRequest {
@@ -90,7 +90,7 @@ export interface CryptoQuotesRequest {
     end?: Date;
     limit?: number;
     pageToken?: string;
-    sort?: Sort;
+    sort?: string & Sort;
 }
 
 export interface CryptoSnapshotsRequest {
@@ -105,7 +105,7 @@ export interface CryptoTradesRequest {
     end?: Date;
     limit?: number;
     pageToken?: string;
-    sort?: Sort;
+    sort?: string & Sort;
 }
 
 /**
@@ -171,6 +171,19 @@ export class CryptoApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
+        }
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
+        }
+
+        };
 
         let urlPath = `/v1beta3/crypto/{loc}/bars`;
         urlPath = urlPath.replace(`{${"loc"}}`, encodeURIComponent(String(requestParameters['loc'])));
@@ -180,6 +193,7 @@ export class CryptoApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoBarsRespFromJSON(jsonValue));
@@ -221,6 +235,19 @@ export class CryptoApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
+        }
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
+        }
+
+        };
 
         let urlPath = `/v1beta3/crypto/{loc}/latest/bars`;
         urlPath = urlPath.replace(`{${"loc"}}`, encodeURIComponent(String(requestParameters['loc'])));
@@ -230,6 +257,7 @@ export class CryptoApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoLatestBarsRespFromJSON(jsonValue));
@@ -271,6 +299,19 @@ export class CryptoApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
+        }
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
+        }
+
+        };
 
         let urlPath = `/v1beta3/crypto/{loc}/latest/orderbooks`;
         urlPath = urlPath.replace(`{${"loc"}}`, encodeURIComponent(String(requestParameters['loc'])));
@@ -280,6 +321,7 @@ export class CryptoApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoLatestOrderbooksRespFromJSON(jsonValue));
@@ -321,6 +363,19 @@ export class CryptoApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
+        }
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
+        }
+
+        };
 
         let urlPath = `/v1beta3/crypto/{loc}/latest/quotes`;
         urlPath = urlPath.replace(`{${"loc"}}`, encodeURIComponent(String(requestParameters['loc'])));
@@ -330,6 +385,7 @@ export class CryptoApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoLatestQuotesRespFromJSON(jsonValue));
@@ -371,6 +427,19 @@ export class CryptoApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
+        }
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
+        }
+
+        };
 
         let urlPath = `/v1beta3/crypto/{loc}/latest/trades`;
         urlPath = urlPath.replace(`{${"loc"}}`, encodeURIComponent(String(requestParameters['loc'])));
@@ -380,6 +449,7 @@ export class CryptoApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoLatestTradesRespFromJSON(jsonValue));
@@ -441,6 +511,19 @@ export class CryptoApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
+        }
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
+        }
+
+        };
 
         let urlPath = `/v1beta3/crypto/{loc}/quotes`;
         urlPath = urlPath.replace(`{${"loc"}}`, encodeURIComponent(String(requestParameters['loc'])));
@@ -450,6 +533,7 @@ export class CryptoApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoQuotesRespFromJSON(jsonValue));
@@ -491,6 +575,19 @@ export class CryptoApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
+        }
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
+        }
+
+        };
 
         let urlPath = `/v1beta3/crypto/{loc}/snapshots`;
         urlPath = urlPath.replace(`{${"loc"}}`, encodeURIComponent(String(requestParameters['loc'])));
@@ -500,6 +597,7 @@ export class CryptoApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoSnapshotsRespFromJSON(jsonValue));
@@ -561,6 +659,19 @@ export class CryptoApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
+        }
+
+        if (this.configuration && (this.configuration.username !== undefined || this.configuration.password !== undefined)) {
+            headerParameters["Authorization"] = "Basic " + btoa(this.configuration.username + ":" + this.configuration.password);
+        }
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // apiSecret authentication
+        }
+
+        };
 
         let urlPath = `/v1beta3/crypto/{loc}/trades`;
         urlPath = urlPath.replace(`{${"loc"}}`, encodeURIComponent(String(requestParameters['loc'])));
@@ -570,6 +681,7 @@ export class CryptoApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => CryptoTradesRespFromJSON(jsonValue));

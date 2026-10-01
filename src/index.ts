@@ -21,6 +21,11 @@ export {
     DEFAULT_RATE_LIMIT,
 } from './client';
 export type {
+    AccessToken,
+    AccessTokenProvider,
+} from './auth';
+
+export type {
     AlpacaClientOptions,
     AlpacaRequestCredentials,
     AlpacaRequestRedirect,
@@ -37,7 +42,6 @@ export type {
     Bar,
     Trade,
     Quote,
-    IndexValue,
     Auction,
     DailyAuctions,
     Candles,
@@ -64,6 +68,22 @@ export type { AlpacaApiResponse } from './responses';
 
 export { RateLimiter } from './rate-limit';
 export type { RateLimitConfig } from './rate-limit';
+
+export {
+    SSEApiResponse,
+    SseSubscription,
+    SseProtocolError,
+    SseDeserializationError,
+} from './core/sse';
+export type {
+    SseMessage,
+    SseOptions,
+    SseReconnectOptions,
+    SseReconnectEvent,
+    SseConnectionInfo,
+    SseClosedInfo,
+    SseCloseReason,
+} from './core/sse';
 
 export { findCapabilities, findErgonomic, streamingCapabilities, ergonomicCapabilities } from './capabilities';
 export type { CapabilityEntry, StreamCapabilityEntry, CapabilityGroup, ErgonomicHelperEntry, ErgonomicKind } from './capabilities';

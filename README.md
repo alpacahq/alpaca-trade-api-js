@@ -28,7 +28,7 @@ real-time streaming.
 
 ## Runtime compatibility
 
-| Runtime | REST | Streaming | Notes |
+| Runtime | REST / fetch-based SSE | WebSockets | Notes |
 | --- | :---: | :---: | --- |
 | **Node.js** >= 20 | ✅ | ✅ | Primary target. |
 | **Bun** | ✅ | ✅ | Node-compatible (`ws` runs). |
@@ -39,12 +39,12 @@ real-time streaming.
 
 Legend: ✅ supported · ❌ not supported.
 
-- **Streaming is Node/Bun only.** The WebSocket clients use Node-compatible
+- **WebSocket streaming is Node/Bun only.** Those clients use Node-compatible
   streaming modules, which don't run on edge or in the browser. On those targets
   the package's export conditions transparently resolve the root import to the
-  streaming-free REST build, so REST works and the stream factories (`stockStream`,
-  `stream`, …) plus `submitAndWait` throw if called. For real-time streaming, run
-  on Node or Bun.
+  WebSocket-free REST build, so REST and fetch-based SSE work while the
+  stream factories (`stockStream`, `stream`, …) plus `submitAndWait` throw if
+  called. For WebSocket streaming, run on Node or Bun.
 - **Browser: technically works, but discouraged.** Calling Alpaca directly from a
   browser ships your `APCA_API_SECRET_KEY` to the client. Prefer a server or
   proxy (see
@@ -81,6 +81,32 @@ bars.onConnect(() => bars.subscribeForBars(["AAPL", "MSFT"]));
 bars.connect();
 ```
 
+### Server-Sent Events
+
+The facade provides typed async SSE subscriptions with cancellation,
+reconnection, and `Last-Event-ID` resumption:
+
+```ts
+const controller = new AbortController();
+const activities = await alpaca.trading.subscribeActivities(
+  {},
+  { signal: controller.signal },
+);
+
+try {
+  for await (const activity of activities) {
+    console.log(activity.activityType, activity.details);
+  }
+} finally {
+  activities.close();
+}
+```
+
+Corporate-action mutations are available from
+`alpaca.marketData.subscribeCorporateActions()`. The longer generated operation
+names remain available under `trading.events` and
+`marketData.corporateActions`; see the [streaming guide](https://alpacahq.github.io/alpaca-trade-api-js/streaming).
+
 ## Documentation
 
 The **[documentation site](https://alpacahq.github.io/alpaca-trade-api-js/)** is
@@ -100,6 +126,8 @@ models. Key guides:
 - [Runtime & module compatibility](https://alpacahq.github.io/alpaca-trade-api-js/runtime-compatibility)
 - [Examples](https://alpacahq.github.io/alpaca-trade-api-js/examples)
 - [Migration from 3.x](https://alpacahq.github.io/alpaca-trade-api-js/migration)
+- [Migration overview](https://alpacahq.github.io/alpaca-trade-api-js/migrations)
+- [Migration from 4.x to 5.0](https://alpacahq.github.io/alpaca-trade-api-js/migration-v5)
 - [API reference](https://alpacahq.github.io/alpaca-trade-api-js/api)
 - **AI coding guidance** — choose either equivalent format:
   - Read the packaged [LLMS.md](./LLMS.md).

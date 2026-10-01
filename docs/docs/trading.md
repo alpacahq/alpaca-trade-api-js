@@ -43,6 +43,29 @@ console.log(aapl?.tradable, aapl?.fractionable);
 Money and quantity fields intentionally remain numeric strings. See
 [Values & types](./types-and-values.md) before doing arithmetic with them.
 
+## Account activity events
+
+Use the ergonomic SSE helper for a typed, resumable stream of account
+activities:
+
+```ts
+const controller = new AbortController();
+const activities = await paper.trading.subscribeActivities(
+  { since: new Date("2026-01-01") },
+  { signal: controller.signal },
+);
+
+for await (const activity of activities) {
+  console.log(activity.activityType, activity.details);
+}
+```
+
+The raw generated
+`trading.events.subscribeToActivitiesSSE()` method remains available. Activity
+SSE is distinct from the `trade_updates` WebSocket used for real-time order
+status; see [Streaming & Events](./streaming.md) for lifecycle and reconnect
+guidance.
+
 ## Typed order builders
 
 `alpaca.trading.orders` is the generated `OrdersApi` plus one typed builder per
@@ -114,7 +137,7 @@ This separates request construction from placement:
 ```ts
 import { orders } from "@alpacahq/alpaca-trade-api";
 
-const postOrderRequest = orders.buildLimitOrder({
+const createOrderRequest = orders.buildLimitOrder({
   symbol: "AAPL",
   side: "buy",
   qty: 1,
@@ -123,7 +146,7 @@ const postOrderRequest = orders.buildLimitOrder({
 });
 
 // The network request happens only here.
-const order = await paper.trading.orders.postOrder({ postOrderRequest });
+const order = await paper.trading.orders.postOrder({ createOrderRequest });
 ```
 
 `orders.buildLimitOrder` (and the market, stop, stop-limit, trailing-stop,
@@ -166,7 +189,7 @@ The generated method is always available too:
 const clientOrderId = `raw-market-${crypto.randomUUID()}`;
 
 await paper.trading.orders.postOrder({
-  postOrderRequest: {
+  createOrderRequest: {
     symbol: "AAPL",
     side: "buy",
     type: "market",

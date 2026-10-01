@@ -16,11 +16,13 @@ const options = (overrides: Partial<GenerateOptions> = {}): GenerateOptions => (
 });
 
 const summary = (overrides: Partial<SpecDiffSummary> = {}): SpecDiffSummary => ({
+  documentModified: false,
   schemasAdded: [],
   schemasRemoved: [],
   schemasModified: [],
   operationsAdded: [],
   operationsRemoved: [],
+  operationsModified: [],
   operationsMoved: [],
   operationsRenamed: [],
   ...overrides,

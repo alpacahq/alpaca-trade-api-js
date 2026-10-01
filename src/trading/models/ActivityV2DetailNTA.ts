@@ -12,431 +12,455 @@
  * Do not edit the class manually.
  */
 
-import { mapValues } from '../runtime';
+import type { AcatcActivityV2 } from './AcatcActivityV2';
+import {
+    instanceOfAcatcActivityV2,
+    AcatcActivityV2FromJSON,
+    AcatcActivityV2FromJSONTyped,
+    AcatcActivityV2ToJSON,
+} from './AcatcActivityV2';
+import type { AcatsActivityV2 } from './AcatsActivityV2';
+import {
+    instanceOfAcatsActivityV2,
+    AcatsActivityV2FromJSON,
+    AcatsActivityV2FromJSONTyped,
+    AcatsActivityV2ToJSON,
+} from './AcatsActivityV2';
+import type { CDIVActivityV2 } from './CDIVActivityV2';
+import {
+    instanceOfCDIVActivityV2,
+    CDIVActivityV2FromJSON,
+    CDIVActivityV2FromJSONTyped,
+    CDIVActivityV2ToJSON,
+} from './CDIVActivityV2';
+import type { CGDActivityV2 } from './CGDActivityV2';
+import {
+    instanceOfCGDActivityV2,
+    CGDActivityV2FromJSON,
+    CGDActivityV2FromJSONTyped,
+    CGDActivityV2ToJSON,
+} from './CGDActivityV2';
+import type { CSWActivityV2 } from './CSWActivityV2';
+import {
+    instanceOfCSWActivityV2,
+    CSWActivityV2FromJSON,
+    CSWActivityV2FromJSONTyped,
+    CSWActivityV2ToJSON,
+} from './CSWActivityV2';
+import type { DIVNRAActivityV2 } from './DIVNRAActivityV2';
+import {
+    instanceOfDIVNRAActivityV2,
+    DIVNRAActivityV2FromJSON,
+    DIVNRAActivityV2FromJSONTyped,
+    DIVNRAActivityV2ToJSON,
+} from './DIVNRAActivityV2';
+import type { DIVSPDActivityV2 } from './DIVSPDActivityV2';
+import {
+    instanceOfDIVSPDActivityV2,
+    DIVSPDActivityV2FromJSON,
+    DIVSPDActivityV2FromJSONTyped,
+    DIVSPDActivityV2ToJSON,
+} from './DIVSPDActivityV2';
+import type { DIVWHActivityV2 } from './DIVWHActivityV2';
+import {
+    instanceOfDIVWHActivityV2,
+    DIVWHActivityV2FromJSON,
+    DIVWHActivityV2FromJSONTyped,
+    DIVWHActivityV2ToJSON,
+} from './DIVWHActivityV2';
+import type { ExchangeOfferActivityV2 } from './ExchangeOfferActivityV2';
+import {
+    instanceOfExchangeOfferActivityV2,
+    ExchangeOfferActivityV2FromJSON,
+    ExchangeOfferActivityV2FromJSONTyped,
+    ExchangeOfferActivityV2ToJSON,
+} from './ExchangeOfferActivityV2';
+import type { FEEActivityV2 } from './FEEActivityV2';
+import {
+    instanceOfFEEActivityV2,
+    FEEActivityV2FromJSON,
+    FEEActivityV2FromJSONTyped,
+    FEEActivityV2ToJSON,
+} from './FEEActivityV2';
+import type { FOPTActivityV2 } from './FOPTActivityV2';
+import {
+    instanceOfFOPTActivityV2,
+    FOPTActivityV2FromJSON,
+    FOPTActivityV2FromJSONTyped,
+    FOPTActivityV2ToJSON,
+} from './FOPTActivityV2';
+import type { FixedIncomeInterestActivityV2 } from './FixedIncomeInterestActivityV2';
+import {
+    instanceOfFixedIncomeInterestActivityV2,
+    FixedIncomeInterestActivityV2FromJSON,
+    FixedIncomeInterestActivityV2FromJSONTyped,
+    FixedIncomeInterestActivityV2ToJSON,
+} from './FixedIncomeInterestActivityV2';
+import type { FixedIncomeRedemptionActivityV2 } from './FixedIncomeRedemptionActivityV2';
+import {
+    instanceOfFixedIncomeRedemptionActivityV2,
+    FixedIncomeRedemptionActivityV2FromJSON,
+    FixedIncomeRedemptionActivityV2FromJSONTyped,
+    FixedIncomeRedemptionActivityV2ToJSON,
+} from './FixedIncomeRedemptionActivityV2';
+import type { ForwardSplitActivityV2 } from './ForwardSplitActivityV2';
+import {
+    instanceOfForwardSplitActivityV2,
+    ForwardSplitActivityV2FromJSON,
+    ForwardSplitActivityV2FromJSONTyped,
+    ForwardSplitActivityV2ToJSON,
+} from './ForwardSplitActivityV2';
+import type { JNLCActivityV2 } from './JNLCActivityV2';
+import {
+    instanceOfJNLCActivityV2,
+    JNLCActivityV2FromJSON,
+    JNLCActivityV2FromJSONTyped,
+    JNLCActivityV2ToJSON,
+} from './JNLCActivityV2';
+import type { JNLSActivityV2 } from './JNLSActivityV2';
+import {
+    instanceOfJNLSActivityV2,
+    JNLSActivityV2FromJSON,
+    JNLSActivityV2FromJSONTyped,
+    JNLSActivityV2ToJSON,
+} from './JNLSActivityV2';
+import type { MAActivityV2 } from './MAActivityV2';
+import {
+    instanceOfMAActivityV2,
+    MAActivityV2FromJSON,
+    MAActivityV2FromJSONTyped,
+    MAActivityV2ToJSON,
+} from './MAActivityV2';
+import type { MEMActivityV2 } from './MEMActivityV2';
+import {
+    instanceOfMEMActivityV2,
+    MEMActivityV2FromJSON,
+    MEMActivityV2FromJSONTyped,
+    MEMActivityV2ToJSON,
+} from './MEMActivityV2';
+import type { NCActivityV2 } from './NCActivityV2';
+import {
+    instanceOfNCActivityV2,
+    NCActivityV2FromJSON,
+    NCActivityV2FromJSONTyped,
+    NCActivityV2ToJSON,
+} from './NCActivityV2';
+import type { OCTActivityV2 } from './OCTActivityV2';
+import {
+    instanceOfOCTActivityV2,
+    OCTActivityV2FromJSON,
+    OCTActivityV2FromJSONTyped,
+    OCTActivityV2ToJSON,
+} from './OCTActivityV2';
+import type { OPASNActivityV2 } from './OPASNActivityV2';
+import {
+    instanceOfOPASNActivityV2,
+    OPASNActivityV2FromJSON,
+    OPASNActivityV2FromJSONTyped,
+    OPASNActivityV2ToJSON,
+} from './OPASNActivityV2';
+import type { OPCSHActivityV2 } from './OPCSHActivityV2';
+import {
+    instanceOfOPCSHActivityV2,
+    OPCSHActivityV2FromJSON,
+    OPCSHActivityV2FromJSONTyped,
+    OPCSHActivityV2ToJSON,
+} from './OPCSHActivityV2';
+import type { OPEXCActivityV2 } from './OPEXCActivityV2';
+import {
+    instanceOfOPEXCActivityV2,
+    OPEXCActivityV2FromJSON,
+    OPEXCActivityV2FromJSONTyped,
+    OPEXCActivityV2ToJSON,
+} from './OPEXCActivityV2';
+import type { OPEXPActivityV2 } from './OPEXPActivityV2';
+import {
+    instanceOfOPEXPActivityV2,
+    OPEXPActivityV2FromJSON,
+    OPEXPActivityV2FromJSONTyped,
+    OPEXPActivityV2ToJSON,
+} from './OPEXPActivityV2';
+import type { OPTRDActivityV2 } from './OPTRDActivityV2';
+import {
+    instanceOfOPTRDActivityV2,
+    OPTRDActivityV2FromJSON,
+    OPTRDActivityV2FromJSONTyped,
+    OPTRDActivityV2ToJSON,
+} from './OPTRDActivityV2';
+import type { OpcaCDIVActivityV2 } from './OpcaCDIVActivityV2';
+import {
+    instanceOfOpcaCDIVActivityV2,
+    OpcaCDIVActivityV2FromJSON,
+    OpcaCDIVActivityV2FromJSONTyped,
+    OpcaCDIVActivityV2ToJSON,
+} from './OpcaCDIVActivityV2';
+import type { OpcaFSPLITActivityV2 } from './OpcaFSPLITActivityV2';
+import {
+    instanceOfOpcaFSPLITActivityV2,
+    OpcaFSPLITActivityV2FromJSON,
+    OpcaFSPLITActivityV2FromJSONTyped,
+    OpcaFSPLITActivityV2ToJSON,
+} from './OpcaFSPLITActivityV2';
+import type { OpcaMAActivityV2 } from './OpcaMAActivityV2';
+import {
+    instanceOfOpcaMAActivityV2,
+    OpcaMAActivityV2FromJSON,
+    OpcaMAActivityV2FromJSONTyped,
+    OpcaMAActivityV2ToJSON,
+} from './OpcaMAActivityV2';
+import type { OpcaNCActivityV2 } from './OpcaNCActivityV2';
+import {
+    instanceOfOpcaNCActivityV2,
+    OpcaNCActivityV2FromJSON,
+    OpcaNCActivityV2FromJSONTyped,
+    OpcaNCActivityV2ToJSON,
+} from './OpcaNCActivityV2';
+import type { OpcaRSPLITActivityV2 } from './OpcaRSPLITActivityV2';
+import {
+    instanceOfOpcaRSPLITActivityV2,
+    OpcaRSPLITActivityV2FromJSON,
+    OpcaRSPLITActivityV2FromJSONTyped,
+    OpcaRSPLITActivityV2ToJSON,
+} from './OpcaRSPLITActivityV2';
+import type { OpcaSDIVActivityV2 } from './OpcaSDIVActivityV2';
+import {
+    instanceOfOpcaSDIVActivityV2,
+    OpcaSDIVActivityV2FromJSON,
+    OpcaSDIVActivityV2FromJSONTyped,
+    OpcaSDIVActivityV2ToJSON,
+} from './OpcaSDIVActivityV2';
+import type { OpcaSPINActivityV2 } from './OpcaSPINActivityV2';
+import {
+    instanceOfOpcaSPINActivityV2,
+    OpcaSPINActivityV2FromJSON,
+    OpcaSPINActivityV2FromJSONTyped,
+    OpcaSPINActivityV2ToJSON,
+} from './OpcaSPINActivityV2';
+import type { OpcaUSPLITActivityV2 } from './OpcaUSPLITActivityV2';
+import {
+    instanceOfOpcaUSPLITActivityV2,
+    OpcaUSPLITActivityV2FromJSON,
+    OpcaUSPLITActivityV2FromJSONTyped,
+    OpcaUSPLITActivityV2ToJSON,
+} from './OpcaUSPLITActivityV2';
+import type { REOActivityV2 } from './REOActivityV2';
+import {
+    instanceOfREOActivityV2,
+    REOActivityV2FromJSON,
+    REOActivityV2FromJSONTyped,
+    REOActivityV2ToJSON,
+} from './REOActivityV2';
+import type { ReverseSplitActivityV2 } from './ReverseSplitActivityV2';
+import {
+    instanceOfReverseSplitActivityV2,
+    ReverseSplitActivityV2FromJSON,
+    ReverseSplitActivityV2FromJSONTyped,
+    ReverseSplitActivityV2ToJSON,
+} from './ReverseSplitActivityV2';
+import type { RightsDistributionActivityV2 } from './RightsDistributionActivityV2';
+import {
+    instanceOfRightsDistributionActivityV2,
+    RightsDistributionActivityV2FromJSON,
+    RightsDistributionActivityV2FromJSONTyped,
+    RightsDistributionActivityV2ToJSON,
+} from './RightsDistributionActivityV2';
+import type { RightsSubscriptionElectionActivityV2 } from './RightsSubscriptionElectionActivityV2';
+import {
+    instanceOfRightsSubscriptionElectionActivityV2,
+    RightsSubscriptionElectionActivityV2FromJSON,
+    RightsSubscriptionElectionActivityV2FromJSONTyped,
+    RightsSubscriptionElectionActivityV2ToJSON,
+} from './RightsSubscriptionElectionActivityV2';
+import type { SDIVActivityV2 } from './SDIVActivityV2';
+import {
+    instanceOfSDIVActivityV2,
+    SDIVActivityV2FromJSON,
+    SDIVActivityV2FromJSONTyped,
+    SDIVActivityV2ToJSON,
+} from './SDIVActivityV2';
+import type { SpinoffActivityV2 } from './SpinoffActivityV2';
+import {
+    instanceOfSpinoffActivityV2,
+    SpinoffActivityV2FromJSON,
+    SpinoffActivityV2FromJSONTyped,
+    SpinoffActivityV2ToJSON,
+} from './SpinoffActivityV2';
+import type { TenderOfferActivityV2 } from './TenderOfferActivityV2';
+import {
+    instanceOfTenderOfferActivityV2,
+    TenderOfferActivityV2FromJSON,
+    TenderOfferActivityV2FromJSONTyped,
+    TenderOfferActivityV2ToJSON,
+} from './TenderOfferActivityV2';
+import type { UnitSplitActivityV2 } from './UnitSplitActivityV2';
+import {
+    instanceOfUnitSplitActivityV2,
+    UnitSplitActivityV2FromJSON,
+    UnitSplitActivityV2FromJSONTyped,
+    UnitSplitActivityV2ToJSON,
+} from './UnitSplitActivityV2';
+import type { WRMActivityV2 } from './WRMActivityV2';
+import {
+    instanceOfWRMActivityV2,
+    WRMActivityV2FromJSON,
+    WRMActivityV2FromJSONTyped,
+    WRMActivityV2ToJSON,
+} from './WRMActivityV2';
+import type { WarrantExerciseElectionActivityV2 } from './WarrantExerciseElectionActivityV2';
+import {
+    instanceOfWarrantExerciseElectionActivityV2,
+    WarrantExerciseElectionActivityV2FromJSON,
+    WarrantExerciseElectionActivityV2FromJSONTyped,
+    WarrantExerciseElectionActivityV2ToJSON,
+} from './WarrantExerciseElectionActivityV2';
+
 /**
+ * @type ActivityV2DetailNTA
  * 
  * @export
- * @interface ActivityV2DetailNTA
  */
-export interface ActivityV2DetailNTA {
-    /**
-     * Optional group ID which can help grouping together related activities
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    groupId: string;
-    /**
-     * The date when the activity was booked
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    systemDate: Date;
-    /**
-     * The unique identifier for this corporate action
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    caId: string;
-    /**
-     * The position_date for this corporate action
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    positionDate: Date;
-    /**
-     * The reorg identifier, if present in the source corporate action definition
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    reorgId?: string;
-    /**
-     * The cash payout
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    cashPayout: string;
-    /**
-     * The CUSIP of the security involved with the activity
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    cusip: string;
-    /**
-     * When due bills stop applying for this event
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    dueBillOffDate?: Date;
-    /**
-     * When due bills begin to apply for this event
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    dueBillOnDate?: Date;
-    /**
-     * Quantity of shares entitled to receive the dividend
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    entitledQty: string;
-    /**
-     * The ex_date for this corporate action
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    exDate?: Date;
-    /**
-     * Indicates if related to a non-US security
-     * @type {boolean}
-     * @memberof ActivityV2DetailNTA
-     */
-    foreign: boolean;
-    /**
-     * The payable_date for this corporate action
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    payableDate: Date;
-    /**
-     * The rate for the rights distribution
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    rate: string;
-    /**
-     * The record_date for this corporate action
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    recordDate?: Date;
-    /**
-     * Indicates if this is a special dividend
-     * @type {boolean}
-     * @memberof ActivityV2DetailNTA
-     */
-    special: boolean;
-    /**
-     * The symbol of the security involved with the activity
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    symbol: string;
-    /**
-     * used when the old contract's quantity is not equal to the new contract's quantity. Mutually exclusive with 'qty'.
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    newQty: string;
-    /**
-     * The paid quantity
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    paidQty: string;
-    /**
-     * CUSIP of the new security
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    newCusip: string;
-    /**
-     * Ratio of new shares received
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    newRate: string;
-    /**
-     * Old CUSIP for the name change
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    oldCusip: string;
-    /**
-     * Ratio of old shares exchanged
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    oldRate: string;
-    /**
-     * used when the old contract's quantity is not equal to the new contract's quantity. Mutually exclusive with 'qty'.
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    oldQty: string;
-    /**
-     * When due bills related to the split are redeemed
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    dueBillRedemptionDate?: Date;
-    /**
-     * Symbol of the new security after the unit split
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    newSymbol: string;
-    /**
-     * CUSIP for the alternate security after the split
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    alternateCusip: string;
-    /**
-     * Quantity of alternate shares received
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    alternateQty: string;
-    /**
-     * Ratio of alternate shares received
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    alternateRate: string;
-    /**
-     * Symbol for the alternate security after the split
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    alternateSymbol: string;
-    /**
-     * When the unit split becomes effective
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    effectiveDate: Date;
-    /**
-     * The old symbol of the security involved with the activity
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    oldSymbol: string;
-    /**
-     * Market price of new shares after the spinoff
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    newPrice: string;
-    /**
-     * CUSIP of the parent security
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    sourceCusip: string;
-    /**
-     * Market price of parent shares before the spinoff
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    sourcePrice: string;
-    /**
-     * Ratio of parent shares
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    sourceRate: string;
-    /**
-     * Symbol of the parent security
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    sourceSymbol: string;
-    /**
-     * The source quantity
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    sourceQty: string;
-    /**
-     * CUSIP of the acquiree
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    acquireeCusip: string;
-    /**
-     * Rate of the acquiree
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    acquireeRate?: string;
-    /**
-     * Symbol of the acquiree
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    acquireeSymbol: string;
-    /**
-     * CUSIP of the acquirer
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    acquirerCusip?: string;
-    /**
-     * Rate of the acquirer
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    acquirerRate?: string;
-    /**
-     * Symbol of the acquirer
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    acquirerSymbol?: string;
-    /**
-     * Quantity of the acquiree
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    acquireeQty: string;
-    /**
-     * Quantity of the acquirer
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    acquirerQty?: string;
-    /**
-     * The cash rate
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    cashRate?: string;
-    /**
-     * The position quantity
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    positionQty: string;
-    /**
-     * The payment date
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    paymentDate: Date;
-    /**
-     * used when the old contract's quantity is equal to the new contract's quantity. Mutually exclusive with 'old_qty' and 'new_qty'
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    qty: string;
-    /**
-     * The expiration date for the rights distribution
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    expirationDate?: Date;
-    /**
-     * The removed quantity
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    removedQty: string;
-    /**
-     * The new contract symbol
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    newContractSymbol: string;
-    /**
-     * The old contract symbol
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    oldContractSymbol: string;
-    /**
-     * External ID of the transfer
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    externalId: string;
-    /**
-     * Hold date when the transfers settle
-     * @type {Date}
-     * @memberof ActivityV2DetailNTA
-     */
-    holdDate?: Date;
-    /**
-     * The ID for original ACATS request
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    requestId: string;
-    /**
-     * Contra for the transfer
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    contra: string;
-    /**
-     * The parent transaction's ID
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    parentId: string;
-    /**
-     * The journal's ID
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    journalId?: string;
-    /**
-     * The bank transaction's ID
-     * @type {string}
-     * @memberof ActivityV2DetailNTA
-     */
-    bankTransactionId?: string;
+export type ActivityV2DetailNTA = AcatcActivityV2 | AcatsActivityV2 | CDIVActivityV2 | CGDActivityV2 | CSWActivityV2 | DIVNRAActivityV2 | DIVSPDActivityV2 | DIVWHActivityV2 | ExchangeOfferActivityV2 | FEEActivityV2 | FOPTActivityV2 | FixedIncomeInterestActivityV2 | FixedIncomeRedemptionActivityV2 | ForwardSplitActivityV2 | JNLCActivityV2 | JNLSActivityV2 | MAActivityV2 | MEMActivityV2 | NCActivityV2 | OCTActivityV2 | OPASNActivityV2 | OPCSHActivityV2 | OPEXCActivityV2 | OPEXPActivityV2 | OPTRDActivityV2 | OpcaCDIVActivityV2 | OpcaFSPLITActivityV2 | OpcaMAActivityV2 | OpcaNCActivityV2 | OpcaRSPLITActivityV2 | OpcaSDIVActivityV2 | OpcaSPINActivityV2 | OpcaUSPLITActivityV2 | REOActivityV2 | ReverseSplitActivityV2 | RightsDistributionActivityV2 | RightsSubscriptionElectionActivityV2 | SDIVActivityV2 | SpinoffActivityV2 | TenderOfferActivityV2 | UnitSplitActivityV2 | WRMActivityV2 | WarrantExerciseElectionActivityV2;
+
+function containsInvalidDate(value: unknown): boolean {
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime());
+    }
+    if (Array.isArray(value)) {
+        return value.some(containsInvalidDate);
+    }
+    if (value !== null && typeof value === 'object') {
+        return Object.values(value).some(containsInvalidDate);
+    }
+    return false;
+}
+
+function selectMostSpecific<T>(
+    candidates: Array<{ name: string; value: T }>,
+    mergeModelNames: ReadonlySet<string>,
+): T | undefined {
+    let selected: { name: string; value: T } | undefined;
+    let selectedScore = -1;
+    for (const candidate of candidates) {
+        const value = candidate.value;
+        const score =
+            value !== null && typeof value === 'object'
+                ? Object.values(value).filter((item) => item !== undefined).length
+                : 0;
+        if (score > selectedScore) {
+            selected = candidate;
+            selectedScore = score;
+        }
+    }
+    if (
+        selected === undefined ||
+        selected.value === null ||
+        typeof selected.value !== 'object' ||
+        !mergeModelNames.has(selected.name)
+    ) {
+        return selected?.value;
+    }
+    if (Array.isArray(selected.value)) {
+        return selected.value.map((selectedItem, index) => {
+            if (
+                selectedItem === null ||
+                typeof selectedItem !== 'object' ||
+                Array.isArray(selectedItem)
+            ) {
+                return selectedItem;
+            }
+            const mergedItem = { ...selectedItem } as Record<string, unknown>;
+            for (const candidate of candidates) {
+                if (
+                    !mergeModelNames.has(candidate.name) ||
+                    !Array.isArray(candidate.value)
+                ) {
+                    continue;
+                }
+                const candidateItem = candidate.value[index];
+                if (
+                    candidateItem === null ||
+                    typeof candidateItem !== 'object' ||
+                    Array.isArray(candidateItem)
+                ) {
+                    continue;
+                }
+                for (const [key, item] of Object.entries(candidateItem)) {
+                    if (mergedItem[key] === undefined && item !== undefined) {
+                        mergedItem[key] = item;
+                    }
+                }
+            }
+            return mergedItem;
+        }) as T;
+    }
+    const merged = { ...selected.value } as Record<string, unknown>;
+    for (const candidate of candidates) {
+        if (!mergeModelNames.has(candidate.name)) {
+            continue;
+        }
+        const value = candidate.value;
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+            continue;
+        }
+        for (const [key, item] of Object.entries(value)) {
+            if (merged[key] === undefined && item !== undefined) {
+                merged[key] = item;
+            }
+        }
+    }
+    return merged as T;
 }
 
 /**
- * Check if a given object implements the ActivityV2DetailNTA interface.
+ * Check if a given object implements one of the ActivityV2DetailNTA variants.
  */
 export function instanceOfActivityV2DetailNTA(value: object): value is ActivityV2DetailNTA {
-    if (!('groupId' in value) || value['groupId'] === undefined) return false;
-    if (!('systemDate' in value) || value['systemDate'] === undefined) return false;
-    if (!('caId' in value) || value['caId'] === undefined) return false;
-    if (!('positionDate' in value) || value['positionDate'] === undefined) return false;
-    if (!('cashPayout' in value) || value['cashPayout'] === undefined) return false;
-    if (!('cusip' in value) || value['cusip'] === undefined) return false;
-    if (!('entitledQty' in value) || value['entitledQty'] === undefined) return false;
-    if (!('foreign' in value) || value['foreign'] === undefined) return false;
-    if (!('payableDate' in value) || value['payableDate'] === undefined) return false;
-    if (!('rate' in value) || value['rate'] === undefined) return false;
-    if (!('special' in value) || value['special'] === undefined) return false;
-    if (!('symbol' in value) || value['symbol'] === undefined) return false;
-    if (!('newQty' in value) || value['newQty'] === undefined) return false;
-    if (!('paidQty' in value) || value['paidQty'] === undefined) return false;
-    if (!('newCusip' in value) || value['newCusip'] === undefined) return false;
-    if (!('newRate' in value) || value['newRate'] === undefined) return false;
-    if (!('oldCusip' in value) || value['oldCusip'] === undefined) return false;
-    if (!('oldRate' in value) || value['oldRate'] === undefined) return false;
-    if (!('oldQty' in value) || value['oldQty'] === undefined) return false;
-    if (!('newSymbol' in value) || value['newSymbol'] === undefined) return false;
-    if (!('alternateCusip' in value) || value['alternateCusip'] === undefined) return false;
-    if (!('alternateQty' in value) || value['alternateQty'] === undefined) return false;
-    if (!('alternateRate' in value) || value['alternateRate'] === undefined) return false;
-    if (!('alternateSymbol' in value) || value['alternateSymbol'] === undefined) return false;
-    if (!('effectiveDate' in value) || value['effectiveDate'] === undefined) return false;
-    if (!('oldSymbol' in value) || value['oldSymbol'] === undefined) return false;
-    if (!('newPrice' in value) || value['newPrice'] === undefined) return false;
-    if (!('sourceCusip' in value) || value['sourceCusip'] === undefined) return false;
-    if (!('sourcePrice' in value) || value['sourcePrice'] === undefined) return false;
-    if (!('sourceRate' in value) || value['sourceRate'] === undefined) return false;
-    if (!('sourceSymbol' in value) || value['sourceSymbol'] === undefined) return false;
-    if (!('sourceQty' in value) || value['sourceQty'] === undefined) return false;
-    if (!('acquireeCusip' in value) || value['acquireeCusip'] === undefined) return false;
-    if (!('acquireeSymbol' in value) || value['acquireeSymbol'] === undefined) return false;
-    if (!('acquireeQty' in value) || value['acquireeQty'] === undefined) return false;
-    if (!('positionQty' in value) || value['positionQty'] === undefined) return false;
-    if (!('paymentDate' in value) || value['paymentDate'] === undefined) return false;
-    if (!('qty' in value) || value['qty'] === undefined) return false;
-    if (!('removedQty' in value) || value['removedQty'] === undefined) return false;
-    if (!('newContractSymbol' in value) || value['newContractSymbol'] === undefined) return false;
-    if (!('oldContractSymbol' in value) || value['oldContractSymbol'] === undefined) return false;
-    if (!('externalId' in value) || value['externalId'] === undefined) return false;
-    if (!('requestId' in value) || value['requestId'] === undefined) return false;
-    if (!('contra' in value) || value['contra'] === undefined) return false;
-    if (!('parentId' in value) || value['parentId'] === undefined) return false;
-    return true;
+    return (
+        instanceOfAcatcActivityV2(value) ||
+        instanceOfAcatsActivityV2(value) ||
+        instanceOfCDIVActivityV2(value) ||
+        instanceOfCGDActivityV2(value) ||
+        instanceOfCSWActivityV2(value) ||
+        instanceOfDIVNRAActivityV2(value) ||
+        instanceOfDIVSPDActivityV2(value) ||
+        instanceOfDIVWHActivityV2(value) ||
+        instanceOfExchangeOfferActivityV2(value) ||
+        instanceOfFEEActivityV2(value) ||
+        instanceOfFOPTActivityV2(value) ||
+        instanceOfFixedIncomeInterestActivityV2(value) ||
+        instanceOfFixedIncomeRedemptionActivityV2(value) ||
+        instanceOfForwardSplitActivityV2(value) ||
+        instanceOfJNLCActivityV2(value) ||
+        instanceOfJNLSActivityV2(value) ||
+        instanceOfMAActivityV2(value) ||
+        instanceOfMEMActivityV2(value) ||
+        instanceOfNCActivityV2(value) ||
+        instanceOfOCTActivityV2(value) ||
+        instanceOfOPASNActivityV2(value) ||
+        instanceOfOPCSHActivityV2(value) ||
+        instanceOfOPEXCActivityV2(value) ||
+        instanceOfOPEXPActivityV2(value) ||
+        instanceOfOPTRDActivityV2(value) ||
+        instanceOfOpcaCDIVActivityV2(value) ||
+        instanceOfOpcaFSPLITActivityV2(value) ||
+        instanceOfOpcaMAActivityV2(value) ||
+        instanceOfOpcaNCActivityV2(value) ||
+        instanceOfOpcaRSPLITActivityV2(value) ||
+        instanceOfOpcaSDIVActivityV2(value) ||
+        instanceOfOpcaSPINActivityV2(value) ||
+        instanceOfOpcaUSPLITActivityV2(value) ||
+        instanceOfREOActivityV2(value) ||
+        instanceOfReverseSplitActivityV2(value) ||
+        instanceOfRightsDistributionActivityV2(value) ||
+        instanceOfRightsSubscriptionElectionActivityV2(value) ||
+        instanceOfSDIVActivityV2(value) ||
+        instanceOfSpinoffActivityV2(value) ||
+        instanceOfTenderOfferActivityV2(value) ||
+        instanceOfUnitSplitActivityV2(value) ||
+        instanceOfWRMActivityV2(value) ||
+        instanceOfWarrantExerciseElectionActivityV2(value) ||
+        false
+    );
 }
 
 export function ActivityV2DetailNTAFromJSON(json: any): ActivityV2DetailNTA {
@@ -447,73 +471,277 @@ export function ActivityV2DetailNTAFromJSONTyped(json: any, ignoreDiscriminator:
     if (json == null) {
         return json;
     }
-    return {
-        
-        'groupId': json['group_id'],
-        'systemDate': (new Date(json['system_date'])),
-        'caId': json['ca_id'],
-        'positionDate': (new Date(json['position_date'])),
-        'reorgId': json['reorg_id'] == null ? undefined : json['reorg_id'],
-        'cashPayout': json['cash_payout'],
-        'cusip': json['cusip'],
-        'dueBillOffDate': json['due_bill_off_date'] == null ? undefined : (new Date(json['due_bill_off_date'])),
-        'dueBillOnDate': json['due_bill_on_date'] == null ? undefined : (new Date(json['due_bill_on_date'])),
-        'entitledQty': json['entitled_qty'],
-        'exDate': json['ex_date'] == null ? undefined : (new Date(json['ex_date'])),
-        'foreign': json['foreign'],
-        'payableDate': (new Date(json['payable_date'])),
-        'rate': json['rate'],
-        'recordDate': json['record_date'] == null ? undefined : (new Date(json['record_date'])),
-        'special': json['special'],
-        'symbol': json['symbol'],
-        'newQty': json['new_qty'],
-        'paidQty': json['paid_qty'],
-        'newCusip': json['new_cusip'],
-        'newRate': json['new_rate'],
-        'oldCusip': json['old_cusip'],
-        'oldRate': json['old_rate'],
-        'oldQty': json['old_qty'],
-        'dueBillRedemptionDate': json['due_bill_redemption_date'] == null ? undefined : (new Date(json['due_bill_redemption_date'])),
-        'newSymbol': json['new_symbol'],
-        'alternateCusip': json['alternate_cusip'],
-        'alternateQty': json['alternate_qty'],
-        'alternateRate': json['alternate_rate'],
-        'alternateSymbol': json['alternate_symbol'],
-        'effectiveDate': (new Date(json['effective_date'])),
-        'oldSymbol': json['old_symbol'],
-        'newPrice': json['new_price'],
-        'sourceCusip': json['source_cusip'],
-        'sourcePrice': json['source_price'],
-        'sourceRate': json['source_rate'],
-        'sourceSymbol': json['source_symbol'],
-        'sourceQty': json['source_qty'],
-        'acquireeCusip': json['acquiree_cusip'],
-        'acquireeRate': json['acquiree_rate'] == null ? undefined : json['acquiree_rate'],
-        'acquireeSymbol': json['acquiree_symbol'],
-        'acquirerCusip': json['acquirer_cusip'] == null ? undefined : json['acquirer_cusip'],
-        'acquirerRate': json['acquirer_rate'] == null ? undefined : json['acquirer_rate'],
-        'acquirerSymbol': json['acquirer_symbol'] == null ? undefined : json['acquirer_symbol'],
-        'acquireeQty': json['acquiree_qty'],
-        'acquirerQty': json['acquirer_qty'] == null ? undefined : json['acquirer_qty'],
-        'cashRate': json['cash_rate'] == null ? undefined : json['cash_rate'],
-        'positionQty': json['position_qty'],
-        'paymentDate': (new Date(json['payment_date'])),
-        'qty': json['qty'],
-        'expirationDate': json['expiration_date'] == null ? undefined : (new Date(json['expiration_date'])),
-        'removedQty': json['removed_qty'],
-        'newContractSymbol': json['new_contract_symbol'],
-        'oldContractSymbol': json['old_contract_symbol'],
-        'externalId': json['external_id'],
-        'holdDate': json['hold_date'] == null ? undefined : (new Date(json['hold_date'])),
-        'requestId': json['request_id'],
-        'contra': json['contra'],
-        'parentId': json['parent_id'],
-        'journalId': json['journal_id'] == null ? undefined : json['journal_id'],
-        'bankTransactionId': json['bank_transaction_id'] == null ? undefined : json['bank_transaction_id'],
-    };
+    const candidates: any[] = [];
+    if (typeof json !== 'object') {
+        return json;
+    }
+    {
+        const value = AcatcActivityV2FromJSONTyped(json, true);
+        if (instanceOfAcatcActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'AcatcActivityV2', value });
+        }
+    }
+    {
+        const value = AcatsActivityV2FromJSONTyped(json, true);
+        if (instanceOfAcatsActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'AcatsActivityV2', value });
+        }
+    }
+    {
+        const value = CDIVActivityV2FromJSONTyped(json, true);
+        if (instanceOfCDIVActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'CDIVActivityV2', value });
+        }
+    }
+    {
+        const value = CGDActivityV2FromJSONTyped(json, true);
+        if (instanceOfCGDActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'CGDActivityV2', value });
+        }
+    }
+    {
+        const value = CSWActivityV2FromJSONTyped(json, true);
+        if (instanceOfCSWActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'CSWActivityV2', value });
+        }
+    }
+    {
+        const value = DIVNRAActivityV2FromJSONTyped(json, true);
+        if (instanceOfDIVNRAActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'DIVNRAActivityV2', value });
+        }
+    }
+    {
+        const value = DIVSPDActivityV2FromJSONTyped(json, true);
+        if (instanceOfDIVSPDActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'DIVSPDActivityV2', value });
+        }
+    }
+    {
+        const value = DIVWHActivityV2FromJSONTyped(json, true);
+        if (instanceOfDIVWHActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'DIVWHActivityV2', value });
+        }
+    }
+    {
+        const value = ExchangeOfferActivityV2FromJSONTyped(json, true);
+        if (instanceOfExchangeOfferActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'ExchangeOfferActivityV2', value });
+        }
+    }
+    {
+        const value = FEEActivityV2FromJSONTyped(json, true);
+        if (instanceOfFEEActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'FEEActivityV2', value });
+        }
+    }
+    {
+        const value = FOPTActivityV2FromJSONTyped(json, true);
+        if (instanceOfFOPTActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'FOPTActivityV2', value });
+        }
+    }
+    {
+        const value = FixedIncomeInterestActivityV2FromJSONTyped(json, true);
+        if (instanceOfFixedIncomeInterestActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'FixedIncomeInterestActivityV2', value });
+        }
+    }
+    {
+        const value = FixedIncomeRedemptionActivityV2FromJSONTyped(json, true);
+        if (instanceOfFixedIncomeRedemptionActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'FixedIncomeRedemptionActivityV2', value });
+        }
+    }
+    {
+        const value = ForwardSplitActivityV2FromJSONTyped(json, true);
+        if (instanceOfForwardSplitActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'ForwardSplitActivityV2', value });
+        }
+    }
+    {
+        const value = JNLCActivityV2FromJSONTyped(json, true);
+        if (instanceOfJNLCActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'JNLCActivityV2', value });
+        }
+    }
+    {
+        const value = JNLSActivityV2FromJSONTyped(json, true);
+        if (instanceOfJNLSActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'JNLSActivityV2', value });
+        }
+    }
+    {
+        const value = MAActivityV2FromJSONTyped(json, true);
+        if (instanceOfMAActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'MAActivityV2', value });
+        }
+    }
+    {
+        const value = MEMActivityV2FromJSONTyped(json, true);
+        if (instanceOfMEMActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'MEMActivityV2', value });
+        }
+    }
+    {
+        const value = NCActivityV2FromJSONTyped(json, true);
+        if (instanceOfNCActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'NCActivityV2', value });
+        }
+    }
+    {
+        const value = OCTActivityV2FromJSONTyped(json, true);
+        if (instanceOfOCTActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OCTActivityV2', value });
+        }
+    }
+    {
+        const value = OPASNActivityV2FromJSONTyped(json, true);
+        if (instanceOfOPASNActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OPASNActivityV2', value });
+        }
+    }
+    {
+        const value = OPCSHActivityV2FromJSONTyped(json, true);
+        if (instanceOfOPCSHActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OPCSHActivityV2', value });
+        }
+    }
+    {
+        const value = OPEXCActivityV2FromJSONTyped(json, true);
+        if (instanceOfOPEXCActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OPEXCActivityV2', value });
+        }
+    }
+    {
+        const value = OPEXPActivityV2FromJSONTyped(json, true);
+        if (instanceOfOPEXPActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OPEXPActivityV2', value });
+        }
+    }
+    {
+        const value = OPTRDActivityV2FromJSONTyped(json, true);
+        if (instanceOfOPTRDActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OPTRDActivityV2', value });
+        }
+    }
+    {
+        const value = OpcaCDIVActivityV2FromJSONTyped(json, true);
+        if (instanceOfOpcaCDIVActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OpcaCDIVActivityV2', value });
+        }
+    }
+    {
+        const value = OpcaFSPLITActivityV2FromJSONTyped(json, true);
+        if (instanceOfOpcaFSPLITActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OpcaFSPLITActivityV2', value });
+        }
+    }
+    {
+        const value = OpcaMAActivityV2FromJSONTyped(json, true);
+        if (instanceOfOpcaMAActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OpcaMAActivityV2', value });
+        }
+    }
+    {
+        const value = OpcaNCActivityV2FromJSONTyped(json, true);
+        if (instanceOfOpcaNCActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OpcaNCActivityV2', value });
+        }
+    }
+    {
+        const value = OpcaRSPLITActivityV2FromJSONTyped(json, true);
+        if (instanceOfOpcaRSPLITActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OpcaRSPLITActivityV2', value });
+        }
+    }
+    {
+        const value = OpcaSDIVActivityV2FromJSONTyped(json, true);
+        if (instanceOfOpcaSDIVActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OpcaSDIVActivityV2', value });
+        }
+    }
+    {
+        const value = OpcaSPINActivityV2FromJSONTyped(json, true);
+        if (instanceOfOpcaSPINActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OpcaSPINActivityV2', value });
+        }
+    }
+    {
+        const value = OpcaUSPLITActivityV2FromJSONTyped(json, true);
+        if (instanceOfOpcaUSPLITActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OpcaUSPLITActivityV2', value });
+        }
+    }
+    {
+        const value = REOActivityV2FromJSONTyped(json, true);
+        if (instanceOfREOActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'REOActivityV2', value });
+        }
+    }
+    {
+        const value = ReverseSplitActivityV2FromJSONTyped(json, true);
+        if (instanceOfReverseSplitActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'ReverseSplitActivityV2', value });
+        }
+    }
+    {
+        const value = RightsDistributionActivityV2FromJSONTyped(json, true);
+        if (instanceOfRightsDistributionActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'RightsDistributionActivityV2', value });
+        }
+    }
+    {
+        const value = RightsSubscriptionElectionActivityV2FromJSONTyped(json, true);
+        if (instanceOfRightsSubscriptionElectionActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'RightsSubscriptionElectionActivityV2', value });
+        }
+    }
+    {
+        const value = SDIVActivityV2FromJSONTyped(json, true);
+        if (instanceOfSDIVActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'SDIVActivityV2', value });
+        }
+    }
+    {
+        const value = SpinoffActivityV2FromJSONTyped(json, true);
+        if (instanceOfSpinoffActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'SpinoffActivityV2', value });
+        }
+    }
+    {
+        const value = TenderOfferActivityV2FromJSONTyped(json, true);
+        if (instanceOfTenderOfferActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'TenderOfferActivityV2', value });
+        }
+    }
+    {
+        const value = UnitSplitActivityV2FromJSONTyped(json, true);
+        if (instanceOfUnitSplitActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'UnitSplitActivityV2', value });
+        }
+    }
+    {
+        const value = WRMActivityV2FromJSONTyped(json, true);
+        if (instanceOfWRMActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'WRMActivityV2', value });
+        }
+    }
+    {
+        const value = WarrantExerciseElectionActivityV2FromJSONTyped(json, true);
+        if (instanceOfWarrantExerciseElectionActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'WarrantExerciseElectionActivityV2', value });
+        }
+    }
+
+    return selectMostSpecific(candidates, new Set([
+        'CDIVActivityV2',
+        'CGDActivityV2',
+        'DIVSPDActivityV2',
+    ])) ?? json;
 }
 
-export function ActivityV2DetailNTAToJSON(json: any): ActivityV2DetailNTA {
+export function ActivityV2DetailNTAToJSON(json: any): any {
     return ActivityV2DetailNTAToJSONTyped(json, false);
 }
 
@@ -521,70 +749,144 @@ export function ActivityV2DetailNTAToJSONTyped(value?: ActivityV2DetailNTA | nul
     if (value == null) {
         return value;
     }
+    const candidates: any[] = [];
+    if (typeof value !== 'object') {
+        return value;
+    }
+    if (instanceOfAcatcActivityV2(value)) {
+        candidates.push({ name: 'AcatcActivityV2', value: AcatcActivityV2ToJSON(value as AcatcActivityV2) });
+    }
+    if (instanceOfAcatsActivityV2(value)) {
+        candidates.push({ name: 'AcatsActivityV2', value: AcatsActivityV2ToJSON(value as AcatsActivityV2) });
+    }
+    if (instanceOfCDIVActivityV2(value)) {
+        candidates.push({ name: 'CDIVActivityV2', value: CDIVActivityV2ToJSON(value as CDIVActivityV2) });
+    }
+    if (instanceOfCGDActivityV2(value)) {
+        candidates.push({ name: 'CGDActivityV2', value: CGDActivityV2ToJSON(value as CGDActivityV2) });
+    }
+    if (instanceOfCSWActivityV2(value)) {
+        candidates.push({ name: 'CSWActivityV2', value: CSWActivityV2ToJSON(value as CSWActivityV2) });
+    }
+    if (instanceOfDIVNRAActivityV2(value)) {
+        candidates.push({ name: 'DIVNRAActivityV2', value: DIVNRAActivityV2ToJSON(value as DIVNRAActivityV2) });
+    }
+    if (instanceOfDIVSPDActivityV2(value)) {
+        candidates.push({ name: 'DIVSPDActivityV2', value: DIVSPDActivityV2ToJSON(value as DIVSPDActivityV2) });
+    }
+    if (instanceOfDIVWHActivityV2(value)) {
+        candidates.push({ name: 'DIVWHActivityV2', value: DIVWHActivityV2ToJSON(value as DIVWHActivityV2) });
+    }
+    if (instanceOfExchangeOfferActivityV2(value)) {
+        candidates.push({ name: 'ExchangeOfferActivityV2', value: ExchangeOfferActivityV2ToJSON(value as ExchangeOfferActivityV2) });
+    }
+    if (instanceOfFEEActivityV2(value)) {
+        candidates.push({ name: 'FEEActivityV2', value: FEEActivityV2ToJSON(value as FEEActivityV2) });
+    }
+    if (instanceOfFOPTActivityV2(value)) {
+        candidates.push({ name: 'FOPTActivityV2', value: FOPTActivityV2ToJSON(value as FOPTActivityV2) });
+    }
+    if (instanceOfFixedIncomeInterestActivityV2(value)) {
+        candidates.push({ name: 'FixedIncomeInterestActivityV2', value: FixedIncomeInterestActivityV2ToJSON(value as FixedIncomeInterestActivityV2) });
+    }
+    if (instanceOfFixedIncomeRedemptionActivityV2(value)) {
+        candidates.push({ name: 'FixedIncomeRedemptionActivityV2', value: FixedIncomeRedemptionActivityV2ToJSON(value as FixedIncomeRedemptionActivityV2) });
+    }
+    if (instanceOfForwardSplitActivityV2(value)) {
+        candidates.push({ name: 'ForwardSplitActivityV2', value: ForwardSplitActivityV2ToJSON(value as ForwardSplitActivityV2) });
+    }
+    if (instanceOfJNLCActivityV2(value)) {
+        candidates.push({ name: 'JNLCActivityV2', value: JNLCActivityV2ToJSON(value as JNLCActivityV2) });
+    }
+    if (instanceOfJNLSActivityV2(value)) {
+        candidates.push({ name: 'JNLSActivityV2', value: JNLSActivityV2ToJSON(value as JNLSActivityV2) });
+    }
+    if (instanceOfMAActivityV2(value)) {
+        candidates.push({ name: 'MAActivityV2', value: MAActivityV2ToJSON(value as MAActivityV2) });
+    }
+    if (instanceOfMEMActivityV2(value)) {
+        candidates.push({ name: 'MEMActivityV2', value: MEMActivityV2ToJSON(value as MEMActivityV2) });
+    }
+    if (instanceOfNCActivityV2(value)) {
+        candidates.push({ name: 'NCActivityV2', value: NCActivityV2ToJSON(value as NCActivityV2) });
+    }
+    if (instanceOfOCTActivityV2(value)) {
+        candidates.push({ name: 'OCTActivityV2', value: OCTActivityV2ToJSON(value as OCTActivityV2) });
+    }
+    if (instanceOfOPASNActivityV2(value)) {
+        candidates.push({ name: 'OPASNActivityV2', value: OPASNActivityV2ToJSON(value as OPASNActivityV2) });
+    }
+    if (instanceOfOPCSHActivityV2(value)) {
+        candidates.push({ name: 'OPCSHActivityV2', value: OPCSHActivityV2ToJSON(value as OPCSHActivityV2) });
+    }
+    if (instanceOfOPEXCActivityV2(value)) {
+        candidates.push({ name: 'OPEXCActivityV2', value: OPEXCActivityV2ToJSON(value as OPEXCActivityV2) });
+    }
+    if (instanceOfOPEXPActivityV2(value)) {
+        candidates.push({ name: 'OPEXPActivityV2', value: OPEXPActivityV2ToJSON(value as OPEXPActivityV2) });
+    }
+    if (instanceOfOPTRDActivityV2(value)) {
+        candidates.push({ name: 'OPTRDActivityV2', value: OPTRDActivityV2ToJSON(value as OPTRDActivityV2) });
+    }
+    if (instanceOfOpcaCDIVActivityV2(value)) {
+        candidates.push({ name: 'OpcaCDIVActivityV2', value: OpcaCDIVActivityV2ToJSON(value as OpcaCDIVActivityV2) });
+    }
+    if (instanceOfOpcaFSPLITActivityV2(value)) {
+        candidates.push({ name: 'OpcaFSPLITActivityV2', value: OpcaFSPLITActivityV2ToJSON(value as OpcaFSPLITActivityV2) });
+    }
+    if (instanceOfOpcaMAActivityV2(value)) {
+        candidates.push({ name: 'OpcaMAActivityV2', value: OpcaMAActivityV2ToJSON(value as OpcaMAActivityV2) });
+    }
+    if (instanceOfOpcaNCActivityV2(value)) {
+        candidates.push({ name: 'OpcaNCActivityV2', value: OpcaNCActivityV2ToJSON(value as OpcaNCActivityV2) });
+    }
+    if (instanceOfOpcaRSPLITActivityV2(value)) {
+        candidates.push({ name: 'OpcaRSPLITActivityV2', value: OpcaRSPLITActivityV2ToJSON(value as OpcaRSPLITActivityV2) });
+    }
+    if (instanceOfOpcaSDIVActivityV2(value)) {
+        candidates.push({ name: 'OpcaSDIVActivityV2', value: OpcaSDIVActivityV2ToJSON(value as OpcaSDIVActivityV2) });
+    }
+    if (instanceOfOpcaSPINActivityV2(value)) {
+        candidates.push({ name: 'OpcaSPINActivityV2', value: OpcaSPINActivityV2ToJSON(value as OpcaSPINActivityV2) });
+    }
+    if (instanceOfOpcaUSPLITActivityV2(value)) {
+        candidates.push({ name: 'OpcaUSPLITActivityV2', value: OpcaUSPLITActivityV2ToJSON(value as OpcaUSPLITActivityV2) });
+    }
+    if (instanceOfREOActivityV2(value)) {
+        candidates.push({ name: 'REOActivityV2', value: REOActivityV2ToJSON(value as REOActivityV2) });
+    }
+    if (instanceOfReverseSplitActivityV2(value)) {
+        candidates.push({ name: 'ReverseSplitActivityV2', value: ReverseSplitActivityV2ToJSON(value as ReverseSplitActivityV2) });
+    }
+    if (instanceOfRightsDistributionActivityV2(value)) {
+        candidates.push({ name: 'RightsDistributionActivityV2', value: RightsDistributionActivityV2ToJSON(value as RightsDistributionActivityV2) });
+    }
+    if (instanceOfRightsSubscriptionElectionActivityV2(value)) {
+        candidates.push({ name: 'RightsSubscriptionElectionActivityV2', value: RightsSubscriptionElectionActivityV2ToJSON(value as RightsSubscriptionElectionActivityV2) });
+    }
+    if (instanceOfSDIVActivityV2(value)) {
+        candidates.push({ name: 'SDIVActivityV2', value: SDIVActivityV2ToJSON(value as SDIVActivityV2) });
+    }
+    if (instanceOfSpinoffActivityV2(value)) {
+        candidates.push({ name: 'SpinoffActivityV2', value: SpinoffActivityV2ToJSON(value as SpinoffActivityV2) });
+    }
+    if (instanceOfTenderOfferActivityV2(value)) {
+        candidates.push({ name: 'TenderOfferActivityV2', value: TenderOfferActivityV2ToJSON(value as TenderOfferActivityV2) });
+    }
+    if (instanceOfUnitSplitActivityV2(value)) {
+        candidates.push({ name: 'UnitSplitActivityV2', value: UnitSplitActivityV2ToJSON(value as UnitSplitActivityV2) });
+    }
+    if (instanceOfWRMActivityV2(value)) {
+        candidates.push({ name: 'WRMActivityV2', value: WRMActivityV2ToJSON(value as WRMActivityV2) });
+    }
+    if (instanceOfWarrantExerciseElectionActivityV2(value)) {
+        candidates.push({ name: 'WarrantExerciseElectionActivityV2', value: WarrantExerciseElectionActivityV2ToJSON(value as WarrantExerciseElectionActivityV2) });
+    }
 
-    return {
-        
-        'group_id': value['groupId'],
-        'system_date': ((value['systemDate']).toISOString().substring(0,10)),
-        'ca_id': value['caId'],
-        'position_date': ((value['positionDate']).toISOString().substring(0,10)),
-        'reorg_id': value['reorgId'],
-        'cash_payout': value['cashPayout'],
-        'cusip': value['cusip'],
-        'due_bill_off_date': value['dueBillOffDate'] == null ? undefined : ((value['dueBillOffDate']).toISOString().substring(0,10)),
-        'due_bill_on_date': value['dueBillOnDate'] == null ? undefined : ((value['dueBillOnDate']).toISOString().substring(0,10)),
-        'entitled_qty': value['entitledQty'],
-        'ex_date': value['exDate'] == null ? undefined : ((value['exDate']).toISOString().substring(0,10)),
-        'foreign': value['foreign'],
-        'payable_date': ((value['payableDate']).toISOString().substring(0,10)),
-        'rate': value['rate'],
-        'record_date': value['recordDate'] == null ? undefined : ((value['recordDate']).toISOString().substring(0,10)),
-        'special': value['special'],
-        'symbol': value['symbol'],
-        'new_qty': value['newQty'],
-        'paid_qty': value['paidQty'],
-        'new_cusip': value['newCusip'],
-        'new_rate': value['newRate'],
-        'old_cusip': value['oldCusip'],
-        'old_rate': value['oldRate'],
-        'old_qty': value['oldQty'],
-        'due_bill_redemption_date': value['dueBillRedemptionDate'] == null ? undefined : ((value['dueBillRedemptionDate']).toISOString().substring(0,10)),
-        'new_symbol': value['newSymbol'],
-        'alternate_cusip': value['alternateCusip'],
-        'alternate_qty': value['alternateQty'],
-        'alternate_rate': value['alternateRate'],
-        'alternate_symbol': value['alternateSymbol'],
-        'effective_date': ((value['effectiveDate']).toISOString().substring(0,10)),
-        'old_symbol': value['oldSymbol'],
-        'new_price': value['newPrice'],
-        'source_cusip': value['sourceCusip'],
-        'source_price': value['sourcePrice'],
-        'source_rate': value['sourceRate'],
-        'source_symbol': value['sourceSymbol'],
-        'source_qty': value['sourceQty'],
-        'acquiree_cusip': value['acquireeCusip'],
-        'acquiree_rate': value['acquireeRate'],
-        'acquiree_symbol': value['acquireeSymbol'],
-        'acquirer_cusip': value['acquirerCusip'],
-        'acquirer_rate': value['acquirerRate'],
-        'acquirer_symbol': value['acquirerSymbol'],
-        'acquiree_qty': value['acquireeQty'],
-        'acquirer_qty': value['acquirerQty'],
-        'cash_rate': value['cashRate'],
-        'position_qty': value['positionQty'],
-        'payment_date': ((value['paymentDate']).toISOString().substring(0,10)),
-        'qty': value['qty'],
-        'expiration_date': value['expirationDate'] == null ? undefined : ((value['expirationDate']).toISOString().substring(0,10)),
-        'removed_qty': value['removedQty'],
-        'new_contract_symbol': value['newContractSymbol'],
-        'old_contract_symbol': value['oldContractSymbol'],
-        'external_id': value['externalId'],
-        'hold_date': value['holdDate'] == null ? undefined : ((value['holdDate']).toISOString().substring(0,10)),
-        'request_id': value['requestId'],
-        'contra': value['contra'],
-        'parent_id': value['parentId'],
-        'journal_id': value['journalId'],
-        'bank_transaction_id': value['bankTransactionId'],
-    };
+    return selectMostSpecific(candidates, new Set([
+        'CDIVActivityV2',
+        'CGDActivityV2',
+        'DIVSPDActivityV2',
+    ])) ?? value;
 }
 

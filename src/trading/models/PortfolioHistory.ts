@@ -24,7 +24,7 @@ export interface PortfolioHistory {
      * @type {number}
      * @memberof PortfolioHistory
      */
-    baseValue: number;
+    baseValue: number | null;
     /**
      * If included, then it indicates that the base_value is the account's closing
      * equity value at this trading date.
@@ -39,28 +39,28 @@ export interface PortfolioHistory {
     baseValueAsof?: Date;
     /**
      * accumulated value in dollar amount as of the end of each time window
-     * @type {object}
+     * @type {{ [key: string]: Array<number>; }}
      * @memberof PortfolioHistory
      */
-    cashflow?: object;
+    cashflow?: { [key: string]: Array<number>; };
     /**
      * equity value of the account in dollar amount as of the end of each time window
-     * @type {Array<number>}
+     * @type {Array<number | null>}
      * @memberof PortfolioHistory
      */
-    equity: Array<number>;
+    equity: Array<number | null>;
     /**
      * profit/loss in dollar from the base value
-     * @type {Array<number>}
+     * @type {Array<number | null>}
      * @memberof PortfolioHistory
      */
-    profitLoss: Array<number>;
+    profitLoss: Array<number | null>;
     /**
      * profit/loss in percentage from the base value
-     * @type {Array<number>}
+     * @type {Array<number | null>}
      * @memberof PortfolioHistory
      */
-    profitLossPct: Array<number>;
+    profitLossPct: Array<number | null>;
     /**
      * time window size of each data element
      * @type {string}
@@ -104,11 +104,11 @@ export function PortfolioHistoryFromJSONTyped(json: any, ignoreDiscriminator: bo
         'baseValue': json['base_value'],
         'baseValueAsof': json['base_value_asof'] == null ? undefined : (new Date(json['base_value_asof'])),
         'cashflow': json['cashflow'] == null ? undefined : json['cashflow'],
-        'equity': json['equity'],
-        'profitLoss': json['profit_loss'],
-        'profitLossPct': json['profit_loss_pct'],
+        'equity': json['equity'] == null ? [] : json['equity'],
+        'profitLoss': json['profit_loss'] == null ? [] : json['profit_loss'],
+        'profitLossPct': json['profit_loss_pct'] == null ? [] : json['profit_loss_pct'],
         'timeframe': json['timeframe'],
-        'timestamp': json['timestamp'],
+        'timestamp': json['timestamp'] == null ? [] : json['timestamp'],
     };
 }
 

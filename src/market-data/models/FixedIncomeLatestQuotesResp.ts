@@ -22,7 +22,7 @@ import {
 } from './FixedIncomeQuote';
 
 /**
- * 
+ * Latest fixed-income best bid and ask quotes keyed by ISIN.
  * @export
  * @interface FixedIncomeLatestQuotesResp
  */

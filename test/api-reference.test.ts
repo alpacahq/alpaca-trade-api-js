@@ -97,6 +97,20 @@ describe('API reference generation', () => {
         expect(example).not.toMatch(/onConnect\([^)]*subscribeTradeUpdates/s);
     });
 
+    it('shows safe production inputs for newly generated financial mutations', () => {
+        const mint =
+            examples['trading.tokenization.postTokenizationMint'].example;
+        expect(mint).toContain('idempotencyKey: crypto.randomUUID()');
+
+        const travelRule =
+            examples[
+                'trading.cryptoFunding.updateWhitelistedAddressTravelRuleInfo'
+            ].example;
+        expect(travelRule).toContain('beneficiaryIsSelfHosted: true');
+        expect(travelRule).toContain('beneficiaryGivenName:');
+        expect(travelRule).toContain('beneficiaryFamilyName:');
+    });
+
     it('compiles each capability example in an isolated TypeScript program', () => {
         const source = readFileSync(import.meta.filename, 'utf8');
 

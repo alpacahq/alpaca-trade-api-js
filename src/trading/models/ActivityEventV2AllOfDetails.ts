@@ -34,6 +34,107 @@ import {
  */
 export type ActivityEventV2AllOfDetails = ActivityV2DetailNTA | ActivityV2DetailTRD;
 
+function containsInvalidDate(value: unknown): boolean {
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime());
+    }
+    if (Array.isArray(value)) {
+        return value.some(containsInvalidDate);
+    }
+    if (value !== null && typeof value === 'object') {
+        return Object.values(value).some(containsInvalidDate);
+    }
+    return false;
+}
+
+function selectMostSpecific<T>(
+    candidates: Array<{ name: string; value: T }>,
+    mergeModelNames: ReadonlySet<string>,
+): T | undefined {
+    let selected: { name: string; value: T } | undefined;
+    let selectedScore = -1;
+    for (const candidate of candidates) {
+        const value = candidate.value;
+        const score =
+            value !== null && typeof value === 'object'
+                ? Object.values(value).filter((item) => item !== undefined).length
+                : 0;
+        if (score > selectedScore) {
+            selected = candidate;
+            selectedScore = score;
+        }
+    }
+    if (
+        selected === undefined ||
+        selected.value === null ||
+        typeof selected.value !== 'object' ||
+        !mergeModelNames.has(selected.name)
+    ) {
+        return selected?.value;
+    }
+    if (Array.isArray(selected.value)) {
+        return selected.value.map((selectedItem, index) => {
+            if (
+                selectedItem === null ||
+                typeof selectedItem !== 'object' ||
+                Array.isArray(selectedItem)
+            ) {
+                return selectedItem;
+            }
+            const mergedItem = { ...selectedItem } as Record<string, unknown>;
+            for (const candidate of candidates) {
+                if (
+                    !mergeModelNames.has(candidate.name) ||
+                    !Array.isArray(candidate.value)
+                ) {
+                    continue;
+                }
+                const candidateItem = candidate.value[index];
+                if (
+                    candidateItem === null ||
+                    typeof candidateItem !== 'object' ||
+                    Array.isArray(candidateItem)
+                ) {
+                    continue;
+                }
+                for (const [key, item] of Object.entries(candidateItem)) {
+                    if (mergedItem[key] === undefined && item !== undefined) {
+                        mergedItem[key] = item;
+                    }
+                }
+            }
+            return mergedItem;
+        }) as T;
+    }
+    const merged = { ...selected.value } as Record<string, unknown>;
+    for (const candidate of candidates) {
+        if (!mergeModelNames.has(candidate.name)) {
+            continue;
+        }
+        const value = candidate.value;
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+            continue;
+        }
+        for (const [key, item] of Object.entries(value)) {
+            if (merged[key] === undefined && item !== undefined) {
+                merged[key] = item;
+            }
+        }
+    }
+    return merged as T;
+}
+
+/**
+ * Check if a given object implements one of the ActivityEventV2AllOfDetails variants.
+ */
+export function instanceOfActivityEventV2AllOfDetails(value: object): value is ActivityEventV2AllOfDetails {
+    return (
+        instanceOfActivityV2DetailNTA(value) ||
+        instanceOfActivityV2DetailTRD(value) ||
+        false
+    );
+}
+
 export function ActivityEventV2AllOfDetailsFromJSON(json: any): ActivityEventV2AllOfDetails {
     return ActivityEventV2AllOfDetailsFromJSONTyped(json, false);
 }
@@ -42,17 +143,25 @@ export function ActivityEventV2AllOfDetailsFromJSONTyped(json: any, ignoreDiscri
     if (json == null) {
         return json;
     }
+    const candidates: any[] = [];
     if (typeof json !== 'object') {
         return json;
     }
-    if (instanceOfActivityV2DetailNTA(json)) {
-        return ActivityV2DetailNTAFromJSONTyped(json, true);
+    {
+        const value = ActivityV2DetailNTAFromJSONTyped(json, true);
+        if (instanceOfActivityV2DetailNTA(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'ActivityV2DetailNTA', value });
+        }
     }
-    if (instanceOfActivityV2DetailTRD(json)) {
-        return ActivityV2DetailTRDFromJSONTyped(json, true);
+    {
+        const value = ActivityV2DetailTRDFromJSONTyped(json, true);
+        if (instanceOfActivityV2DetailTRD(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'ActivityV2DetailTRD', value });
+        }
     }
 
-    return {} as any;
+    return selectMostSpecific(candidates, new Set([
+    ])) ?? json;
 }
 
 export function ActivityEventV2AllOfDetailsToJSON(json: any): any {
@@ -63,16 +172,18 @@ export function ActivityEventV2AllOfDetailsToJSONTyped(value?: ActivityEventV2Al
     if (value == null) {
         return value;
     }
+    const candidates: any[] = [];
     if (typeof value !== 'object') {
         return value;
     }
     if (instanceOfActivityV2DetailNTA(value)) {
-        return ActivityV2DetailNTAToJSON(value as ActivityV2DetailNTA);
+        candidates.push({ name: 'ActivityV2DetailNTA', value: ActivityV2DetailNTAToJSON(value as ActivityV2DetailNTA) });
     }
     if (instanceOfActivityV2DetailTRD(value)) {
-        return ActivityV2DetailTRDToJSON(value as ActivityV2DetailTRD);
+        candidates.push({ name: 'ActivityV2DetailTRD', value: ActivityV2DetailTRDToJSON(value as ActivityV2DetailTRD) });
     }
 
-    return {};
+    return selectMostSpecific(candidates, new Set([
+    ])) ?? value;
 }
 

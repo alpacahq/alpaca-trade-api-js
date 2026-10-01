@@ -122,27 +122,6 @@ describe('symbol-map helpers', () => {
     });
 });
 
-describe('index values', () => {
-    it('preserves the verbatim nanosecond string while exposing a Date', () => {
-        // Index-value responses deserialize verbatim, so `t` is still a raw
-        // full-precision string at runtime despite the generated `Date` type.
-        const raw = { t: '2024-01-02T15:04:05.678099211Z' as unknown as Date, v: 4321.5 };
-        const value = marketDataShapes.toIndexValue(raw, 'SPX');
-        expect(value.symbol).toBe('SPX');
-        expect(value.value).toBe(4321.5);
-        expect(value.timestamp.toISOString()).toBe('2024-01-02T15:04:05.678Z');
-        expect(value.timestampRaw).toBe('2024-01-02T15:04:05.678099211Z');
-    });
-
-    it('stamps the symbol from the map key across a { [symbol]: IndexValue[] } map', () => {
-        const out = marketDataShapes.toIndexValuesBySymbol({
-            SPX: [{ t: '2024-01-02T15:04:05.5Z' as unknown as Date, v: 1 }],
-        });
-        expect(out.SPX[0].symbol).toBe('SPX');
-        expect(out.SPX[0].timestampRaw).toBe('2024-01-02T15:04:05.5Z');
-    });
-});
-
 describe('stock auctions', () => {
     it('maps opening/closing prints and preserves each nanosecond timestamp', () => {
         const daily = {

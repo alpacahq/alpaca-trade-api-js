@@ -1,0 +1,4 @@
+src/trading/apis/*.ts whitespace=-blank-at-eol,-blank-at-eof
+src/trading/models/*.ts whitespace=-blank-at-eol,-blank-at-eof
+src/market-data/apis/*.ts whitespace=-blank-at-eol,-blank-at-eof
+src/market-data/models/*.ts whitespace=-blank-at-eol,-blank-at-eof

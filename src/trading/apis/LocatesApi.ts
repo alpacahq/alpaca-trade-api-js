@@ -68,7 +68,7 @@ export interface ListLocatesRequest {
 export class LocatesApi extends runtime.BaseAPI {
 
     /**
-     * Creates a locate request for a short sale.
+     * Creates a locate request for a short sale. This endpoint is not available in paper trading.  **Idempotency**: Reusing the same key with the same request returns the original locate response. Reusing the same key with a different request returns HTTP 422. 
      * Create Locate
      */
     async createLocatesRaw(requestParameters: CreateLocatesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Locate>> {
@@ -89,6 +89,7 @@ export class LocatesApi extends runtime.BaseAPI {
             headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
         }
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -97,6 +98,7 @@ export class LocatesApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v1/locates`;
 
@@ -105,6 +107,7 @@ export class LocatesApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
             body: CreateLocateRequestToJSON(requestParameters['createLocateRequest']),
         }, initOverrides);
 
@@ -112,7 +115,7 @@ export class LocatesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates a locate request for a short sale.
+     * Creates a locate request for a short sale. This endpoint is not available in paper trading.  **Idempotency**: Reusing the same key with the same request returns the original locate response. Reusing the same key with a different request returns HTTP 422. 
      * Create Locate
      */
     async createLocates(requestParameters: CreateLocatesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Locate> {
@@ -121,7 +124,7 @@ export class LocatesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns a locate by ID.
+     * Returns a locate by ID. This endpoint is not available in paper trading.
      * Get Locate
      */
     async getLocateRaw(requestParameters: GetLocateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Locate>> {
@@ -136,6 +139,7 @@ export class LocatesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -144,6 +148,7 @@ export class LocatesApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v1/locates/{locate_id}`;
         urlPath = urlPath.replace(`{${"locate_id"}}`, encodeURIComponent(String(requestParameters['locateId'])));
@@ -153,13 +158,14 @@ export class LocatesApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => LocateFromJSON(jsonValue));
     }
 
     /**
-     * Returns a locate by ID.
+     * Returns a locate by ID. This endpoint is not available in paper trading.
      * Get Locate
      */
     async getLocate(requestParameters: GetLocateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Locate> {
@@ -168,7 +174,7 @@ export class LocatesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns locate availability and pricing for one or more symbols.
+     * Returns locate availability and pricing for one or more symbols. This endpoint is not available in paper trading.
      * Get Locate Quotes
      */
     async listLocateQuotesRaw(requestParameters: ListLocateQuotesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ListLocateQuotesResponse>> {
@@ -187,6 +193,7 @@ export class LocatesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -195,6 +202,7 @@ export class LocatesApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v1/locates/quotes`;
 
@@ -203,13 +211,14 @@ export class LocatesApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => ListLocateQuotesResponseFromJSON(jsonValue));
     }
 
     /**
-     * Returns locate availability and pricing for one or more symbols.
+     * Returns locate availability and pricing for one or more symbols. This endpoint is not available in paper trading.
      * Get Locate Quotes
      */
     async listLocateQuotes(requestParameters: ListLocateQuotesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ListLocateQuotesResponse> {
@@ -218,7 +227,7 @@ export class LocatesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns locates filtered by status, symbol, or date range. Results are sorted by `created_at` descending, with `id` descending as the tie-breaker.
+     * Returns locates filtered by status, symbol, or date range. Results are sorted by `created_at` descending, with `id` descending as the tie-breaker. This endpoint is not available in paper trading.
      * List Locates
      */
     async listLocatesRaw(requestParameters: ListLocatesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ListLocatesResponse>> {
@@ -250,6 +259,7 @@ export class LocatesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -258,6 +268,7 @@ export class LocatesApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v1/locates`;
 
@@ -266,13 +277,14 @@ export class LocatesApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => ListLocatesResponseFromJSON(jsonValue));
     }
 
     /**
-     * Returns locates filtered by status, symbol, or date range. Results are sorted by `created_at` descending, with `id` descending as the tie-breaker.
+     * Returns locates filtered by status, symbol, or date range. Results are sorted by `created_at` descending, with `id` descending as the tie-breaker. This endpoint is not available in paper trading.
      * List Locates
      */
     async listLocates(requestParameters: ListLocatesRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ListLocatesResponse> {

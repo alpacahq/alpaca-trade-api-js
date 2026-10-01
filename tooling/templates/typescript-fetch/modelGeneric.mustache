@@ -18,16 +18,50 @@ import { type {{modelName}}, {{modelName}}FromJSONTyped, {{modelName}}ToJSON, {{
 {{/discriminator}}
 {{>modelGenericInterfaces}}
 
+{{#vendorExtensions.x-ts-travel-rule-info}}
+function isNonEmptyString(value: unknown): value is string {
+    return typeof value === 'string' && value.length > 0;
+}
+
+function isValid{{classname}}(value: Record<string, unknown>): boolean {
+    const manualEntry = value['beneficiaryManualEntry'] as
+        | Record<string, unknown>
+        | null
+        | undefined;
+    const hasDestination =
+        isNonEmptyString(value['beneficiaryVaspId']) ||
+        value['beneficiaryIsSelfHosted'] === true ||
+        (
+            manualEntry !== null &&
+            typeof manualEntry === 'object' &&
+            isNonEmptyString(manualEntry['vaspName']) &&
+            isNonEmptyString(manualEntry['vaspWebsite'])
+        );
+    const hasIdentity =
+        isNonEmptyString(value['beneficiaryEntityName']) ||
+        (
+            isNonEmptyString(value['beneficiaryGivenName']) &&
+            isNonEmptyString(value['beneficiaryFamilyName'])
+        );
+    return hasDestination && hasIdentity;
+}
+
+{{/vendorExtensions.x-ts-travel-rule-info}}
 /**
  * Check if a given object implements the {{classname}} interface.
  */
 export function instanceOf{{classname}}(value: object): value is {{classname}} {
+    {{#vendorExtensions.x-ts-travel-rule-info}}
+    return isValid{{classname}}(value as Record<string, unknown>);
+    {{/vendorExtensions.x-ts-travel-rule-info}}
+    {{^vendorExtensions.x-ts-travel-rule-info}}
     {{#vars}}
     {{#required}}
     if (!('{{name}}' in value) || value['{{name}}'] === undefined) return false;
     {{/required}}
     {{/vars}}
     return true;
+    {{/vendorExtensions.x-ts-travel-rule-info}}
 }
 
 export function {{classname}}FromJSON(json: any): {{classname}} {
@@ -60,10 +94,10 @@ export function {{classname}}FromJSONTyped(json: any, ignoreDiscriminator: boole
         {{#isPrimitiveType}}
         {{#isArray}}
         {{#uniqueItems}}
-        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}{{#isNullable}}json['{{baseName}}'] == null ? null : {{/isNullable}}{{/required}}new Set(json['{{baseName}}']),
+        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}{{#isNullable}}json['{{baseName}}'] == null ? null : {{/isNullable}}{{/required}}new Set({{#required}}{{^isNullable}}json['{{baseName}}'] == null ? [] : {{/isNullable}}{{/required}}json['{{baseName}}']),
         {{/uniqueItems}}
         {{^uniqueItems}}
-        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}{{#isNullable}}json['{{baseName}}'] == null ? null : {{/isNullable}}{{/required}}json['{{baseName}}'],
+        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}{{#isNullable}}json['{{baseName}}'] == null ? null : {{/isNullable}}{{^isNullable}}json['{{baseName}}'] == null ? [] : {{/isNullable}}{{/required}}json['{{baseName}}'],
         {{/uniqueItems}}
         {{/isArray}}
         {{^isArray}}
@@ -75,7 +109,7 @@ export function {{classname}}FromJSONTyped(json: any, ignoreDiscriminator: boole
         {{/isDateTimeType}}
         {{^isDateType}}
         {{^isDateTimeType}}
-        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}{{^isNullable}}{{#isMap}}json['{{baseName}}'] == null ? {} : {{/isMap}}{{#isFreeFormObject}}json['{{baseName}}'] == null ? {} : {{/isFreeFormObject}}{{/isNullable}}{{/required}}json['{{baseName}}'],
+        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}{{^isNullable}}{{#isMap}}json['{{baseName}}'] == null ? {} : {{/isMap}}{{^isMap}}{{#isFreeFormObject}}json['{{baseName}}'] == null ? {} : {{/isFreeFormObject}}{{/isMap}}{{/isNullable}}{{/required}}json['{{baseName}}'],
         {{/isDateTimeType}}
         {{/isDateType}}
         {{/isArray}}
@@ -120,6 +154,13 @@ export function {{classname}}ToJSONTyped(value?: {{#hasReadOnly}}Omit<{{classnam
     if (value == null) {
         return value;
     }
+    {{#vendorExtensions.x-ts-travel-rule-info}}
+    if (!instanceOf{{classname}}(value)) {
+        throw new TypeError(
+            '{{classname}} requires a destination and either an entity name or both beneficiary names',
+        );
+    }
+    {{/vendorExtensions.x-ts-travel-rule-info}}
     {{#discriminator}}
 
     if (!ignoreDiscriminator) {

@@ -118,7 +118,7 @@ export function StockQuoteFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'bp': json['bp'],
         'bs': json['bs'],
         'bx': json['bx'],
-        'c': json['c'],
+        'c': json['c'] == null ? [] : json['c'],
         't': (new Date(json['t'])),
         'z': StockTapeFromJSON(json['z']),
     };

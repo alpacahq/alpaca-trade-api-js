@@ -7,7 +7,7 @@
  * this in lockstep with `capabilities` (see endpoints.shared.ts), and the
  * streaming factory is referenced by name to round out the surface.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createMockAlpaca } from '../src/testing';
 import * as streaming from '../src/streaming';
@@ -215,6 +215,31 @@ const cases: EndpointCase[] = [
         kind: 'object',
         call: (a) => a.trading.cryptoFunding.listWhitelistedAddress(),
     },
+    {
+        accessor: 'trading.cryptoFunding',
+        method: 'searchVASPs',
+        verb: 'GET',
+        path: /^\/v2\/wallets\/travel-rule\/vasps$/,
+        kind: 'object',
+        call: (a) => a.trading.cryptoFunding.searchVASPs({ q: 'exchange' }),
+    },
+    {
+        accessor: 'trading.cryptoFunding',
+        method: 'updateWhitelistedAddressTravelRuleInfo',
+        verb: 'PATCH',
+        path: /^\/v2\/wallets\/whitelists\/[^/]+\/travel-rule-info$/,
+        kind: 'void',
+        call: (a) => a.trading.cryptoFunding.updateWhitelistedAddressTravelRuleInfo({
+            whitelistedAddressId: 'w-1',
+            updateWhitelistedAddressTravelRuleInfoRequest: {
+                travelRuleInfo: {
+                    beneficiaryIsSelfHosted: true,
+                    beneficiaryGivenName: 'Ada',
+                    beneficiaryFamilyName: 'Lovelace',
+                },
+            },
+        }),
+    },
 
     // --- trading.events --------------------------------------------------
     {
@@ -222,7 +247,11 @@ const cases: EndpointCase[] = [
         method: 'subscribeToActivitiesSSE',
         verb: 'GET',
         path: /^\/v2beta1\/events\/activities$/,
-        kind: 'array',
+        kind: 'sse',
+        body: `id: evt-1
+data: {"activity_type":"TRD","at":"2026-01-02T14:43:59Z","currency":"USD","event_id":"evt-1","executed_at":"2026-01-02T14:43:59Z","ref_id":"ref-1","settle_date":"2026-01-05","status":"executed","details":{"asset_id":"asset-1","cum_qty":"1","execution_type":"fill","leaves_qty":"0","order_id":"order-1","order_status":"filled","side":"buy","symbol":"AAPL"}}
+
+`,
         call: (a) => a.trading.events.subscribeToActivitiesSSE({}),
     },
 
@@ -278,7 +307,7 @@ const cases: EndpointCase[] = [
         verb: 'POST',
         path: /^\/v2\/orders$/,
         kind: 'object',
-        call: (a) => a.trading.orders.postOrder({ postOrderRequest: { symbol: 'AAPL', qty: '1', side: 'buy', type: 'market', time_in_force: 'day' } as any }),
+        call: (a) => a.trading.orders.postOrder({ createOrderRequest: { symbol: 'AAPL', qty: '1', side: 'buy', type: 'market', timeInForce: 'day' } }),
     },
     {
         accessor: 'trading.orders',
@@ -412,7 +441,10 @@ const cases: EndpointCase[] = [
         verb: 'POST',
         path: /^\/v2\/tokenization\/mint$/,
         kind: 'object',
-        call: (a) => a.trading.tokenization.postTokenizationMint({ tokenizationMintRequest: { symbol: 'AAPLx' } as any }),
+        call: (a) => a.trading.tokenization.postTokenizationMint({
+            idempotencyKey: 'mint-request-1',
+            tokenizationMintRequest: { symbol: 'AAPLx' } as any,
+        }),
     },
 
     // --- trading.watchlists ---------------------------------------------
@@ -508,6 +540,43 @@ const cases: EndpointCase[] = [
 
 describe('Trading API surface (per-endpoint)', () => {
     runEndpointCases('trading', cases);
+
+    it('sends the production-recommended tokenization mint idempotency key', async () => {
+        const alpaca = createMockAlpaca([
+            {
+                method: 'POST',
+                path: '/v2/tokenization/mint',
+                respond: ({ init }) => {
+                    expect(new Headers(init?.headers).get('Idempotency-Key')).toBe(
+                        'mint-request-1',
+                    );
+                    return {};
+                },
+            },
+        ]);
+
+        await alpaca.trading.tokenization.postTokenizationMint({
+            idempotencyKey: 'mint-request-1',
+            tokenizationMintRequest: { symbol: 'AAPLx' } as any,
+        });
+    });
+
+    it('rejects incomplete Travel Rule information before sending it', async () => {
+        const fallback = vi.fn(() => ({}));
+        const alpaca = createMockAlpaca([], { fallback });
+
+        await expect(
+            alpaca.trading.cryptoFunding.updateWhitelistedAddressTravelRuleInfo({
+                whitelistedAddressId: 'w-1',
+                updateWhitelistedAddressTravelRuleInfoRequest: {
+                    travelRuleInfo: {},
+                } as any,
+            }),
+        ).rejects.toThrow(
+            'TravelRuleInfo requires a destination and either an entity name or both beneficiary names',
+        );
+        expect(fallback).not.toHaveBeenCalled();
+    });
 });
 
 describe('Trading streaming surface', () => {

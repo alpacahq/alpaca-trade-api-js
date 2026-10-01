@@ -47,7 +47,8 @@ export const LocateQuoteErrorCodeEnum = {
     SymbolNotFound: 'symbol_not_found',
     EasyToBorrow: 'easy_to_borrow',
     ThresholdSecurity: 'threshold_security',
-    CorporateAction: 'corporate_action'
+    CorporateAction: 'corporate_action',
+    QuoteUnavailable: 'quote_unavailable'
 } as const;
 export type LocateQuoteErrorCodeEnum = typeof LocateQuoteErrorCodeEnum[keyof typeof LocateQuoteErrorCodeEnum];
 

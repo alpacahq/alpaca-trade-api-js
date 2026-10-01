@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { TravelRuleInfo } from './TravelRuleInfo';
+import {
+    TravelRuleInfoFromJSON,
+    TravelRuleInfoFromJSONTyped,
+    TravelRuleInfoToJSON,
+    TravelRuleInfoToJSONTyped,
+} from './TravelRuleInfo';
+
 /**
  * 
  * @export
@@ -55,6 +63,12 @@ export interface WhitelistedAddress {
      * @memberof WhitelistedAddress
      */
     status?: WhitelistedAddressStatusEnum;
+    /**
+     * Travel rule information associated with the whitelisted address.
+     * @type {TravelRuleInfo}
+     * @memberof WhitelistedAddress
+     */
+    travelRuleInfo?: TravelRuleInfo;
 }
 
 
@@ -91,6 +105,7 @@ export function WhitelistedAddressFromJSONTyped(json: any, ignoreDiscriminator: 
         'createdAt': json['created_at'] == null ? undefined : (new Date(json['created_at'])),
         'id': json['id'] == null ? undefined : json['id'],
         'status': json['status'] == null ? undefined : json['status'],
+        'travelRuleInfo': json['travel_rule_info'] == null ? undefined : TravelRuleInfoFromJSON(json['travel_rule_info']),
     };
 }
 
@@ -111,6 +126,7 @@ export function WhitelistedAddressToJSONTyped(value?: WhitelistedAddress | null,
         'created_at': value['createdAt'] == null ? undefined : ((value['createdAt']).toISOString()),
         'id': value['id'],
         'status': value['status'],
+        'travel_rule_info': TravelRuleInfoToJSON(value['travelRuleInfo']),
     };
 }
 

@@ -12,10 +12,34 @@
  *
  * Hand-maintained: edit this file directly for transport behavior changes.
  */
-import { buildApiError, FetchError } from "../errors";
+import { buildApiError, FetchError, ResponseError } from "../errors";
 import { RateLimiter } from "../rate-limit";
 import type { RateLimitConfig } from "../rate-limit";
 import { formatUserAgent } from "./runtimeIdentity";
+import type {
+    SseConnection,
+    SseOperationMetadata,
+    SseOptions,
+} from "./sse";
+
+export {
+    SSEApiResponse,
+    SseDeserializationError,
+    SseProtocolError,
+    SseSubscription,
+} from "./sse";
+export type {
+    SseConnection,
+    SseConnectionInfo,
+    SseClosedInfo,
+    SseCloseReason,
+    SseMessage,
+    SseOperationMetadata,
+    SseOptions,
+    SseReconnectEvent,
+    SseReconnectOptions,
+    SseServer,
+} from "./sse";
 
 declare const __ALPACA_PACKAGE_VERSION__: string;
 
@@ -152,6 +176,15 @@ export class BaseConfiguration {
         return this.defaultBasePath();
     }
 
+    /** Explicit caller override, excluding the package-specific default host. */
+    get configuredBasePath(): string | undefined {
+        return this.configuration.basePath;
+    }
+
+    get sandbox(): boolean {
+        return this.configuration.sandbox === true;
+    }
+
     get fetchApi(): FetchAPI | undefined {
         return this.configuration.fetchApi;
     }
@@ -271,6 +304,89 @@ export class BaseConfiguration {
  */
 export const DefaultConfig = new BaseConfiguration();
 
+const SSE_ONLY_OPTION_KEYS = [
+    "requestInit",
+    "connectTimeoutMs",
+    "idleTimeoutMs",
+    "maxDurationMs",
+    "basePath",
+    "serverIndex",
+    "reconnect",
+    "maxLineBytes",
+    "maxEventBytes",
+    "maxErrorBodyBytes",
+    "onOpen",
+    "onComment",
+    "onReconnect",
+] as const;
+
+function sseRequestInit(options: SseOptions): RequestInit {
+    const compatibleRequestInit = {
+        ...options,
+    } as Record<string, unknown>;
+    for (const key of SSE_ONLY_OPTION_KEYS) {
+        delete compatibleRequestInit[key];
+    }
+    return {
+        ...(compatibleRequestInit as RequestInit),
+        ...options.requestInit,
+        headers: mergeRequestHeaders(
+            compatibleRequestInit.headers as HeadersInit | undefined,
+            options.requestInit?.headers,
+        ),
+        signal: options.signal ?? options.requestInit?.signal,
+    };
+}
+
+type RequestHeaderSource = HeadersInit | HTTPHeaders | undefined;
+
+function forEachRequestHeader(
+    source: RequestHeaderSource,
+    callback: (value: string, name: string) => void,
+): void {
+    if (!source) return;
+    if (source instanceof Headers) {
+        source.forEach(callback);
+        return;
+    }
+    if (Array.isArray(source)) {
+        for (const [name, value] of source) callback(value, name);
+        return;
+    }
+    for (const [name, value] of Object.entries(source)) {
+        if (value !== undefined) callback(value, name);
+    }
+}
+
+function mergeRequestHeaders(...sources: RequestHeaderSource[]): Headers {
+    const headers = new Headers();
+    for (const source of sources) {
+        forEachRequestHeader(source, (value, name) => {
+            headers.set(name, value);
+        });
+    }
+    return headers;
+}
+
+function mergeRequestHeaderRecord(
+    ...sources: RequestHeaderSource[]
+): HTTPHeaders {
+    const headers = new Headers();
+    const casing = new Map<string, string>();
+    for (const source of sources) {
+        forEachRequestHeader(source, (value, name) => {
+            headers.set(name, value);
+            casing.set(name.toLowerCase(), name);
+        });
+    }
+    return Object.fromEntries(
+        Array.from(headers.entries(), ([name, value]) => [
+            casing.get(name) ?? name,
+            value,
+        ]),
+    );
+}
+
 /**
  * This is the base class for all generated API classes.
  */
@@ -317,7 +433,30 @@ export class BaseAPI {
     }
 
     protected async request(context: RequestOpts, initOverrides?: RequestInit | InitOverrideFunction): Promise<Response> {
-        const { url, init } = await this.createFetchParams(context, initOverrides);
+        const directSignal =
+            typeof initOverrides === 'object'
+                ? initOverrides?.signal
+                : undefined;
+        let deadline = new AttemptDeadline(
+            this.configuration.timeoutMs,
+            directSignal,
+        );
+        let url: string;
+        let init: RequestInit;
+        try {
+            if (context.resolveAuth) {
+                await deadline.race(
+                    context.resolveAuth(deadline.signal),
+                );
+            }
+            ({ url, init } = await deadline.race(
+                this.createFetchParams(context, initOverrides),
+            ));
+            deadline.addCallerSignal(init.signal);
+        } catch (error) {
+            deadline.cancel();
+            throw error;
+        }
         const retry = this.configuration.retry;
         const maxRetries = retry?.maxRetries ?? 0;
         const method = (init.method || context.method || 'GET').toUpperCase();
@@ -329,7 +468,6 @@ export class BaseAPI {
 
         let attempt = 0;
         while (true) {
-            const deadline = new AttemptDeadline(this.configuration.timeoutMs, init.signal);
             let response: Response | undefined;
             let networkError: unknown;
             let release: (() => void) | undefined;
@@ -369,6 +507,10 @@ export class BaseAPI {
                     notifyRetry(retry, { method, url, attempt: attempt + 1, maxRetries, delayMs, error: networkError });
                     await sleep(delayMs, init.signal);
                     attempt++;
+                    deadline = new AttemptDeadline(
+                        this.configuration.timeoutMs,
+                        init.signal,
+                    );
                     continue;
                 }
                 if (isRetryable && maxRetries > 0) {
@@ -388,6 +530,10 @@ export class BaseAPI {
                 notifyRetry(retry, { method, url, attempt: attempt + 1, maxRetries, delayMs, status: response!.status });
                 await sleep(delayMs, init.signal);
                 attempt++;
+                deadline = new AttemptDeadline(
+                    this.configuration.timeoutMs,
+                    init.signal,
+                );
                 continue;
             }
             if (isRetryable && maxRetries > 0) {
@@ -409,8 +555,188 @@ export class BaseAPI {
         }
     }
 
-    private async createFetchParams(context: RequestOpts, initOverrides?: RequestInit | InitOverrideFunction) {
-        let url = this.configuration.basePath + context.path;
+    /**
+     * Open one validated SSE connection without REST retries, post-middleware
+     * response clones, or a whole-body deadline.
+     */
+    protected async requestSse(
+        context: RequestOpts,
+        options: SseOptions = {},
+        metadata: SseOperationMetadata = {},
+        lastEventId?: string,
+        resolveAttemptHeaders?: (
+            overrideHeaders: Headers,
+            signal?: AbortSignal,
+        ) => Promise<HTTPHeaders>,
+    ): Promise<SseConnection> {
+        const servers = metadata.servers ?? [];
+        const defaultServerIndex =
+            this.configuration.sandbox && metadata.sandboxServerIndex !== undefined
+                ? metadata.sandboxServerIndex
+                : 0;
+        const serverIndex = options.serverIndex ?? defaultServerIndex;
+        const usesOperationServer =
+            options.basePath === undefined &&
+            this.configuration.configuredBasePath === undefined;
+        if (
+            usesOperationServer &&
+            (options.serverIndex !== undefined || servers.length > 0) &&
+            (
+                !Number.isInteger(serverIndex) ||
+                serverIndex < 0 ||
+                serverIndex >= servers.length
+            )
+        ) {
+            throw new RangeError(
+                `SSE serverIndex ${serverIndex} is outside the operation server range`,
+            );
+        }
+        const basePath =
+            options.basePath ??
+            this.configuration.configuredBasePath ??
+            servers[serverIndex]?.url ??
+            this.configuration.basePath;
+        const initOverrides = sseRequestInit(options);
+        const deadline = new AttemptDeadline(
+            options.connectTimeoutMs ?? this.configuration.timeoutMs,
+            initOverrides.signal,
+        );
+        let attemptContext = context;
+        let url: string;
+        let init: RequestInit;
+        try {
+            let attemptHeaders = context.headers;
+            if (resolveAttemptHeaders) {
+                attemptHeaders = await deadline.race(
+                    resolveAttemptHeaders(
+                        new Headers(initOverrides.headers),
+                        deadline.signal,
+                    ),
+                );
+            }
+            attemptContext = {
+                ...context,
+                headers: Object.fromEntries(
+                    mergeRequestHeaders(
+                        attemptHeaders,
+                        initOverrides.headers,
+                    ).entries(),
+                ),
+            };
+            ({ url, init } = await deadline.race(
+                this.createFetchParams(
+                    attemptContext,
+                    async ({ init }) => {
+                        const headers = mergeRequestHeaders(
+                            init.headers,
+                            initOverrides.headers,
+                        );
+                        if (lastEventId === "") {
+                            headers.delete("Last-Event-ID");
+                        } else if (lastEventId !== undefined) {
+                            headers.set("Last-Event-ID", lastEventId);
+                        }
+                        return {
+                            ...initOverrides,
+                            headers,
+                        };
+                    },
+                    basePath,
+                ),
+            ));
+        } catch (error) {
+            deadline.cancel();
+            throw error;
+        }
+        let response: Response | undefined;
+        let effectiveUrl = url;
+        let release: (() => void) | undefined;
+        try {
+            const acquire = this.configuration.rateLimiter?.acquire(deadline.signal);
+            if (acquire) {
+                release = await deadline.race(
+                    acquire,
+                    (lateRelease) => lateRelease(),
+                );
+            }
+            const result = await deadline.race(
+                this.fetchSseApi(
+                    url,
+                    deadline.signal ? { ...init, signal: deadline.signal } : init,
+                ),
+                (lateResult) => discardResponse(lateResult.response),
+            );
+            response = result.response;
+            effectiveUrl = result.url;
+        } finally {
+            release?.();
+        }
+
+        if (response.status === 200 || response.status === 204) {
+            if (response.status !== 204) {
+                const contentType = response.headers
+                    .get("Content-Type")
+                    ?.split(";", 1)[0]
+                    ?.trim()
+                    .toLowerCase();
+                if (contentType !== "text/event-stream") {
+                    deadline.cancel();
+                    discardResponse(response);
+                    throw new ResponseError(
+                        response,
+                        `Expected text/event-stream response, received ${contentType ?? "no Content-Type"}`,
+                    );
+                }
+                if (!response.body) {
+                    deadline.cancel();
+                    throw new ResponseError(
+                        response,
+                        "SSE response did not include a readable body",
+                    );
+                }
+            }
+            // End only the connect timer. The composed signal continues
+            // forwarding subscription cancellation to the live body.
+            deadline.stopTimer();
+            return { response, url: effectiveUrl };
+        }
+        if (response.status >= 200 && response.status < 300) {
+            deadline.cancel();
+            discardResponse(response);
+            throw new ResponseError(
+                response,
+                `Expected SSE status 200 or 204, received ${response.status}`,
+            );
+        }
+
+        try {
+            // Unlike a validated 200/204 stream, a non-2xx response keeps the
+            // connection deadline active while its bounded error body is read.
+            const maxBytes = options.maxErrorBodyBytes ?? 64 * 1024;
+            throw await buildApiError(
+                response,
+                (body) =>
+                    deadline.race(
+                        readBoundedText(body, maxBytes, deadline.signal),
+                        undefined,
+                        () => discardResponse(response!),
+                    ),
+                {
+                    preserveBody: false,
+                    preserveTypedErrorOnBodyTimeout: true,
+                },
+            );
+        } finally {
+            deadline.cancel();
+        }
+    }
+
+    private async createFetchParams(
+        context: RequestOpts,
+        initOverrides?: RequestInit | InitOverrideFunction,
+        basePath = this.configuration.basePath,
+    ) {
+        let url = basePath + context.path;
         if (context.query !== undefined && Object.keys(context.query).length !== 0) {
             // only add the querystring to the URL if there are query parameters.
             // this is done to avoid urls ending with a "?" character which buggy webservers
@@ -423,7 +749,12 @@ export class BaseAPI {
         if (userAgent) {
             defaultHeaders['User-Agent'] = userAgent;
         }
-        const headers = Object.assign(defaultHeaders, this.configuration.headers, context.headers);
+        const headers = mergeRequestHeaderRecord(
+            defaultHeaders,
+            this.configuration.headers,
+            context.headers,
+        );
+        const mergedHeaders = new Headers(headers);
 
         // OAuth2 bearer auth. The generated operations only ever wire Alpaca's
         // `APCA-API-KEY-ID` / `APCA-API-SECRET-KEY` headers (the spec declares
@@ -431,14 +762,13 @@ export class BaseAPI {
         // Authorization header here at the transport layer. An explicit
         // Authorization header (from config or the operation) still wins.
         const accessToken = this.configuration.accessToken;
-        if (accessToken && headers.Authorization === undefined && headers.authorization === undefined) {
+        if (accessToken && !mergedHeaders.has("Authorization")) {
             const token = await accessToken();
             if (token) {
+                mergedHeaders.set("Authorization", `Bearer ${token}`);
                 headers.Authorization = `Bearer ${token}`;
             }
         }
-
-        Object.keys(headers).forEach(key => headers[key] === undefined ? delete headers[key] : {});
 
         const initOverrideFn =
             typeof initOverrides === "function"
@@ -469,7 +799,7 @@ export class BaseAPI {
             || (overriddenInit.body instanceof URLSearchParams)
             || isBlob(overriddenInit.body)) {
           body = overriddenInit.body;
-        } else if (this.isJsonMime(headers['Content-Type'])) {
+        } else if (this.isJsonMime(mergedHeaders.get("Content-Type"))) {
           body = JSON.stringify(overriddenInit.body);
         } else {
           body = overriddenInit.body;
@@ -527,6 +857,58 @@ export class BaseAPI {
             }
         }
         return response;
+    }
+
+    /** SSE middleware path: pre/onError only, never body-cloning post. */
+    private fetchSseApi = async (
+        url: string,
+        init: RequestInit,
+    ): Promise<{ response: Response; url: string }> => {
+        const middlewareFetch: FetchAPI = async (nextUrl, nextInit) =>
+            (await this.fetchSseApi(nextUrl, nextInit)).response;
+        let fetchParams = { url, init };
+        for (const middleware of this.middleware) {
+            if (middleware.pre) {
+                fetchParams =
+                    (await middleware.pre({
+                        fetch: middlewareFetch,
+                        ...fetchParams,
+                    })) || fetchParams;
+            }
+        }
+        let response: Response | undefined;
+        try {
+            response = await (this.configuration.fetchApi || fetch)(
+                fetchParams.url,
+                fetchParams.init,
+            );
+        } catch (error) {
+            for (const middleware of this.middleware) {
+                if (middleware.onError) {
+                    const recovered = await middleware.onError({
+                            fetch: middlewareFetch,
+                            url: fetchParams.url,
+                            init: fetchParams.init,
+                            error,
+                            response: undefined,
+                        });
+                    if (recovered) {
+                        response = recovered;
+                        break;
+                    }
+                }
+            }
+            if (response === undefined) {
+                if (error instanceof Error) {
+                    throw new FetchError(
+                        error,
+                        "The SSE connection failed and the interceptors did not return an alternative response",
+                    );
+                }
+                throw error;
+            }
+        }
+        return { response, url: fetchParams.url };
     }
 
     /**
@@ -590,43 +972,86 @@ function normalizeCancellation(error: unknown, signal?: AbortSignal): unknown {
 }
 
 /**
- * One phase-specific request deadline. The timer starts immediately before a
- * rate-limit acquisition and stays live through fetch, post middleware, and
- * response-body consumption. Retry backoff happens only after this deadline is
- * cancelled; the next attempt constructs a fresh instance.
+ * One phase-specific request deadline. The first timer starts before request
+ * preparation (including lazy credentials and init overrides) and stays live
+ * through rate-limit acquisition, fetch, post middleware, and response-body
+ * consumption. Retry backoff happens only after this deadline is cancelled;
+ * the next attempt constructs a fresh instance.
  */
 class AttemptDeadline {
-    readonly signal?: AbortSignal;
+    private controller?: AbortController;
+    signal?: AbortSignal;
+    private directCallerSignal?: AbortSignal;
     private timer?: ReturnType<typeof setTimeout>;
-    private callerSignal?: AbortSignal;
-    private onCallerAbort?: () => void;
+    private readonly callerAborts: Array<{
+        signal: AbortSignal;
+        listener: () => void;
+    }> = [];
     private onDeadlineAbort?: () => void;
     private stopped = false;
 
     constructor(timeoutMs: number | undefined, callerSignal?: AbortSignal | null) {
-        if (!timeoutMs || timeoutMs <= 0) {
-            this.signal = callerSignal ?? undefined;
+        if (timeoutMs && timeoutMs > 0) {
+            const controller = this.ensureController();
+            this.timer = setTimeout(
+                () => controller.abort(
+                    new DOMException(`Request timed out after ${timeoutMs} ms`, 'TimeoutError'),
+                ),
+                timeoutMs,
+            );
+            this.addCallerSignal(callerSignal);
+        } else if (callerSignal) {
+            this.signal = callerSignal;
+            this.directCallerSignal = callerSignal;
+        }
+    }
+
+    addCallerSignal(callerSignal?: AbortSignal | null): void {
+        if (
+            !callerSignal ||
+            this.directCallerSignal === callerSignal ||
+            this.callerAborts.some(({ signal }) => signal === callerSignal)
+        ) {
             return;
         }
-
-        const controller = new AbortController();
-        this.signal = controller.signal;
-        this.callerSignal = callerSignal ?? undefined;
-        this.onDeadlineAbort = () => this.stopClock();
-        controller.signal.addEventListener('abort', this.onDeadlineAbort, { once: true });
-        this.timer = setTimeout(
-            () => controller.abort(
-                new DOMException(`Request timed out after ${timeoutMs} ms`, 'TimeoutError'),
-            ),
-            timeoutMs,
-        );
-
-        if (callerSignal?.aborted) {
-            controller.abort(abortReason(callerSignal));
-        } else if (callerSignal) {
-            this.onCallerAbort = () => controller.abort(abortReason(callerSignal));
-            callerSignal.addEventListener('abort', this.onCallerAbort, { once: true });
+        if (!this.controller && this.directCallerSignal) {
+            const directCallerSignal = this.directCallerSignal;
+            this.directCallerSignal = undefined;
+            this.signal = undefined;
+            this.ensureController();
+            this.forwardCallerSignal(directCallerSignal);
+        } else if (!this.controller) {
+            this.signal = callerSignal;
+            this.directCallerSignal = callerSignal;
+            return;
         }
+        this.forwardCallerSignal(callerSignal);
+    }
+
+    private forwardCallerSignal(callerSignal: AbortSignal): void {
+        const controller = this.ensureController();
+        if (callerSignal.aborted) {
+            controller.abort(abortReason(callerSignal));
+            return;
+        }
+        const listener = () =>
+            controller.abort(abortReason(callerSignal));
+        callerSignal.addEventListener('abort', listener, { once: true });
+        this.callerAborts.push({ signal: callerSignal, listener });
+    }
+
+    private ensureController(): AbortController {
+        if (this.controller) return this.controller;
+        const controller = new AbortController();
+        this.controller = controller;
+        this.signal = controller.signal;
+        this.onDeadlineAbort = () => this.stopClock();
+        controller.signal.addEventListener(
+            'abort',
+            this.onDeadlineAbort,
+            { once: true },
+        );
+        return controller;
     }
 
     race<T>(
@@ -706,6 +1131,14 @@ class AttemptDeadline {
         this.stopClock();
     }
 
+    /** Stop only the deadline clock while retaining caller-abort forwarding. */
+    stopTimer(): void {
+        if (this.timer !== undefined) {
+            clearTimeout(this.timer);
+            this.timer = undefined;
+        }
+    }
+
     private stopClock(): void {
         if (this.stopped) {
             return;
@@ -715,10 +1148,10 @@ class AttemptDeadline {
             clearTimeout(this.timer);
             this.timer = undefined;
         }
-        if (this.callerSignal && this.onCallerAbort) {
-            this.callerSignal.removeEventListener('abort', this.onCallerAbort);
-            this.onCallerAbort = undefined;
+        for (const { signal, listener } of this.callerAborts) {
+            signal.removeEventListener('abort', listener);
         }
+        this.callerAborts.length = 0;
         if (this.signal && this.onDeadlineAbort) {
             this.signal.removeEventListener('abort', this.onDeadlineAbort);
             this.onDeadlineAbort = undefined;
@@ -745,6 +1178,47 @@ function discardResponse(response: Response): void {
     } catch {
         // A custom/locked body may not be cancellable; the attempt deadline is
         // still fully detached before retry backoff begins.
+    }
+}
+
+async function readBoundedText(
+    response: Response,
+    maxBytes: number,
+    signal?: AbortSignal,
+): Promise<string> {
+    const body = response.body;
+    if (!body) return "";
+    const reader = body.getReader();
+    const onAbort = (): void => {
+        void reader.cancel(abortReason(signal!)).catch(() => {});
+    };
+    if (signal?.aborted) onAbort();
+    else signal?.addEventListener("abort", onAbort, { once: true });
+    const decoder = new TextDecoder();
+    let text = "";
+    let bytes = 0;
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            bytes += value.byteLength;
+            if (bytes > maxBytes) {
+                await reader.cancel(
+                    new Error(`Response body exceeded ${maxBytes} bytes`),
+                );
+                break;
+            }
+            text += decoder.decode(value, { stream: true });
+        }
+        text += decoder.decode();
+        return text;
+    } finally {
+        signal?.removeEventListener("abort", onAbort);
+        try {
+            reader.releaseLock();
+        } catch {
+            // A custom reader may release itself after cancellation.
+        }
     }
 }
 
@@ -911,6 +1385,8 @@ export interface RequestOpts {
     headers: HTTPHeaders;
     query?: HTTPQuery;
     body?: HTTPBody;
+    /** Generated lazy authentication, bounded by the request deadline. */
+    resolveAuth?: (signal?: AbortSignal) => Promise<void>;
 }
 
 export function querystring(params: HTTPQuery, prefix: string = ''): string {
@@ -951,6 +1427,11 @@ export function mapValues(data: any, fn: (item: any) => any) {
         result[key] = fn(data[key]);
     }
     return result;
+}
+
+/** Parse one completed SSE `data:` payload before generated model conversion. */
+export function parseSseJson(data: string): unknown {
+    return JSON.parse(data);
 }
 
 export function canConsumeForm(consumes: Consume[]): boolean {

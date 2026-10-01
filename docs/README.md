@@ -15,7 +15,7 @@ npm --prefix docs start
 ```
 
 Open <http://localhost:3000/alpaca-trade-api-js/>. The `prestart` hook
-regenerates the API reference, examples, and migration guide before Docusaurus
+regenerates the API reference, examples, and migration guides before Docusaurus
 starts.
 
 ## Production build preview
@@ -41,8 +41,13 @@ Do not edit these generated files directly:
   `scripts/gen-docs-api-reference.ts`.
 - `docs/docs/examples.md` comes from the runnable files under `examples/`,
   rendered by `scripts/gen-docs-examples.ts`.
-- `docs/docs/migration.md` comes from the root `MIGRATION.md`, rendered by
-  `scripts/gen-docs-migration.ts`.
+- `docs/docs/migrations.md`, `docs/docs/migration.md`, and
+  `docs/docs/migration-v5.md` come from the root `MIGRATIONS.md`,
+  `MIGRATION.md`, and `MIGRATION_V5.md`, rendered from the registry in
+  `scripts/gen-docs-migration.ts`. Add future major-version guides to that
+  registry. The 3.x → 4.0 guide remains the primary migration route in the
+  navbar and announcement banner; `/migrations` is the secondary version
+  chooser.
 
 Both `npm --prefix docs start` and `npm --prefix docs run build` regenerate
 these pages. They are ignored by Git and should remain reproducible from their

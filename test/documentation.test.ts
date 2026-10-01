@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -6,6 +6,26 @@ import { describe, expect, it } from 'vitest';
 import { renderAgentSkill } from '../scripts/gen-agent-guidance.mjs';
 
 const projectRoot = resolve(import.meta.dirname, '..');
+
+function pendingReleaseMajor(): number {
+    const packageJson = JSON.parse(
+        readFileSync(resolve(projectRoot, 'package.json'), 'utf8'),
+    );
+    const currentMajor = Number(packageJson.version.split('.')[0]);
+    const changesetDir = resolve(projectRoot, '.changeset');
+    const hasPendingMajor = readdirSync(changesetDir)
+        .filter((name) => name.endsWith('.md'))
+        .some((name) => {
+            const source = readFileSync(
+                resolve(changesetDir, name),
+                'utf8',
+            );
+            return source.includes(
+                '"@alpacahq/alpaca-trade-api": major',
+            );
+        });
+    return currentMajor + (hasPendingMajor ? 1 : 0);
+}
 
 describe('canonical documentation', () => {
     it('fails the docs build for unresolved Markdown links', () => {
@@ -15,6 +35,33 @@ describe('canonical documentation', () => {
         );
 
         expect(config).toMatch(/onBrokenMarkdownLinks:\s*["']throw["']/);
+    });
+
+    it('keeps the starter dashboard on the pending release major', () => {
+        const starterPackage = JSON.parse(
+            readFileSync(
+                resolve(
+                    projectRoot,
+                    'skills/starter-dashboard/template/package.json',
+                ),
+                'utf8',
+            ),
+        );
+
+        expect(
+            starterPackage.dependencies['@alpacahq/alpaca-trade-api'],
+        ).toBe(`^${pendingReleaseMajor()}.0.0`);
+    });
+
+    it('keeps the runtime identity example on the pending release major', () => {
+        const runtimeCompatibility = readFileSync(
+            resolve(projectRoot, 'docs/docs/runtime-compatibility.md'),
+            'utf8',
+        );
+
+        expect(runtimeCompatibility).toContain(
+            `APCA-NODE/${pendingReleaseMajor()}.0.0`,
+        );
     });
 
     it('separates repository, consumer, and docs-site agent guidance', () => {
@@ -41,6 +88,7 @@ describe('canonical documentation', () => {
         expect(docsReadme).toContain('npm --prefix docs run build');
         expect(docsReadme).toContain('docs/docs/api/');
         expect(docsReadme).toContain('docs/docs/examples.md');
+        expect(docsReadme).toContain('docs/docs/migrations.md');
         expect(docsReadme).toContain('docs/docs/migration.md');
         expect(docsReadme).toMatch(/do not edit.*generated/is);
     });
@@ -130,6 +178,7 @@ describe('canonical documentation', () => {
                 '/resilience',
                 '/testing',
                 '/runtime-compatibility',
+                '/migrations',
                 '/migration',
             ]) {
                 expect(guidance).toContain(guide);
@@ -208,6 +257,13 @@ describe('canonical documentation', () => {
         expect(resilience).toContain('respectRetryAfter');
         expect(resilience).toContain('maxConcurrent');
         expect(resilience).toContain(
+            'starts before credential resolution and request',
+        );
+        expect(resilience).toContain(
+            'asynchronous API-key or OAuth loading',
+        );
+        expect(resilience).toContain('init overrides');
+        expect(resilience).toContain(
             'first argument for parameterless methods',
         );
         expect(resilience).not.toContain(
@@ -257,7 +313,7 @@ describe('canonical documentation', () => {
         );
 
         expect(trading).toContain('orders.buildLimitOrder');
-        expect(trading).toContain('postOrder({ postOrderRequest })');
+        expect(trading).toContain('postOrder({ createOrderRequest })');
         expect(trading).toMatch(/without.*network.*tests.*inspection.*composition/is);
         expect(marketData).toContain('marketDataShapes.toBarsBySymbol');
         expect(marketData).toContain('marketDataShapes.toTradesBySymbol');
@@ -304,7 +360,7 @@ describe('canonical documentation', () => {
         expect(resilience).toContain('error instanceof ApiError');
         expect(resilience).toContain('error instanceof FetchError');
         expect(resilience).toContain('orders.buildMarketOrder');
-        expect(resilience).toContain('const postOrderRequest =');
+        expect(resilience).toContain('const createOrderRequest =');
         for (const field of ['status', 'code', 'message', 'requestId', 'rateLimit']) {
             expect(resilience).toContain(`error.${field}`);
         }
@@ -451,11 +507,17 @@ describe('canonical documentation', () => {
             'Runtime & module compatibility',
             'Examples',
             'Migration from 3.x',
+            'Migration overview',
+            'Migration from 4.x to 5.0',
             'API reference',
         ]);
         expect(readme).toMatch(
             /maps(?:\s*>\s*)?common 3\.x calls and workflows/,
         );
+        expect(
+            documentation.indexOf('[Migration from 3.x]'),
+        ).toBeLessThan(documentation.indexOf('[Migration overview]'));
+        expect(readme).toContain('[Migration from 4.x to 5.0]');
         expect(readme).not.toContain('maps every endpoint old → new');
     });
 });

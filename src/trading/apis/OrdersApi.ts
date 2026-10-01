@@ -16,19 +16,19 @@
 import * as runtime from '../runtime';
 import type {
   CanceledOrderResponse,
+  CreateOrderRequest,
   Order,
   PatchOrderRequest,
-  PostOrderRequest,
 } from '../models/index';
 import {
     CanceledOrderResponseFromJSON,
     CanceledOrderResponseToJSON,
+    CreateOrderRequestFromJSON,
+    CreateOrderRequestToJSON,
     OrderFromJSON,
     OrderToJSON,
     PatchOrderRequestFromJSON,
     PatchOrderRequestToJSON,
-    PostOrderRequestFromJSON,
-    PostOrderRequestToJSON,
 } from '../models/index';
 
 export interface DeleteOrderByOrderIDRequest {
@@ -63,8 +63,8 @@ export interface PatchOrderByOrderIdRequest {
     patchOrderRequest: PatchOrderRequest;
 }
 
-export interface PostOrderOperationRequest {
-    postOrderRequest: PostOrderRequest;
+export interface PostOrderRequest {
+    createOrderRequest: CreateOrderRequest;
 }
 
 /**
@@ -81,6 +81,7 @@ export class OrdersApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -89,6 +90,7 @@ export class OrdersApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/orders`;
 
@@ -97,6 +99,7 @@ export class OrdersApi extends runtime.BaseAPI {
             method: 'DELETE',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(CanceledOrderResponseFromJSON));
@@ -127,6 +130,7 @@ export class OrdersApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -135,6 +139,7 @@ export class OrdersApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/orders/{order_id}`;
         urlPath = urlPath.replace(`{${"order_id"}}`, encodeURIComponent(String(requestParameters['orderId'])));
@@ -144,6 +149,7 @@ export class OrdersApi extends runtime.BaseAPI {
             method: 'DELETE',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.VoidApiResponse(response);
@@ -210,6 +216,7 @@ export class OrdersApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -218,6 +225,7 @@ export class OrdersApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/orders`;
 
@@ -226,6 +234,7 @@ export class OrdersApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(OrderFromJSON));
@@ -260,6 +269,7 @@ export class OrdersApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -268,6 +278,7 @@ export class OrdersApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/orders:by_client_order_id`;
 
@@ -276,6 +287,7 @@ export class OrdersApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => OrderFromJSON(jsonValue));
@@ -310,6 +322,7 @@ export class OrdersApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -318,6 +331,7 @@ export class OrdersApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/orders/{order_id}`;
         urlPath = urlPath.replace(`{${"order_id"}}`, encodeURIComponent(String(requestParameters['orderId'])));
@@ -327,6 +341,7 @@ export class OrdersApi extends runtime.BaseAPI {
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => OrderFromJSON(jsonValue));
@@ -366,6 +381,7 @@ export class OrdersApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -374,6 +390,7 @@ export class OrdersApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/orders/{order_id}`;
         urlPath = urlPath.replace(`{${"order_id"}}`, encodeURIComponent(String(requestParameters['orderId'])));
@@ -383,6 +400,7 @@ export class OrdersApi extends runtime.BaseAPI {
             method: 'PATCH',
             headers: headerParameters,
             query: queryParameters,
+            resolveAuth: resolveRequestAuth,
             body: PatchOrderRequestToJSON(requestParameters['patchOrderRequest']),
         }, initOverrides);
 
@@ -402,11 +420,11 @@ export class OrdersApi extends runtime.BaseAPI {
      * Places a new order for the given account. An order request may be rejected if the account is not authorized for trading, or if the tradable balance is insufficient to fill the order.
      * Create an Order
      */
-    async postOrderRaw(requestParameters: PostOrderOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Order>> {
-        if (requestParameters['postOrderRequest'] == null) {
+    async postOrderRaw(requestParameters: PostOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Order>> {
+        if (requestParameters['createOrderRequest'] == null) {
             throw new runtime.RequiredError(
-                'postOrderRequest',
-                'Required parameter "postOrderRequest" was null or undefined when calling postOrder().'
+                'createOrderRequest',
+                'Required parameter "createOrderRequest" was null or undefined when calling postOrder().'
             );
         }
 
@@ -416,6 +434,7 @@ export class OrdersApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
         }
@@ -424,6 +443,7 @@ export class OrdersApi extends runtime.BaseAPI {
             headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
         }
 
+        };
 
         let urlPath = `/v2/orders`;
 
@@ -432,7 +452,8 @@ export class OrdersApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: PostOrderRequestToJSON(requestParameters['postOrderRequest']),
+            resolveAuth: resolveRequestAuth,
+            body: CreateOrderRequestToJSON(requestParameters['createOrderRequest']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => OrderFromJSON(jsonValue));
@@ -442,7 +463,7 @@ export class OrdersApi extends runtime.BaseAPI {
      * Places a new order for the given account. An order request may be rejected if the account is not authorized for trading, or if the tradable balance is insufficient to fill the order.
      * Create an Order
      */
-    async postOrder(requestParameters: PostOrderOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Order> {
+    async postOrder(requestParameters: PostOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Order> {
         const response = await this.postOrderRaw(requestParameters, initOverrides);
         return await response.value();
     }

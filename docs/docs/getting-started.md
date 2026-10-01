@@ -52,7 +52,7 @@ those namespaces:
 
 For example, `alpaca.trading.orders.market(...)` is an ergonomic builder. Its
 raw generated escape hatch remains
-`alpaca.trading.orders.postOrder({ postOrderRequest: ... })`. This rule applies
+`alpaca.trading.orders.postOrder({ createOrderRequest: ... })`. This rule applies
 throughout the SDK: when no helper fits, call the generated method.
 
 ## Place one paper order
@@ -96,4 +96,8 @@ Follow the reconciliation workflow in
   **[Authentication](./authentication.md)**.
 - Tune retries, timeouts, logging, and rate limiting in
   **[Resilience & configuration](./resilience.md)**.
-- Upgrading from 3.x? Follow the **[Migration guide](./migration.md)**.
+- Upgrading from 3.x? Start with the primary
+  **[3.x → 4.0 migration guide](./migration.md)**.
+- Already on 4.x? Continue with the
+  **[4.x → 5.0 migration guide](./migration-v5.md)**, or use the
+  **[migration overview](./migrations.md)** to choose a path.

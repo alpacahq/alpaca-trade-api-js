@@ -33,6 +33,14 @@
           "type": "string"
         }
       },
+      "cas_data_quality": {
+        "description": "Controls which corporate actions are returned based on data quality.\n",
+        "in": "query",
+        "name": "data_quality",
+        "schema": {
+          "$ref": "#/components/schemas/data_quality"
+        }
+      },
       "cas_end": {
         "description": "The inclusive end of the interval. The corporate actions are sorted by their `process_date`. Format: YYYY-MM-DD. Default: current day.\n",
         "examples": {
@@ -48,8 +56,86 @@
           "type": "string"
         }
       },
+      "cas_events_last_event_id": {
+        "description": "Standard SSE reconnect header. ULID matching an `event_id`; replay events\nwhose `event_id` is greater than or equal to this value (inclusive -- the\nevent with this id is redelivered on reconnect, so clients should\ndeduplicate by `event_id` if needed). Overrides `since_id` when both are\nset.\n",
+        "example": "01J9RPMV5TKB8WX3M4F1KZ7QH2",
+        "in": "header",
+        "name": "Last-Event-Id",
+        "schema": {
+          "$ref": "#/components/schemas/event_id"
+        }
+      },
+      "cas_events_region": {
+        "description": "Which markets to receive events for. Compared against the envelope's `region`\nfield and applied uniformly to historical and live events.\n\n- `all` (default): every event, regardless of market.\n- `us`: only events with `region == \"us\"`.\n- `non_us`: only events with `region == \"non_us\"`.\n\nUnknown values return `400` with the list of valid values in the error\nmessage. The value is case-insensitive.\n",
+        "in": "query",
+        "name": "region",
+        "schema": {
+          "default": "all",
+          "enum": [
+            "all",
+            "us",
+            "non_us"
+          ],
+          "type": "string"
+        }
+      },
+      "cas_events_since": {
+        "description": "Replay events emitted on or after this RFC-3339 date. Mutually exclusive with\n`since_id`. Required when `until` is specified.\n",
+        "example": "2026-03-20T00:00:00Z",
+        "in": "query",
+        "name": "since",
+        "schema": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "cas_events_since_id": {
+        "description": "ULID matching an `event_id`; replay events whose `event_id` is greater than\nor equal to this value (inclusive -- the event with this id, if it still\nexists, is redelivered). Mutually exclusive with `since`. Overridden by the\n`Last-Event-Id` header when both are set.\n",
+        "example": "01J9RPMV5TKB8WX3M4F1KZ7QH2",
+        "in": "query",
+        "name": "since_id",
+        "schema": {
+          "$ref": "#/components/schemas/event_id"
+        }
+      },
+      "cas_events_type": {
+        "description": "Filter the stream to a subset of `event_type` values.\n\nPassed as a comma-separated list in the URL query, e.g.\n`?type=cash_dividend_corporateaction_event,stock_dividend_corporateaction_event`.\n\nOnly events whose `event_type` is in this list are delivered. An empty or\nomitted value is treated as \"no filter\" (deliver every type). Unknown values\nreturn `400` with the list of valid values in the error message. The filter\napplies uniformly to both replayed (historical) and live events.\n\nSee [`corporate_action_event_type`](#/components/schemas/corporate_action_event_type)\nfor the full list of accepted values.\n",
+        "example": [
+          "cash_dividend_corporateaction_event",
+          "stock_dividend_corporateaction_event"
+        ],
+        "explode": false,
+        "in": "query",
+        "name": "type",
+        "schema": {
+          "items": {
+            "$ref": "#/components/schemas/corporate_action_event_type"
+          },
+          "type": "array"
+        },
+        "style": "form"
+      },
+      "cas_events_until": {
+        "description": "Close the connection after the last event on this RFC-3339 date (inclusive).\nRequires `since`; cannot be in the future.\n",
+        "example": "2026-03-20T23:59:59Z",
+        "in": "query",
+        "name": "until",
+        "schema": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "cas_events_until_id": {
+        "description": "ULID matching an `event_id`; close the connection once this id has been\ndelivered (inclusive). Requires `since_id`; cannot be in the future.\n",
+        "example": "01J9RVB6Y4ZK8M3N7QD2WX1RFP",
+        "in": "query",
+        "name": "until_id",
+        "schema": {
+          "$ref": "#/components/schemas/event_id"
+        }
+      },
       "cas_ids": {
-        "description": "A comma-separated list of corporate action IDs. This parameter is mutually exclusive with all other filters (symbols, types, start, end).\n",
+        "description": "A comma-separated list of corporate action IDs. This parameter is mutually exclusive with all other filters (symbols, types, start, end, region, data_quality).\n",
         "example": "1dbc7685-9517-4a77-a236-8527d49cefdc,f8489167-4e4b-431d-a0be-6017ae1cf08a",
         "in": "query",
         "name": "ids",
@@ -100,7 +186,7 @@
         }
       },
       "cas_types": {
-        "description": "A comma-separated list of types. If not provided, search all types.\n\nThe following types are supported:\n  - reverse_split\n  - forward_split\n  - unit_split\n  - cash_dividend\n  - stock_dividend\n  - spin_off\n  - cash_merger\n  - stock_merger\n  - stock_and_cash_merger\n  - redemption\n  - name_change\n  - worthless_removal\n  - rights_distribution\n  - partial_call\n  - reorganization\n",
+        "description": "A comma-separated list of types. If not provided, search all types.\n\nThe following types are supported:\n  - reverse_split\n  - forward_split\n  - unit_split\n  - cash_dividend\n  - stock_dividend\n  - spin_off\n  - cash_merger\n  - stock_merger\n  - stock_and_cash_merger\n  - redemption\n  - name_change\n  - worthless_removal\n  - rights_distribution\n  - partial_call\n  - reorganization\n  - capital_gains_distribution\n",
         "example": "forward_split,reverse_split",
         "in": "query",
         "name": "types",
@@ -124,25 +210,6 @@
         "required": true,
         "schema": {
           "$ref": "#/components/schemas/crypto_latest_loc"
-        }
-      },
-      "crypto_perp_loc": {
-        "description": "Crypto perpetual location.",
-        "in": "path",
-        "name": "loc",
-        "required": true,
-        "schema": {
-          "$ref": "#/components/schemas/crypto_perp_loc"
-        }
-      },
-      "crypto_perp_symbols": {
-        "description": "A comma-separated list of crypto symbols.",
-        "example": "BTCUSDT.P,LTCUSDT.P",
-        "in": "query",
-        "name": "symbols",
-        "required": true,
-        "schema": {
-          "type": "string"
         }
       },
       "crypto_symbols": {
@@ -188,7 +255,14 @@
         "name": "currency_pairs",
         "required": true,
         "schema": {
-          "$ref": "#/components/schemas/forex_currency_pairs"
+          "allOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/components/schemas/forex_currency_pairs"
+            }
+          ]
         }
       },
       "forex_timeframe": {
@@ -197,16 +271,6 @@
         "required": false,
         "schema": {
           "$ref": "#/components/schemas/forex_timeframe"
-        }
-      },
-      "index_symbols": {
-        "description": "A comma-separated list of index symbols.",
-        "example": "SPX,VIX",
-        "in": "query",
-        "name": "symbols",
-        "required": true,
-        "schema": {
-          "type": "string"
         }
       },
       "isins": {
@@ -355,7 +419,14 @@
         "in": "query",
         "name": "sort",
         "schema": {
-          "$ref": "#/components/schemas/sort"
+          "allOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/components/schemas/sort"
+            }
+          ]
         }
       },
       "start": {
@@ -526,25 +597,1119 @@
       }
     },
     "schemas": {
+      "ca_event_base": {
+        "description": "Common fields present on every `ca` payload regardless of `event_type`.\nNot meant to be referenced directly by clients -- it exists so each\nper-type payload schema (`ca_event_cash_dividend`, `ca_event_forward_split`,\n...) can `allOf`-compose it instead of restating `id` and `process_date`.\nThis makes the \"always present\" invariant structural (guaranteed by the\nschema) rather than emergent from repetition, and matches the \"Common `ca`\nfields\" section of the event-streaming Corporate Actions SSE design doc.\n",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ca_id"
+          },
+          "process_date": {
+            "$ref": "#/components/schemas/process_date"
+          }
+        },
+        "required": [
+          "id",
+          "process_date"
+        ],
+        "type": "object"
+      },
+      "ca_event_capital_gains_distribution": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "cusip": {
+                "description": "CUSIP of the security.",
+                "type": "string"
+              },
+              "ex_date": {
+                "$ref": "#/components/schemas/ex_date"
+              },
+              "isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "long_term_rate": {
+                "description": "Long-term capital-gains payment per share, as a decimal string.",
+                "examples": [
+                  "1.4372"
+                ],
+                "type": "string"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "record_date": {
+                "$ref": "#/components/schemas/record_date"
+              },
+              "short_term_rate": {
+                "description": "Short-term capital-gains payment per share, as a decimal string.",
+                "examples": [
+                  "0.1051"
+                ],
+                "type": "string"
+              },
+              "symbol": {
+                "description": "Ticker paying the distribution.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "symbol",
+              "cusip",
+              "ex_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Capital-gains distribution payload delivered when\n`event_type == capital_gains_distribution_corporateaction_event`. Every\ndecimal field is emitted as a JSON string to preserve precision on the\nwire. At least one of `long_term_rate` / `short_term_rate` is present;\ncombined distributions carry both.\n"
+      },
+      "ca_event_cash_dividend": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "cusip": {
+                "description": "CUSIP of the security.",
+                "type": "string"
+              },
+              "due_bill_off_date": {
+                "description": "End of the due-bill period.",
+                "format": "date",
+                "type": "string"
+              },
+              "due_bill_on_date": {
+                "description": "Start of the due-bill period.",
+                "format": "date",
+                "type": "string"
+              },
+              "ex_date": {
+                "$ref": "#/components/schemas/ex_date"
+              },
+              "foreign": {
+                "description": "`true` if the issuer is not US-based.",
+                "type": "boolean"
+              },
+              "isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "rate": {
+                "description": "Cash paid per share, as a decimal string.",
+                "examples": [
+                  "0.24"
+                ],
+                "type": "string"
+              },
+              "record_date": {
+                "$ref": "#/components/schemas/record_date"
+              },
+              "special": {
+                "description": "`true` if this is a one-off dividend outside the issuer's regular\ndistribution schedule.\n",
+                "type": "boolean"
+              },
+              "sub_type": {
+                "description": "Optional sub-classification of the dividend.",
+                "enum": [
+                  "interest",
+                  "return_of_capital"
+                ],
+                "type": "string"
+              },
+              "symbol": {
+                "description": "Ticker paying the dividend.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "symbol",
+              "cusip",
+              "rate",
+              "special",
+              "foreign",
+              "ex_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Cash dividend payload delivered when\n`event_type == cash_dividend_corporateaction_event`. Corresponds to\n`cash_dividends` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_cash_merger": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "acquiree_cusip": {
+                "description": "CUSIP of the company being bought.",
+                "type": "string"
+              },
+              "acquiree_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "acquiree_symbol": {
+                "description": "Ticker being bought (will disappear after the merger).",
+                "type": "string"
+              },
+              "acquirer_cusip": {
+                "description": "Buyer's CUSIP.",
+                "type": "string"
+              },
+              "acquirer_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "acquirer_symbol": {
+                "description": "Buyer's ticker (the surviving company).",
+                "type": "string"
+              },
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "effective_date": {
+                "$ref": "#/components/schemas/effective_date"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "rate": {
+                "description": "Cash paid per share of the acquired company, as a decimal string.",
+                "examples": [
+                  "42.50"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "acquiree_symbol",
+              "acquiree_cusip",
+              "rate",
+              "effective_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Cash merger payload delivered when\n`event_type == cash_merger_corporateaction_event`. Corresponds to\n`cash_mergers` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_equity_partial_call": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "cusip": {
+                "description": "CUSIP of the security.",
+                "type": "string"
+              },
+              "dividend_rate": {
+                "description": "Dividend rate associated with the called shares, as a decimal string.",
+                "examples": [
+                  "0.05"
+                ],
+                "type": "string"
+              },
+              "isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "lottery_date": {
+                "description": "When the lottery drawing happens.",
+                "format": "date",
+                "type": "string"
+              },
+              "lottery_type": {
+                "description": "How called shares were allocated among holders.",
+                "enum": [
+                  "original",
+                  "supplemental"
+                ],
+                "type": "string"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "price": {
+                "description": "Price paid per called share, as a decimal string.",
+                "examples": [
+                  "15.00"
+                ],
+                "type": "string"
+              },
+              "record_date": {
+                "$ref": "#/components/schemas/record_date"
+              },
+              "results_publication_date": {
+                "description": "When the lottery results are published.",
+                "format": "date",
+                "type": "string"
+              },
+              "symbol": {
+                "description": "Ticker being partially called.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "symbol"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Partial redemption of an equity issue where the issuer calls back only a\nfraction of outstanding shares -- typically allocated to holders via a\nlottery. Delivered when\n`event_type == equity_partial_call_corporateaction_event`. Corresponds to\n`partial_calls` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_forward_split": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "cusip": {
+                "description": "CUSIP of the security.",
+                "type": "string"
+              },
+              "due_bill_redemption_date": {
+                "$ref": "#/components/schemas/due_bill_redemption_date"
+              },
+              "ex_date": {
+                "$ref": "#/components/schemas/ex_date"
+              },
+              "isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "new_rate": {
+                "description": "Shares after the split, as a decimal string.",
+                "examples": [
+                  "4"
+                ],
+                "type": "string"
+              },
+              "old_rate": {
+                "description": "Shares before the split, as a decimal string.",
+                "examples": [
+                  "1"
+                ],
+                "type": "string"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "record_date": {
+                "$ref": "#/components/schemas/record_date"
+              },
+              "symbol": {
+                "description": "Ticker being split.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "symbol",
+              "cusip",
+              "old_rate",
+              "new_rate",
+              "ex_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Forward stock split payload delivered when\n`event_type == forward_split_corporateaction_event`. Corresponds to\n`forward_splits` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_name_change": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "new_cusip": {
+                "description": "CUSIP after the change.",
+                "type": "string"
+              },
+              "new_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "new_symbol": {
+                "description": "Ticker after the change.",
+                "type": "string"
+              },
+              "old_cusip": {
+                "description": "CUSIP before the change.",
+                "type": "string"
+              },
+              "old_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "old_symbol": {
+                "description": "Ticker before the change.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "old_symbol",
+              "old_cusip",
+              "new_symbol",
+              "new_cusip"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Name/ticker change payload delivered when\n`event_type == name_change_corporateaction_event`. Corresponds to\n`name_changes` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response.\n"
+      },
+      "ca_event_redemption": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "cusip": {
+                "description": "CUSIP of the security.",
+                "type": "string"
+              },
+              "isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "rate": {
+                "description": "Cash paid per share, as a decimal string.",
+                "examples": [
+                  "25.00"
+                ],
+                "type": "string"
+              },
+              "symbol": {
+                "description": "Ticker being redeemed.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "symbol",
+              "cusip",
+              "rate"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Full redemption payload delivered when\n`event_type == redemption_corporateaction_event`. Corresponds to\n`redemptions` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_reorganization": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "cash_rate": {
+                "description": "Cash paid per source share, as a decimal string.",
+                "examples": [
+                  "5.00"
+                ],
+                "type": "string"
+              },
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "cusip": {
+                "description": "CUSIP of the original security.",
+                "type": "string"
+              },
+              "effective_date": {
+                "$ref": "#/components/schemas/effective_date"
+              },
+              "isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "stock_movements": {
+                "description": "One entry per replacement security delivered to holders.",
+                "items": {
+                  "$ref": "#/components/schemas/ca_event_reorganization_stock_movement"
+                },
+                "type": "array"
+              },
+              "symbol": {
+                "description": "Ticker undergoing the reorganization.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "symbol",
+              "cusip",
+              "effective_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "General-purpose corporate restructuring (e.g. Chapter 11 emergence) where\nexisting holders receive a mix of cash and/or one or more replacement\nsecurities. Each entry in `stock_movements` describes a separate\nshare-class distribution. Delivered when\n`event_type == reorganization_corporateaction_event`. Corresponds to\n`reorganizations` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_reorganization_stock_movement": {
+        "additionalProperties": false,
+        "description": "A single replacement-security leg of a\n[`ca_event_reorganization`](#/components/schemas/ca_event_reorganization)\npayload. All decimal fields are emitted as JSON strings to preserve\nprecision on the wire.\n",
+        "properties": {
+          "cusip": {
+            "description": "Replacement CUSIP.",
+            "type": "string"
+          },
+          "isin": {
+            "$ref": "#/components/schemas/isin"
+          },
+          "new_rate": {
+            "description": "Replacement shares delivered per `source_rate`, as a decimal string.",
+            "examples": [
+              "1"
+            ],
+            "type": "string"
+          },
+          "source_rate": {
+            "description": "Source shares required for each `new_rate`, as a decimal string.",
+            "examples": [
+              "10"
+            ],
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Replacement ticker.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "cusip",
+          "new_rate",
+          "source_rate"
+        ],
+        "type": "object"
+      },
+      "ca_event_reverse_split": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "ex_date": {
+                "$ref": "#/components/schemas/ex_date"
+              },
+              "new_cusip": {
+                "description": "CUSIP after the split.",
+                "type": "string"
+              },
+              "new_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "new_rate": {
+                "description": "Shares after the split, as a decimal string.",
+                "examples": [
+                  "1"
+                ],
+                "type": "string"
+              },
+              "new_symbol": {
+                "description": "Ticker after the split when the issuer also changes symbol (e.g. with\na \"D\" suffix). Omitted when the ticker doesn't change.\n",
+                "type": "string"
+              },
+              "old_cusip": {
+                "description": "CUSIP before the split.",
+                "type": "string"
+              },
+              "old_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "old_rate": {
+                "description": "Shares before the split, as a decimal string.",
+                "examples": [
+                  "10"
+                ],
+                "type": "string"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "record_date": {
+                "$ref": "#/components/schemas/record_date"
+              },
+              "symbol": {
+                "description": "Ticker being split.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "symbol",
+              "old_cusip",
+              "new_cusip",
+              "old_rate",
+              "new_rate",
+              "ex_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Reverse stock split payload delivered when\n`event_type == reverse_split_corporateaction_event`. Corresponds to\n`reverse_splits` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_rights_distribution": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "ex_date": {
+                "$ref": "#/components/schemas/ex_date"
+              },
+              "expiration_date": {
+                "$ref": "#/components/schemas/expiration_date"
+              },
+              "new_cusip": {
+                "description": "CUSIP of the new right.",
+                "type": "string"
+              },
+              "new_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "new_symbol": {
+                "description": "Ticker of the new right/warrant.",
+                "type": "string"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "rate": {
+                "description": "Rights given per share you own, as a decimal string.",
+                "examples": [
+                  "0.25"
+                ],
+                "type": "string"
+              },
+              "record_date": {
+                "$ref": "#/components/schemas/record_date"
+              },
+              "source_cusip": {
+                "description": "CUSIP of the underlying ticker.",
+                "type": "string"
+              },
+              "source_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "source_symbol": {
+                "description": "Ticker whose holders receive the rights.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "source_symbol",
+              "source_cusip",
+              "new_symbol",
+              "new_cusip",
+              "rate",
+              "ex_date",
+              "payable_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Rights distribution payload delivered when\n`event_type == rights_distribution_corporateaction_event`. Corresponds to\n`rights_distributions` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_spin_off": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "due_bill_redemption_date": {
+                "$ref": "#/components/schemas/due_bill_redemption_date"
+              },
+              "ex_date": {
+                "$ref": "#/components/schemas/ex_date"
+              },
+              "new_cusip": {
+                "description": "CUSIP of the new spin-off company.",
+                "type": "string"
+              },
+              "new_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "new_rate": {
+                "description": "New-company shares distributed per `source_rate` parent shares, as a decimal string.",
+                "examples": [
+                  "0.5"
+                ],
+                "type": "string"
+              },
+              "new_symbol": {
+                "description": "Ticker of the new spin-off company.",
+                "type": "string"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "record_date": {
+                "$ref": "#/components/schemas/record_date"
+              },
+              "source_cusip": {
+                "description": "Parent CUSIP.",
+                "type": "string"
+              },
+              "source_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "source_rate": {
+                "description": "Parent shares required per ratio unit, as a decimal string.",
+                "examples": [
+                  "1"
+                ],
+                "type": "string"
+              },
+              "source_symbol": {
+                "description": "Parent company's ticker.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "source_symbol",
+              "source_cusip",
+              "source_rate",
+              "new_symbol",
+              "new_cusip",
+              "new_rate",
+              "ex_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Spin-off payload delivered when\n`event_type == spin_off_corporateaction_event`. Corresponds to\n`spin_offs` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_stock_and_cash_merger": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "acquiree_cusip": {
+                "description": "CUSIP of the company being bought.",
+                "type": "string"
+              },
+              "acquiree_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "acquiree_rate": {
+                "description": "Bought-side ratio, as a decimal string.",
+                "examples": [
+                  "1"
+                ],
+                "type": "string"
+              },
+              "acquiree_symbol": {
+                "description": "Ticker being bought (will disappear).",
+                "type": "string"
+              },
+              "acquirer_cusip": {
+                "description": "Buyer's CUSIP.",
+                "type": "string"
+              },
+              "acquirer_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "acquirer_rate": {
+                "description": "Buyer shares given per unit ratio, as a decimal string.",
+                "examples": [
+                  "0.5"
+                ],
+                "type": "string"
+              },
+              "acquirer_symbol": {
+                "description": "Buyer's ticker (the surviving company).",
+                "type": "string"
+              },
+              "cash_rate": {
+                "description": "Extra cash paid per share of the acquired company, as a decimal string.",
+                "examples": [
+                  "10.00"
+                ],
+                "type": "string"
+              },
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "effective_date": {
+                "$ref": "#/components/schemas/effective_date"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              }
+            },
+            "required": [
+              "acquirer_symbol",
+              "acquirer_cusip",
+              "acquirer_rate",
+              "acquiree_symbol",
+              "acquiree_cusip",
+              "acquiree_rate",
+              "cash_rate",
+              "effective_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Merger paying a mix of stock and cash. Delivered when\n`event_type == stock_and_cash_merger_corporateaction_event`. Corresponds\nto `stock_and_cash_mergers` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_stock_dividend": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "cusip": {
+                "description": "CUSIP of the security.",
+                "type": "string"
+              },
+              "ex_date": {
+                "$ref": "#/components/schemas/ex_date"
+              },
+              "isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              },
+              "rate": {
+                "description": "Extra shares received per share held, as a decimal string.",
+                "examples": [
+                  "0.05"
+                ],
+                "type": "string"
+              },
+              "record_date": {
+                "$ref": "#/components/schemas/record_date"
+              },
+              "symbol": {
+                "description": "Ticker paying the stock dividend.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "symbol",
+              "cusip",
+              "rate",
+              "ex_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Stock dividend payload delivered when\n`event_type == stock_dividend_corporateaction_event`. Corresponds to\n`stock_dividends` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_stock_merger": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "acquiree_cusip": {
+                "description": "CUSIP of the company being bought.",
+                "type": "string"
+              },
+              "acquiree_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "acquiree_rate": {
+                "description": "Bought-side ratio, as a decimal string.",
+                "examples": [
+                  "1"
+                ],
+                "type": "string"
+              },
+              "acquiree_symbol": {
+                "description": "Ticker being bought (will disappear).",
+                "type": "string"
+              },
+              "acquirer_cusip": {
+                "description": "Buyer's CUSIP.",
+                "type": "string"
+              },
+              "acquirer_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "acquirer_rate": {
+                "description": "Buyer-side ratio, as a decimal string.",
+                "examples": [
+                  "0.75"
+                ],
+                "type": "string"
+              },
+              "acquirer_symbol": {
+                "description": "Buyer's ticker (the surviving company).",
+                "type": "string"
+              },
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "effective_date": {
+                "$ref": "#/components/schemas/effective_date"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              }
+            },
+            "required": [
+              "acquirer_symbol",
+              "acquirer_cusip",
+              "acquirer_rate",
+              "acquiree_symbol",
+              "acquiree_cusip",
+              "acquiree_rate",
+              "effective_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "All-stock merger payload delivered when\n`event_type == stock_merger_corporateaction_event`. Corresponds to\n`stock_mergers` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_unit_split": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "alternate_cusip": {
+                "description": "CUSIP of the secondary leg.",
+                "type": "string"
+              },
+              "alternate_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "alternate_rate": {
+                "description": "Secondary-leg shares delivered per unit, as a decimal string.",
+                "examples": [
+                  "1"
+                ],
+                "type": "string"
+              },
+              "alternate_symbol": {
+                "description": "Ticker of the secondary leg (usually a warrant).",
+                "type": "string"
+              },
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "effective_date": {
+                "$ref": "#/components/schemas/effective_date"
+              },
+              "new_cusip": {
+                "description": "CUSIP of the primary leg.",
+                "type": "string"
+              },
+              "new_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "new_rate": {
+                "description": "Primary-leg shares delivered per unit, as a decimal string.",
+                "examples": [
+                  "1"
+                ],
+                "type": "string"
+              },
+              "new_symbol": {
+                "description": "Ticker of the primary leg (usually the common share).",
+                "type": "string"
+              },
+              "old_cusip": {
+                "description": "CUSIP of the unit.",
+                "type": "string"
+              },
+              "old_isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "old_rate": {
+                "description": "Units per ratio unit, as a decimal string.",
+                "examples": [
+                  "1"
+                ],
+                "type": "string"
+              },
+              "old_symbol": {
+                "description": "Ticker of the unit being split.",
+                "type": "string"
+              },
+              "payable_date": {
+                "$ref": "#/components/schemas/payable_date"
+              }
+            },
+            "required": [
+              "old_symbol",
+              "old_cusip",
+              "old_rate",
+              "new_symbol",
+              "new_cusip",
+              "new_rate",
+              "alternate_symbol",
+              "alternate_cusip",
+              "alternate_rate",
+              "effective_date"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Unit split payload delivered when\n`event_type == unit_split_corporateaction_event`. Corresponds to\n`unit_splits` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response, but\nevery decimal field is emitted as a JSON string to preserve precision on\nthe wire.\n"
+      },
+      "ca_event_worthless_removal": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ca_event_base"
+          },
+          {
+            "properties": {
+              "currency": {
+                "$ref": "#/components/schemas/currency"
+              },
+              "cusip": {
+                "description": "CUSIP of the security.",
+                "type": "string"
+              },
+              "isin": {
+                "$ref": "#/components/schemas/isin"
+              },
+              "symbol": {
+                "description": "Ticker being removed.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "symbol",
+              "cusip"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Worthless removal payload delivered when\n`event_type == worthless_removal_corporateaction_event`. Corresponds to\n`worthless_removals` on the REST\n[`GET /v1/corporate-actions`](#operation/CorporateActions) response.\n"
+      },
       "ca_id": {
         "description": "The internal Alpaca identifier of the corporate action.",
         "format": "uuid",
         "type": "string"
       },
+      "capital_gains_distribution": {
+        "description": "Capital gains distribution paid by a fund. A single event may carry a long-term\nleg (`long_term_rate`), a short-term leg (`short_term_rate`), or both when\ncombined. At least one of the two rates is always present.\n",
+        "examples": [
+          {
+            "currency": "USD",
+            "cusip": "36261K509",
+            "ex_date": "2025-12-26",
+            "id": "98c905a1-08c7-450c-8669-b8e7aee8b44d",
+            "isin": "US36261K5090",
+            "long_term_rate": 0.45855,
+            "payable_date": "2026-01-09",
+            "process_date": "2026-01-08",
+            "record_date": "2025-12-29",
+            "short_term_rate": 0.11019,
+            "symbol": "GCAD"
+          }
+        ],
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/currency"
+          },
+          "cusip": {
+            "type": "string"
+          },
+          "ex_date": {
+            "$ref": "#/components/schemas/ex_date"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ca_id"
+          },
+          "isin": {
+            "$ref": "#/components/schemas/isin"
+          },
+          "long_term_rate": {
+            "description": "Long-term capital-gain payment per share.",
+            "format": "double",
+            "type": "number"
+          },
+          "payable_date": {
+            "$ref": "#/components/schemas/payable_date"
+          },
+          "process_date": {
+            "$ref": "#/components/schemas/process_date"
+          },
+          "record_date": {
+            "$ref": "#/components/schemas/record_date"
+          },
+          "short_term_rate": {
+            "description": "Short-term capital-gain payment per share.",
+            "format": "double",
+            "type": "number"
+          },
+          "symbol": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "symbol",
+          "cusip",
+          "process_date",
+          "ex_date"
+        ],
+        "type": "object"
+      },
       "cash_dividend": {
         "description": "Cash dividend.",
-        "example": {
-          "cusip": "319829107",
-          "ex_date": "2023-05-04",
-          "foreign": false,
-          "id": "11cfd108-292e-4cc6-bfbf-5999cdbc4029",
-          "payable_date": "2023-05-19",
-          "process_date": "2023-05-19",
-          "rate": 0.125,
-          "record_date": "2023-05-05",
-          "special": false,
-          "symbol": "FCF"
-        },
+        "examples": [
+          {
+            "cusip": "319829107",
+            "ex_date": "2023-05-04",
+            "foreign": false,
+            "id": "11cfd108-292e-4cc6-bfbf-5999cdbc4029",
+            "payable_date": "2023-05-19",
+            "process_date": "2023-05-19",
+            "rate": 0.125,
+            "record_date": "2023-05-05",
+            "special": false,
+            "symbol": "FCF"
+          }
+        ],
         "properties": {
           "currency": {
             "$ref": "#/components/schemas/currency"
@@ -614,15 +1779,17 @@
       },
       "cash_merger": {
         "description": "Cash merger.",
-        "example": {
-          "acquiree_cusip": "Y2687W108",
-          "acquiree_symbol": "GLOP",
-          "effective_date": "2023-07-17",
-          "id": "3772bbd7-4ad5-44d4-9cc0-f69156a2f8f5",
-          "payable_date": "2023-07-17",
-          "process_date": "2023-07-17",
-          "rate": 5.37
-        },
+        "examples": [
+          {
+            "acquiree_cusip": "Y2687W108",
+            "acquiree_symbol": "GLOP",
+            "effective_date": "2023-07-17",
+            "id": "3772bbd7-4ad5-44d4-9cc0-f69156a2f8f5",
+            "payable_date": "2023-07-17",
+            "process_date": "2023-07-17",
+            "rate": 5.37
+          }
+        ],
         "properties": {
           "acquiree_cusip": {
             "type": "string"
@@ -672,8 +1839,572 @@
         ],
         "type": "object"
       },
+      "corporate_action_event": {
+        "description": "A single corporate-action mutation delivered over the\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n\nEvery event uses the same envelope. The `event_type` field selects which of\nthe 15 per-type schemas populates `ca`; see\n[`corporate_action_event_type`](#/components/schemas/corporate_action_event_type)\nfor the full mapping and follow the link on each row to the per-type `ca`\npayload schema.\n\nOptional fields (including `currency` and, on most CA types, `isin`) are\nomitted from the JSON when empty; `null` is never emitted.\n",
+        "discriminator": {
+          "mapping": {
+            "capital_gains_distribution_corporateaction_event": "#/components/schemas/corporate_action_event_capital_gains_distribution",
+            "cash_dividend_corporateaction_event": "#/components/schemas/corporate_action_event_cash_dividend",
+            "cash_merger_corporateaction_event": "#/components/schemas/corporate_action_event_cash_merger",
+            "equity_partial_call_corporateaction_event": "#/components/schemas/corporate_action_event_equity_partial_call",
+            "forward_split_corporateaction_event": "#/components/schemas/corporate_action_event_forward_split",
+            "name_change_corporateaction_event": "#/components/schemas/corporate_action_event_name_change",
+            "redemption_corporateaction_event": "#/components/schemas/corporate_action_event_redemption",
+            "reorganization_corporateaction_event": "#/components/schemas/corporate_action_event_reorganization",
+            "reverse_split_corporateaction_event": "#/components/schemas/corporate_action_event_reverse_split",
+            "rights_distribution_corporateaction_event": "#/components/schemas/corporate_action_event_rights_distribution",
+            "spin_off_corporateaction_event": "#/components/schemas/corporate_action_event_spin_off",
+            "stock_and_cash_merger_corporateaction_event": "#/components/schemas/corporate_action_event_stock_and_cash_merger",
+            "stock_dividend_corporateaction_event": "#/components/schemas/corporate_action_event_stock_dividend",
+            "stock_merger_corporateaction_event": "#/components/schemas/corporate_action_event_stock_merger",
+            "unit_split_corporateaction_event": "#/components/schemas/corporate_action_event_unit_split",
+            "worthless_removal_corporateaction_event": "#/components/schemas/corporate_action_event_worthless_removal"
+          },
+          "propertyName": "event_type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_capital_gains_distribution"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_cash_dividend"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_cash_merger"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_equity_partial_call"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_forward_split"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_name_change"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_redemption"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_reorganization"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_reverse_split"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_rights_distribution"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_spin_off"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_stock_and_cash_merger"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_stock_dividend"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_stock_merger"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_unit_split"
+          },
+          {
+            "$ref": "#/components/schemas/corporate_action_event_worthless_removal"
+          }
+        ]
+      },
+      "corporate_action_event_action": {
+        "description": "Kind of mutation that produced this event on the upstream corporate actions\nstore:\n\n- `insert`: a new corporate action was created.\n- `update`: an existing corporate action was modified (e.g. a date or rate\n  correction). `ca.id` matches the original event.\n- `delete`: a previously published corporate action was removed. `ca.id`\n  matches the original event; subsequent events for the same id (if any)\n  will be new inserts.\n",
+        "enum": [
+          "insert",
+          "update",
+          "delete"
+        ],
+        "type": "string"
+      },
+      "corporate_action_event_base": {
+        "description": "Common envelope fields shared by every variant of\n[`corporate_action_event`](#/components/schemas/corporate_action_event).\nThis schema is not meant to be used directly by clients -- it exists so each\nper-`event_type` `oneOf` branch can `allOf`-compose the envelope basics\n(`event_id`, `at`, `action`, `region`) alongside its narrowed `event_type` /\n`ca` pair. Keeping these in one place is what makes the envelope's\n`discriminator` play nicely with strict OpenAPI validators.\n",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/corporate_action_event_action"
+          },
+          "at": {
+            "description": "RFC-3339 timestamp when the streaming service emitted this event.",
+            "examples": [
+              "2026-03-20T12:24:58.807230Z"
+            ],
+            "format": "date-time",
+            "type": "string"
+          },
+          "event_id": {
+            "$ref": "#/components/schemas/event_id"
+          },
+          "region": {
+            "$ref": "#/components/schemas/corporate_action_event_region"
+          }
+        },
+        "required": [
+          "event_id",
+          "at",
+          "action",
+          "region"
+        ],
+        "type": "object"
+      },
+      "corporate_action_event_capital_gains_distribution": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_capital_gains_distribution"
+              },
+              "event_type": {
+                "enum": [
+                  "capital_gains_distribution_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\ncapital_gains_distribution_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_cash_dividend": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_cash_dividend"
+              },
+              "event_type": {
+                "enum": [
+                  "cash_dividend_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\ncash_dividend_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_cash_merger": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_cash_merger"
+              },
+              "event_type": {
+                "enum": [
+                  "cash_merger_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\ncash_merger_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_equity_partial_call": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_equity_partial_call"
+              },
+              "event_type": {
+                "enum": [
+                  "equity_partial_call_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nequity_partial_call_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_forward_split": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_forward_split"
+              },
+              "event_type": {
+                "enum": [
+                  "forward_split_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nforward_split_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_name_change": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_name_change"
+              },
+              "event_type": {
+                "enum": [
+                  "name_change_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nname_change_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_redemption": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_redemption"
+              },
+              "event_type": {
+                "enum": [
+                  "redemption_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nredemption_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_region": {
+        "description": "Envelope-level classification derived from `metadata.global` on the upstream\ncorporate-action record. This is the only field the SSE `region` filter\ninspects on each event.\n\n- `us`: US-listed / US-regulated corporate action.\n- `non_us`: everything else.\n",
+        "enum": [
+          "us",
+          "non_us"
+        ],
+        "type": "string"
+      },
+      "corporate_action_event_reorganization": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_reorganization"
+              },
+              "event_type": {
+                "enum": [
+                  "reorganization_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nreorganization_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_reverse_split": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_reverse_split"
+              },
+              "event_type": {
+                "enum": [
+                  "reverse_split_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nreverse_split_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_rights_distribution": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_rights_distribution"
+              },
+              "event_type": {
+                "enum": [
+                  "rights_distribution_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nrights_distribution_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_spin_off": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_spin_off"
+              },
+              "event_type": {
+                "enum": [
+                  "spin_off_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nspin_off_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_stock_and_cash_merger": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_stock_and_cash_merger"
+              },
+              "event_type": {
+                "enum": [
+                  "stock_and_cash_merger_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nstock_and_cash_merger_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_stock_dividend": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_stock_dividend"
+              },
+              "event_type": {
+                "enum": [
+                  "stock_dividend_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nstock_dividend_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_stock_merger": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_stock_merger"
+              },
+              "event_type": {
+                "enum": [
+                  "stock_merger_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nstock_merger_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_type": {
+        "description": "Discriminator that determines the shape of the `ca` field on a\n[`corporate_action_event`](#/components/schemas/corporate_action_event).\n\nEach value corresponds to a per-type payload schema:\n\n| `event_type` | `ca` schema |\n| --- | --- |\n| `capital_gains_distribution_corporateaction_event` | [`ca_event_capital_gains_distribution`](#/components/schemas/ca_event_capital_gains_distribution) |\n| `cash_dividend_corporateaction_event` | [`ca_event_cash_dividend`](#/components/schemas/ca_event_cash_dividend) |\n| `cash_merger_corporateaction_event` | [`ca_event_cash_merger`](#/components/schemas/ca_event_cash_merger) |\n| `equity_partial_call_corporateaction_event` | [`ca_event_equity_partial_call`](#/components/schemas/ca_event_equity_partial_call) |\n| `forward_split_corporateaction_event` | [`ca_event_forward_split`](#/components/schemas/ca_event_forward_split) |\n| `name_change_corporateaction_event` | [`ca_event_name_change`](#/components/schemas/ca_event_name_change) |\n| `redemption_corporateaction_event` | [`ca_event_redemption`](#/components/schemas/ca_event_redemption) |\n| `reorganization_corporateaction_event` | [`ca_event_reorganization`](#/components/schemas/ca_event_reorganization) |\n| `reverse_split_corporateaction_event` | [`ca_event_reverse_split`](#/components/schemas/ca_event_reverse_split) |\n| `rights_distribution_corporateaction_event` | [`ca_event_rights_distribution`](#/components/schemas/ca_event_rights_distribution) |\n| `spin_off_corporateaction_event` | [`ca_event_spin_off`](#/components/schemas/ca_event_spin_off) |\n| `stock_and_cash_merger_corporateaction_event` | [`ca_event_stock_and_cash_merger`](#/components/schemas/ca_event_stock_and_cash_merger) |\n| `stock_dividend_corporateaction_event` | [`ca_event_stock_dividend`](#/components/schemas/ca_event_stock_dividend) |\n| `stock_merger_corporateaction_event` | [`ca_event_stock_merger`](#/components/schemas/ca_event_stock_merger) |\n| `unit_split_corporateaction_event` | [`ca_event_unit_split`](#/components/schemas/ca_event_unit_split) |\n| `worthless_removal_corporateaction_event` | [`ca_event_worthless_removal`](#/components/schemas/ca_event_worthless_removal) |\n",
+        "enum": [
+          "capital_gains_distribution_corporateaction_event",
+          "cash_dividend_corporateaction_event",
+          "cash_merger_corporateaction_event",
+          "equity_partial_call_corporateaction_event",
+          "forward_split_corporateaction_event",
+          "name_change_corporateaction_event",
+          "redemption_corporateaction_event",
+          "reorganization_corporateaction_event",
+          "reverse_split_corporateaction_event",
+          "rights_distribution_corporateaction_event",
+          "spin_off_corporateaction_event",
+          "stock_and_cash_merger_corporateaction_event",
+          "stock_dividend_corporateaction_event",
+          "stock_merger_corporateaction_event",
+          "unit_split_corporateaction_event",
+          "worthless_removal_corporateaction_event"
+        ],
+        "type": "string"
+      },
+      "corporate_action_event_unit_split": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_unit_split"
+              },
+              "event_type": {
+                "enum": [
+                  "unit_split_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nunit_split_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
+      "corporate_action_event_worthless_removal": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/corporate_action_event_base"
+          },
+          {
+            "properties": {
+              "ca": {
+                "$ref": "#/components/schemas/ca_event_worthless_removal"
+              },
+              "event_type": {
+                "enum": [
+                  "worthless_removal_corporateaction_event"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "event_type",
+              "ca"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "`corporate_action_event` envelope specialized to `event_type ==\nworthless_removal_corporateaction_event`. Emitted through\n[Corporate Actions Events Stream](#operation/SubscribeToCorporateActionsEventsSSE).\n"
+      },
       "corporate_actions": {
         "properties": {
+          "capital_gains_distributions": {
+            "items": {
+              "$ref": "#/components/schemas/capital_gains_distribution"
+            },
+            "type": "array"
+          },
           "cash_dividends": {
             "items": {
               "$ref": "#/components/schemas/cash_dividend"
@@ -784,16 +2515,18 @@
       },
       "crypto_bar": {
         "description": "OHLC aggregate of all the trades in a given interval.",
-        "example": {
-          "c": 29003,
-          "h": 29003,
-          "l": 28999,
-          "n": 4,
-          "o": 28999,
-          "t": "2022-05-27T10:18:00Z",
-          "v": 0.01,
-          "vw": 29001
-        },
+        "examples": [
+          {
+            "c": 29003,
+            "h": 29003,
+            "l": 28999,
+            "n": 4,
+            "o": 28999,
+            "t": "2022-05-27T10:18:00Z",
+            "v": 0.01,
+            "vw": 29001
+          }
+        ],
         "properties": {
           "c": {
             "description": "Closing price.",
@@ -947,29 +2680,31 @@
       },
       "crypto_orderbook": {
         "description": "Snapshot of the orderbook.",
-        "example": {
-          "a": [
-            {
-              "p": 20902,
-              "s": 0.0097
-            },
-            {
-              "p": 21444,
-              "s": 0
-            }
-          ],
-          "b": [
-            {
-              "p": 20846,
-              "s": 0.1902
-            },
-            {
-              "p": 20350,
-              "s": 0
-            }
-          ],
-          "t": "2022-06-24T08:00:14.137774336Z"
-        },
+        "examples": [
+          {
+            "a": [
+              {
+                "p": 20902,
+                "s": 0.0097
+              },
+              {
+                "p": 21444,
+                "s": 0
+              }
+            ],
+            "b": [
+              {
+                "p": 20846,
+                "s": 0.1902
+              },
+              {
+                "p": 20350,
+                "s": 0
+              }
+            ],
+            "t": "2022-06-24T08:00:14.137774336Z"
+          }
+        ],
         "properties": {
           "a": {
             "items": {
@@ -996,10 +2731,12 @@
       },
       "crypto_orderbook_entry": {
         "description": "A single entry in a crypto orderbook.",
-        "example": {
-          "p": 20846,
-          "s": 0.1902
-        },
+        "examples": [
+          {
+            "p": 20846,
+            "s": 0.1902
+          }
+        ],
         "properties": {
           "p": {
             "description": "Price.",
@@ -1018,86 +2755,17 @@
         ],
         "type": "object"
       },
-      "crypto_perp_futures_pricing": {
-        "description": "Crypto perpetual futures pricing data.",
-        "example": {
-          "fr": 0.000565699,
-          "ft": "2022-05-27T10:18:00Z",
-          "ip": 50702.8,
-          "mp": 50652.3553,
-          "oi": 90.7367,
-          "t": "2022-05-27T10:18:00Z"
-        },
-        "properties": {
-          "fr": {
-            "description": "Funding rate.",
-            "format": "double",
-            "type": "number"
-          },
-          "ft": {
-            "description": "Next funding time",
-            "format": "date-time",
-            "type": "string"
-          },
-          "ip": {
-            "description": "Index price.",
-            "format": "double",
-            "type": "number"
-          },
-          "mp": {
-            "description": "Mark price.",
-            "format": "double",
-            "type": "number"
-          },
-          "oi": {
-            "description": "Open interest.",
-            "format": "double",
-            "type": "number"
-          },
-          "t": {
-            "$ref": "#/components/schemas/timestamp"
-          }
-        },
-        "required": [
-          "t",
-          "ft",
-          "oi",
-          "ip",
-          "mp",
-          "fr"
-        ],
-        "type": "object"
-      },
-      "crypto_perp_latest_futures_pricing_resp": {
-        "properties": {
-          "pricing": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/crypto_perp_futures_pricing"
-            },
-            "type": "object"
-          }
-        },
-        "required": [
-          "pricing"
-        ],
-        "type": "object"
-      },
-      "crypto_perp_loc": {
-        "description": "Crypto perpetual location.",
-        "enum": [
-          "global"
-        ],
-        "type": "string"
-      },
       "crypto_quote": {
         "description": "The best bid and ask information for a given security.",
-        "example": {
-          "ap": 29059,
-          "as": 3.252,
-          "bp": 29058,
-          "bs": 0.3544,
-          "t": "2022-05-26T11:47:18.44347136Z"
-        },
+        "examples": [
+          {
+            "ap": 29059,
+            "as": 3.252,
+            "bp": 29058,
+            "bs": 0.3544,
+            "t": "2022-05-26T11:47:18.44347136Z"
+          }
+        ],
         "properties": {
           "ap": {
             "description": "Ask price.",
@@ -1190,13 +2858,15 @@
       },
       "crypto_trade": {
         "description": "A crypto trade.",
-        "example": {
-          "i": 31455277,
-          "p": 29798,
-          "s": 0.1209,
-          "t": "2022-05-18T12:00:05.225055Z",
-          "tks": "S"
-        },
+        "examples": [
+          {
+            "i": 31455277,
+            "p": 29798,
+            "s": 0.1209,
+            "t": "2022-05-18T12:00:05.225055Z",
+            "tks": "S"
+          }
+        ],
         "properties": {
           "i": {
             "description": "Trade ID.",
@@ -1255,6 +2925,15 @@
         "description": "The ISO 4217 currency code associated with the corporate action.\nEmpty value can mean USD, non-applicable (e.g. for name changes) or unknown\n(can change later to a valid currency).\n",
         "type": "string"
       },
+      "data_quality": {
+        "default": "complete",
+        "description": "Controls which corporate actions are returned based on data quality.\n\n- `complete` (default): exclude corporate actions that are still missing required\n  fields (for example, ex-date or CUSIP/ISIN) and have not yet been processed.\n  Already-processed corporate actions are always included, even if they would\n  otherwise be considered incomplete.\n- `all`: return matching corporate actions regardless of field completeness.\n",
+        "enum": [
+          "complete",
+          "all"
+        ],
+        "type": "string"
+      },
       "date": {
         "description": "Date in RFC-3339.",
         "format": "date",
@@ -1270,6 +2949,15 @@
         "format": "date",
         "type": "string"
       },
+      "event_id": {
+        "description": "Lexically sortable, monotonically increasing 26-character\n[ULID](https://github.com/ulid/spec) (Crockford Base32, uppercase) that\nidentifies a single SSE emission. Unique per message -- an `update` or\n`delete` for the same underlying corporate action carries a fresh\n`event_id`. Because ULIDs sort in emission order, they can be used as\nresume cursors via `since_id`, `until_id`, or the standard `Last-Event-Id`\nreconnect header.\n",
+        "examples": [
+          "01J9RPMV5TKB8WX3M4F1KZ7QH2"
+        ],
+        "format": "ulid",
+        "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+        "type": "string"
+      },
       "ex_date": {
         "description": "The ex-date marks the cutoff point for shareholders to be credited.",
         "format": "date",
@@ -1280,6 +2968,19 @@
         "type": "string"
       },
       "fixed_income_latest_prices_resp": {
+        "description": "Latest fixed-income prices keyed by ISIN.",
+        "examples": [
+          {
+            "prices": {
+              "US912797KJ59": {
+                "p": 99.6459,
+                "t": "2025-02-14T20:58:00.648Z",
+                "ytm": 4.249,
+                "ytw": 4.249
+              }
+            }
+          }
+        ],
         "properties": {
           "prices": {
             "additionalProperties": {
@@ -1294,6 +2995,26 @@
         "type": "object"
       },
       "fixed_income_latest_quotes_resp": {
+        "description": "Latest fixed-income best bid and ask quotes keyed by ISIN.",
+        "examples": [
+          {
+            "quotes": {
+              "US912797SX61": {
+                "ams": 1000,
+                "ap": 99.91958333,
+                "as": 1000000,
+                "aytm": 2.226923,
+                "aytw": 2.226923,
+                "bms": 1000,
+                "bp": 99.81091667,
+                "bs": 1000000,
+                "bytm": 5.236154,
+                "bytw": 5.236154,
+                "t": "2026-05-21T06:56:01.882466873Z"
+              }
+            }
+          }
+        ],
         "properties": {
           "quotes": {
             "additionalProperties": {
@@ -1309,12 +3030,14 @@
       },
       "fixed_income_price": {
         "description": "The price of the instrument as a percentage of its par value.",
-        "example": {
-          "p": 99.6459,
-          "t": "2025-02-14T20:58:00.648Z",
-          "ytm": 4.249,
-          "ytw": 4.249
-        },
+        "examples": [
+          {
+            "p": 99.6459,
+            "t": "2025-02-14T20:58:00.648Z",
+            "ytm": 4.249,
+            "ytw": 4.249
+          }
+        ],
         "properties": {
           "p": {
             "description": "Price",
@@ -1343,19 +3066,21 @@
       },
       "fixed_income_quote": {
         "description": "The best bid and ask information for a given fixed income security. A value of 0 means there is no active bid or ask for that field.\n",
-        "example": {
-          "ams": 1000,
-          "ap": 99.91958333,
-          "as": 1000000,
-          "aytm": 2.226923,
-          "aytw": 2.226923,
-          "bms": 1000,
-          "bp": 99.81091667,
-          "bs": 1000000,
-          "bytm": 5.236154,
-          "bytw": 5.236154,
-          "t": "2026-05-21T06:56:01.882466873Z"
-        },
+        "examples": [
+          {
+            "ams": 1000,
+            "ap": 99.91958333,
+            "as": 1000000,
+            "aytm": 2.226923,
+            "aytw": 2.226923,
+            "bms": 1000,
+            "bp": 99.81091667,
+            "bs": 1000000,
+            "bytm": 5.236154,
+            "bytw": 5.236154,
+            "t": "2026-05-21T06:56:01.882466873Z"
+          }
+        ],
         "properties": {
           "ams": {
             "description": "Best ask minimum trade size in par value.",
@@ -1428,7 +3153,10 @@
       },
       "forex_currency_pairs": {
         "description": "A comma-separated string with currency pairs.",
-        "example": "USDJPY,USDMXN",
+        "examples": [
+          "USDJPY",
+          "USDMXN"
+        ],
         "type": "string"
       },
       "forex_latest_rates_resp": {
@@ -1448,12 +3176,14 @@
       },
       "forex_rate": {
         "description": "A foreign exchange rate between two currencies at a given time.",
-        "example": {
-          "ap": 127.763,
-          "bp": 127.702,
-          "mp": 127.757,
-          "t": "2022-04-20T18:23:00Z"
-        },
+        "examples": [
+          {
+            "ap": 127.763,
+            "bp": 127.702,
+            "mp": 127.757,
+            "t": "2022-04-20T18:23:00Z"
+          }
+        ],
         "properties": {
           "ap": {
             "description": "The last ask price value of the currency at the end of the timeframe.",
@@ -1512,18 +3242,20 @@
       },
       "forward_split": {
         "description": "Forward split.",
-        "example": {
-          "cusip": "816851109",
-          "due_bill_redemption_date": "2023-08-23",
-          "ex_date": "2023-08-22",
-          "id": "189bd849-ab9f-4b4d-aaaa-a6d415fd976d",
-          "new_rate": 2,
-          "old_rate": 1,
-          "payable_date": "2023-08-21",
-          "process_date": "2023-08-22",
-          "record_date": "2023-08-14",
-          "symbol": "SRE"
-        },
+        "examples": [
+          {
+            "cusip": "816851109",
+            "due_bill_redemption_date": "2023-08-23",
+            "ex_date": "2023-08-22",
+            "id": "189bd849-ab9f-4b4d-aaaa-a6d415fd976d",
+            "new_rate": 2,
+            "old_rate": 1,
+            "payable_date": "2023-08-21",
+            "process_date": "2023-08-22",
+            "record_date": "2023-08-14",
+            "symbol": "SRE"
+          }
+        ],
         "properties": {
           "currency": {
             "$ref": "#/components/schemas/currency"
@@ -1575,64 +3307,6 @@
         ],
         "type": "object"
       },
-      "index_latest_values_resp": {
-        "description": "The response object of the latest index values.",
-        "properties": {
-          "values": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/index_value"
-            },
-            "type": "object"
-          }
-        },
-        "required": [
-          "values"
-        ],
-        "type": "object"
-      },
-      "index_value": {
-        "description": "The value of an index at a given point in time.",
-        "example": {
-          "t": "2026-05-18T17:00:02.0256Z",
-          "v": 7383.46
-        },
-        "properties": {
-          "t": {
-            "$ref": "#/components/schemas/timestamp"
-          },
-          "v": {
-            "description": "Index value.",
-            "format": "double",
-            "type": "number"
-          }
-        },
-        "required": [
-          "t",
-          "v"
-        ],
-        "type": "object"
-      },
-      "index_values_resp": {
-        "properties": {
-          "next_page_token": {
-            "$ref": "#/components/schemas/next_page_token"
-          },
-          "values": {
-            "additionalProperties": {
-              "items": {
-                "$ref": "#/components/schemas/index_value"
-              },
-              "type": "array"
-            },
-            "type": "object"
-          }
-        },
-        "required": [
-          "values",
-          "next_page_token"
-        ],
-        "type": "object"
-      },
       "isin": {
         "description": "International Securities Identification Number (ISIN) as defined by ISO 6166.\nMay be empty for US corporate actions.\n",
         "type": "string"
@@ -1647,11 +3321,13 @@
       },
       "most_active": {
         "description": "A stock that is most active by either volume or trade count.",
-        "example": {
-          "symbol": "AAPL",
-          "trade_count": 639626,
-          "volume": 122709184
-        },
+        "examples": [
+          {
+            "symbol": "AAPL",
+            "trade_count": 639626,
+            "volume": 122709184
+          }
+        ],
         "properties": {
           "symbol": {
             "type": "string"
@@ -1696,12 +3372,14 @@
       },
       "mover": {
         "description": "A symbol whose price moved significantly.",
-        "example": {
-          "change": 2.46,
-          "percent_change": 145.56,
-          "price": 4.15,
-          "symbol": "AGRI"
-        },
+        "examples": [
+          {
+            "change": 2.46,
+            "percent_change": 145.56,
+            "price": 4.15,
+            "symbol": "AGRI"
+          }
+        ],
         "properties": {
           "change": {
             "description": "Difference in change for the day.",
@@ -1767,14 +3445,16 @@
       },
       "name_change": {
         "description": "Name change.",
-        "example": {
-          "id": "5a774c35-edec-4532-a812-a56d0bbb623a",
-          "new_cusip": "Y9390M103",
-          "new_symbol": "VFS",
-          "old_cusip": "G11537100",
-          "old_symbol": "BSAQ",
-          "process_date": "2023-08-15"
-        },
+        "examples": [
+          {
+            "id": "5a774c35-edec-4532-a812-a56d0bbb623a",
+            "new_cusip": "Y9390M103",
+            "new_symbol": "VFS",
+            "old_cusip": "G11537100",
+            "old_symbol": "BSAQ",
+            "process_date": "2023-08-15"
+          }
+        ],
         "properties": {
           "currency": {
             "$ref": "#/components/schemas/currency"
@@ -1875,8 +3555,10 @@
           "url": {
             "description": "URL of article (if applicable).",
             "format": "uri",
-            "nullable": true,
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1903,7 +3585,9 @@
               "small",
               "large"
             ],
-            "example": "thumb",
+            "examples": [
+              "thumb"
+            ],
             "minLength": 1,
             "type": "string"
           },
@@ -1940,21 +3624,25 @@
       },
       "next_page_token": {
         "description": "Pagination token for the next page.",
-        "nullable": true,
-        "type": "string"
+        "type": [
+          "string",
+          "null"
+        ]
       },
       "option_bar": {
         "description": "OHLC aggregate of all the trades in a given interval.",
-        "example": {
-          "c": 0.23,
-          "h": 0.28,
-          "l": 0.23,
-          "n": 26,
-          "o": 0.28,
-          "t": "2024-01-18T05:00:00Z",
-          "v": 224,
-          "vw": 0.245045
-        },
+        "examples": [
+          {
+            "c": 0.23,
+            "h": 0.28,
+            "l": 0.23,
+            "n": 26,
+            "o": 0.28,
+            "t": "2024-01-18T05:00:00Z",
+            "v": 224,
+            "vw": 0.245045
+          }
+        ],
         "properties": {
           "c": {
             "description": "Closing price.",
@@ -2035,21 +3723,25 @@
         "additionalProperties": {
           "type": "string"
         },
-        "example": {
-          "a": "SLAN - Single Leg Auction Non ISO",
-          "e": "SLFT - Single Leg Floor Trade",
-          "g": "MLAT - Multi Leg Auction"
-        },
+        "examples": [
+          {
+            "a": "SLAN - Single Leg Auction Non ISO",
+            "e": "SLFT - Single Leg Floor Trade",
+            "g": "MLAT - Multi Leg Auction"
+          }
+        ],
         "type": "object"
       },
       "option_exchanges": {
         "additionalProperties": {
           "type": "string"
         },
-        "example": {
-          "A": "NYSE American Options",
-          "Q": "Nasdaq Options"
-        },
+        "examples": [
+          {
+            "A": "NYSE American Options",
+            "Q": "Nasdaq Options"
+          }
+        ],
         "type": "object"
       },
       "option_feed": {
@@ -2123,16 +3815,18 @@
       },
       "option_quote": {
         "description": "The best bid and ask information for a given option.\n",
-        "example": {
-          "ap": 0.16,
-          "as": 669,
-          "ax": "w",
-          "bp": 0.15,
-          "bs": 164,
-          "bx": "W",
-          "c": "A",
-          "t": "2024-02-28T15:30:28.046330624Z"
-        },
+        "examples": [
+          {
+            "ap": 0.16,
+            "as": 669,
+            "ax": "w",
+            "bp": 0.15,
+            "bs": 164,
+            "bx": "W",
+            "c": "A",
+            "t": "2024-02-28T15:30:28.046330624Z"
+          }
+        ],
         "properties": {
           "ap": {
             "description": "Ask price.",
@@ -2231,13 +3925,15 @@
       },
       "option_trade": {
         "description": "An option trade.",
-        "example": {
-          "c": "I",
-          "p": 0.37,
-          "s": 1,
-          "t": "2024-01-18T15:03:44.56339456Z",
-          "x": "B"
-        },
+        "examples": [
+          {
+            "c": "I",
+            "p": 0.37,
+            "s": 1,
+            "t": "2024-01-18T15:03:44.56339456Z",
+            "x": "B"
+          }
+        ],
         "properties": {
           "c": {
             "description": "Trade condition.",
@@ -2369,14 +4065,16 @@
       },
       "redemption": {
         "description": "Redemption.",
-        "example": {
-          "cusip": "687305102",
-          "id": "395da031-0e57-4918-a6fb-64a7c713aca4",
-          "payable_date": "2023-06-13",
-          "process_date": "2023-06-13",
-          "rate": 0.141134,
-          "symbol": "ORPHY"
-        },
+        "examples": [
+          {
+            "cusip": "687305102",
+            "id": "395da031-0e57-4918-a6fb-64a7c713aca4",
+            "payable_date": "2023-06-13",
+            "process_date": "2023-06-13",
+            "rate": 0.141134,
+            "symbol": "ORPHY"
+          }
+        ],
         "properties": {
           "currency": {
             "$ref": "#/components/schemas/currency"
@@ -2501,17 +4199,19 @@
       },
       "reverse_split": {
         "description": "Reverse split.",
-        "example": {
-          "ex_date": "2023-08-24",
-          "id": "913de862-c02c-46dc-a89c-fc8779a50d30",
-          "new_cusip": "60879E200",
-          "new_rate": 1,
-          "old_cusip": "60879E101",
-          "old_rate": 50,
-          "process_date": "2023-08-24",
-          "record_date": "2023-08-24",
-          "symbol": "MNTS"
-        },
+        "examples": [
+          {
+            "ex_date": "2023-08-24",
+            "id": "913de862-c02c-46dc-a89c-fc8779a50d30",
+            "new_cusip": "60879E200",
+            "new_rate": 1,
+            "old_cusip": "60879E101",
+            "old_rate": 50,
+            "process_date": "2023-08-24",
+            "record_date": "2023-08-24",
+            "symbol": "MNTS"
+          }
+        ],
         "properties": {
           "currency": {
             "$ref": "#/components/schemas/currency"
@@ -2573,19 +4273,21 @@
       },
       "rights_distribution": {
         "description": "Rights distribution.",
-        "example": {
-          "ex_date": "2024-04-17",
-          "expiration_date": "2024-05-14",
-          "id": "69794cfd-0adc-4e11-9211-9210a9cf8932",
-          "new_cusip": "454089111",
-          "new_symbol": "IFN.RTWI",
-          "payable_date": "2024-04-19",
-          "process_date": "2024-04-19",
-          "rate": 1,
-          "record_date": "2024-04-18",
-          "source_cusip": "454089103",
-          "source_symbol": "IFN"
-        },
+        "examples": [
+          {
+            "ex_date": "2024-04-17",
+            "expiration_date": "2024-05-14",
+            "id": "69794cfd-0adc-4e11-9211-9210a9cf8932",
+            "new_cusip": "454089111",
+            "new_symbol": "IFN.RTWI",
+            "payable_date": "2024-04-19",
+            "process_date": "2024-04-19",
+            "rate": 1,
+            "record_date": "2024-04-18",
+            "source_cusip": "454089103",
+            "source_symbol": "IFN"
+          }
+        ],
         "properties": {
           "currency": {
             "$ref": "#/components/schemas/currency"
@@ -2655,18 +4357,20 @@
       },
       "spin_off": {
         "description": "Spin-off.",
-        "example": {
-          "ex_date": "2023-08-15",
-          "id": "82e602f6-35bc-4651-a5dd-f6d88ff37c55",
-          "new_cusip": "85237B101",
-          "new_rate": 1,
-          "new_symbol": "SRM",
-          "process_date": "2023-08-15",
-          "record_date": "2023-08-15",
-          "source_cusip": "48208F105",
-          "source_rate": 19.35,
-          "source_symbol": "JUPW"
-        },
+        "examples": [
+          {
+            "ex_date": "2023-08-15",
+            "id": "82e602f6-35bc-4651-a5dd-f6d88ff37c55",
+            "new_cusip": "85237B101",
+            "new_rate": 1,
+            "new_symbol": "SRM",
+            "process_date": "2023-08-15",
+            "record_date": "2023-08-15",
+            "source_cusip": "48208F105",
+            "source_rate": 19.35,
+            "source_symbol": "JUPW"
+          }
+        ],
         "properties": {
           "currency": {
             "$ref": "#/components/schemas/currency"
@@ -2731,19 +4435,21 @@
       },
       "stock_and_cash_merger": {
         "description": "Stock and cash merger.",
-        "example": {
-          "acquiree_cusip": "561409103",
-          "acquiree_rate": 1,
-          "acquiree_symbol": "MLVF",
-          "acquirer_cusip": "31931U102",
-          "acquirer_rate": 0.7733,
-          "acquirer_symbol": "FRBA",
-          "cash_rate": 7.8,
-          "effective_date": "2023-07-18",
-          "id": "e5248356-2c06-42cf-aeb9-1595bd616cdb",
-          "payable_date": "2023-07-18",
-          "process_date": "2023-07-18"
-        },
+        "examples": [
+          {
+            "acquiree_cusip": "561409103",
+            "acquiree_rate": 1,
+            "acquiree_symbol": "MLVF",
+            "acquirer_cusip": "31931U102",
+            "acquirer_rate": 0.7733,
+            "acquirer_symbol": "FRBA",
+            "cash_rate": 7.8,
+            "effective_date": "2023-07-18",
+            "id": "e5248356-2c06-42cf-aeb9-1595bd616cdb",
+            "payable_date": "2023-07-18",
+            "process_date": "2023-07-18"
+          }
+        ],
         "properties": {
           "acquiree_cusip": {
             "type": "string"
@@ -2807,12 +4513,14 @@
       },
       "stock_auction": {
         "description": "An auction\n",
-        "example": {
-          "c": "O",
-          "p": 135,
-          "t": "2022-10-13T13:30:01.688322951Z",
-          "x": "Q"
-        },
+        "examples": [
+          {
+            "c": "O",
+            "p": 135,
+            "t": "2022-10-13T13:30:01.688322951Z",
+            "x": "Q"
+          }
+        ],
         "properties": {
           "c": {
             "description": "The condition flag indicating that this is an auction. See `v2/stocks/meta/conditions/trade` for more details.\n",
@@ -2899,16 +4607,18 @@
       },
       "stock_bar": {
         "description": "OHLC aggregate of all the trades in a given interval.\n",
-        "example": {
-          "c": 178.08,
-          "h": 178.34,
-          "l": 177.76,
-          "n": 1727,
-          "o": 178.26,
-          "t": "2022-01-03T09:00:00Z",
-          "v": 60937,
-          "vw": 177.954244
-        },
+        "examples": [
+          {
+            "c": 178.08,
+            "h": 178.34,
+            "l": 177.76,
+            "n": 1727,
+            "o": 178.26,
+            "t": "2022-01-03T09:00:00Z",
+            "v": 60937,
+            "vw": 177.954244
+          }
+        ],
         "properties": {
           "c": {
             "description": "Closing price.",
@@ -3014,11 +4724,13 @@
         "additionalProperties": {
           "type": "string"
         },
-        "example": {
-          "@": "Regular Sale",
-          "A": "Acquisition",
-          "B": "Bunched Trade"
-        },
+        "examples": [
+          {
+            "@": "Regular Sale",
+            "A": "Acquisition",
+            "B": "Bunched Trade"
+          }
+        ],
         "type": "object"
       },
       "stock_daily_auctions": {
@@ -3051,16 +4763,18 @@
       },
       "stock_dividend": {
         "description": "Stock dividend.",
-        "example": {
-          "cusip": "605015106",
-          "ex_date": "2023-05-19",
-          "id": "3ae94c30-2d37-473a-bf29-5f7b4ab6d3ca",
-          "payable_date": "2023-05-05",
-          "process_date": "2023-05-19",
-          "rate": 0.05,
-          "record_date": "2023-05-22",
-          "symbol": "MSBC"
-        },
+        "examples": [
+          {
+            "cusip": "605015106",
+            "ex_date": "2023-05-19",
+            "id": "3ae94c30-2d37-473a-bf29-5f7b4ab6d3ca",
+            "payable_date": "2023-05-05",
+            "process_date": "2023-05-19",
+            "rate": 0.05,
+            "record_date": "2023-05-22",
+            "symbol": "MSBC"
+          }
+        ],
         "properties": {
           "currency": {
             "$ref": "#/components/schemas/currency"
@@ -3108,10 +4822,12 @@
         "additionalProperties": {
           "type": "string"
         },
-        "example": {
-          "N": "New York Stock Exchange",
-          "V": "IEX"
-        },
+        "examples": [
+          {
+            "N": "New York Stock Exchange",
+            "V": "IEX"
+          }
+        ],
         "type": "object"
       },
       "stock_historical_feed": {
@@ -3242,18 +4958,20 @@
       },
       "stock_merger": {
         "description": "Stock merger.",
-        "example": {
-          "acquiree_cusip": "53223X107",
-          "acquiree_rate": 1,
-          "acquiree_symbol": "LSI",
-          "acquirer_cusip": "30225T102",
-          "acquirer_rate": 0.895,
-          "acquirer_symbol": "EXR",
-          "effective_date": "2023-07-20",
-          "id": "728f8cb2-a00e-4bc7-ad14-d15fe82bbcff",
-          "payable_date": "2023-07-20",
-          "process_date": "2023-07-20"
-        },
+        "examples": [
+          {
+            "acquiree_cusip": "53223X107",
+            "acquiree_rate": 1,
+            "acquiree_symbol": "LSI",
+            "acquirer_cusip": "30225T102",
+            "acquirer_rate": 0.895,
+            "acquirer_symbol": "EXR",
+            "effective_date": "2023-07-20",
+            "id": "728f8cb2-a00e-4bc7-ad14-d15fe82bbcff",
+            "payable_date": "2023-07-20",
+            "process_date": "2023-07-20"
+          }
+        ],
         "properties": {
           "acquiree_cusip": {
             "type": "string"
@@ -3312,19 +5030,21 @@
       },
       "stock_quote": {
         "description": "The best bid and ask information for a given security.",
-        "example": {
-          "ap": 387.7,
-          "as": 1,
-          "ax": "C",
-          "bp": 387.67,
-          "bs": 1,
-          "bx": "N",
-          "c": [
-            "R"
-          ],
-          "t": "2021-02-06T13:35:08.946977536Z",
-          "z": "C"
-        },
+        "examples": [
+          {
+            "ap": 387.7,
+            "as": 1,
+            "ax": "C",
+            "bp": 387.67,
+            "bs": 1,
+            "bx": "N",
+            "c": [
+              "R"
+            ],
+            "t": "2021-02-06T13:35:08.946977536Z",
+            "z": "C"
+          }
+        ],
         "properties": {
           "ap": {
             "description": "Ask price. 0 means the security has no active ask.",
@@ -3488,18 +5208,20 @@
       },
       "stock_trade": {
         "description": "A stock trade.",
-        "example": {
-          "c": [
-            "@",
-            "T"
-          ],
-          "i": 1,
-          "p": 178.26,
-          "s": 246,
-          "t": "2022-01-03T09:00:00.086175744Z",
-          "x": "P",
-          "z": "C"
-        },
+        "examples": [
+          {
+            "c": [
+              "@",
+              "T"
+            ],
+            "i": 1,
+            "p": 178.26,
+            "s": 246,
+            "t": "2022-01-03T09:00:00.086175744Z",
+            "x": "P",
+            "z": "C"
+          }
+        ],
         "properties": {
           "c": {
             "description": "Condition flags. See `v2/stocks/meta/conditions/trade` for more details.",
@@ -3605,20 +5327,22 @@
       },
       "unit_split": {
         "description": "Unit split.",
-        "example": {
-          "alternate_cusip": "G5391L110",
-          "alternate_rate": 0.3333,
-          "alternate_symbol": "LVROW",
-          "effective_date": "2023-03-01",
-          "id": "3e68e87e-ae95-4d68-91d1-715d52ef143a",
-          "new_cusip": "G5391L102",
-          "new_rate": 1,
-          "new_symbol": "LVRO",
-          "old_cusip": "G8990L119",
-          "old_rate": 1,
-          "old_symbol": "TPBAU",
-          "process_date": "2023-03-01"
-        },
+        "examples": [
+          {
+            "alternate_cusip": "G5391L110",
+            "alternate_rate": 0.3333,
+            "alternate_symbol": "LVROW",
+            "effective_date": "2023-03-01",
+            "id": "3e68e87e-ae95-4d68-91d1-715d52ef143a",
+            "new_cusip": "G5391L102",
+            "new_rate": 1,
+            "new_symbol": "LVRO",
+            "old_cusip": "G8990L119",
+            "old_rate": 1,
+            "old_symbol": "TPBAU",
+            "process_date": "2023-03-01"
+          }
+        ],
         "properties": {
           "alternate_cusip": {
             "type": "string"
@@ -3693,12 +5417,14 @@
       },
       "worthless_removal": {
         "description": "Worthless removal.",
-        "example": {
-          "cusip": "078771300",
-          "id": "106c2149-ee04-4d2e-a943-98dbb4d21a3c",
-          "process_date": "2024-12-19",
-          "symbol": "BLPH"
-        },
+        "examples": [
+          {
+            "cusip": "078771300",
+            "id": "106c2149-ee04-4d2e-a943-98dbb4d21a3c",
+            "process_date": "2024-12-19",
+            "symbol": "BLPH"
+          }
+        ],
         "properties": {
           "currency": {
             "$ref": "#/components/schemas/currency"
@@ -3729,6 +5455,10 @@
       }
     },
     "securitySchemes": {
+      "BasicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      },
       "apiKey": {
         "in": "header",
         "name": "APCA-API-KEY-ID",
@@ -3756,11 +5486,11 @@
     "title": "Market Data API",
     "version": "1.1"
   },
-  "openapi": "3.0.0",
+  "openapi": "3.1.2",
   "paths": {
     "/v1/corporate-actions": {
       "get": {
-        "description": "This endpoint provides data about the corporate actions for each given symbol over a specified time period.\n\n> ⚠️ Warning\n>\n> Currently Alpaca has no guarantees on the creation time of corporate actions. There may be delays in receiving corporate actions from our data providers, and there may be delays in processing and making them available via this API. As a result, corporate actions may not be available immediately after they are announced.\n",
+        "description": "This endpoint provides data about the corporate actions for each given symbol over a specified time period.\n\nBy default (`data_quality=complete`), corporate actions that are still incomplete (for example, missing required fields such as ex-date or CUSIP/ISIN) and have not yet been processed are excluded from the response. Pass `data_quality=all` to also receive those early, incomplete records. Already-processed corporate actions are always returned when `data_quality=complete`, even if they would otherwise be considered incomplete.\n\n> ⚠️ Warning\n>\n> Currently Alpaca has no guarantees on the creation time of corporate actions. There may be delays in receiving corporate actions from our data providers, and there may be delays in processing and making them available via this API. As a result, corporate actions may not be available immediately after they are announced.\n",
         "operationId": "CorporateActions",
         "parameters": [
           {
@@ -3786,6 +5516,9 @@
           },
           {
             "$ref": "#/components/parameters/cas_limit"
+          },
+          {
+            "$ref": "#/components/parameters/cas_data_quality"
           },
           {
             "$ref": "#/components/parameters/page_token"
@@ -3832,292 +5565,474 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Corporate actions",
         "tags": [
           "Corporate actions"
         ]
       }
     },
-    "/v1beta1/crypto-perps/{loc}/latest/bars": {
+    "/v1beta1/events/corporate-actions": {
       "get": {
-        "description": "The latest bars endpoint returns the latest bar data for the crypto perpetual futures symbols provided.\n",
-        "operationId": "CryptoPerpLatestBars",
+        "description": "Server-Sent Events (SSE) stream that delivers every corporate-action mutation (`insert` / `update` / `delete`) across all supported CA types on a single long-lived `text/event-stream` connection. When `since`, `since_id`, or the `Last-Event-Id` reconnect header is provided, historical events are replayed first; otherwise only live events are pushed.\n\nEach event carries an `event_type` discriminator that selects the shape of the `ca` payload -- see the [`corporate_action_event`](#/components/schemas/corporate_action_event) schema for the mapping to each per-type schema. The same underlying data is available on demand via [`GET /v1/corporate-actions`](#operation/CorporateActions).\n",
+        "operationId": "SubscribeToCorporateActionsEventsSSE",
         "parameters": [
           {
-            "$ref": "#/components/parameters/crypto_perp_loc"
+            "$ref": "#/components/parameters/cas_events_type"
           },
           {
-            "$ref": "#/components/parameters/crypto_perp_symbols"
+            "$ref": "#/components/parameters/cas_events_region"
+          },
+          {
+            "$ref": "#/components/parameters/cas_events_since"
+          },
+          {
+            "$ref": "#/components/parameters/cas_events_until"
+          },
+          {
+            "$ref": "#/components/parameters/cas_events_since_id"
+          },
+          {
+            "$ref": "#/components/parameters/cas_events_until_id"
+          },
+          {
+            "$ref": "#/components/parameters/cas_events_last_event_id"
           }
         ],
         "responses": {
           "200": {
             "content": {
-              "application/json": {
+              "text/event-stream": {
                 "examples": {
-                  "bars": {
-                    "value": {
-                      "bars": {
-                        "BTCUSDT.P": {
-                          "c": 29003,
-                          "h": 29003,
-                          "l": 28999,
-                          "n": 4,
-                          "o": 28999,
-                          "t": "2022-05-27T10:18:00Z",
-                          "v": 0.01,
-                          "vw": 29001
-                        }
+                  "CapitalGainsDistribution": {
+                    "description": "Example SSE payload delivered when\n`event_type == capital_gains_distribution_corporateaction_event`.\nCombined long-term + short-term distribution; single-leg events\ncarry only the applicable `long_term_rate` or `short_term_rate`.\n",
+                    "summary": "Capital gains distribution inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T18:00:00.000000Z",
+                        "ca": {
+                          "currency": "USD",
+                          "cusip": "36261K509",
+                          "ex_date": "2025-12-26",
+                          "id": "98c905a1-08c7-450c-8669-b8e7aee8b44d",
+                          "isin": "US36261K5090",
+                          "long_term_rate": "0.45855",
+                          "payable_date": "2026-01-09",
+                          "process_date": "2026-01-08",
+                          "record_date": "2025-12-29",
+                          "short_term_rate": "0.11019",
+                          "symbol": "GCAD"
+                        },
+                        "event_id": "01KMAGXP2FCJ4NR1TDX8ZWKR6E",
+                        "event_type": "capital_gains_distribution_corporateaction_event",
+                        "region": "us"
                       }
-                    }
-                  }
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/crypto_latest_bars_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [],
-        "summary": "Latest bars",
-        "tags": [
-          "Crypto perpetual futures"
-        ]
-      }
-    },
-    "/v1beta1/crypto-perps/{loc}/latest/orderbooks": {
-      "get": {
-        "description": "The latest orderbook endpoint returns the latest bid and ask orderbook for the crypto perpetual futures symbols provided.\n",
-        "operationId": "CryptoPerpLatestOrderbooks",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/crypto_perp_loc"
-          },
-          {
-            "$ref": "#/components/parameters/crypto_perp_symbols"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "orderbooks": {
-                    "value": {
-                      "orderbooks": {
-                        "BTCUSDT.P": {
-                          "a": [
+                    ]
+                  },
+                  "CashDividend": {
+                    "description": "Example SSE payload delivered when `event_type == cash_dividend_corporateaction_event`.",
+                    "summary": "Cash dividend inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T12:24:58.807230Z",
+                        "ca": {
+                          "currency": "USD",
+                          "cusip": "037833100",
+                          "ex_date": "2026-05-09",
+                          "foreign": false,
+                          "id": "1dbc7685-9517-4a77-a236-8527d49cefdc",
+                          "payable_date": "2026-05-15",
+                          "process_date": "2026-05-15",
+                          "rate": "0.24",
+                          "record_date": "2026-05-12",
+                          "special": false,
+                          "symbol": "AAPL"
+                        },
+                        "event_id": "01J9RPMV5TKB8WX3M4F1KZ7QH2",
+                        "event_type": "cash_dividend_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "CashMerger": {
+                    "description": "Example SSE payload delivered when `event_type == cash_merger_corporateaction_event`.",
+                    "summary": "Cash merger inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T15:42:11.118274Z",
+                        "ca": {
+                          "acquiree_cusip": "90184L102",
+                          "acquiree_symbol": "TWTR",
+                          "acquirer_cusip": "912656104",
+                          "acquirer_symbol": "X",
+                          "currency": "USD",
+                          "effective_date": "2026-04-01",
+                          "id": "f8489167-4e4b-431d-a0be-6017ae1cf08a",
+                          "payable_date": "2026-04-05",
+                          "process_date": "2026-04-01",
+                          "rate": "54.20"
+                        },
+                        "event_id": "01J9RQ5HNZQK7M3RDVJ8XBPCT1",
+                        "event_type": "cash_merger_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "EquityPartialCall": {
+                    "description": "Example SSE payload delivered when `event_type == equity_partial_call_corporateaction_event`.",
+                    "summary": "Equity partial call inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-19T23:26:46.853262Z",
+                        "ca": {
+                          "currency": "USD",
+                          "cusip": "123456789",
+                          "id": "b2f8b1a4-4c4a-4e8e-9c9a-1f3b8a7c5d6e",
+                          "lottery_date": "2026-06-08",
+                          "lottery_type": "original",
+                          "payable_date": "2026-06-15",
+                          "price": "25.00",
+                          "process_date": "2026-06-10",
+                          "record_date": "2026-06-05",
+                          "results_publication_date": "2026-06-09",
+                          "symbol": "EXMP"
+                        },
+                        "event_id": "01J9RSGD8JR2A4K7MZNTPVQ5XW",
+                        "event_type": "equity_partial_call_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "ForwardSplit": {
+                    "description": "Example SSE payload delivered when `event_type == forward_split_corporateaction_event`.",
+                    "summary": "Forward split updated (US)",
+                    "value": [
+                      {
+                        "action": "update",
+                        "at": "2026-03-19T22:50:11.729329Z",
+                        "ca": {
+                          "currency": "USD",
+                          "cusip": "67066G104",
+                          "ex_date": "2026-06-10",
+                          "id": "78467a10-9aa2-4222-8927-abcdef012345",
+                          "new_rate": "10",
+                          "old_rate": "1",
+                          "payable_date": "2026-06-09",
+                          "process_date": "2026-06-07",
+                          "record_date": "2026-06-06",
+                          "symbol": "NVDA"
+                        },
+                        "event_id": "01KM5CDQXQAE67Z5NHCJZHQ5XV",
+                        "event_type": "forward_split_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "NameChange": {
+                    "description": "Example SSE payload delivered when `event_type == name_change_corporateaction_event`.",
+                    "summary": "Name change inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T00:15:42.318901Z",
+                        "ca": {
+                          "currency": "USD",
+                          "id": "c1a2b3c4-d5e6-4f78-8912-abcdef012345",
+                          "new_cusip": "30303M102",
+                          "new_symbol": "META",
+                          "old_cusip": "30303M102",
+                          "old_symbol": "FB",
+                          "process_date": "2026-06-09"
+                        },
+                        "event_id": "01KM5CDZN6KX5V8WQ8KXDH917J",
+                        "event_type": "name_change_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "Redemption": {
+                    "description": "Example SSE payload delivered when `event_type == redemption_corporateaction_event`.",
+                    "summary": "Redemption inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T12:24:52.325158Z",
+                        "ca": {
+                          "currency": "USD",
+                          "cusip": "987654321",
+                          "id": "4e5f6a7b-8c9d-4e01-a234-56789abcdef0",
+                          "payable_date": "2026-07-03",
+                          "process_date": "2026-07-01",
+                          "rate": "10.00",
+                          "symbol": "XYZ"
+                        },
+                        "event_id": "01J9RVB6Y4ZK8M3N7QD2WX1RFP",
+                        "event_type": "redemption_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "Reorganization": {
+                    "description": "Example SSE payload delivered when `event_type == reorganization_corporateaction_event`.",
+                    "summary": "Reorganization inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T13:12:03.500000Z",
+                        "ca": {
+                          "cash_rate": "5.00",
+                          "currency": "USD",
+                          "cusip": "111222333",
+                          "effective_date": "2026-08-15",
+                          "id": "6a7b8c9d-0e1f-4234-5678-90abcdef1234",
+                          "payable_date": "2026-08-20",
+                          "process_date": "2026-08-15",
+                          "stock_movements": [
                             {
-                              "p": 20902,
-                              "s": 0.0097
-                            },
-                            {
-                              "p": 21444,
-                              "s": 0
+                              "cusip": "444555666",
+                              "new_rate": "1",
+                              "source_rate": "10",
+                              "symbol": "NEWCO"
                             }
                           ],
-                          "b": [
-                            {
-                              "p": 20846,
-                              "s": 0.1902
-                            },
-                            {
-                              "p": 20350,
-                              "s": 0
-                            }
-                          ],
-                          "t": "2022-06-24T08:00:14.137774336Z"
-                        }
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/crypto_latest_orderbooks_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [],
-        "summary": "Latest orderbook",
-        "tags": [
-          "Crypto perpetual futures"
-        ]
-      }
-    },
-    "/v1beta1/crypto-perps/{loc}/latest/pricing": {
-      "get": {
-        "description": "The latest futures pricing endpoint returns the latest pricing data for the crypto perpetual futures symbols provided.\n",
-        "operationId": "CryptoPerpLatestFuturesPricing",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/crypto_perp_loc"
-          },
-          {
-            "$ref": "#/components/parameters/crypto_perp_symbols"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "pricing": {
-                    "value": {
-                      "pricing": {
-                        "BTCUSDT.P": {
-                          "fr": 0.000565699,
-                          "ft": "2022-05-27T10:18:00Z",
-                          "ip": 50702.8,
-                          "mp": 50652.3553,
-                          "oi": 90.7367,
-                          "t": "2022-05-27T10:18:00Z"
-                        }
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/crypto_perp_latest_futures_pricing_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [],
-        "summary": "Latest pricing",
-        "tags": [
-          "Crypto perpetual futures"
-        ]
-      }
-    },
-    "/v1beta1/crypto-perps/{loc}/latest/quotes": {
-      "get": {
-        "description": "The latest quotes endpoint returns the latest bid and ask prices for the crypto perpetual futures symbols provided.\n",
-        "operationId": "CryptoPerpLatestQuotes",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/crypto_perp_loc"
-          },
-          {
-            "$ref": "#/components/parameters/crypto_perp_symbols"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "quotes": {
-                    "value": {
-                      "quotes": {
-                        "BTCUSDT.P": {
-                          "ap": 29059,
-                          "as": 3.252,
-                          "bp": 29058,
-                          "bs": 0.3544,
-                          "t": "2022-05-26T11:47:18.44347136Z"
+                          "symbol": "OLDCO"
                         },
-                        "ETHUSDT.P": {
-                          "ap": 1817.7,
-                          "as": 6.137,
-                          "bp": 1817,
-                          "bs": 4.76,
-                          "t": "2022-05-26T11:47:18.499478272Z"
-                        }
+                        "event_id": "01KM5CE7CNA84WKP9M7T9BM2EX",
+                        "event_type": "reorganization_corporateaction_event",
+                        "region": "us"
                       }
-                    }
+                    ]
+                  },
+                  "ReverseSplit": {
+                    "description": "Example SSE payload delivered when `event_type == reverse_split_corporateaction_event`.",
+                    "summary": "Reverse split inserted (non-US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T14:00:00.000000Z",
+                        "ca": {
+                          "currency": "GBP",
+                          "ex_date": "2026-09-01",
+                          "id": "7b8c9d0e-1f23-4456-7890-abcdef123456",
+                          "new_cusip": "G12345679",
+                          "new_isin": "GB0001234568",
+                          "new_rate": "1",
+                          "old_cusip": "G12345678",
+                          "old_isin": "GB0001234567",
+                          "old_rate": "20",
+                          "payable_date": "2026-09-02",
+                          "process_date": "2026-09-01",
+                          "record_date": "2026-08-30",
+                          "symbol": "EXMP.L"
+                        },
+                        "event_id": "01KM5CEF44KN9DZNWV9NV456V1",
+                        "event_type": "reverse_split_corporateaction_event",
+                        "region": "non_us"
+                      }
+                    ]
+                  },
+                  "RightsDistribution": {
+                    "description": "Example SSE payload delivered when `event_type == rights_distribution_corporateaction_event`.",
+                    "summary": "Rights distribution inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T14:30:15.100000Z",
+                        "ca": {
+                          "currency": "USD",
+                          "ex_date": "2026-05-15",
+                          "expiration_date": "2026-06-15",
+                          "id": "8c9d0e1f-2345-4678-9012-abcdef234567",
+                          "new_cusip": "123456790",
+                          "new_symbol": "EXMPR",
+                          "payable_date": "2026-05-22",
+                          "process_date": "2026-05-20",
+                          "rate": "0.25",
+                          "record_date": "2026-05-18",
+                          "source_cusip": "123456789",
+                          "source_symbol": "EXMP"
+                        },
+                        "event_id": "01KM5CEPVKF869Z7RD7EJNP360",
+                        "event_type": "rights_distribution_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "SpinOff": {
+                    "description": "Example SSE payload delivered when `event_type == spin_off_corporateaction_event`.",
+                    "summary": "Spin-off updated (US)",
+                    "value": [
+                      {
+                        "action": "update",
+                        "at": "2026-03-20T15:00:22.220000Z",
+                        "ca": {
+                          "currency": "USD",
+                          "ex_date": "2026-04-08",
+                          "id": "9d0e1f23-4567-4890-1234-abcdef345678",
+                          "new_cusip": "9344D2109",
+                          "new_rate": "0.241917",
+                          "new_symbol": "WBD",
+                          "payable_date": "2026-04-11",
+                          "process_date": "2026-04-08",
+                          "record_date": "2026-04-05",
+                          "source_cusip": "00206R102",
+                          "source_rate": "1",
+                          "source_symbol": "T"
+                        },
+                        "event_id": "01KM5CEYK2TRA4S2456P21NJZ0",
+                        "event_type": "spin_off_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "StockAndCashMerger": {
+                    "description": "Example SSE payload delivered when `event_type == stock_and_cash_merger_corporateaction_event`.",
+                    "summary": "Stock-and-cash merger inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T15:30:45.300000Z",
+                        "ca": {
+                          "acquiree_cusip": "35137L204",
+                          "acquiree_rate": "1",
+                          "acquiree_symbol": "FOXA",
+                          "acquirer_cusip": "254687106",
+                          "acquirer_rate": "0.35",
+                          "acquirer_symbol": "DIS",
+                          "cash_rate": "10.00",
+                          "currency": "USD",
+                          "effective_date": "2026-05-01",
+                          "id": "0e1f2345-6789-4a01-b234-cdef56789012",
+                          "payable_date": "2026-05-05",
+                          "process_date": "2026-05-01"
+                        },
+                        "event_id": "01KM5CF6AHE2DGEP087XGX6XDW",
+                        "event_type": "stock_and_cash_merger_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "StockDividend": {
+                    "description": "Example SSE payload delivered when `event_type == stock_dividend_corporateaction_event`.",
+                    "summary": "Stock dividend inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T16:00:00.400000Z",
+                        "ca": {
+                          "currency": "USD",
+                          "cusip": "123456789",
+                          "ex_date": "2026-05-28",
+                          "id": "1f234567-89ab-4c01-d234-ef5678901234",
+                          "payable_date": "2026-06-01",
+                          "process_date": "2026-06-01",
+                          "rate": "0.05",
+                          "record_date": "2026-05-30",
+                          "symbol": "EXMP"
+                        },
+                        "event_id": "01KM5CFE200AT1VX7S34MY33YT",
+                        "event_type": "stock_dividend_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "StockMerger": {
+                    "description": "Example SSE payload delivered when `event_type == stock_merger_corporateaction_event`.",
+                    "summary": "Stock merger inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T16:30:11.500000Z",
+                        "ca": {
+                          "acquiree_cusip": "555666777",
+                          "acquiree_rate": "1",
+                          "acquiree_symbol": "SMLCO",
+                          "acquirer_cusip": "222333444",
+                          "acquirer_rate": "0.75",
+                          "acquirer_symbol": "BIGCO",
+                          "currency": "USD",
+                          "effective_date": "2026-07-15",
+                          "id": "23456789-abcd-4e01-f234-567890123456",
+                          "payable_date": "2026-07-18",
+                          "process_date": "2026-07-15"
+                        },
+                        "event_id": "01KM5CFNSFKSQR5SAEEJ783SWY",
+                        "event_type": "stock_merger_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "UnitSplit": {
+                    "description": "Example SSE payload delivered when `event_type == unit_split_corporateaction_event`.",
+                    "summary": "Unit split inserted (US)",
+                    "value": [
+                      {
+                        "action": "insert",
+                        "at": "2026-03-20T17:00:30.600000Z",
+                        "ca": {
+                          "alternate_cusip": "888999002",
+                          "alternate_rate": "0.5",
+                          "alternate_symbol": "SPACW",
+                          "currency": "USD",
+                          "effective_date": "2026-08-01",
+                          "id": "3456789a-bcde-4f01-2345-67890abcdef1",
+                          "new_cusip": "888999001",
+                          "new_rate": "1",
+                          "new_symbol": "SPAC",
+                          "old_cusip": "888999000",
+                          "old_rate": "1",
+                          "old_symbol": "SPACU",
+                          "payable_date": "2026-08-03",
+                          "process_date": "2026-08-01"
+                        },
+                        "event_id": "01KM5CFXGY9EYPZRTCVJX88FQ8",
+                        "event_type": "unit_split_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
+                  },
+                  "WorthlessRemoval": {
+                    "description": "Example SSE payload delivered when `event_type == worthless_removal_corporateaction_event`.",
+                    "summary": "Worthless removal deleted (US)",
+                    "value": [
+                      {
+                        "action": "delete",
+                        "at": "2026-03-20T17:30:00.700000Z",
+                        "ca": {
+                          "currency": "USD",
+                          "cusip": "777888999",
+                          "id": "456789ab-cdef-4012-3456-7890abcdef12",
+                          "process_date": "2026-09-15",
+                          "symbol": "DEADCO"
+                        },
+                        "event_id": "01KM5CG58DTRZ8RKZY3KNYMN3D",
+                        "event_type": "worthless_removal_corporateaction_event",
+                        "region": "us"
+                      }
+                    ]
                   }
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/crypto_latest_quotes_resp"
+                  "items": {
+                    "$ref": "#/components/schemas/corporate_action_event"
+                  },
+                  "type": "array"
                 }
               }
             },
-            "description": "OK",
+            "description": "Connected. Corporate-action events will now start streaming as long as you keep the connection open.",
             "headers": {
               "X-RateLimit-Limit": {
                 "$ref": "#/components/headers/ratelimit_limit"
@@ -4146,89 +6061,32 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "security": [],
-        "summary": "Latest quotes",
-        "tags": [
-          "Crypto perpetual futures"
-        ]
-      }
-    },
-    "/v1beta1/crypto-perps/{loc}/latest/trades": {
-      "get": {
-        "description": "The latest trades endpoint returns the latest trade data for the crypto perpetual futures symbols provided.\n",
-        "operationId": "CryptoPerpLatestTrades",
-        "parameters": [
+        "security": [
           {
-            "$ref": "#/components/parameters/crypto_perp_loc"
+            "apiKey": [],
+            "apiSecret": []
           },
           {
-            "$ref": "#/components/parameters/crypto_perp_symbols"
+            "BasicAuth": []
           }
         ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "trades": {
-                    "value": {
-                      "trades": {
-                        "BTCUSDT.P": {
-                          "i": 31455289,
-                          "p": 29791,
-                          "s": 0.0016,
-                          "t": "2022-05-18T12:01:00.537052Z",
-                          "tks": "S"
-                        },
-                        "ETHUSDT.P": {
-                          "i": 31455287,
-                          "p": 2027.6,
-                          "s": 0.06,
-                          "t": "2022-05-18T12:01:00.363547Z",
-                          "tks": "S"
-                        }
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/crypto_latest_trades_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
+        "servers": [
+          {
+            "description": "Production",
+            "url": "https://stream.data.alpaca.markets"
           },
-          "400": {
-            "$ref": "#/components/responses/400"
+          {
+            "description": "Sandbox",
+            "url": "https://stream.data.sandbox.alpaca.markets"
           },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
+          {
+            "description": "Staging",
+            "url": "https://stream.data.staging-v2.tradetalk.us"
           }
-        },
-        "security": [],
-        "summary": "Latest trades",
+        ],
+        "summary": "Subscribe to Corporate Actions Events (SSE)",
         "tags": [
-          "Crypto perpetual futures"
+          "Corporate actions"
         ]
       }
     },
@@ -4305,6 +6163,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest prices",
         "tags": [
           "Fixed income"
@@ -4402,6 +6269,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest quotes",
         "tags": [
           "Fixed income"
@@ -4469,6 +6345,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "BasicAuth": []
+          },
+          {
+            "apiKey": [],
+            "apiSecret": []
+          }
+        ],
         "summary": "Latest rates for currency pairs",
         "tags": [
           "Forex"
@@ -4569,183 +6454,18 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "BasicAuth": []
+          },
+          {
+            "apiKey": [],
+            "apiSecret": []
+          }
+        ],
         "summary": "Historical rates for currency pairs",
         "tags": [
           "Forex"
-        ]
-      }
-    },
-    "/v1beta1/indices/latest/values": {
-      "get": {
-        "description": "Get the latest values for the given indices.",
-        "operationId": "IndexLatestValues",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/index_symbols"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "values": {
-                    "value": {
-                      "values": {
-                        "SPX": {
-                          "t": "2026-05-18T17:00:02.0256Z",
-                          "v": 7383.46
-                        },
-                        "VIX": {
-                          "t": "2026-05-18T17:00:46.354Z",
-                          "v": 18.45
-                        }
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/index_latest_values_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "summary": "Latest values for indices",
-        "tags": [
-          "Index"
-        ]
-      }
-    },
-    "/v1beta1/indices/values": {
-      "get": {
-        "description": "Get historical values for the given indices in the given time interval.\n",
-        "operationId": "IndexValues",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/index_symbols"
-          },
-          {
-            "$ref": "#/components/parameters/start"
-          },
-          {
-            "$ref": "#/components/parameters/end"
-          },
-          {
-            "$ref": "#/components/parameters/limit"
-          },
-          {
-            "$ref": "#/components/parameters/page_token"
-          },
-          {
-            "$ref": "#/components/parameters/sort"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "values": {
-                    "value": {
-                      "next_page_token": "U1BYfDIwMjYtMDUtMThUMTc6MDA6MDIuMDI1Nlo",
-                      "values": {
-                        "SPX": [
-                          {
-                            "t": "2026-05-18T17:00:00.0302Z",
-                            "v": 7384.41
-                          },
-                          {
-                            "t": "2026-05-18T17:00:01.0918Z",
-                            "v": 7384.07
-                          },
-                          {
-                            "t": "2026-05-18T17:00:02.0256Z",
-                            "v": 7383.46
-                          }
-                        ],
-                        "VIX": [
-                          {
-                            "t": "2026-05-18T17:00:01.3355Z",
-                            "v": 18.4
-                          },
-                          {
-                            "t": "2026-05-18T17:00:16.3453Z",
-                            "v": 18.41
-                          },
-                          {
-                            "t": "2026-05-18T17:00:46.354Z",
-                            "v": 18.45
-                          }
-                        ]
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/index_values_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "summary": "Historical values for indices",
-        "tags": [
-          "Index"
         ]
       }
     },
@@ -4772,7 +6492,7 @@
             "content": {
               "image/png": {
                 "schema": {
-                  "format": "binary",
+                  "contentMediaType": "image/png",
                   "type": "string"
                 }
               }
@@ -4806,6 +6526,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Logos",
         "tags": [
           "Logos"
@@ -4917,6 +6646,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "News articles",
         "tags": [
           "News"
@@ -5009,6 +6747,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical bars",
         "tags": [
           "Option"
@@ -5072,6 +6819,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Condition codes",
         "tags": [
           "Option"
@@ -5120,6 +6876,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Exchange codes",
         "tags": [
           "Option"
@@ -5204,6 +6969,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest quotes",
         "tags": [
           "Option"
@@ -5305,6 +7079,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Snapshots",
         "tags": [
           "Option"
@@ -5472,6 +7255,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Option chain",
         "tags": [
           "Option"
@@ -5565,6 +7357,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical trades",
         "tags": [
           "Option"
@@ -5636,6 +7437,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest trades",
         "tags": [
           "Option"
@@ -5692,6 +7502,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Most active stocks",
         "tags": [
           "Screener"
@@ -5784,6 +7603,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Top market movers",
         "tags": [
           "Screener"
@@ -5879,7 +7707,15 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "security": [],
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical bars",
         "tags": [
           "Crypto"
@@ -5954,7 +7790,15 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "security": [],
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest bars",
         "tags": [
           "Crypto"
@@ -6042,7 +7886,15 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "security": [],
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest orderbook",
         "tags": [
           "Crypto"
@@ -6121,7 +7973,15 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "security": [],
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest quotes",
         "tags": [
           "Crypto"
@@ -6200,7 +8060,15 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "security": [],
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest trades",
         "tags": [
           "Crypto"
@@ -6299,7 +8167,15 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "security": [],
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical quotes",
         "tags": [
           "Crypto"
@@ -6410,7 +8286,15 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "security": [],
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Snapshots",
         "tags": [
           "Crypto"
@@ -6516,7 +8400,15 @@
             "$ref": "#/components/responses/500"
           }
         },
-        "security": [],
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical trades",
         "tags": [
           "Crypto"
@@ -6761,6 +8653,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical auctions",
         "tags": [
           "Stock"
@@ -6865,6 +8766,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical bars",
         "tags": [
           "Stock"
@@ -6952,6 +8862,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest bars",
         "tags": [
           "Stock"
@@ -7029,6 +8948,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Condition codes",
         "tags": [
           "Stock"
@@ -7077,6 +9005,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Exchange codes",
         "tags": [
           "Stock"
@@ -7191,6 +9128,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical quotes",
         "tags": [
           "Stock"
@@ -7284,6 +9230,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest quotes",
         "tags": [
           "Stock"
@@ -7463,6 +9418,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Snapshots",
         "tags": [
           "Stock"
@@ -7577,6 +9541,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical trades",
         "tags": [
           "Stock"
@@ -7657,6 +9630,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest trades",
         "tags": [
           "Stock"
@@ -7775,6 +9757,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical auctions (single)",
         "tags": [
           "Stock"
@@ -7878,6 +9869,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical bars (single symbol)",
         "tags": [
           "Stock"
@@ -7954,6 +9954,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest bar (single symbol)",
         "tags": [
           "Stock"
@@ -8067,6 +10076,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical quotes (single symbol)",
         "tags": [
           "Stock"
@@ -8146,6 +10164,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest quote (single symbol)",
         "tags": [
           "Stock"
@@ -8267,6 +10294,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Snapshot (single symbol)",
         "tags": [
           "Stock"
@@ -8378,6 +10414,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Historical trades (single symbol)",
         "tags": [
           "Stock"
@@ -8456,6 +10501,15 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
         "summary": "Latest trade (single symbol)",
         "tags": [
           "Stock"
@@ -8463,12 +10517,6 @@
       }
     }
   },
-  "security": [
-    {
-      "apiKey": [],
-      "apiSecret": []
-    }
-  ],
   "servers": [
     {
       "description": "Production",
@@ -8497,10 +10545,6 @@
       "name": "Crypto"
     },
     {
-      "description": "Endpoints for crypto perpetual futures.",
-      "name": "Crypto perpetual futures"
-    },
-    {
       "description": "Endpoints for fixed income data.",
       "name": "Fixed income"
     },
@@ -8523,6 +10567,10 @@
     {
       "description": "Corporate actions (splits, dividends, etc.).",
       "name": "Corporate actions"
+    },
+    {
+      "description": "Endpoints for event contract (prediction market) assets metadata.",
+      "name": "Event contracts"
     }
   ]
 }

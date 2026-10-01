@@ -18,14 +18,18 @@
  * @export
  */
 export const TokenizationNetwork = {
-    Solana: 'solana',
     Arbitrum: 'arbitrum',
-    Ethereum: 'ethereum',
-    Binance: 'binance',
     Base: 'base',
+    Binance: 'binance',
+    Cronos: 'cronos',
+    Ethereum: 'ethereum',
+    Hypercore: 'hypercore',
+    Hyperevm: 'hyperevm',
+    Mantle: 'mantle',
+    Robinhood: 'robinhood',
+    Solana: 'solana',
     Ton: 'ton',
-    Tron: 'tron',
-    Mantle: 'mantle'
+    Tron: 'tron'
 } as const;
 export type TokenizationNetwork = typeof TokenizationNetwork[keyof typeof TokenizationNetwork];
 

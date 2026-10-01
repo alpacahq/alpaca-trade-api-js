@@ -7,10 +7,11 @@
  * REST-only services, serverless/edge bundles, and faster cold starts.
  *
  * The `Alpaca` facade is the same class as the main entrypoint, so all REST
- * methods (and pagination, order builders, `getLatestPrice`, `closeAllPositions`)
- * work unchanged. The stream factories (`stockStream`, `stream`, ...) and
+ * methods and fetch-based SSE helpers (`subscribeActivities`,
+ * `subscribeCorporateActions`, and their raw generated operations) work
+ * unchanged. The WebSocket factories (`stockStream`, `stream`, ...) and
  * `submitAndWait` exist but throw if called, since `streaming` is not loaded
- * here; import from `@alpacahq/alpaca-trade-api` if you need real-time streams.
+ * here; import from `@alpacahq/alpaca-trade-api` if you need WebSocket streams.
  */
 export * as trading from './trading';
 export * as marketData from './market-data';
@@ -34,6 +35,11 @@ export {
     DEFAULT_RATE_LIMIT,
 } from './client';
 export type {
+    AccessToken,
+    AccessTokenProvider,
+} from './auth';
+
+export type {
     AlpacaClientOptions,
     AlpacaRequestCredentials,
     AlpacaRequestRedirect,
@@ -50,7 +56,6 @@ export type {
     Bar,
     Trade,
     Quote,
-    IndexValue,
     Auction,
     DailyAuctions,
     Candles,
@@ -77,6 +82,22 @@ export type { AlpacaApiResponse } from './responses';
 
 export { RateLimiter } from './rate-limit';
 export type { RateLimitConfig } from './rate-limit';
+
+export {
+    SSEApiResponse,
+    SseSubscription,
+    SseProtocolError,
+    SseDeserializationError,
+} from './core/sse';
+export type {
+    SseMessage,
+    SseOptions,
+    SseReconnectOptions,
+    SseReconnectEvent,
+    SseConnectionInfo,
+    SseClosedInfo,
+    SseCloseReason,
+} from './core/sse';
 
 export { findCapabilities, findErgonomic, streamingCapabilities, ergonomicCapabilities } from './capabilities';
 export type { CapabilityEntry, StreamCapabilityEntry, CapabilityGroup, ErgonomicHelperEntry, ErgonomicKind } from './capabilities';

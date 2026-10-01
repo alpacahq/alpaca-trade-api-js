@@ -1,11 +1,15 @@
 import { canonicalize } from "./jsonCanonical.js";
 
 export interface SpecDiffSummary {
+  /** Canonical whole-document comparison used as the fail-safe adoption gate. */
+  documentModified: boolean;
   schemasAdded: string[];
   schemasRemoved: string[];
   schemasModified: string[];
   operationsAdded: string[];
   operationsRemoved: string[];
+  /** Existing operations whose full OpenAPI operation object changed. */
+  operationsModified: string[];
   /**
    * Operations present in both specs whose first tag changed. typescript-fetch
    * groups operations into `<Tag>Api` classes by first tag, so a tag change
@@ -32,6 +36,7 @@ type AnySpec = {
 interface OperationInfo {
   tag?: string;
   operationId?: string;
+  value: unknown;
 }
 
 function schemas(spec: AnySpec): Record<string, unknown> {
@@ -62,7 +67,11 @@ function operationDetails(spec: AnySpec): Map<string, OperationInfo> {
       const tag =
         Array.isArray(o.tags) && typeof o.tags[0] === "string" ? o.tags[0] : undefined;
       const operationId = typeof o.operationId === "string" ? o.operationId : undefined;
-      out.set(`${method.toUpperCase()} ${path}`, { tag, operationId });
+      out.set(`${method.toUpperCase()} ${path}`, {
+        tag,
+        operationId,
+        value: op,
+      });
     }
   }
   return out;
@@ -89,11 +98,15 @@ export function summarizeSpecDiff(base: unknown, next: unknown): SpecDiffSummary
 
   const baseDetails = operationDetails(base as AnySpec);
   const nextDetails = operationDetails(next as AnySpec);
+  const operationsModified: string[] = [];
   const operationsMoved: string[] = [];
   const operationsRenamed: string[] = [];
   for (const [key, nextInfo] of nextDetails) {
     const baseInfo = baseDetails.get(key);
     if (!baseInfo) continue; // newly added operation, not a move/rename
+    if (canonicalize(baseInfo.value) !== canonicalize(nextInfo.value)) {
+      operationsModified.push(key);
+    }
     if ((baseInfo.tag ?? "") !== (nextInfo.tag ?? "")) {
       operationsMoved.push(
         `${key}: "${baseInfo.tag ?? "(none)"}" -> "${nextInfo.tag ?? "(none)"}"`,
@@ -105,15 +118,18 @@ export function summarizeSpecDiff(base: unknown, next: unknown): SpecDiffSummary
       );
     }
   }
+  operationsModified.sort();
   operationsMoved.sort();
   operationsRenamed.sort();
 
   return {
+    documentModified: canonicalize(base) !== canonicalize(next),
     schemasAdded,
     schemasRemoved,
     schemasModified,
     operationsAdded,
     operationsRemoved,
+    operationsModified,
     operationsMoved,
     operationsRenamed,
   };
@@ -123,7 +139,8 @@ export function summarizeSpecDiff(base: unknown, next: unknown): SpecDiffSummary
 export function formatSummary(s: SpecDiffSummary): string {
   const counts =
     `schemas: +${s.schemasAdded.length} -${s.schemasRemoved.length} ~${s.schemasModified.length}; ` +
-    `operations: +${s.operationsAdded.length} -${s.operationsRemoved.length}`;
+    `operations: +${s.operationsAdded.length} -${s.operationsRemoved.length} ~${s.operationsModified.length}; ` +
+    `document: ${s.documentModified ? "modified" : "unchanged"}`;
   const lines = [counts];
   const detail = (label: string, items: string[]) => {
     if (items.length) lines.push(`  ${label}: ${items.join(", ")}`);
@@ -133,6 +150,7 @@ export function formatSummary(s: SpecDiffSummary): string {
   detail("schemas modified", s.schemasModified);
   detail("operations added", s.operationsAdded);
   detail("operations removed", s.operationsRemoved);
+  detail("operations modified", s.operationsModified);
   detail("operations moved (Api change — facade rewiring likely)", s.operationsMoved);
   detail("operations renamed (method name change — facade rewiring likely)", s.operationsRenamed);
   return lines.join("\n");
@@ -140,11 +158,13 @@ export function formatSummary(s: SpecDiffSummary): string {
 
 export function hasChanges(s: SpecDiffSummary): boolean {
   return (
+    s.documentModified ||
     s.schemasAdded.length > 0 ||
     s.schemasRemoved.length > 0 ||
     s.schemasModified.length > 0 ||
     s.operationsAdded.length > 0 ||
     s.operationsRemoved.length > 0 ||
+    s.operationsModified.length > 0 ||
     s.operationsMoved.length > 0 ||
     s.operationsRenamed.length > 0
   );

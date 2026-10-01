@@ -36,6 +36,11 @@ function losslessNumber(raw: string): number | string {
     return Number(raw);
 }
 
+/** Parse one SSE `data:` JSON payload with market-data integer preservation. */
+export function parseSseJson(data: string): unknown {
+    return parseLossless(data, undefined, losslessNumber);
+}
+
 /**
  * Market-data {@link CoreJSONApiResponse} that parses the body losslessly so
  * 64-bit ids survive with full precision (see {@link losslessNumber}). This
