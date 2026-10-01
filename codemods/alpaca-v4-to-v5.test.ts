@@ -205,6 +205,37 @@ trading.PostOrderRequestFromJSON(body);`;
         });
     });
 
+    it.each([
+        [
+            "direct CommonJS namespace",
+            `var { trading: generated } = require("@alpacahq/alpaca-trade-api/rest");
+var generated = unrelated;
+const orders = new generated.OrdersApi();
+orders.postOrder({ postOrderRequest: body });`,
+        ],
+        [
+            "indirect SDK namespace",
+            `const sdk = require("@alpacahq/alpaca-trade-api/rest");
+var { trading: generated } = sdk;
+var generated = unrelated;
+const orders = new generated.OrdersApi();
+orders.postOrder({ postOrderRequest: body });`,
+        ],
+        [
+            "generated API constructor",
+            `const { trading } = require("@alpacahq/alpaca-trade-api/rest");
+var { OrdersApi } = trading;
+var OrdersApi = UnrelatedOrdersApi;
+const orders = new OrdersApi();
+orders.postOrder({ postOrderRequest: body });`,
+        ],
+    ])("does not trust a redeclared destructured %s binding", (_label, source) => {
+        expect(transform(source, "babel")).toEqual({
+            source: undefined,
+            reports: [],
+        });
+    });
+
     it("reports standalone PostOrderRequest types instead of guessing their meaning", () => {
         const source = `import { trading } from "@alpacahq/alpaca-trade-api";
 type Request = trading.PostOrderRequest;`;

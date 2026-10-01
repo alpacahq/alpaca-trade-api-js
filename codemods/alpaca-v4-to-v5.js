@@ -235,12 +235,50 @@ module.exports = function transformer(file, api, options = {}) {
         }
         return info;
     };
+    const recordDeclarationTarget = (path, initialized) => {
+        if (!path?.value) return;
+        if (path.value.type === "Identifier") {
+            const info = writeInfo(path);
+            if (!info) return;
+            info.declarations++;
+            if (initialized) info.initializers++;
+            return;
+        }
+        if (path.value.type === "RestElement") {
+            recordDeclarationTarget(path.get("argument"), initialized);
+            return;
+        }
+        if (path.value.type === "AssignmentPattern") {
+            recordDeclarationTarget(path.get("left"), initialized);
+            return;
+        }
+        if (path.value.type === "ArrayPattern") {
+            path.get("elements").each((element) => {
+                recordDeclarationTarget(element, initialized);
+            });
+            return;
+        }
+        if (path.value.type === "ObjectPattern") {
+            path.get("properties").each((property) => {
+                if (
+                    property.value.type === "RestElement" ||
+                    property.value.type === "SpreadElement"
+                ) {
+                    recordDeclarationTarget(
+                        property.get("argument"),
+                        initialized,
+                    );
+                } else {
+                    recordDeclarationTarget(
+                        property.get("value"),
+                        initialized,
+                    );
+                }
+            });
+        }
+    };
     root.find(j.VariableDeclarator).forEach((path) => {
-        if (path.value.id.type !== "Identifier") return;
-        const info = writeInfo(path.get("id"));
-        if (!info) return;
-        info.declarations++;
-        if (path.value.init) info.initializers++;
+        recordDeclarationTarget(path.get("id"), Boolean(path.value.init));
     });
     const recordAssignmentTarget = (path) => {
         if (!path?.value) return;
@@ -303,8 +341,13 @@ module.exports = function transformer(file, api, options = {}) {
             info.assignments === 0
         );
     };
-    const hasLaterWrite = (scope, name) =>
-        (writes.get(scope)?.get(name)?.assignments ?? 0) > 0;
+    const hasAmbiguousBinding = (scope, name) => {
+        const info = writes.get(scope)?.get(name);
+        return (
+            (info?.declarations ?? 0) > 1 ||
+            (info?.assignments ?? 0) > 0
+        );
+    };
     const propagateStableAliases = (bindings) => {
         let added;
         do {
@@ -459,7 +502,7 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 const localPath = specifierPath.get("local");
                 const scope = bindingScope(localPath);
-                if (!hasLaterWrite(scope, localPath.value.name)) {
+                if (!hasAmbiguousBinding(scope, localPath.value.name)) {
                     setBinding(tradingNamespaces, localPath);
                 }
             } else if (
@@ -469,7 +512,7 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 const localPath = specifierPath.get("local");
                 const scope = bindingScope(localPath);
-                if (!hasLaterWrite(scope, localPath.value.name)) {
+                if (!hasAmbiguousBinding(scope, localPath.value.name)) {
                     setBinding(marketDataNamespaces, localPath);
                 }
             } else if (
@@ -480,7 +523,7 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 const localPath = specifierPath.get("local");
                 const scope = bindingScope(localPath);
-                if (!hasLaterWrite(scope, localPath.value.name)) {
+                if (!hasAmbiguousBinding(scope, localPath.value.name)) {
                     setBinding(marketDataShapeNamespaces, localPath);
                 }
             } else if (
@@ -490,7 +533,7 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 const localPath = specifierPath.get("local");
                 const scope = bindingScope(localPath);
-                if (!hasLaterWrite(scope, localPath.value.name)) {
+                if (!hasAmbiguousBinding(scope, localPath.value.name)) {
                     setBinding(alpacaConstructors, localPath);
                 }
             } else if (
@@ -499,7 +542,7 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 const localPath = specifierPath.get("local");
                 const scope = bindingScope(localPath);
-                if (!hasLaterWrite(scope, localPath.value.name)) {
+                if (!hasAmbiguousBinding(scope, localPath.value.name)) {
                     setBinding(sdkNamespaces, localPath);
                 }
             }
@@ -539,7 +582,7 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 const valuePath = propertyPath.get("value");
                 const scope = bindingScope(valuePath);
-                if (!hasLaterWrite(scope, valuePath.value.name)) {
+                if (!hasAmbiguousBinding(scope, valuePath.value.name)) {
                     setBinding(tradingNamespaces, valuePath);
                 }
             } else if (
@@ -550,7 +593,7 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 const valuePath = propertyPath.get("value");
                 const scope = bindingScope(valuePath);
-                if (!hasLaterWrite(scope, valuePath.value.name)) {
+                if (!hasAmbiguousBinding(scope, valuePath.value.name)) {
                     setBinding(marketDataNamespaces, valuePath);
                 }
             } else if (
@@ -561,7 +604,7 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 const valuePath = propertyPath.get("value");
                 const scope = bindingScope(valuePath);
-                if (!hasLaterWrite(scope, valuePath.value.name)) {
+                if (!hasAmbiguousBinding(scope, valuePath.value.name)) {
                     setBinding(marketDataShapeNamespaces, valuePath);
                 }
             } else if (
@@ -572,7 +615,7 @@ module.exports = function transformer(file, api, options = {}) {
             ) {
                 const valuePath = propertyPath.get("value");
                 const scope = bindingScope(valuePath);
-                if (!hasLaterWrite(scope, valuePath.value.name)) {
+                if (!hasAmbiguousBinding(scope, valuePath.value.name)) {
                     setBinding(alpacaConstructors, valuePath);
                 }
             }
@@ -599,7 +642,10 @@ module.exports = function transformer(file, api, options = {}) {
                         return;
                     }
                     const scope = bindingScope(valuePath);
-                    if (!scope || hasLaterWrite(scope, valuePath.value.name)) {
+                    if (
+                        !scope ||
+                        hasAmbiguousBinding(scope, valuePath.value.name)
+                    ) {
                         return;
                     }
                     if (name === "trading") {
@@ -707,7 +753,7 @@ module.exports = function transformer(file, api, options = {}) {
             }
             const valuePath = propertyPath.get("value");
             const scope = bindingScope(valuePath);
-            if (!hasLaterWrite(scope, valuePath.value.name)) {
+            if (!hasAmbiguousBinding(scope, valuePath.value.name)) {
                 setBinding(activityTypeObjects, valuePath);
             }
         });
@@ -749,7 +795,7 @@ module.exports = function transformer(file, api, options = {}) {
         if (activityType?.valuePath.value?.type === "Identifier") {
             const scope = bindingScope(activityType.valuePath);
             if (
-                !hasLaterWrite(
+                !hasAmbiguousBinding(
                     scope,
                     activityType.valuePath.value.name,
                 )
@@ -952,7 +998,7 @@ module.exports = function transformer(file, api, options = {}) {
                 );
                 continue;
             }
-            if (hasLaterWrite(scope, name)) {
+            if (hasAmbiguousBinding(scope, name)) {
                 report(
                     `ambiguous-instance-${name}`,
                     `--instanceName=${name} was ignored for a reassigned binding`,
@@ -1024,7 +1070,7 @@ module.exports = function transformer(file, api, options = {}) {
                 const scope = bindingScope(match.valuePath);
                 if (
                     scope &&
-                    !hasLaterWrite(
+                    !hasAmbiguousBinding(
                         scope,
                         match.valuePath.value.name,
                     )
@@ -1163,7 +1209,11 @@ module.exports = function transformer(file, api, options = {}) {
                     return;
                 }
                 const scope = bindingScope(valuePath);
-                if (hasLaterWrite(scope, valuePath.value.name)) return;
+                if (
+                    hasAmbiguousBinding(scope, valuePath.value.name)
+                ) {
+                    return;
+                }
                 setBinding(
                     removedMarketDataConstructors,
                     valuePath,
