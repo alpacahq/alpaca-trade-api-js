@@ -60,12 +60,9 @@ individual is participating as a project member or representative.
 
 ## Enforcement
 
-<!-- TODO(APIDX-486): Replace the placeholder below with the private,
-approved, monitored reporting contact before merge. -->
-
 Report abusive, harassing, or otherwise unacceptable behavior privately to
-**[APPROVED PRIVATE REPORTING EMAIL OR CONTACT — REPLACE BEFORE MERGE]**. Do
-not include sensitive conduct reports in a public GitHub issue or discussion.
+[coc-reporting@alpaca.markets](mailto:coc-reporting@alpaca.markets). Do not
+include sensitive conduct reports in a public GitHub issue or discussion.
 
 All complaints will be reviewed and investigated promptly and fairly. Project
 maintainers will respect the privacy and security of the reporter.
@@ -127,3 +124,8 @@ available at
 
 Community Impact Guidelines were inspired by
 [Mozilla's code of conduct enforcement ladder](https://github.com/mozilla/diversity).
+
+## Alpaca disclosures
+
+See [Alpaca Disclosures](https://alpaca.markets/disclosures) for legal and
+regulatory information.
