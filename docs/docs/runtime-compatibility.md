@@ -5,26 +5,37 @@ title: Runtime & module compatibility
 
 # Runtime & module compatibility
 
-The SDK targets **Node.js ≥ 20** and ships a dual **ESM + CJS** build. REST and
-generated fetch-based SSE run on modern fetch runtimes; WebSocket streaming is
-Node/Bun only.
+The SDK targets patched **Node.js 22, 24, and 26** and ships a dual **ESM + CJS**
+build. REST and generated fetch-based SSE run on modern fetch runtimes;
+WebSocket streaming is Node/Bun only.
 This page covers the support matrix, how the package resolves on edge/browser
 targets, the REST-only entrypoint, and the runtime dependencies.
 
 ## Requirements
 
-- **Node.js ≥ 20** (developed against v24) — the REST transport uses the
-  platform-global `fetch`, `Headers`, `URL`, and `AbortController`. (Node 18
-  reached end-of-life in April 2025; the package declares `engines.node >= 20`.)
+- **Node.js `>=22.23.4 <23`, `>=24.22.1 <25`, or `>=26.12.1 <27`** (developed
+  against v24.22.1). Node.js 20 is end-of-life and is not supported. The REST
+  transport uses the platform-global `fetch`, `Headers`, `URL`, and
+  `AbortController`. The package declares those ranges in `engines.node`.
 - **Strict Node without DOM libs is supported.** The published REST declarations
   provide their own portable fetch-facing types and do not require `"dom"` in a
   consumer's `tsconfig`.
+
+:::warning Upgrade and redeploy Node.js
+REST and fetch-based SSE call Node's global `fetch()`, which automatically
+decompresses Brotli responses. The October 21, 2026 Node.js security releases
+fix a Brotli decoder out-of-bounds write,
+[CVE-2026-111497](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases),
+in Node.js 22.23.4, 24.22.1, and 26.12.1. End-of-life Node.js 20 stays affected.
+Upgrading this SDK does not patch Node.js. Upgrade the Node.js runtime to a
+range above and redeploy every process that loads the SDK.
+:::
 
 ## Support matrix
 
 | Runtime | REST / fetch-based SSE | WebSockets | Notes |
 | --- | :---: | :---: | --- |
-| **Node.js ≥ 20** | ✅ | ✅ | Primary target. |
+| **Node.js 22.23.4, 24.22.1, or 26.12.1** | ✅ | ✅ | Primary target. Later patches in those major lines only. |
 | **Bun** | ✅ | ✅ | Node-compatible (`ws` runs). |
 | **Deno** | ✅ | ❌ | Root auto-resolves to the REST build via the `deno` export condition. |
 | **Cloudflare Workers** / `workerd` | ✅ | ❌ | Root auto-resolves to the REST build (`workerd` / `worker`). |

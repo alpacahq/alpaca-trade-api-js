@@ -87,8 +87,11 @@ when editing:
 ## Commands
 
 Repository development, documentation, generation, and release tooling require
-Node.js 24 (see `.nvmrc`). The published SDK remains compatible with Node.js 20
-and CI verifies the packed package on that minimum version.
+Node.js 24.22.1 (see `.nvmrc`). Release and docs workflows pin that patched
+runtime so they cannot run an unpatched Node.js 24. The published SDK supports
+Node.js `>=22.23.4 <23`, `>=24.22.1 <25`, and `>=26.12.1 <27`. CI tests those
+patched minimums. Node.js 20 is end-of-life and is not supported. Upgrading the
+SDK does not patch Node.js; consumers must upgrade and redeploy their runtime.
 
 ```bash
 npm install            # also builds via the `prepare` script

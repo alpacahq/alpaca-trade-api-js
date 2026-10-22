@@ -2,8 +2,12 @@
 
 Local Docusaurus site for `@alpacahq/alpaca-trade-api`.
 
-Repository documentation tooling requires Node.js 24 (see `../.nvmrc`). The
-published SDK continues to support Node.js 20.
+Repository documentation tooling requires patched Node.js 24.22.1 or another
+Node.js release allowed by this package's `engines` field (see `../.nvmrc`).
+Release and docs workflows pin Node.js 24.22.1. The published SDK supports
+Node.js `>=22.23.4 <23`, `>=24.22.1 <25`, and `>=26.12.1 <27`. Node.js 20 is
+end-of-life and is not supported. Upgrading the SDK does not patch Node.js;
+consumers must upgrade and redeploy their Node.js runtime.
 
 ## Local setup
 

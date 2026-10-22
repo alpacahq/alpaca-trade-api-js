@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Reproducible OpenAPI regeneration pipeline for @alpacahq/alpaca-trade-api (Trading + Market Data).",
   "engines": {
-    "node": ">=24"
+    "node": ">=24.22.1 <25 || >=26.12.1 <27"
   },
   "scripts": {
     "generate": "tsx src/cli.ts",
