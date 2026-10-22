@@ -13,10 +13,8 @@ with two primary namespaces:
 - `alpaca.marketData` for historical, latest, and real-time market data.
 
 Pass credentials once; the client creates its sub-APIs lazily. The package ships
-dual ESM and CommonJS builds. Its primary runtime is patched Node.js 22.23.4,
-24.22.1, or 26.12.1 (and later patches in those major lines). Upgrading the SDK
-does not patch Node.js; upgrade and redeploy the Node.js runtime. The package
-also offers a REST-only entrypoint for other modern runtimes.
+dual ESM and CommonJS builds, requires Node.js 20 or newer for its primary
+runtime, and offers a REST-only entrypoint for other modern runtimes.
 
 ## Generated APIs and the ergonomic facade
 

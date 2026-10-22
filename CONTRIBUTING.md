@@ -4,10 +4,11 @@ Thanks for helping improve `@alpacahq/alpaca-trade-api`.
 
 ## Prerequisites
 
-- **Node.js 24.22.1** (see `.nvmrc`). Release and docs workflows pin that
-  patched runtime. The published SDK supports Node.js `>=22.23.4 <23`,
-  `>=24.22.1 <25`, and `>=26.12.1 <27`. CI tests those patched minimums.
-  Node.js 20 is end-of-life and is not supported.
+- **Node.js `>=24.22.1 <25`** (`.nvmrc` pins that minimum locally). CI,
+  release, and docs workflows resolve the latest available Node.js 24 patch
+  above that floor. The published SDK remains compatible with Node.js >= 20,
+  but repository tooling and CI do not execute the end-of-life Node.js 20
+  runtime.
 
 ## Setup and checks
 

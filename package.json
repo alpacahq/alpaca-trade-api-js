@@ -23,7 +23,7 @@
   ],
   "type": "commonjs",
   "engines": {
-    "node": ">=22.23.4 <23 || >=24.22.1 <25 || >=26.12.1 <27"
+    "node": ">=20"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

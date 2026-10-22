@@ -131,7 +131,7 @@ async function main(): Promise<void> {
     }
 }
 
-/** Human-readable strategy prefix plus a collision-resistant UUID. */
+/** Human-readable strategy prefix plus collision-resistant Node 20 UUID. */
 function newClientOrderId(purpose: string): string {
     return `${purpose}-${globalThis.crypto.randomUUID()}`;
 }

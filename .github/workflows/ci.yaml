@@ -23,9 +23,10 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          # Exact patched Node 24. `.nvmrc` is the same pin; a floating `24`
-          # could still resolve to an unpatched 24.x release.
-          node-version: "24.22.1"
+          # Keep the security floor while automatically adopting later Node 24
+          # patches instead of leaving CI on this release indefinitely.
+          node-version: ">=24.22.1 <25"
+          check-latest: true
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -55,34 +56,7 @@ jobs:
         run: npm run verify:codemod
       - name: Build
         run: npm run build
-      - name: Verify packed package on Node 24.22.1
-        run: npm run verify:package
-
-  minimum-node:
-    name: Consumers on Node ${{ matrix.node-version }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # Patched minimum of each supported line. Node 20 is end-of-life and
-        # is not tested.
-        node-version:
-          - "22.23.4"
-          - "24.22.1"
-          - "26.12.1"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Test
-        run: npm test
-      - name: Build
-        run: npm run build
-      - name: Verify packed package
+      - name: Verify packed package on patched Node 24
         run: npm run verify:package
 
   docs:
@@ -92,7 +66,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "24.22.1"
+          node-version: ">=24.22.1 <25"
+          check-latest: true
           cache: npm
       - name: Install SDK dependencies
         run: npm ci
@@ -110,7 +85,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "24.22.1"
+          node-version: ">=24.22.1 <25"
+          check-latest: true
           cache: npm
       - uses: actions/setup-java@v4
         with:

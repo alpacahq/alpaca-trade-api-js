@@ -28,8 +28,8 @@ npx tsx scripts/scaffold.ts \
 ```
 
 If the local runtime supports it, `node scripts/scaffold.ts` or
-`bun scripts/scaffold.ts` are also acceptable. Prefer `npx tsx` on the patched
-Node.js ranges required by `@alpacahq/alpaca-trade-api`.
+`bun scripts/scaffold.ts` are also acceptable. Prefer `npx tsx` for Node 20
+compatibility.
 
 The script reads these credential environment variables when flags are omitted:
 

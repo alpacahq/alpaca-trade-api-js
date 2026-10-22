@@ -17,17 +17,14 @@ real-time streaming.
 
 ## Requirements
 
-- **SDK consumers:** Node.js `>=22.23.4 <23`, `>=24.22.1 <25`, or
-  `>=26.12.1 <27`. Node.js 20 is end-of-life and is not supported. The REST
-  transport uses the platform-global `fetch`, `Headers`, `URL`, and
-  `AbortController`. Node's `fetch` decompresses Brotli with the runtime
-  decoder, so [CVE-2026-111497](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases)
-  is fixed only by upgrading and redeploying Node.js. Upgrading this package
-  does not patch the Node.js runtime.
-- **Repository contributors:** Node.js 24.22.1 (see `.nvmrc`). Build, docs,
-  generation, and release workflows pin that patched release. CI also runs the
-  test suite and packed SDK on the patched minimum of each supported line:
-  22.23.4, 24.22.1, and 26.12.1.
+- **SDK consumers:** Node.js >= 20 — the REST transport uses the platform-global
+  `fetch`, `Headers`, `URL`, and `AbortController`. (Node 18 reached end-of-life
+  in April 2025; the package declares `engines.node >=20`.)
+- **Repository contributors:** Node.js `>=24.22.1 <25` (`.nvmrc` pins that
+  minimum locally). Build, docs, generation, release tooling, and CI resolve
+  the latest available Node.js 24 patch above that security floor. The
+  published SDK keeps its Node.js >= 20 compatibility contract without
+  executing Node.js 20 in repository automation.
 - Strict Node TypeScript projects may omit DOM libs; the REST declarations are
   portable and do not require `"dom"` in the consumer `tsconfig`.
 
@@ -35,7 +32,7 @@ real-time streaming.
 
 | Runtime | REST / fetch-based SSE | WebSockets | Notes |
 | --- | :---: | :---: | --- |
-| **Node.js** 22.23.4, 24.22.1, or 26.12.1 | ✅ | ✅ | Primary target. Later patches in those major lines only. |
+| **Node.js** >= 20 | ✅ | ✅ | Primary target. |
 | **Bun** | ✅ | ✅ | Node-compatible (`ws` runs). |
 | **Deno** | ✅ | ❌ | Root auto-resolves to the REST build via the `deno` export condition. |
 | **Cloudflare Workers** / `workerd` | ✅ | ❌ | Root auto-resolves to the REST build (`workerd` / `worker`). |

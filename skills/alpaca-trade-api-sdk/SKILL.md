@@ -84,12 +84,6 @@ const alpaca = new Alpaca({
 });
 ```
 
-- Run on patched Node.js `>=22.23.4 <23`, `>=24.22.1 <25`, or
-  `>=26.12.1 <27`. Node.js 20 is end-of-life and is not supported. REST and
-  fetch-based SSE use the runtime's global `fetch()`, which decompresses
-  Brotli, so [CVE-2026-111497](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases)
-  is fixed only by upgrading and redeploying Node.js. Upgrading this package
-  does not patch the Node.js runtime.
 - Credentials resolve from environment variables when omitted:
   `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`, and `APCA_API_OAUTH_TOKEN`. A
   non-empty explicit `accessToken`, Promise, or provider selects OAuth;

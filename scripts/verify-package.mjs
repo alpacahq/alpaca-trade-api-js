@@ -129,12 +129,10 @@ try {
     const packedMetadata = JSON.parse(
         readFileSync(join(packedPackage, "package.json"), "utf8"),
     );
-    const supportedNode =
-        ">=22.23.4 <23 || >=24.22.1 <25 || >=26.12.1 <27";
-    if (packedMetadata.engines?.node !== supportedNode) {
+    if (packedMetadata.engines?.node !== ">=20") {
         fail(
             "Node compatibility",
-            `expected packed engines.node to be ${JSON.stringify(supportedNode)}, got ${JSON.stringify(packedMetadata.engines?.node)}`,
+            `expected packed engines.node to be ">=20", got ${JSON.stringify(packedMetadata.engines?.node)}`,
         );
     }
 

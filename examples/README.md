@@ -11,9 +11,7 @@ the API.
 
 ## Prerequisites
 
-- Patched Node.js 22.23.4, 24.22.1, or 26.12.1 (later patches in those major
-  lines). Upgrading the SDK does not patch Node.js; upgrade and redeploy the
-  runtime.
+- Node.js >= 20
 - Paper-trading API credentials from <https://app.alpaca.markets/paper/dashboard/overview>
 - [`tsx`](https://github.com/privatenumber/tsx) to run TypeScript directly
   (`npx tsx ...` will fetch it on first use)
