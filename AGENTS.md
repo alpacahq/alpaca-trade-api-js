@@ -87,8 +87,13 @@ when editing:
 ## Commands
 
 Repository development, documentation, generation, and release tooling require
-Node.js 24 (see `.nvmrc`). The published SDK remains compatible with Node.js 20
-and CI verifies the packed package on that minimum version.
+Node.js `>=24.22.1 <25`; `.nvmrc` pins that minimum locally. CI, release, and
+docs workflows use the same security floor with `check-latest`, so they
+automatically adopt later Node.js 24 patches. The published SDK remains
+compatible with Node.js >= 20 through its `engines` contract, ES2020 output,
+Node.js 20 type baseline, and packed-package checks. CI does not execute the
+end-of-life Node.js 20 runtime; consumers should upgrade to a currently
+supported Node.js LTS release to continue receiving security fixes.
 
 ```bash
 npm install            # also builds via the `prepare` script

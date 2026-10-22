@@ -27,7 +27,9 @@ npm run generate -- --yes --allow-breaking-spec-removals
                                           # explicit override after removal review
 ```
 
-Requirements: Node ≥ 20 and a **real JDK** (openapi-generator is a Java tool).
+Requirements: Node.js `>=24.22.1 <25` or `>=26.12.1 <27` (see the repository
+`.nvmrc`, which pins 24.22.1) and a **real JDK** (openapi-generator is a Java
+tool).
 The pipeline auto-detects a JDK (`java` on PATH → `/usr/libexec/java_home` →
 Homebrew keg-only `openjdk`) and prepends it to PATH for the run only. If none is
 found: `brew install openjdk`.

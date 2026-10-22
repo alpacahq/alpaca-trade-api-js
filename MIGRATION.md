@@ -56,6 +56,8 @@ stable **`4.x`** SDK.
 
 - **Node.js >= 20 is required.** The new transport uses the platform-global
   `fetch`/`Headers`/`URL`/`AbortController`. Node 16/18 are no longer supported.
+  Node.js 20 is EOL; use a currently supported Node.js LTS release to continue
+  receiving security fixes.
 - **Streaming runs on Node and Bun only.** REST works on strict Node projects
   without DOM libs, Deno, Cloudflare Workers, Vercel Edge, and browsers via
   export conditions. Those REST runtimes and declarations do not load or

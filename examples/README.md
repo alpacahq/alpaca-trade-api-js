@@ -11,7 +11,8 @@ the API.
 
 ## Prerequisites
 
-- Node.js >= 20
+- Node.js >= 20. Node.js 20 is EOL; use a currently supported Node.js LTS
+  release to continue receiving security fixes.
 - Paper-trading API credentials from <https://app.alpaca.markets/paper/dashboard/overview>
 - [`tsx`](https://github.com/privatenumber/tsx) to run TypeScript directly
   (`npx tsx ...` will fetch it on first use)

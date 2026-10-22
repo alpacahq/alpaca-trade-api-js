@@ -16,6 +16,12 @@ Pass credentials once; the client creates its sub-APIs lazily. The package ships
 dual ESM and CommonJS builds, requires Node.js 20 or newer for its primary
 runtime, and offers a REST-only entrypoint for other modern runtimes.
 
+Node.js 20 reached end-of-life in April 2026. The SDK remains compatible with
+Node.js 20, but CI no longer executes that EOL runtime. We recommend upgrading
+to a currently supported Node.js LTS release to continue receiving security
+fixes. See [Runtime & module compatibility](./runtime-compatibility.md) for
+details.
+
 ## Generated APIs and the ergonomic facade
 
 The client uses two additive layers:
