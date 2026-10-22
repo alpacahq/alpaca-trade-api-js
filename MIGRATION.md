@@ -54,8 +54,13 @@ stable **`4.x`** SDK.
 
 ## Before you start
 
-- **Node.js >= 20 is required.** The new transport uses the platform-global
-  `fetch`/`Headers`/`URL`/`AbortController`. Node 16/18 are no longer supported.
+- **Patched Node.js 22, 24, or 26 is required.** Supported ranges are
+  `>=22.23.4 <23`, `>=24.22.1 <25`, and `>=26.12.1 <27`. The transport uses the
+  platform-global `fetch`/`Headers`/`URL`/`AbortController`, and Node's `fetch`
+  decompresses Brotli. Node.js 16, 18, and end-of-life Node.js 20 are not
+  supported. Upgrading the SDK does not patch Node.js; upgrade and redeploy
+  the runtime to pick up
+  [CVE-2026-111497](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases).
 - **Streaming runs on Node and Bun only.** REST works on strict Node projects
   without DOM libs, Deno, Cloudflare Workers, Vercel Edge, and browsers via
   export conditions. Those REST runtimes and declarations do not load or

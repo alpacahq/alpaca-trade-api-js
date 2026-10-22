@@ -4,7 +4,7 @@
   "private": true,
   "description": "Documentation site (Docusaurus) for @alpacahq/alpaca-trade-api. Self-contained; not part of the published SDK package.",
   "engines": {
-    "node": ">=24"
+    "node": ">=24.22.1 <25 || >=26.12.1 <27"
   },
   "scripts": {
     "docusaurus": "docusaurus",
