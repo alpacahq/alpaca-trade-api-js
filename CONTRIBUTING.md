@@ -8,7 +8,8 @@ Thanks for helping improve `@alpacahq/alpaca-trade-api`.
   release, and docs workflows resolve the latest available Node.js 24 patch
   above that floor. The published SDK remains compatible with Node.js >= 20,
   but repository tooling and CI do not execute the end-of-life Node.js 20
-  runtime.
+  runtime. SDK consumers should upgrade to a currently supported Node.js LTS
+  release to continue receiving security fixes.
 
 ## Setup and checks
 

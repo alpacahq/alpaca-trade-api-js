@@ -18,13 +18,15 @@ real-time streaming.
 ## Requirements
 
 - **SDK consumers:** Node.js >= 20 — the REST transport uses the platform-global
-  `fetch`, `Headers`, `URL`, and `AbortController`. (Node 18 reached end-of-life
-  in April 2025; the package declares `engines.node >=20`.)
+  `fetch`, `Headers`, `URL`, and `AbortController`, and the package declares
+  `engines.node >=20`. Node.js 20 reached end-of-life in April 2026. The SDK
+  remains compatible with Node.js 20, but CI no longer executes that EOL
+  runtime. We recommend upgrading to a currently supported Node.js LTS release
+  to continue receiving security fixes.
 - **Repository contributors:** Node.js `>=24.22.1 <25` (`.nvmrc` pins that
   minimum locally). Build, docs, generation, release tooling, and CI resolve
   the latest available Node.js 24 patch above that security floor. The
-  published SDK keeps its Node.js >= 20 compatibility contract without
-  executing Node.js 20 in repository automation.
+  published SDK keeps its Node.js >= 20 compatibility contract.
 - Strict Node TypeScript projects may omit DOM libs; the REST declarations are
   portable and do not require `"dom"` in the consumer `tsconfig`.
 
@@ -32,7 +34,7 @@ real-time streaming.
 
 | Runtime | REST / fetch-based SSE | WebSockets | Notes |
 | --- | :---: | :---: | --- |
-| **Node.js** >= 20 | ✅ | ✅ | Primary target. |
+| **Node.js** >= 20 | ✅ | ✅ | Compatibility floor; Node.js 20 is EOL. |
 | **Bun** | ✅ | ✅ | Node-compatible (`ws` runs). |
 | **Deno** | ✅ | ❌ | Root auto-resolves to the REST build via the `deno` export condition. |
 | **Cloudflare Workers** / `workerd` | ✅ | ❌ | Root auto-resolves to the REST build (`workerd` / `worker`). |

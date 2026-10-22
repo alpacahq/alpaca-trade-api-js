@@ -92,7 +92,8 @@ docs workflows use the same security floor with `check-latest`, so they
 automatically adopt later Node.js 24 patches. The published SDK remains
 compatible with Node.js >= 20 through its `engines` contract, ES2020 output,
 Node.js 20 type baseline, and packed-package checks. CI does not execute the
-end-of-life Node.js 20 runtime.
+end-of-life Node.js 20 runtime; consumers should upgrade to a currently
+supported Node.js LTS release to continue receiving security fixes.
 
 ```bash
 npm install            # also builds via the `prepare` script

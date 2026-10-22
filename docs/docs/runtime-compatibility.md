@@ -5,26 +5,31 @@ title: Runtime & module compatibility
 
 # Runtime & module compatibility
 
-The SDK targets **Node.js ≥ 20** and ships a dual **ESM + CJS** build. REST and
-generated fetch-based SSE run on modern fetch runtimes; WebSocket streaming is
-Node/Bun only.
+The SDK remains compatible with **Node.js ≥ 20** and ships a dual **ESM + CJS**
+build. REST and generated fetch-based SSE run on modern fetch runtimes;
+WebSocket streaming is Node/Bun only.
 This page covers the support matrix, how the package resolves on edge/browser
 targets, the REST-only entrypoint, and the runtime dependencies.
 
 ## Requirements
 
 - **Node.js ≥ 20** (developed against v24) — the REST transport uses the
-  platform-global `fetch`, `Headers`, `URL`, and `AbortController`. (Node 18
-  reached end-of-life in April 2025; the package declares `engines.node >= 20`.)
+  platform-global `fetch`, `Headers`, `URL`, and `AbortController`, and the
+  package declares `engines.node >= 20`.
 - **Strict Node without DOM libs is supported.** The published REST declarations
   provide their own portable fetch-facing types and do not require `"dom"` in a
   consumer's `tsconfig`.
+
+Node.js 20 reached end-of-life in April 2026. The SDK remains compatible with
+Node.js 20, but CI no longer executes that EOL runtime. We recommend upgrading
+to a currently supported Node.js LTS release to continue receiving security
+fixes.
 
 ## Support matrix
 
 | Runtime | REST / fetch-based SSE | WebSockets | Notes |
 | --- | :---: | :---: | --- |
-| **Node.js ≥ 20** | ✅ | ✅ | Primary target. |
+| **Node.js ≥ 20** | ✅ | ✅ | Compatibility floor; Node.js 20 is EOL. |
 | **Bun** | ✅ | ✅ | Node-compatible (`ws` runs). |
 | **Deno** | ✅ | ❌ | Root auto-resolves to the REST build via the `deno` export condition. |
 | **Cloudflare Workers** / `workerd` | ✅ | ❌ | Root auto-resolves to the REST build (`workerd` / `worker`). |
