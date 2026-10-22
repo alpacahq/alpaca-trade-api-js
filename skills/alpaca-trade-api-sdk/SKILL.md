@@ -84,6 +84,10 @@ const alpaca = new Alpaca({
 });
 ```
 
+- Node.js >= 20 remains compatible. Node.js 20 reached end-of-life in April
+  2026, and CI no longer executes that EOL runtime. Use a currently supported
+  Node.js LTS release to continue receiving security fixes. See
+  [Runtime compatibility](https://alpacahq.github.io/alpaca-trade-api-js/runtime-compatibility).
 - Credentials resolve from environment variables when omitted:
   `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`, and `APCA_API_OAUTH_TOKEN`. A
   non-empty explicit `accessToken`, Promise, or provider selects OAuth;
