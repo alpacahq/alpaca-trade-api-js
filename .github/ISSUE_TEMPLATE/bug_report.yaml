@@ -53,7 +53,7 @@ body:
     attributes:
       label: Runtime, OS, and architecture
       description: Include runtime version, operating system, and CPU architecture because module loading, networking, and WebSocket behavior can differ.
-      placeholder: Node.js 24.15.0 on macOS 26 arm64, Bun 1.x on Linux x64, or Cloudflare Workers
+      placeholder: Node.js 24.22.1 on macOS 26 arm64, Bun 1.x on Linux x64, or Cloudflare Workers
     validations:
       required: true
 

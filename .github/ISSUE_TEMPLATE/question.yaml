@@ -35,7 +35,7 @@ body:
     attributes:
       label: Runtime context
       description: Include runtime, version, OS, architecture, module system, and entrypoint when relevant.
-      placeholder: Node.js 24 on macOS arm64 with ESM root import, or Not applicable
+      placeholder: Node.js 24.22.1 on macOS arm64 with ESM root import, or Not applicable
 
   - type: textarea
     id: question
