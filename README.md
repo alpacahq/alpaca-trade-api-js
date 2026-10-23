@@ -4,7 +4,8 @@
 
 # @alpacahq/alpaca-trade-api
 
-A Node.js TypeScript SDK for the Alpaca **Trading API** and **Market Data API**.
+The Alpaca JavaScript/TypeScript SDK for the **Trading API** and **Market Data
+API**.
 Both APIs live under their own namespace (`trading` / `marketData`) in one package,
 fronted by a unified `Alpaca` client with typed errors, resilience (retry /
 timeout / rate limiting), pagination helpers, ergonomic order builders, and
@@ -167,6 +168,7 @@ for release notes.
 ## Support
 
 - **Library / SDK issues:** Bugs, feature requests, or questions specific to this TypeScript library → [GitHub Issues](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
+- **Security vulnerabilities:** Do not report them publicly. Follow our [Security Policy](./SECURITY.md).
 - **Alpaca API bugs:** Bugs in the Alpaca API itself, its OpenAPI specs, or its documentation → [alpacahq/alpaca-api](https://github.com/alpacahq/alpaca-api/issues/new/choose).
 - **Community:** API feature requests, general questions, and dashboard bugs → [Alpaca Community Forum](https://forum.alpaca.markets/) or [Slack](https://alpaca.markets/slack).
 - **Account help:** Questions about your account, funding, or orders → [Support request](https://alpaca.markets/support/request).
@@ -175,4 +177,6 @@ for release notes.
 ## Contributing
 
 Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup,
-generated-code boundaries, documentation workflow, and release notes conventions.
+contribution scope, generated-code boundaries, quality requirements, and the
+pull-request workflow. Participation is governed by our
+[Code of Conduct](./CODE_OF_CONDUCT.md).

@@ -9,3 +9,9 @@ contact_links:
   - name: Community Slack
     url: https://alpaca.markets/slack
     about: API feature requests, general questions, and dashboard bugs.
+  - name: Account help
+    url: https://alpaca.markets/support/request
+    about: Questions about your account, funding, or orders.
+  - name: Report a security vulnerability
+    url: https://alpaca.markets/security
+    about: Follow Alpaca's private vulnerability-disclosure process.
