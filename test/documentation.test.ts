@@ -64,7 +64,9 @@ describe('canonical documentation', () => {
         );
     });
 
-    it('routes Alpaca API behavior and specification issues to the API tracker', () => {
+    it('routes API bugs to alpacahq/alpaca-api and feature requests to the community', () => {
+        const apiBugUrl =
+            'https://github.com/alpacahq/alpaca-api/issues/new/choose';
         const routingFiles = [
             'CONTRIBUTING.md',
             'README.md',
@@ -76,8 +78,23 @@ describe('canonical documentation', () => {
         ];
 
         for (const file of routingFiles) {
-            expect(readFileSync(resolve(projectRoot, file), 'utf8')).toContain(
+            const text = readFileSync(resolve(projectRoot, file), 'utf8');
+            expect(text).toContain(apiBugUrl);
+            expect(text).not.toContain(
                 'https://github.com/alpacahq/Alpaca-API/issues/new/choose',
+            );
+            expect(text).not.toContain('platform feature requests');
+        }
+
+        for (const file of [
+            'CONTRIBUTING.md',
+            'README.md',
+            'docs/docs/getting-started.md',
+            '.github/ISSUE_TEMPLATE/config.yml',
+            '.github/ISSUE_TEMPLATE/feature-request.yml',
+        ]) {
+            expect(readFileSync(resolve(projectRoot, file), 'utf8')).toContain(
+                'API feature requests, general questions, and dashboard bugs',
             );
         }
     });

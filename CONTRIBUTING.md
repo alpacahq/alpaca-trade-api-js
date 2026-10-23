@@ -5,19 +5,21 @@ agree to follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Choose the right channel
 
-- **SDK bugs, SDK feature requests, and SDK-specific questions:** search or open
-  a [GitHub issue](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
-- **Security vulnerabilities:** do not open a public issue. Follow the private
+- **Library / SDK issues:** Bugs, feature requests, or questions specific to this
+  TypeScript library →
+  [GitHub Issues](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
+- **Security vulnerabilities:** Do not report them publicly. Follow the private
   reporting process in our [Security Policy](./SECURITY.md).
-- **Account-specific questions:** contact
-  [Alpaca Support](https://alpaca.markets/support) privately.
-- **Alpaca API behavior, missing capabilities, or specification defects:**
-  search or open an issue in the
-  [Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose).
-- **General Alpaca API or platform discussion:** use the
-  [Alpaca Community Forum](https://forum.alpaca.markets/).
-- **General community discussion:** join the
-  [Alpaca community on Slack](https://alpaca.markets/slack).
+- **Alpaca API bugs:** Bugs in the Alpaca API itself, its OpenAPI specs, or its
+  documentation →
+  [alpacahq/alpaca-api](https://github.com/alpacahq/alpaca-api/issues/new/choose).
+- **Community:** API feature requests, general questions, and dashboard bugs →
+  [Alpaca Community Forum](https://forum.alpaca.markets/) or
+  [Slack](https://alpaca.markets/slack).
+- **Account help:** Questions about your account, funding, or orders →
+  [Support request](https://alpaca.markets/support/request).
+- **Outages:** Service status and incident updates →
+  [Status page](https://status.alpaca.markets/).
 
 Please do not include credentials, account details, or other sensitive
 information in an issue, discussion, pull request, test, or example.
@@ -40,10 +42,12 @@ Open an issue before investing in a substantial SDK design, new dependency,
 broad refactor, or third-party integration. Early discussion helps confirm that
 the proposal fits the SDK's scope and avoids duplicated or unusable work.
 
-Missing or incorrect API behavior and OpenAPI specification defects must be
-fixed in the Alpaca API, not patched in this SDK. Report the gap in the
-[Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose)
-so the owning API team can track and resolve it. Maintainers alone update pinned
+Bugs in the Alpaca API itself, its OpenAPI specs, or its documentation must be
+fixed upstream, not patched in this SDK. Report them in
+[alpacahq/alpaca-api](https://github.com/alpacahq/alpaca-api/issues/new/choose).
+API feature requests, general questions, and dashboard bugs belong on the
+[Alpaca Community Forum](https://forum.alpaca.markets/) or
+[Slack](https://alpaca.markets/slack). Maintainers alone update pinned
 specifications and run the generation pipeline. Changes to specifications,
 overlays, templates, generator tooling, generated clients, models, or types are
 out of scope for external contributions. See
@@ -55,7 +59,9 @@ can be proposed in this repository.
 This repository does not accept:
 
 - trading strategies, algorithm design, or investment advice;
-- account-specific or general Alpaca platform support requests;
+- bugs in the Alpaca API, its OpenAPI specs, or docs.alpaca.markets;
+- API feature requests, general questions, and dashboard bugs;
+- questions about your account, funding, or orders, or outage reports;
 - credentials, private account data, or other secrets;
 - referral links or promotional content; or
 - unapproved integrations with third-party products or services.
@@ -160,9 +166,13 @@ responsible for keeping the SDK aligned with Alpaca API specifications, running
 the generation pipeline, and committing the resulting clients, models, and
 types.
 
-Contributors should report missing or incorrect API coverage in the
-[Alpaca API issue tracker](https://github.com/alpacahq/Alpaca-API/issues/new/choose)
-rather than patch generated output. After maintainers adopt the resolved API
+Contributors should report bugs in the Alpaca API, its OpenAPI specs, or its
+documentation in
+[alpacahq/alpaca-api](https://github.com/alpacahq/alpaca-api/issues/new/choose)
+rather than patch generated output. API feature requests, general questions,
+and dashboard bugs belong on the
+[Alpaca Community Forum](https://forum.alpaca.markets/) or
+[Slack](https://alpaca.markets/slack). After maintainers adopt the resolved API
 specification, contributors may help with tests, documentation, examples, or
 hand-written ergonomics.
 
