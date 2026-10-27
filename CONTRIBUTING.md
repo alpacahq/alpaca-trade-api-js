@@ -47,10 +47,10 @@ fixed upstream, not patched in this SDK. Report them in
 [alpacahq/alpaca-api](https://github.com/alpacahq/alpaca-api/issues/new/choose).
 API feature requests, general questions, and dashboard bugs belong on the
 [Alpaca Community Forum](https://forum.alpaca.markets/) or
-[Slack](https://alpaca.markets/slack). Maintainers alone update pinned
-specifications and run the generation pipeline. Changes to specifications,
-overlays, templates, generator tooling, generated clients, models, or types are
-out of scope for external contributions. See
+[Slack](https://alpaca.markets/slack). Maintainers alone adopt pinned
+specifications and commit changes to generation inputs or generated output.
+Changes to specifications, overlays, templates, generator tooling, generated
+clients, models, or types are out of scope for external contributions. See
 [Generated vs hand-written code](#generated-vs-hand-written-code) for work that
 can be proposed in this repository.
 
