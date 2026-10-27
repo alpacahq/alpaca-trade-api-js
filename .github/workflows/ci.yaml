@@ -92,6 +92,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          check-latest: true
       # `generate:offline` runs the SDK safety gate (typecheck/lint/test/docs)
       # at the end, so the root deps must be installed too — not just tooling.
       - name: Install SDK dependencies
