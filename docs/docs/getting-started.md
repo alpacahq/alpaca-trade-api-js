@@ -80,7 +80,7 @@ Follow the reconciliation workflow in
 
 ## Support
 
-- **Library / SDK issues:** Bugs, feature requests, or questions specific to this TypeScript library → [GitHub Issues](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
+- **Library / SDK issues:** Bugs, feature requests, or questions specific to this SDK → [GitHub Issues](https://github.com/alpacahq/alpaca-trade-api-js/issues/new/choose).
 - **Security vulnerabilities:** Do not report them publicly. Follow Alpaca's [vulnerability-disclosure process](https://alpaca.markets/security).
 - **Alpaca API bugs:** Bugs in the Alpaca API itself, its OpenAPI specs, or its documentation → [alpacahq/alpaca-api](https://github.com/alpacahq/alpaca-api/issues/new/choose).
 - **Community:** API feature requests, general questions, and dashboard bugs → [Alpaca Community Forum](https://forum.alpaca.markets/) or [Slack](https://alpaca.markets/slack).

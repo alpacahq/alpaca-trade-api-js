@@ -18,7 +18,7 @@ body:
       options:
         - label: I searched the documentation and existing issues.
           required: true
-        - label: My question has to do with the JS SDK and isn't a general question about the API. (General API questions go to the Community Forum or Slack, and API bugs go to alpacahq/alpaca-api.)
+        - label: My question has to do with this SDK and isn't a general question about the API. (General API questions go to the Community Forum or Slack, and API bugs go to alpacahq/alpaca-api.)
           required: true
         - label: My question is not asking for a trading strategy, algorithm design, or investment advice.
           required: true
