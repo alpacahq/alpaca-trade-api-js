@@ -73,21 +73,31 @@ export interface CollectOptions {
     maxItems?: number;
 }
 
-/**
- * Eagerly collects items across pages into a single array. Pass
- * {@link CollectOptions.maxItems} to bound the result; otherwise beware
- * unbounded result sets.
- */
-export async function collect<T>(fetchPage: PageFetcher<T>, options: CollectOptions = {}): Promise<T[]> {
-    const out: T[] = [];
+async function collectFrom<T>(
+    iterable: AsyncIterable<T>,
+    options: CollectOptions = {},
+): Promise<T[]> {
     const max = options.maxItems;
-    for await (const item of paginate(fetchPage)) {
+    if (max !== undefined && max <= 0) {
+        return [];
+    }
+    const out: T[] = [];
+    for await (const item of iterable) {
         out.push(item);
         if (max !== undefined && out.length >= max) {
             break;
         }
     }
     return out;
+}
+
+/**
+ * Eagerly collects items across pages into a single array. Pass
+ * {@link CollectOptions.maxItems} to bound the result; otherwise beware
+ * unbounded result sets.
+ */
+export function collect<T>(fetchPage: PageFetcher<T>, options: CollectOptions = {}): Promise<T[]> {
+    return collectFrom(paginate(fetchPage), options);
 }
 
 // --- Multi-symbol map pagination ------------------------------------------
@@ -314,16 +324,8 @@ export async function* paginateCursor<T>(
 }
 
 /** Eagerly collects items across cursor pages into a single array. */
-export async function collectCursor<T>(options: CursorOptions<T>, collectOptions: CollectOptions = {}): Promise<T[]> {
-    const out: T[] = [];
-    const max = collectOptions.maxItems;
-    for await (const item of paginateCursor(options)) {
-        out.push(item);
-        if (max !== undefined && out.length >= max) {
-            break;
-        }
-    }
-    return out;
+export function collectCursor<T>(options: CursorOptions<T>, collectOptions: CollectOptions = {}): Promise<T[]> {
+    return collectFrom(paginateCursor(options), collectOptions);
 }
 
 // --- Bounded concurrency ---------------------------------------------------

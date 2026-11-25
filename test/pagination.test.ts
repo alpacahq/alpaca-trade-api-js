@@ -89,6 +89,17 @@ describe('G04 pagination helpers', () => {
         expect(fetches).toBe(2); // stopped after the page that satisfied the cap
     });
 
+    it('collect() returns empty without fetching when maxItems is 0 or negative', async () => {
+        let fetches = 0;
+        const fetcher = async (token?: string) => {
+            fetches += 1;
+            return threePages[token ?? ''];
+        };
+        expect(await collect<number>(fetcher, { maxItems: 0 })).toEqual([]);
+        expect(await collect<number>(fetcher, { maxItems: -5 })).toEqual([]);
+        expect(fetches).toBe(0);
+    });
+
     it('stops on a repeated next token instead of looping forever', async () => {
         let fetches = 0;
         // A misbehaving endpoint that always echoes the same token.
@@ -137,6 +148,27 @@ describe('G04 pagination helpers', () => {
         }, { maxItems: 2 });
         expect(out.map((i) => i.n)).toEqual([1, 2]);
         expect(fetches).toBe(1);
+    });
+
+    it('collectCursor() returns empty without fetching when maxItems is 0 or negative', async () => {
+        let fetches = 0;
+        const outZero = await collectCursor<{ id: string; n: number }>({
+            fetchPage: () => {
+                fetches += 1;
+                return Promise.resolve([{ id: 'a', n: 1 }]);
+            },
+            getCursor: (last) => last.id,
+        }, { maxItems: 0 });
+        const outNeg = await collectCursor<{ id: string; n: number }>({
+            fetchPage: () => {
+                fetches += 1;
+                return Promise.resolve([{ id: 'a', n: 1 }]);
+            },
+            getCursor: (last) => last.id,
+        }, { maxItems: -1 });
+        expect(outZero).toEqual([]);
+        expect(outNeg).toEqual([]);
+        expect(fetches).toBe(0);
     });
 });
 
