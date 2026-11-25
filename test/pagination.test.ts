@@ -89,6 +89,36 @@ describe('G04 pagination helpers', () => {
         expect(fetches).toBe(2); // stopped after the page that satisfied the cap
     });
 
+    it('collect() returns empty without fetching when maxItems is 0', async () => {
+        let fetches = 0;
+        const fetcher = async (token?: string) => {
+            fetches += 1;
+            return threePages[token ?? ''];
+        };
+        expect(await collect<number>(fetcher, { maxItems: 0 })).toEqual([]);
+        expect(fetches).toBe(0);
+    });
+
+    it('collect() throws RangeError without fetching when maxItems is negative', async () => {
+        let fetches = 0;
+        const fetcher = async (token?: string) => {
+            fetches += 1;
+            return threePages[token ?? ''];
+        };
+        await expect(collect<number>(fetcher, { maxItems: -5 })).rejects.toThrow(RangeError);
+        expect(fetches).toBe(0);
+    });
+
+    it('collect() collects all pages when maxItems is undefined', async () => {
+        let fetches = 0;
+        const all = await collect<number>(async (token) => {
+            fetches += 1;
+            return threePages[token ?? ''];
+        }, { maxItems: undefined });
+        expect(all).toEqual([1, 2, 3, 4, 5]);
+        expect(fetches).toBe(3);
+    });
+
     it('stops on a repeated next token instead of looping forever', async () => {
         let fetches = 0;
         // A misbehaving endpoint that always echoes the same token.
@@ -137,6 +167,51 @@ describe('G04 pagination helpers', () => {
         }, { maxItems: 2 });
         expect(out.map((i) => i.n)).toEqual([1, 2]);
         expect(fetches).toBe(1);
+    });
+
+    it('collectCursor() returns empty without fetching when maxItems is 0', async () => {
+        let fetches = 0;
+        const outZero = await collectCursor<{ id: string; n: number }>({
+            fetchPage: () => {
+                fetches += 1;
+                return Promise.resolve([{ id: 'a', n: 1 }]);
+            },
+            getCursor: (last) => last.id,
+        }, { maxItems: 0 });
+        expect(outZero).toEqual([]);
+        expect(fetches).toBe(0);
+    });
+
+    it('collectCursor() throws RangeError without fetching when maxItems is negative', async () => {
+        let fetches = 0;
+        await expect(
+            collectCursor<{ id: string; n: number }>({
+                fetchPage: () => {
+                    fetches += 1;
+                    return Promise.resolve([{ id: 'a', n: 1 }]);
+                },
+                getCursor: (last) => last.id,
+            }, { maxItems: -1 }),
+        ).rejects.toThrow(RangeError);
+        expect(fetches).toBe(0);
+    });
+
+    it('collectCursor() collects all pages when maxItems is undefined', async () => {
+        let fetches = 0;
+        const byToken: Record<string, Array<{ id: string; n: number }>> = {
+            '': [{ id: 'a', n: 1 }, { id: 'b', n: 2 }],
+            b: [{ id: 'c', n: 3 }],
+            c: [],
+        };
+        const out = await collectCursor<{ id: string; n: number }>({
+            fetchPage: (token) => {
+                fetches += 1;
+                return Promise.resolve(byToken[token ?? '']);
+            },
+            getCursor: (last) => last.id,
+        }, { maxItems: undefined });
+        expect(out.map((i) => i.n)).toEqual([1, 2, 3]);
+        expect(fetches).toBe(3);
     });
 });
 
