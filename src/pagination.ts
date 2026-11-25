@@ -78,7 +78,10 @@ async function collectFrom<T>(
     options: CollectOptions = {},
 ): Promise<T[]> {
     const max = options.maxItems;
-    if (max !== undefined && max <= 0) {
+    if (max !== undefined && max < 0) {
+        throw new RangeError(`maxItems must be non-negative, got ${max}`);
+    }
+    if (max === 0) {
         return [];
     }
     const out: T[] = [];
