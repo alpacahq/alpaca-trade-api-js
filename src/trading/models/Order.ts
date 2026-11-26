@@ -55,6 +55,13 @@ import {
     AssetClassToJSON,
     AssetClassToJSONTyped,
 } from './AssetClass';
+import type { OrderGroupRole } from './OrderGroupRole';
+import {
+    OrderGroupRoleFromJSON,
+    OrderGroupRoleFromJSONTyped,
+    OrderGroupRoleToJSON,
+    OrderGroupRoleToJSONTyped,
+} from './OrderGroupRole';
 import type { PositionIntent } from './PositionIntent';
 import {
     PositionIntentFromJSON,
@@ -153,6 +160,18 @@ export interface Order extends Record<string, unknown> {
      */
     filledQty?: string;
     /**
+     * Opaque identifier shared by every order in the same `bracket`, `oto`, or `oco` order, including its legs and any replacement orders. Use it to associate related orders received from the `trade_updates` stream, where `legs` is not populated. Omitted for other orders.
+     * @type {string}
+     * @memberof Order
+     */
+    groupId?: string;
+    /**
+     * 
+     * @type {OrderGroupRole}
+     * @memberof Order
+     */
+    groupRole?: OrderGroupRole;
+    /**
      * The highest (lowest) market price seen since the trailing stop order was submitted.
      * @type {string}
      * @memberof Order
@@ -189,7 +208,7 @@ export interface Order extends Record<string, unknown> {
      */
     orderClass?: OrderClass;
     /**
-     * Deprecated in favour of the field "type" 
+     * Deprecated in favour of the field "type".
      * @type {string}
      * @memberof Order
      * @deprecated
@@ -254,7 +273,7 @@ export interface Order extends Record<string, unknown> {
      * @type {Date}
      * @memberof Order
      */
-    submittedAt?: Date | null;
+    submittedAt?: Date;
     /**
      * Asset symbol, required for all order classes except for `mleg`
      * @type {string}
@@ -290,7 +309,7 @@ export interface Order extends Record<string, unknown> {
      * @type {Date}
      * @memberof Order
      */
-    updatedAt?: Date | null;
+    updatedAt?: Date;
 }
 
 
@@ -328,6 +347,8 @@ export function OrderFromJSONTyped(json: any, ignoreDiscriminator: boolean): Ord
         'filledAt': json['filled_at'] == null ? undefined : (new Date(json['filled_at'])),
         'filledAvgPrice': json['filled_avg_price'] == null ? undefined : json['filled_avg_price'],
         'filledQty': json['filled_qty'] == null ? undefined : json['filled_qty'],
+        'groupId': json['group_id'] == null ? undefined : json['group_id'],
+        'groupRole': json['group_role'] == null ? undefined : OrderGroupRoleFromJSON(json['group_role']),
         'hwm': json['hwm'] == null ? undefined : json['hwm'],
         'id': json['id'] == null ? undefined : json['id'],
         'legs': json['legs'] == null ? undefined : ((json['legs'] as Array<any>).map(OrderLegFromJSON)),
@@ -377,6 +398,8 @@ export function OrderToJSONTyped(value?: Order | null, ignoreDiscriminator: bool
         'filled_at': value['filledAt'] === null ? null : ((value['filledAt'] as any)?.toISOString()),
         'filled_avg_price': value['filledAvgPrice'],
         'filled_qty': value['filledQty'],
+        'group_id': value['groupId'],
+        'group_role': OrderGroupRoleToJSON(value['groupRole']),
         'hwm': value['hwm'],
         'id': value['id'],
         'legs': value['legs'] == null ? undefined : ((value['legs'] as Array<any>).map(OrderLegToJSON)),
@@ -393,13 +416,13 @@ export function OrderToJSONTyped(value?: Order | null, ignoreDiscriminator: bool
         'side': OrderSideToJSON(value['side']),
         'status': OrderStatusToJSON(value['status']),
         'stop_price': value['stopPrice'],
-        'submitted_at': value['submittedAt'] === null ? null : ((value['submittedAt'] as any)?.toISOString()),
+        'submitted_at': value['submittedAt'] == null ? undefined : ((value['submittedAt']).toISOString()),
         'symbol': value['symbol'],
         'time_in_force': TimeInForceToJSON(value['timeInForce']),
         'trail_percent': value['trailPercent'],
         'trail_price': value['trailPrice'],
         'type': OrderTypeToJSON(value['type']),
-        'updated_at': value['updatedAt'] === null ? null : ((value['updatedAt'] as any)?.toISOString()),
+        'updated_at': value['updatedAt'] == null ? undefined : ((value['updatedAt']).toISOString()),
     };
 }
 

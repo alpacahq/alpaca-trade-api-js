@@ -119,7 +119,7 @@ Behavior, ergonomics, streaming, pagination, and shared transport live in hand-w
 The hosted guides are canonical for workflows, conventions, and safety. The curated API Reference supports discovery and examples; installed TypeScript declarations are authoritative for exact signatures and models.
 
 - **Authored guides** live under [`docs/docs/`](https://github.com/alpacahq/alpaca-trade-api-js/tree/master/docs/docs/).
-- **Generated pages** — API reference, examples, and migration pages — are produced during the docs build from the SDK capability maps, repository examples, and root [`MIGRATIONS.md`](./MIGRATIONS.md), [`MIGRATION.md`](./MIGRATION.md), and [`MIGRATION_V5.md`](./MIGRATION_V5.md). Register future migration sources in `scripts/gen-docs-migration.ts`; do not edit generated docs pages.
+- **Generated pages** are produced during the docs build from the SDK capability maps, repository examples, and root [`MIGRATIONS.md`](./MIGRATIONS.md), [`MIGRATION.md`](./MIGRATION.md), [`MIGRATION_V5.md`](./MIGRATION_V5.md), and [`MIGRATION_V6.md`](./MIGRATION_V6.md). Register future migration sources in `scripts/gen-docs-migration.ts`; do not edit generated docs pages.
 - **Production build:** `npm --prefix docs run build` (runs generators first, then Docusaurus). CI and the GitHub Pages deploy use this path.
 
 See the [documentation development guide](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/docs/README.md) for local preview, generated-page boundaries, validation, and deployment.

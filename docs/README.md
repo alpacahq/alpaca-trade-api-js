@@ -46,13 +46,7 @@ Do not edit these generated files directly:
   `scripts/gen-docs-api-reference.ts`.
 - `docs/docs/examples.md` comes from the runnable files under `examples/`,
   rendered by `scripts/gen-docs-examples.ts`.
-- `docs/docs/migrations.md`, `docs/docs/migration.md`, and
-  `docs/docs/migration-v5.md` come from the root `MIGRATIONS.md`,
-  `MIGRATION.md`, and `MIGRATION_V5.md`, rendered from the registry in
-  `scripts/gen-docs-migration.ts`. Add future major-version guides to that
-  registry. The 3.x → 4.0 guide remains the primary migration route in the
-  navbar and announcement banner; `/migrations` is the secondary version
-  chooser.
+- `docs/docs/migrations.md`, `docs/docs/migration.md`, `docs/docs/migration-v5.md`, and `docs/docs/migration-v6.md` come from the root `MIGRATIONS.md`, `MIGRATION.md`, `MIGRATION_V5.md`, and `MIGRATION_V6.md`, rendered from the registry in `scripts/gen-docs-migration.ts`. Add future major-version guides to that registry. The 3.x to 4.0 guide remains the primary migration route in the navbar and announcement banner; `/migrations` is the secondary version chooser.
 
 Both `npm --prefix docs start` and `npm --prefix docs run build` regenerate
 these pages. They are ignored by Git and should remain reproducible from their

@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { PortfolioHistoryTimeframe } from './PortfolioHistoryTimeframe';
+import {
+    PortfolioHistoryTimeframeFromJSON,
+    PortfolioHistoryTimeframeFromJSONTyped,
+    PortfolioHistoryTimeframeToJSON,
+    PortfolioHistoryTimeframeToJSONTyped,
+} from './PortfolioHistoryTimeframe';
+
 /**
  * Timeseries data for equity and profit loss information of the account.
  * @export
@@ -20,7 +28,7 @@ import { mapValues } from '../runtime';
  */
 export interface PortfolioHistory {
     /**
-     * basis in dollar of the profit loss calculation
+     * Basis in dollar of the profit loss calculation.
      * @type {number}
      * @memberof PortfolioHistory
      */
@@ -38,35 +46,35 @@ export interface PortfolioHistory {
      */
     baseValueAsof?: Date;
     /**
-     * accumulated value in dollar amount as of the end of each time window
+     * Accumulated value in dollar amount as of the end of each time window.
      * @type {{ [key: string]: Array<number>; }}
      * @memberof PortfolioHistory
      */
     cashflow?: { [key: string]: Array<number>; };
     /**
-     * equity value of the account in dollar amount as of the end of each time window
+     * Equity value of the account in dollar amount as of the end of each time window.
      * @type {Array<number | null>}
      * @memberof PortfolioHistory
      */
     equity: Array<number | null>;
     /**
-     * profit/loss in dollar from the base value
+     * Profit/loss in dollar from the base value.
      * @type {Array<number | null>}
      * @memberof PortfolioHistory
      */
     profitLoss: Array<number | null>;
     /**
-     * profit/loss in percentage from the base value
+     * Profit/loss in percentage from the base value.
      * @type {Array<number | null>}
      * @memberof PortfolioHistory
      */
     profitLossPct: Array<number | null>;
     /**
-     * time window size of each data element
-     * @type {string}
+     * 
+     * @type {PortfolioHistoryTimeframe}
      * @memberof PortfolioHistory
      */
-    timeframe: string;
+    timeframe: PortfolioHistoryTimeframe;
     /**
      * Time of each data element, left-labeled (the beginning of time window).
      * 
@@ -77,6 +85,8 @@ export interface PortfolioHistory {
      */
     timestamp: Array<number>;
 }
+
+
 
 /**
  * Check if a given object implements the PortfolioHistory interface.
@@ -107,7 +117,7 @@ export function PortfolioHistoryFromJSONTyped(json: any, ignoreDiscriminator: bo
         'equity': json['equity'] == null ? [] : json['equity'],
         'profitLoss': json['profit_loss'] == null ? [] : json['profit_loss'],
         'profitLossPct': json['profit_loss_pct'] == null ? [] : json['profit_loss_pct'],
-        'timeframe': json['timeframe'],
+        'timeframe': PortfolioHistoryTimeframeFromJSON(json['timeframe']),
         'timestamp': json['timestamp'] == null ? [] : json['timestamp'],
     };
 }
@@ -129,7 +139,7 @@ export function PortfolioHistoryToJSONTyped(value?: PortfolioHistory | null, ign
         'equity': value['equity'],
         'profit_loss': value['profitLoss'],
         'profit_loss_pct': value['profitLossPct'],
-        'timeframe': value['timeframe'],
+        'timeframe': PortfolioHistoryTimeframeToJSON(value['timeframe']),
         'timestamp': value['timestamp'],
     };
 }

@@ -14,6 +14,7 @@ const LINK_REWRITES: Record<string, string> = {
     "codemods/README.md": `${REPOSITORY_BLOB}/codemods/README.md`,
     "MIGRATION.md": "./migration.md",
     "MIGRATION_V5.md": "./migration-v5.md",
+    "MIGRATION_V6.md": "./migration-v6.md",
     "MIGRATIONS.md": "./migrations.md",
 };
 
@@ -47,6 +48,13 @@ export const migrationPages: readonly MigrationPage[] = [
         sidebarPosition: 3,
         primary: false,
     },
+    {
+        sourceFile: "MIGRATION_V6.md",
+        outputFile: "migration-v6.md",
+        title: "Migrate from 5.x to 6.0",
+        sidebarPosition: 4,
+        primary: false,
+    },
 ] as const;
 
 export function renderDocsMigration(source: string): string {
@@ -55,6 +63,10 @@ export function renderDocsMigration(source: string): string {
 
 export function renderDocsV5Migration(source: string): string {
     return renderDocsMigrationPage(source, migrationPages[2]);
+}
+
+export function renderDocsV6Migration(source: string): string {
+    return renderDocsMigrationPage(source, migrationPages[3]);
 }
 
 export function renderDocsMigrationIndex(source: string): string {

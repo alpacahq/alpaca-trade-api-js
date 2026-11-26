@@ -19,8 +19,10 @@
  */
 export const TokenizationIssuer = {
     Binance: 'binance',
+    Bitget: 'bitget',
     Coinbase: 'coinbase',
     Ondo: 'ondo',
+    Robinhood: 'robinhood',
     St0x: 'st0x',
     Xstocks: 'xstocks'
 } as const;

@@ -53,6 +53,21 @@ describe('canonical documentation', () => {
         ).toBe(`^${pendingReleaseMajor()}.0.0`);
     });
 
+    it('keeps the starter dashboard stock adjustment aligned with the generated enum array', () => {
+        const stockPage = readFileSync(
+            resolve(
+                projectRoot,
+                'skills/starter-dashboard/template/app/stocks/[symbol]/page.tsx',
+            ),
+            'utf8',
+        );
+
+        expect(stockPage).toContain(
+            'adjustment: [marketData.StockAdjustment.All]',
+        );
+        expect(stockPage).not.toContain('adjustment: "all"');
+    });
+
     it('keeps the runtime identity example on the pending release major', () => {
         const runtimeCompatibility = readFileSync(
             resolve(projectRoot, 'docs/docs/runtime-compatibility.md'),
@@ -228,6 +243,7 @@ describe('canonical documentation', () => {
                 '/runtime-compatibility',
                 '/migrations',
                 '/migration',
+                '/migration-v6',
             ]) {
                 expect(guidance).toContain(guide);
             }
@@ -559,6 +575,7 @@ describe('canonical documentation', () => {
             'Migration from 3.x',
             'Migration overview',
             'Migration from 4.x to 5.0',
+            'Migration from 5.x to 6.0',
             'API reference',
         ]);
         expect(readme).toMatch(
@@ -568,6 +585,7 @@ describe('canonical documentation', () => {
             documentation.indexOf('[Migration from 3.x]'),
         ).toBeLessThan(documentation.indexOf('[Migration overview]'));
         expect(readme).toContain('[Migration from 4.x to 5.0]');
+        expect(readme).toContain('[Migration from 5.x to 6.0]');
         expect(readme).not.toContain('maps every endpoint old → new');
     });
 });

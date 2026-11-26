@@ -5,7 +5,6 @@ export * from './AccountConfigurationsApi';
 export * from './AccountsApi';
 export * from './AssetsApi';
 export * from './CalendarApi';
-export * from './ClockApi';
 export * from './CorporateActionsApi';
 export * from './CryptoFundingApi';
 export * from './EventsApi';

@@ -15,13 +15,19 @@
 
 import * as runtime from '../runtime';
 import type {
+  ClockResp,
   LegacyCalendarDay,
+  LegacyClock,
   Market,
   PublicCalendarResp,
 } from '../models/index';
 import {
+    ClockRespFromJSON,
+    ClockRespToJSON,
     LegacyCalendarDayFromJSON,
     LegacyCalendarDayToJSON,
+    LegacyClockFromJSON,
+    LegacyClockToJSON,
     MarketFromJSON,
     MarketToJSON,
     PublicCalendarRespFromJSON,
@@ -33,6 +39,11 @@ export interface CalendarRequest {
     start?: Date;
     end?: Date;
     timezone?: CalendarTimezoneEnum;
+}
+
+export interface ClockRequest {
+    markets?: string;
+    time?: Date;
 }
 
 export interface LegacyCalendarRequest {
@@ -109,6 +120,56 @@ export class CalendarApi extends runtime.BaseAPI {
     }
 
     /**
+     * This API serves information about multiple markets: the current time, if it\'s a market day, the current phase of the market, etc. 
+     * Get Market Clock
+     */
+    async clockRaw(requestParameters: ClockRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ClockResp>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['markets'] != null) {
+            queryParameters['markets'] = requestParameters['markets'];
+        }
+
+        if (requestParameters['time'] != null) {
+            queryParameters['time'] = (requestParameters['time'] as any).toISOString();
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
+        }
+
+        };
+
+        let urlPath = `/v3/clock`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+            resolveAuth: resolveRequestAuth,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ClockRespFromJSON(jsonValue));
+    }
+
+    /**
+     * This API serves information about multiple markets: the current time, if it\'s a market day, the current phase of the market, etc. 
+     * Get Market Clock
+     */
+    async clock(requestParameters: ClockRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ClockResp> {
+        const response = await this.clockRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * The calendar API serves the full list of market days from 1970 to 2029. It can also be queried by specifying a start and/or end time to narrow down the results. In addition to the dates, the response also contains the specific open and close times for the market days, taking into account early closures. 
      * Get US Market Calendar
      */
@@ -159,6 +220,48 @@ export class CalendarApi extends runtime.BaseAPI {
      */
     async legacyCalendar(requestParameters: LegacyCalendarRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<LegacyCalendarDay>> {
         const response = await this.legacyCalendarRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * The clock API serves the current market timestamp, whether or not the market is currently open, as well as the times of the next market open and close. 
+     * Get US Market Clock
+     */
+    async legacyClockRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LegacyClock>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const resolveRequestAuth = async (): Promise<void> => {
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
+        }
+
+        };
+
+        let urlPath = `/v2/clock`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+            resolveAuth: resolveRequestAuth,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => LegacyClockFromJSON(jsonValue));
+    }
+
+    /**
+     * The clock API serves the current market timestamp, whether or not the market is currently open, as well as the times of the next market open and close. 
+     * Get US Market Clock
+     */
+    async legacyClock(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LegacyClock> {
+        const response = await this.legacyClockRaw(initOverrides);
         return await response.value();
     }
 

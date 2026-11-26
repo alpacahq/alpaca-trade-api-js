@@ -15,7 +15,6 @@
 
 import * as runtime from '../runtime';
 import type {
-  CreateCryptoTransferRequest,
   CreateWhitelistedAddressRequest,
   CryptoChain,
   CryptoTransfer,
@@ -27,8 +26,6 @@ import type {
   WhitelistedAddress,
 } from '../models/index';
 import {
-    CreateCryptoTransferRequestFromJSON,
-    CreateCryptoTransferRequestToJSON,
     CreateWhitelistedAddressRequestFromJSON,
     CreateWhitelistedAddressRequestToJSON,
     CryptoChainFromJSON,
@@ -48,10 +45,6 @@ import {
     WhitelistedAddressFromJSON,
     WhitelistedAddressToJSON,
 } from '../models/index';
-
-export interface CreateCryptoTransferForAccountRequest {
-    createCryptoTransferRequest: CreateCryptoTransferRequest;
-}
 
 export interface CreateWhitelistedAddressOperationRequest {
     createWhitelistedAddressRequest: CreateWhitelistedAddressRequest;
@@ -98,60 +91,6 @@ export interface UpdateWhitelistedAddressTravelRuleInfoOperationRequest {
  * 
  */
 export class CryptoFundingApi extends runtime.BaseAPI {
-
-    /**
-     * Creates a withdrawal request. Note that outgoing withdrawals must be sent to a whitelisted address and you must whitelist addresses at least 24 hours in advance. If you attempt to withdraw funds to a non-whitelisted address then the transfer will be rejected.
-     * Request a New Withdrawal
-     * @deprecated
-     */
-    async createCryptoTransferForAccountRaw(requestParameters: CreateCryptoTransferForAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CryptoTransfer>> {
-        if (requestParameters['createCryptoTransferRequest'] == null) {
-            throw new runtime.RequiredError(
-                'createCryptoTransferRequest',
-                'Required parameter "createCryptoTransferRequest" was null or undefined when calling createCryptoTransferForAccount().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        const resolveRequestAuth = async (): Promise<void> => {
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // API_Key authentication
-        }
-
-        if (this.configuration && this.configuration.apiKey) {
-            headerParameters["APCA-API-SECRET-KEY"] = await this.configuration.apiKey("APCA-API-SECRET-KEY"); // API_Secret authentication
-        }
-
-        };
-
-        let urlPath = `/v2/wallets/transfers`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            resolveAuth: resolveRequestAuth,
-            body: CreateCryptoTransferRequestToJSON(requestParameters['createCryptoTransferRequest']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => CryptoTransferFromJSON(jsonValue));
-    }
-
-    /**
-     * Creates a withdrawal request. Note that outgoing withdrawals must be sent to a whitelisted address and you must whitelist addresses at least 24 hours in advance. If you attempt to withdraw funds to a non-whitelisted address then the transfer will be rejected.
-     * Request a New Withdrawal
-     * @deprecated
-     */
-    async createCryptoTransferForAccount(requestParameters: CreateCryptoTransferForAccountRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CryptoTransfer> {
-        const response = await this.createCryptoTransferForAccountRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
 
     /**
      * Submits a new whitelisted withdrawal address for your account. The chain is derived from the supplied asset symbol and address, and the same address cannot be whitelisted twice on the same chain.  Where travel rule reporting applies to your account, supply travel rule information for the destination wallet. Use the `Search VASPs` endpoint to find the VASP DID for the destination exchange. For a self-hosted wallet, set `beneficiary_is_self_hosted` to true. If the exchange is not in the directory, provide its information in `beneficiary_manual_entry`.  Note that whitelisted addresses must wait at least 24 hours before they can be used as a withdrawal destination.

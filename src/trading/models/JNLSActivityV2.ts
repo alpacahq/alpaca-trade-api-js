@@ -38,6 +38,12 @@ export interface JNLSActivityV2 {
      */
     journalId?: string;
     /**
+     * Issuer of the tokenized asset, on tokenization mint and redeem journals (`activity_subtype` `ITNJ`). Same value as `issuer` on the related tokenization request. Omitted for other journals and for journals booked before this field was added.
+     * @type {string}
+     * @memberof JNLSActivityV2
+     */
+    issuer?: string;
+    /**
      * The symbol of the security involved with the activity
      * @type {string}
      * @memberof JNLSActivityV2
@@ -67,6 +73,7 @@ export function JNLSActivityV2FromJSONTyped(json: any, ignoreDiscriminator: bool
         'groupId': json['group_id'] == null ? undefined : json['group_id'],
         'systemDate': (new Date(json['system_date'])),
         'journalId': json['journal_id'] == null ? undefined : json['journal_id'],
+        'issuer': json['issuer'] == null ? undefined : json['issuer'],
         'symbol': json['symbol'],
     };
 }
@@ -85,6 +92,7 @@ export function JNLSActivityV2ToJSONTyped(value?: JNLSActivityV2 | null, ignoreD
         'group_id': value['groupId'],
         'system_date': ((value['systemDate']).toISOString().substring(0,10)),
         'journal_id': value['journalId'],
+        'issuer': value['issuer'],
         'symbol': value['symbol'],
     };
 }

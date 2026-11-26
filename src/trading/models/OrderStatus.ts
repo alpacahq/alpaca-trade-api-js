@@ -54,6 +54,9 @@
  * - accepted_for_bidding
  *   The order has been received by exchanges, and is evaluated for pricing. This state only occurs on rare occasions.
  * 
+ * - pending_review
+ *   The order is waiting for review. Once approved, it can move to accepted, new, or a fill state. This state only occurs on rare occasions.
+ * 
  * - stopped
  *   The order has been stopped, and a trade is guaranteed for the order, usually at a stated price or better, but has not yet occurred. This state only occurs on rare occasions.
  * 
@@ -83,6 +86,7 @@ export const OrderStatus = {
     Accepted: 'accepted',
     PendingNew: 'pending_new',
     AcceptedForBidding: 'accepted_for_bidding',
+    PendingReview: 'pending_review',
     Stopped: 'stopped',
     Rejected: 'rejected',
     Suspended: 'suspended',

@@ -28,13 +28,13 @@ import {
  */
 export interface News {
     /**
-     * Original author of news article.
+     * Original author of news article (may be empty).
      * @type {string}
      * @memberof News
      */
     author: string;
     /**
-     * Content of the news article (might contain HTML).
+     * Content of the news article (might contain HTML, may be empty).
      * @type {string}
      * @memberof News
      */
@@ -64,13 +64,13 @@ export interface News {
      */
     images: Set<NewsImage>;
     /**
-     * Source where the news originated from (e.g. Benzinga).
+     * Source from which the news originated.
      * @type {string}
      * @memberof News
      */
     source: string;
     /**
-     * Summary text for the article (may be first sentence of content).
+     * Summary text for the article (may be first sentence of content or may be empty).
      * @type {string}
      * @memberof News
      */

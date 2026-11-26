@@ -27,10 +27,10 @@ export interface UpdateWatchlistRequest {
     name?: string;
     /**
      * List of asset symbols to include in the watchlist. The existing assets will be replaced with the new list.
-     * @type {Array<string | null>}
+     * @type {Array<string>}
      * @memberof UpdateWatchlistRequest
      */
-    symbols?: Array<string | null>;
+    symbols?: Array<string>;
 }
 
 /**

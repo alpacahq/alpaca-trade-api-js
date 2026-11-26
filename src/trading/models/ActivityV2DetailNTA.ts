@@ -89,6 +89,13 @@ import {
     FOPTActivityV2FromJSONTyped,
     FOPTActivityV2ToJSON,
 } from './FOPTActivityV2';
+import type { FXTRDActivityV2 } from './FXTRDActivityV2';
+import {
+    instanceOfFXTRDActivityV2,
+    FXTRDActivityV2FromJSON,
+    FXTRDActivityV2FromJSONTyped,
+    FXTRDActivityV2ToJSON,
+} from './FXTRDActivityV2';
 import type { FixedIncomeInterestActivityV2 } from './FixedIncomeInterestActivityV2';
 import {
     instanceOfFixedIncomeInterestActivityV2,
@@ -194,6 +201,13 @@ import {
     OpcaCDIVActivityV2FromJSONTyped,
     OpcaCDIVActivityV2ToJSON,
 } from './OpcaCDIVActivityV2';
+import type { OpcaCGDActivityV2 } from './OpcaCGDActivityV2';
+import {
+    instanceOfOpcaCGDActivityV2,
+    OpcaCGDActivityV2FromJSON,
+    OpcaCGDActivityV2FromJSONTyped,
+    OpcaCGDActivityV2ToJSON,
+} from './OpcaCGDActivityV2';
 import type { OpcaFSPLITActivityV2 } from './OpcaFSPLITActivityV2';
 import {
     instanceOfOpcaFSPLITActivityV2,
@@ -319,7 +333,7 @@ import {
  * 
  * @export
  */
-export type ActivityV2DetailNTA = AcatcActivityV2 | AcatsActivityV2 | CDIVActivityV2 | CGDActivityV2 | CSWActivityV2 | DIVNRAActivityV2 | DIVSPDActivityV2 | DIVWHActivityV2 | ExchangeOfferActivityV2 | FEEActivityV2 | FOPTActivityV2 | FixedIncomeInterestActivityV2 | FixedIncomeRedemptionActivityV2 | ForwardSplitActivityV2 | JNLCActivityV2 | JNLSActivityV2 | MAActivityV2 | MEMActivityV2 | NCActivityV2 | OCTActivityV2 | OPASNActivityV2 | OPCSHActivityV2 | OPEXCActivityV2 | OPEXPActivityV2 | OPTRDActivityV2 | OpcaCDIVActivityV2 | OpcaFSPLITActivityV2 | OpcaMAActivityV2 | OpcaNCActivityV2 | OpcaRSPLITActivityV2 | OpcaSDIVActivityV2 | OpcaSPINActivityV2 | OpcaUSPLITActivityV2 | REOActivityV2 | ReverseSplitActivityV2 | RightsDistributionActivityV2 | RightsSubscriptionElectionActivityV2 | SDIVActivityV2 | SpinoffActivityV2 | TenderOfferActivityV2 | UnitSplitActivityV2 | WRMActivityV2 | WarrantExerciseElectionActivityV2;
+export type ActivityV2DetailNTA = AcatcActivityV2 | AcatsActivityV2 | CDIVActivityV2 | CGDActivityV2 | CSWActivityV2 | DIVNRAActivityV2 | DIVSPDActivityV2 | DIVWHActivityV2 | ExchangeOfferActivityV2 | FEEActivityV2 | FOPTActivityV2 | FXTRDActivityV2 | FixedIncomeInterestActivityV2 | FixedIncomeRedemptionActivityV2 | ForwardSplitActivityV2 | JNLCActivityV2 | JNLSActivityV2 | MAActivityV2 | MEMActivityV2 | NCActivityV2 | OCTActivityV2 | OPASNActivityV2 | OPCSHActivityV2 | OPEXCActivityV2 | OPEXPActivityV2 | OPTRDActivityV2 | OpcaCDIVActivityV2 | OpcaCGDActivityV2 | OpcaFSPLITActivityV2 | OpcaMAActivityV2 | OpcaNCActivityV2 | OpcaRSPLITActivityV2 | OpcaSDIVActivityV2 | OpcaSPINActivityV2 | OpcaUSPLITActivityV2 | REOActivityV2 | ReverseSplitActivityV2 | RightsDistributionActivityV2 | RightsSubscriptionElectionActivityV2 | SDIVActivityV2 | SpinoffActivityV2 | TenderOfferActivityV2 | UnitSplitActivityV2 | WRMActivityV2 | WarrantExerciseElectionActivityV2;
 
 function containsInvalidDate(value: unknown): boolean {
     if (value instanceof Date) {
@@ -427,6 +441,7 @@ export function instanceOfActivityV2DetailNTA(value: object): value is ActivityV
         instanceOfExchangeOfferActivityV2(value) ||
         instanceOfFEEActivityV2(value) ||
         instanceOfFOPTActivityV2(value) ||
+        instanceOfFXTRDActivityV2(value) ||
         instanceOfFixedIncomeInterestActivityV2(value) ||
         instanceOfFixedIncomeRedemptionActivityV2(value) ||
         instanceOfForwardSplitActivityV2(value) ||
@@ -442,6 +457,7 @@ export function instanceOfActivityV2DetailNTA(value: object): value is ActivityV
         instanceOfOPEXPActivityV2(value) ||
         instanceOfOPTRDActivityV2(value) ||
         instanceOfOpcaCDIVActivityV2(value) ||
+        instanceOfOpcaCGDActivityV2(value) ||
         instanceOfOpcaFSPLITActivityV2(value) ||
         instanceOfOpcaMAActivityV2(value) ||
         instanceOfOpcaNCActivityV2(value) ||
@@ -542,6 +558,12 @@ export function ActivityV2DetailNTAFromJSONTyped(json: any, ignoreDiscriminator:
         }
     }
     {
+        const value = FXTRDActivityV2FromJSONTyped(json, true);
+        if (instanceOfFXTRDActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'FXTRDActivityV2', value });
+        }
+    }
+    {
         const value = FixedIncomeInterestActivityV2FromJSONTyped(json, true);
         if (instanceOfFixedIncomeInterestActivityV2(value) && !containsInvalidDate(value)) {
             candidates.push({ name: 'FixedIncomeInterestActivityV2', value });
@@ -629,6 +651,12 @@ export function ActivityV2DetailNTAFromJSONTyped(json: any, ignoreDiscriminator:
         const value = OpcaCDIVActivityV2FromJSONTyped(json, true);
         if (instanceOfOpcaCDIVActivityV2(value) && !containsInvalidDate(value)) {
             candidates.push({ name: 'OpcaCDIVActivityV2', value });
+        }
+    }
+    {
+        const value = OpcaCGDActivityV2FromJSONTyped(json, true);
+        if (instanceOfOpcaCGDActivityV2(value) && !containsInvalidDate(value)) {
+            candidates.push({ name: 'OpcaCGDActivityV2', value });
         }
     }
     {
@@ -786,6 +814,9 @@ export function ActivityV2DetailNTAToJSONTyped(value?: ActivityV2DetailNTA | nul
     if (instanceOfFOPTActivityV2(value)) {
         candidates.push({ name: 'FOPTActivityV2', value: FOPTActivityV2ToJSON(value as FOPTActivityV2) });
     }
+    if (instanceOfFXTRDActivityV2(value)) {
+        candidates.push({ name: 'FXTRDActivityV2', value: FXTRDActivityV2ToJSON(value as FXTRDActivityV2) });
+    }
     if (instanceOfFixedIncomeInterestActivityV2(value)) {
         candidates.push({ name: 'FixedIncomeInterestActivityV2', value: FixedIncomeInterestActivityV2ToJSON(value as FixedIncomeInterestActivityV2) });
     }
@@ -830,6 +861,9 @@ export function ActivityV2DetailNTAToJSONTyped(value?: ActivityV2DetailNTA | nul
     }
     if (instanceOfOpcaCDIVActivityV2(value)) {
         candidates.push({ name: 'OpcaCDIVActivityV2', value: OpcaCDIVActivityV2ToJSON(value as OpcaCDIVActivityV2) });
+    }
+    if (instanceOfOpcaCGDActivityV2(value)) {
+        candidates.push({ name: 'OpcaCGDActivityV2', value: OpcaCGDActivityV2ToJSON(value as OpcaCGDActivityV2) });
     }
     if (instanceOfOpcaFSPLITActivityV2(value)) {
         candidates.push({ name: 'OpcaFSPLITActivityV2', value: OpcaFSPLITActivityV2ToJSON(value as OpcaFSPLITActivityV2) });

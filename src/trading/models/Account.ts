@@ -39,7 +39,7 @@ export interface Account extends Record<string, unknown> {
      * @type {string}
      * @memberof Account
      */
-    accountNumber?: string;
+    accountNumber?: string | null;
     /**
      * The fees collected.
      * @type {string}
@@ -137,7 +137,7 @@ export interface Account extends Record<string, unknown> {
      */
     maintenanceMargin?: string;
     /**
-     * Buying power multiplier that represents account margin classification; valid values 1 (standard limited margin account with 1x buying power), 2 (reg T margin account with 2x intraday and overnight buying power; this is the default for all non-PDT accounts with $2,000 or more equity), 4 (PDT account with 4x intraday buying power and 2x reg T overnight buying power)
+     * Buying power multiplier that represents account margin classification; valid values 1 (standard limited margin account with 1x buying power), 2 (reg T margin account with 2x intraday and overnight buying power; this is the default for all non-PDT accounts with $2,000 or more equity), 4 (PDT account with 4x intraday buying power and 2x reg T overnight buying power). Returned as a decimal string; other decimal values set by Alpaca may also be returned.
      * @type {string}
      * @memberof Account
      */
@@ -294,7 +294,7 @@ export function AccountFromJSONTyped(json: any, ignoreDiscriminator: boolean): A
         ...json,
         
         'accountBlocked': json['account_blocked'] == null ? undefined : json['account_blocked'],
-        'accountNumber': json['account_number'] == null ? undefined : json['account_number'],
+        'accountNumber': json['account_number'] === undefined ? undefined : json['account_number'],
         'accruedFees': json['accrued_fees'] == null ? undefined : json['accrued_fees'],
         'balanceAsof': json['balance_asof'] == null ? undefined : json['balance_asof'],
         'buyingPower': json['buying_power'] == null ? undefined : json['buying_power'],

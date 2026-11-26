@@ -16,6 +16,7 @@
 import * as runtime from '../runtime';
 import type {
   Sort,
+  StockAdjustment,
   StockAuctionsResp,
   StockAuctionsRespSingle,
   StockBarsResp,
@@ -38,6 +39,8 @@ import type {
 import {
     SortFromJSON,
     SortToJSON,
+    StockAdjustmentFromJSON,
+    StockAdjustmentToJSON,
     StockAuctionsRespFromJSON,
     StockAuctionsRespToJSON,
     StockAuctionsRespSingleFromJSON,
@@ -83,9 +86,10 @@ export interface StockAuctionSingleRequest {
     limit?: number;
     asof?: string;
     feed?: StockHistoricalFeed;
+    endUserId?: string;
     currency?: string;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface StockAuctionsRequest {
@@ -95,9 +99,10 @@ export interface StockAuctionsRequest {
     limit?: number;
     asof?: string;
     feed?: StockHistoricalFeed;
+    endUserId?: string;
     currency?: string;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface StockBarSingleRequest {
@@ -106,12 +111,13 @@ export interface StockBarSingleRequest {
     start?: Date;
     end?: Date;
     limit?: number;
-    adjustment?: string;
+    adjustment?: Array<StockAdjustment>;
     asof?: string;
     feed?: StockHistoricalFeed;
+    endUserId?: string;
     currency?: string;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface StockBarsRequest {
@@ -120,53 +126,65 @@ export interface StockBarsRequest {
     start?: Date;
     end?: Date;
     limit?: number;
-    adjustment?: string;
+    adjustment?: Array<StockAdjustment>;
     asof?: string;
     feed?: StockHistoricalFeed;
+    endUserId?: string;
     currency?: string;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface StockLatestBarSingleRequest {
     symbol: string;
     feed?: StockLatestFeed;
+    endUserId?: string;
     currency?: string;
 }
 
 export interface StockLatestBarsRequest {
     symbols: string;
     feed?: StockLatestFeed;
+    endUserId?: string;
     currency?: string;
 }
 
 export interface StockLatestQuoteSingleRequest {
     symbol: string;
     feed?: StockLatestFeed;
+    endUserId?: string;
     currency?: string;
 }
 
 export interface StockLatestQuotesRequest {
     symbols: string;
     feed?: StockLatestFeed;
+    endUserId?: string;
     currency?: string;
 }
 
 export interface StockLatestTradeSingleRequest {
     symbol: string;
     feed?: StockLatestFeed;
+    endUserId?: string;
     currency?: string;
 }
 
 export interface StockLatestTradesRequest {
     symbols: string;
     feed?: StockLatestFeed;
+    endUserId?: string;
     currency?: string;
 }
 
 export interface StockMetaConditionsRequest {
     ticktype: StockMetaConditionsTicktypeEnum;
     tape: StockMetaConditionsTapeEnum;
+    endUserId?: string;
+}
+
+export interface StockMetaExchangesRequest {
+    endUserId?: string;
 }
 
 export interface StockQuoteSingleRequest {
@@ -176,9 +194,10 @@ export interface StockQuoteSingleRequest {
     limit?: number;
     asof?: string;
     feed?: StockHistoricalFeed;
+    endUserId?: string;
     currency?: string;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface StockQuotesRequest {
@@ -188,20 +207,23 @@ export interface StockQuotesRequest {
     limit?: number;
     asof?: string;
     feed?: StockHistoricalFeed;
+    endUserId?: string;
     currency?: string;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface StockSnapshotSingleRequest {
     symbol: string;
     feed?: StockLatestFeed;
+    endUserId?: string;
     currency?: string;
 }
 
 export interface StockSnapshotsRequest {
     symbols: string;
     feed?: StockLatestFeed;
+    endUserId?: string;
     currency?: string;
 }
 
@@ -212,9 +234,10 @@ export interface StockTradeSingleRequest {
     limit?: number;
     asof?: string;
     feed?: StockHistoricalFeed;
+    endUserId?: string;
     currency?: string;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface StockTradesRequest {
@@ -224,9 +247,10 @@ export interface StockTradesRequest {
     limit?: number;
     asof?: string;
     feed?: StockHistoricalFeed;
+    endUserId?: string;
     currency?: string;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 /**
@@ -281,6 +305,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -371,6 +399,10 @@ export class StockApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
+
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
@@ -445,7 +477,7 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         if (requestParameters['adjustment'] != null) {
-            queryParameters['adjustment'] = requestParameters['adjustment'];
+            queryParameters['adjustment'] = requestParameters['adjustment']!.join(runtime.COLLECTION_FORMATS["csv"]);
         }
 
         if (requestParameters['asof'] != null) {
@@ -469,6 +501,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -549,7 +585,7 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         if (requestParameters['adjustment'] != null) {
-            queryParameters['adjustment'] = requestParameters['adjustment'];
+            queryParameters['adjustment'] = requestParameters['adjustment']!.join(runtime.COLLECTION_FORMATS["csv"]);
         }
 
         if (requestParameters['asof'] != null) {
@@ -573,6 +609,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -633,6 +673,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -699,6 +743,10 @@ export class StockApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
+
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
@@ -758,6 +806,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -824,6 +876,10 @@ export class StockApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
+
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
@@ -883,6 +939,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -949,6 +1009,10 @@ export class StockApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
+
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
@@ -1012,6 +1076,10 @@ export class StockApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
+
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
@@ -1053,10 +1121,14 @@ export class StockApi extends runtime.BaseAPI {
      * Returns the mapping between the stock exchange codes and the corresponding exchange names. 
      * Exchange codes
      */
-    async stockMetaExchangesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+    async stockMetaExchangesRaw(requestParameters: StockMetaExchangesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -1089,8 +1161,8 @@ export class StockApi extends runtime.BaseAPI {
      * Returns the mapping between the stock exchange codes and the corresponding exchange names. 
      * Exchange codes
      */
-    async stockMetaExchanges(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
-        const response = await this.stockMetaExchangesRaw(initOverrides);
+    async stockMetaExchanges(requestParameters: StockMetaExchangesRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+        const response = await this.stockMetaExchangesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1141,6 +1213,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -1231,6 +1307,10 @@ export class StockApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
+
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
             headerParameters["APCA-API-KEY-ID"] = await this.configuration.apiKey("APCA-API-KEY-ID"); // apiKey authentication
@@ -1290,6 +1370,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -1355,6 +1439,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -1439,6 +1527,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {
@@ -1528,6 +1620,10 @@ export class StockApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['endUserId'] != null) {
+            headerParameters['End-User-Id'] = String(requestParameters['endUserId']);
+        }
 
         const resolveRequestAuth = async (): Promise<void> => {
         if (this.configuration && this.configuration.apiKey) {

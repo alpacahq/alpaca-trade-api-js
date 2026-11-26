@@ -1,6 +1,127 @@
 {
   "components": {
     "examples": {
+      "BracketOrderResponse": {
+        "description": "A `bracket` order returned with its legs. The entry order and both legs share one `group_id`, and `group_role` identifies each order.",
+        "value": {
+          "asset_class": "us_equity",
+          "asset_id": "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415",
+          "canceled_at": null,
+          "client_order_id": "5c2e8f1a-9d4b-4a7e-8c3f-6b1d0e9a2f47",
+          "created_at": "2026-09-28T14:30:12.418372Z",
+          "expired_at": null,
+          "extended_hours": false,
+          "failed_at": null,
+          "filled_at": null,
+          "filled_avg_price": null,
+          "filled_qty": "0",
+          "group_id": "3f1c2b7e-8d4a-4c6e-9f2a-5b7d1e0c9a84",
+          "group_role": "entry",
+          "hwm": null,
+          "id": "b7d0e2c1-6a4f-4d3b-9e8a-2c5f1a7b9d30",
+          "legs": [
+            {
+              "asset_class": "us_equity",
+              "asset_id": "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415",
+              "canceled_at": null,
+              "client_order_id": "2d7e9b41-5f3a-4c8e-a1b6-9e0d3c7f2a58",
+              "created_at": "2026-09-28T14:30:12.418372Z",
+              "expired_at": null,
+              "extended_hours": false,
+              "failed_at": null,
+              "filled_at": null,
+              "filled_avg_price": null,
+              "filled_qty": "0",
+              "group_id": "3f1c2b7e-8d4a-4c6e-9f2a-5b7d1e0c9a84",
+              "group_role": "take_profit",
+              "hwm": null,
+              "id": "c4a9f3e8-1b2d-4e6f-8a7c-5d3e2f1b0a96",
+              "legs": null,
+              "limit_price": "170",
+              "notional": null,
+              "order_class": "bracket",
+              "order_type": "limit",
+              "position_intent": "sell_to_close",
+              "qty": "10",
+              "replaced_at": null,
+              "replaced_by": null,
+              "replaces": null,
+              "side": "sell",
+              "source": null,
+              "status": "held",
+              "stop_price": null,
+              "submitted_at": "2026-09-28T14:30:12.402119Z",
+              "subtag": null,
+              "symbol": "AAPL",
+              "time_in_force": "gtc",
+              "trail_percent": null,
+              "trail_price": null,
+              "type": "limit",
+              "updated_at": "2026-09-28T14:30:12.418372Z"
+            },
+            {
+              "asset_class": "us_equity",
+              "asset_id": "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415",
+              "canceled_at": null,
+              "client_order_id": "8a4c1f6e-3b9d-4e2a-b7c5-1f0e9d8a6b34",
+              "created_at": "2026-09-28T14:30:12.418372Z",
+              "expired_at": null,
+              "extended_hours": false,
+              "failed_at": null,
+              "filled_at": null,
+              "filled_avg_price": null,
+              "filled_qty": "0",
+              "group_id": "3f1c2b7e-8d4a-4c6e-9f2a-5b7d1e0c9a84",
+              "group_role": "stop_loss",
+              "hwm": null,
+              "id": "e2f8b1a6-7c3d-4a5e-9b8f-0d1c6a4e3b72",
+              "legs": null,
+              "limit_price": null,
+              "notional": null,
+              "order_class": "bracket",
+              "order_type": "stop",
+              "position_intent": "sell_to_close",
+              "qty": "10",
+              "replaced_at": null,
+              "replaced_by": null,
+              "replaces": null,
+              "side": "sell",
+              "source": null,
+              "status": "held",
+              "stop_price": "140",
+              "submitted_at": "2026-09-28T14:30:12.402119Z",
+              "subtag": null,
+              "symbol": "AAPL",
+              "time_in_force": "gtc",
+              "trail_percent": null,
+              "trail_price": null,
+              "type": "stop",
+              "updated_at": "2026-09-28T14:30:12.418372Z"
+            }
+          ],
+          "limit_price": "150",
+          "notional": null,
+          "order_class": "bracket",
+          "order_type": "limit",
+          "position_intent": "buy_to_open",
+          "qty": "10",
+          "replaced_at": null,
+          "replaced_by": null,
+          "replaces": null,
+          "side": "buy",
+          "source": null,
+          "status": "accepted",
+          "stop_price": null,
+          "submitted_at": "2026-09-28T14:30:12.402119Z",
+          "subtag": null,
+          "symbol": "AAPL",
+          "time_in_force": "gtc",
+          "trail_percent": null,
+          "trail_price": null,
+          "type": "limit",
+          "updated_at": "2026-09-28T14:30:12.418372Z"
+        }
+      },
       "CryptoOrderResponse": {
         "value": {
           "asset_class": "crypto",
@@ -311,6 +432,14 @@
       }
     },
     "headers": {
+      "DeprecatedParams": {
+        "description": "Present when the request includes one or more deprecated query parameters or deprecated\nparameter values. Lists every deprecated item the client sent, encoded as an RFC 9651\nStructured Field List of sf-strings:\n\n- Whole-parameter deprecation: the bare parameter name (`\"deprecatedParam\"`).\n- Value-level deprecation: `<param>=<value>`, with `<value>` in its canonical form (`\"sort=legacy\"`).\n\nOmitted when the request carries no deprecated parameters.\n",
+        "example": "\"deprecatedParam\", \"sort=legacy\"",
+        "schema": {
+          "example": "\"deprecatedParam\", \"sort=legacy\"",
+          "type": "string"
+        }
+      },
       "ratelimit_limit": {
         "description": "Request limit per minute.",
         "example": 100,
@@ -559,7 +688,10 @@
           },
           "account_number": {
             "description": "Account number.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "accrued_fees": {
             "description": "The fees collected.",
@@ -626,7 +758,7 @@
             "type": "string"
           },
           "multiplier": {
-            "description": "Buying power multiplier that represents account margin classification; valid values 1 (standard limited margin account with 1x buying power), 2 (reg T margin account with 2x intraday and overnight buying power; this is the default for all non-PDT accounts with $2,000 or more equity), 4 (PDT account with 4x intraday buying power and 2x reg T overnight buying power)",
+            "description": "Buying power multiplier that represents account margin classification; valid values 1 (standard limited margin account with 1x buying power), 2 (reg T margin account with 2x intraday and overnight buying power; this is the default for all non-PDT accounts with $2,000 or more equity), 4 (PDT account with 4x intraday buying power and 2x reg T overnight buying power). Returned as a decimal string; other decimal values set by Alpaca may also be returned.",
             "type": "string"
           },
           "non_marginable_buying_power": {
@@ -736,7 +868,7 @@
             "type": "boolean"
           },
           "max_margin_multiplier": {
-            "description": "Can be \"1\", \"2\", or \"4\"",
+            "description": "Decimal string. Public requests accept \"1\", \"2\", or \"4\". Responses can also return other values set by Alpaca.",
             "type": "string"
           },
           "max_options_trading_level": {
@@ -763,6 +895,10 @@
           },
           "trade_confirm_email": {
             "description": "all or none. If none, emails for order fills are not sent.",
+            "enum": [
+              "all",
+              "none"
+            ],
             "type": "string"
           }
         },
@@ -822,6 +958,45 @@
         "title": "ActivityEventV2",
         "type": "object"
       },
+      "ActivityEventV2Asset": {
+        "description": "Instrument for `qty`. For options, the contract. Omitted when `qty` is missing or zero, when no identifier is known, and on activities recorded before this field was introduced.",
+        "examples": [
+          {
+            "cusip": "037833100",
+            "id": "790f3f26-4e7c-4f46-93f4-0425a28873da",
+            "symbol": "AAPL"
+          },
+          {
+            "id": "5b4ec3b4-6a1f-4a47-9b8e-2f6c1d0a9e31",
+            "isin": "HK0000069689",
+            "symbol": "1299:XHKG"
+          }
+        ],
+        "properties": {
+          "cusip": {
+            "description": "CUSIP. Only present for US assets when permitted by licensing.",
+            "example": "037833100",
+            "type": "string"
+          },
+          "id": {
+            "description": "Asset ID. For options, the contract ID. Only present when `activity_type` is `TRD`.",
+            "example": "790f3f26-4e7c-4f46-93f4-0425a28873da",
+            "format": "uuid",
+            "type": "string"
+          },
+          "isin": {
+            "description": "ISIN. Only present when `activity_type` is `TRD`, and when permitted by licensing.",
+            "example": "US0378331005",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Symbol. For options, the contract symbol.",
+            "example": "AAPL",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ActivityEventV2CommonFields": {
         "description": "Represents the common fields for all Activity V2 Events",
         "properties": {
@@ -832,6 +1007,9 @@
           "activity_type": {
             "description": "The type of the activity, which can be trade or any of the non trade activities",
             "type": "string"
+          },
+          "asset": {
+            "$ref": "#/components/schemas/ActivityEventV2Asset"
           },
           "at": {
             "description": "Timestamp of event",
@@ -890,12 +1068,12 @@
             "type": "string"
           },
           "swap_fee_bps": {
-            "description": "Currency conversion fee rate base-point in case of local currency activity",
+            "description": "Currency conversion fee in basis points charged to the customer on a trade activity. Sent when the order has a fee, including zero. Omitted on other activities.",
             "format": "decimal",
             "type": "string"
           },
           "swap_rate": {
-            "description": "Conversion rate for local currency activities",
+            "description": "Exchange rate from the execution on a trade activity. Sent when the execution has a rate, including zero. Omitted on other activities.",
             "format": "decimal",
             "type": "string"
           }
@@ -913,21 +1091,23 @@
         "type": "object"
       },
       "ActivitySubType": {
-        "description": "Represents a more specific classification to the `activity_type`.\nThis field is optional and may not always be populated, depending on the activity type and the available data.\nEach `activity_type` has a set of valid `activity_sub_type` values.\n\nFull mapping of `activity_type` to `activity_sub_type`:\n\n- **CGD**: Capital Gains Distribution activity sub-types:\n  - **LTCG**: Long-Term Capital Gain\n  - **STCG**: Short-Term Capital Gain\n\n- **DIV**: Dividend activity sub-types:\n  - **CDIV**: Cash Dividend\n  - **ROC**: Return of Capital\n  - **SDIV**: Stock Dividend\n  - **SPD**: Substitute Payment In Lieu Of Dividend\n\n- **FEE**: Fee-related activity sub-types:\n  - **REG**: Regulatory Fee\n  - **TAF**: Trading Activity Fee\n  - **LCT**: Local Currency Trading Fee\n  - **ORF**: Options Regulatory Fee\n  - **OCC**: Options Clearing Corporation Fee\n  - **NRC**: Non-Retail Commission Fee\n  - **NRV**: Non-Retail Venue Fee\n  - **COM**: Commission\n  - **CAT**: Consolidated Audit Trail Fee\n\n- **INT**: Interest-related activity sub-types:\n  - **MGN**: Margin Interest\n  - **CDT**: Credit Interest\n  - **SWP**: Sweep Interest\n  - **QII**: Qualified Interest\n  - **FI**: Fixed Income Interest (coupon or accrued)\n\n- **MA**: Merger and Acquisition activity sub-types:\n  - **CMA**: Cash Merger\n  - **SMA**: Stock Merger\n  - **SCMA**: Stock & Cash Merger\n\n- **NC**: Name Change activity sub types\n  - **SNC**: Symbol Name Change\n  - **CNC**: CUSIP Name Change\n  - **SCNC**: Symbol & CUSIP Name Change\n\n- **OPCA**: Option Corporate Action activity sub-types:\n  - **DIV.CDIV**: Cash Dividend\n  - **DIV.ROC**: Return of Capital\n  - **DIV.SDIV**: Stock Dividend\n  - **MA.CMA**: Cash Merger\n  - **MA.SMA**: Stock Merger\n  - **MA.SCMA**: Stock & Cash Merger\n  - **NC.CNC**: CUSIP Name Change\n  - **NC.SNC**: Symbol Name Change\n  - **NC.SCNC**: Symbol & CUSIP Name Change\n  - **SPIN**: Spin-off\n  - **SPLIT.FSPLIT**: Forward Stock Split\n  - **SPLIT.RSPLIT**: Reverse Stock Split\n  - **SPLIT.USPLIT**: Unit Split\n\n- **REO**: Reorganization activity sub-types\n  - **REOS**: Stock only (1 or more stock legs)\n  - **REOC**: Cash only (1 cash leg)\n  - **REOSC**: Stock and cash\n\n- **REORG**: Activity sub-types:\n  - **WRM**: Worthless Removal\n\n- **SPLIT**: Stock Split activity sub-types:\n  - **FSPLIT**: Forward Stock Split\n  - **RSPLIT**: Reverse Stock Split\n  - **USPLIT**: Unit Split\n\n- **VOF**: Voluntary Offering activity sub-types:\n  - **VTND**: Tender Offer\n  - **VWRT**: Warrant Exercise\n  - **VRGT**: Rights Offer\n  - **VEXH**: Exchange Offer\n\n- **WH**: Withholding activity sub-types:\n  - **SWH**: State Withholding\n  - **FWH**: Federal Withholding\n  - **SLWH**: Sales Withholding",
+        "description": "Represents a more specific classification to the `activity_type`.\nThis field is optional and may not always be populated, depending on the activity type and the available data.\nEach `activity_type` has a set of valid `activity_sub_type` values.\n\nThis field is a free-form string rather than a closed enum: sub-type codes\noriginate from several upstream clearing, corporate-action, and international-fee\nsystems, and new codes can appear without a corresponding API change. The mapping\nbelow documents the sub-types known at the time of writing; it is not guaranteed\nto be exhaustive.\n\nFull mapping of `activity_type` to `activity_sub_type`:\n\n- **CGD**: Capital Gains Distribution activity sub-types:\n  - **LTCG**: Long-Term Capital Gain\n  - **STCG**: Short-Term Capital Gain\n\n- **DIV**: Dividend activity sub-types:\n  - **CDIV**: Cash Dividend\n  - **ROC**: Return of Capital\n  - **SDIV**: Stock Dividend\n  - **SPD**: Substitute Payment In Lieu Of Dividend\n\n- **FEE**: Fee-related activity sub-types:\n  - **REG**: Regulatory Fee\n  - **TAF**: Trading Activity Fee\n  - **LCT**: Local Currency Trading Fee\n  - **ORF**: Options Regulatory Fee\n  - **OCC**: Options Clearing Corporation Fee\n  - **NRC**: Non-Retail Commission Fee\n  - **NRV**: Non-Retail Venue Fee\n  - **COM**: Commission\n  - **CAT**: Consolidated Audit Trail Fee\n  - **ICF**: Index Contract Fee\n  - **EPI**: Exchange Proprietary Fee\n\n- **INT**: Interest-related activity sub-types:\n  - **MGN**: Margin Interest\n  - **CDT**: Credit Interest\n  - **SWP**: Sweep Interest\n  - **QII**: Qualified Interest\n  - **FI**: Fixed Income Interest (coupon or accrued)\n\n- **MA**: Merger and Acquisition activity sub-types:\n  - **CMA**: Cash Merger\n  - **SMA**: Stock Merger\n  - **SCMA**: Stock & Cash Merger\n\n- **NC**: Name Change activity sub types\n  - **SNC**: Symbol Name Change\n  - **CNC**: CUSIP Name Change\n  - **SCNC**: Symbol & CUSIP Name Change\n\n- **OPCA**: Option Corporate Action activity sub-types:\n  - **DIV.CDIV**: Cash Dividend\n  - **DIV.ROC**: Return of Capital\n  - **DIV.SDIV**: Stock Dividend\n  - **MA.CMA**: Cash Merger\n  - **MA.SMA**: Stock Merger\n  - **MA.SCMA**: Stock & Cash Merger\n  - **NC.CNC**: CUSIP Name Change\n  - **NC.SNC**: Symbol Name Change\n  - **NC.SCNC**: Symbol & CUSIP Name Change\n  - **SPIN**: Spin-off\n  - **SPLIT.FSPLIT**: Forward Stock Split\n  - **SPLIT.RSPLIT**: Reverse Stock Split\n  - **SPLIT.USPLIT**: Unit Split\n\n- **REO**: Reorganization activity sub-types\n  - **REOS**: Stock only (1 or more stock legs)\n  - **REOC**: Cash only (1 cash leg)\n  - **REOSC**: Stock and cash\n\n- **REORG**: Activity sub-types:\n  - **WRM**: Worthless Removal\n\n- **SPLIT**: Stock Split activity sub-types:\n  - **FSPLIT**: Forward Stock Split\n  - **RSPLIT**: Reverse Stock Split\n  - **USPLIT**: Unit Split\n\n- **VOF**: Voluntary Offering activity sub-types:\n  - **VTND**: Tender Offer\n  - **VWRT**: Warrant Exercise\n  - **VRGT**: Rights Offer\n  - **VEXH**: Exchange Offer\n\n- **WH**: Withholding activity sub-types:\n  - **SWH**: State Withholding\n  - **FWH**: Federal Withholding\n  - **SLWH**: Sales Withholding",
         "title": "ActivitySubType",
         "type": "string"
       },
       "ActivityType": {
-        "description": "- FILL\n  Order fills (both partial and full fills)\n\n- TRANS\n  Cash transactions (both CSD and CSW)\n\n- MISC\n  Miscellaneous or rarely used activity types (All types except those in TRANS, DIV, or FILL)\n\n- ACATC\n  ACATS IN/OUT (Cash)\n\n- ACATS\n  ACATS IN/OUT (Securities)\n\n- CFEE\n  Crypto fee\n\n- CGD\n  Capital gains distribution\n\n- CSD\n  Cash deposit(+)\n\n- CSW\n  Cash withdrawal(-)\n\n- DIV\n  Dividends\n\n- DIVCGL\n  Dividend (capital gains long term)\n\n- DIVCGS\n  Dividend (capital gains short term)\n\n- DIVFEE\n  Dividend fee\n\n- DIVFT\n  Dividend adjusted (Foreign Tax Withheld)\n\n- DIVNRA\n  Dividend adjusted (NRA Withheld)\n\n- DIVROC\n  Dividend return of capital\n\n- DIVTW\n  Dividend adjusted (Tefra Withheld)\n\n- DIVTXEX\n  Dividend (tax exempt)\n\n- FEE\n  Fee denominated in USD\n\n- INT\n  Interest (credit/margin)\n\n- INTNRA\n  Interest adjusted (NRA Withheld)\n\n- INTTW\n  Interest adjusted (Tefra Withheld)\n\n- JNL\n  Journal entry\n\n- JNLC\n  Journal entry (cash)\n\n- JNLS\n  Journal entry (stock)\n\n- MA\n  Merger/Acquisition\n\n- NC\n  Name change\n\n- OPASN\n  Option assignment\n\n- OPCA\n  Option corporate action\n\n- OPCSH\n  Option cash deliverable for non-standard contracts\n\n- OPEXC\n  Option exercise\n\n- OPEXP\n  Option expiration\n\n- OPTRD\n  Option trade\n\n- PTC\n  Pass Thru Charge\n\n- PTR\n  Pass Thru Rebate\n\n- REO\n  Reorganization\n\n- REORG\n  Worthless removal CA\n\n- SPIN\n  Stock spinoff\n\n- SPLIT\n  Stock split\n\n- FOPT\n  Free of Payment Transfers\n\n- OCT\n  On chain transactions (blockchain deposits/withdrawals)",
+        "description": "Entry type returned on an activity. The listing returns the stored entry type.\nIt omits ECJL, crypto-deposit JNLC, and SWP.\n\nTRANS and MISC are filter aliases. They are not returned as activity_type.\nThis is the known set. A new clearing code can appear without an API change.\n\nTrade activities always have the type FILL.\n\n- FILL\n  Order fills (both partial and full fills)\n\n- ACATC\n  ACATS IN/OUT (Cash)\n\n- ACATS\n  ACATS IN/OUT (Securities)\n\n- ALLOC\n  Allocation\n\n- CFEE\n  Crypto fee\n\n- CGD\n  Capital gains distribution\n\n- CIL\n  Cash in lieu of stock\n\n- CORR\n  Correction\n\n- CSD\n  Cash deposit (+), including returned withdrawals\n\n- CSR\n  Cash receipt (-)\n\n- CSW\n  Cash withdrawal (-), including returned deposits\n\n- DIV\n  Dividends\n\n- DIVCGL\n  Dividend (capital gains long term)\n\n- DIVCGS\n  Dividend (capital gains short term)\n\n- DIVFEE\n  Dividend fee\n\n- DIVFT\n  Dividend adjusted (Foreign Tax Withheld)\n\n- DIVNRA\n  Dividend adjusted (NRA Withheld)\n\n- DIVROC\n  Dividend return of capital\n\n- DIVTW\n  Dividend adjusted (Tefra Withheld)\n\n- DIVTXEX\n  Dividend (tax exempt)\n\n- DIVWH\n  Dividend withholding\n\n- DTCS\n  DTC security settlement\n\n- DVF\n  DVP flip\n\n- ECEXP\n  Event contract expiration\n\n- EXTRD\n  External trade\n\n- FEE\n  Fee denominated in USD. See `activity_sub_type` for the specific fee.\n\n- FIMAT\n  Fixed income maturity\n\n- FXCNV\n  FX conversion\n\n- FXTRD\n  FX trade\n\n- INT\n  Interest (credit/margin)\n\n- INTNRA\n  Interest adjusted (NRA Withheld)\n\n- INTTW\n  Interest adjusted (Tefra Withheld)\n\n- INVPNL\n  Inventory profit and loss\n\n- JNL\n  Journal entry\n\n- JNLC\n  Journal entry (cash)\n\n- JNLS\n  Journal entry (stock)\n\n- MA\n  Merger/Acquisition\n\n- MEM\n  Memopost\n\n- NC\n  Name change\n\n- OPASN\n  Option assignment\n\n- OPCA\n  Option corporate action\n\n- OPCSH\n  Option cash deliverable for non-standard contracts\n\n- OPEXC\n  Option exercise\n\n- OPEXP\n  Option expiration\n\n- OPTRD\n  Option trade\n\n- PTC\n  Pass Thru Charge\n\n- PTR\n  Pass Thru Rebate\n\n- REO\n  Reorganization\n\n- REORG\n  Worthless removal CA\n\n- SC\n  Symbol change\n\n- SEG\n  Segregation\n\n- SPIN\n  Stock spinoff\n\n- SPLIT\n  Stock split\n\n- SSO\n  Former stock spin-off code. Current spin-offs use `SPIN`.\n\n- SSP\n  Former stock split code. Current splits use `SPLIT`.\n\n- SUB\n  Subscription\n\n- VOF\n  Voluntary offering (tender, warrant, rights, or exchange offers)\n\n- WH\n  Withholding\n\n- FOPT\n  Free of Payment Transfers\n\n- OCT\n  On chain transactions (blockchain deposits/withdrawals)",
         "enum": [
           "FILL",
-          "TRANS",
-          "MISC",
           "ACATC",
           "ACATS",
+          "ALLOC",
           "CFEE",
           "CGD",
+          "CIL",
+          "CORR",
           "CSD",
+          "CSR",
           "CSW",
           "DIV",
           "DIVCGL",
@@ -938,14 +1118,24 @@
           "DIVROC",
           "DIVTW",
           "DIVTXEX",
+          "DIVWH",
+          "DTCS",
+          "DVF",
+          "ECEXP",
+          "EXTRD",
           "FEE",
+          "FIMAT",
+          "FXCNV",
+          "FXTRD",
           "INT",
           "INTNRA",
           "INTTW",
+          "INVPNL",
           "JNL",
           "JNLC",
           "JNLS",
           "MA",
+          "MEM",
           "NC",
           "OPASN",
           "OPCA",
@@ -957,8 +1147,15 @@
           "PTR",
           "REO",
           "REORG",
+          "SC",
+          "SEG",
           "SPIN",
           "SPLIT",
+          "SSO",
+          "SSP",
+          "SUB",
+          "VOF",
+          "WH",
           "FOPT",
           "OCT"
         ],
@@ -966,6 +1163,72 @@
           "FILL"
         ],
         "title": "ActivityType",
+        "type": "string"
+      },
+      "ActivityTypeFilter": {
+        "description": "Activity type used to filter results. These are the values the backend accepts.\n\n`TRANS` and `MISC` are aliases. A response uses the expanded entry type, not the alias.\n\n`SWP` is accepted and then omitted from public results.\n\n- TRANS\n  Cash transactions (CSD, CSR, and CSW). Filter value only; not returned as an activity type.\n\n- MISC\n  A fixed group of less common activity types, such as ACATC, INT, and JNLC. FEE, CFEE, DIV, SPLIT, SPIN, OPCA, VOF, WH, OCT, and a few others are not included, so filter by those types directly. Filter value only; not returned as an activity type.",
+        "enum": [
+          "ACATC",
+          "ACATS",
+          "ALLOC",
+          "CFEE",
+          "CGD",
+          "CIL",
+          "CSD",
+          "CSR",
+          "CSW",
+          "DIV",
+          "DIVCGL",
+          "DIVCGS",
+          "DIVFEE",
+          "DIVFT",
+          "DIVNRA",
+          "DIVROC",
+          "DIVTW",
+          "DIVTXEX",
+          "DIVWH",
+          "DVF",
+          "ECEXP",
+          "EXTRD",
+          "FEE",
+          "FIMAT",
+          "FXCNV",
+          "FXTRD",
+          "INT",
+          "INTNRA",
+          "INTTW",
+          "INVPNL",
+          "JNL",
+          "JNLC",
+          "JNLS",
+          "MA",
+          "MEM",
+          "NC",
+          "OCT",
+          "OPASN",
+          "OPCA",
+          "OPCSH",
+          "OPEXC",
+          "OPEXP",
+          "OPTRD",
+          "PTC",
+          "PTR",
+          "REO",
+          "REORG",
+          "SC",
+          "SPIN",
+          "SPLIT",
+          "SUB",
+          "SWP",
+          "TRD",
+          "VOF",
+          "WH",
+          "FOPT",
+          "FILL",
+          "MISC",
+          "TRANS"
+        ],
+        "title": "ActivityTypeFilter",
         "type": "string"
       },
       "ActivityV2DetailNTA": {
@@ -1052,6 +1315,9 @@
             "$ref": "#/components/schemas/OpcaRSPLITActivityV2"
           },
           {
+            "$ref": "#/components/schemas/OpcaCGDActivityV2"
+          },
+          {
             "$ref": "#/components/schemas/OPASNActivityV2"
           },
           {
@@ -1098,6 +1364,9 @@
           },
           {
             "$ref": "#/components/schemas/OCTActivityV2"
+          },
+          {
+            "$ref": "#/components/schemas/FXTRDActivityV2"
           }
         ],
         "type": "object"
@@ -1132,6 +1401,7 @@
             "description": "The execution type",
             "enum": [
               "fill",
+              "partial_fill",
               "trade_correct",
               "trade_bust"
             ],
@@ -1149,6 +1419,10 @@
           },
           "order_status": {
             "description": "Identifies the current status of the order",
+            "type": "string"
+          },
+          "settlement_currency": {
+            "description": "Settlement currency of the order. Omitted when the order has none.",
             "type": "string"
           },
           "side": {
@@ -1302,7 +1576,6 @@
           {
             "borrow_status": "easy_to_borrow",
             "class": "us_equity",
-            "easy_to_borrow": true,
             "exchange": "NASDAQ",
             "fractionable": true,
             "id": "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415",
@@ -1576,6 +1849,48 @@
           }
         },
         "title": "CanceledOrderResponse",
+        "type": "object"
+      },
+      "ClosePositionError": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "The per-position error reported inside a close-all-positions 207 response when a position's `status` is not 200. Other rejection-specific string fields may appear.",
+        "properties": {
+          "available": {
+            "description": "Quantity available. On insufficient-quantity rejections, the position quantity available to close.",
+            "type": "string"
+          },
+          "code": {
+            "description": "Alpaca error code, such as `40310000`. Usually the HTTP status code followed by a five-digit suffix. Several rejections can share the same code, so check `message` and the other fields for the specific reason.",
+            "type": "integer"
+          },
+          "existing_qty": {
+            "description": "Absolute quantity of the existing position. Present only on insufficient-quantity rejections.",
+            "type": "string"
+          },
+          "held_for_options": {
+            "description": "Position quantity held for options. Present only on insufficient-quantity rejections, and only when that hold is positive.",
+            "type": "string"
+          },
+          "held_for_orders": {
+            "description": "Position quantity held by open orders. Present only on insufficient-quantity rejections.",
+            "type": "string"
+          },
+          "message": {
+            "description": "Human-readable reason for the rejection.",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "Symbol the rejection applies to. Set on insufficient-quantity rejections and on some other order rejections, such as admin trading restrictions.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "Close Position Error",
         "type": "object"
       },
       "CommonAcatActivityV2": {
@@ -1940,6 +2255,9 @@
       "CommonOptionsActivityV2": {
         "allOf": [
           {
+            "$ref": "#/components/schemas/CommonNTAActivityV2"
+          },
+          {
             "description": "Shared fields for option-related non-trade activity records.",
             "properties": {
               "contract_symbol": {
@@ -1959,9 +2277,6 @@
               "group_id"
             ],
             "type": "object"
-          },
-          {
-            "$ref": "#/components/schemas/CommonNTAActivityV2"
           }
         ]
       },
@@ -2360,32 +2675,6 @@
         "title": "CorporateAnnouncement",
         "type": "object"
       },
-      "CreateCryptoTransferRequest": {
-        "properties": {
-          "address": {
-            "description": "The destination wallet address",
-            "type": "string"
-          },
-          "amount": {
-            "description": "The amount, denoted in the specified asset, to be withdrawn from the user's wallet",
-            "type": "string"
-          },
-          "asset": {
-            "description": "The crypto asset symbol, e.g. BTC, ETH, USDT.",
-            "type": "string"
-          },
-          "chain": {
-            "$ref": "#/components/schemas/CryptoChain"
-          }
-        },
-        "required": [
-          "amount",
-          "address",
-          "asset"
-        ],
-        "title": "CreateCryptoTransferRequest",
-        "type": "object"
-      },
       "CreateLocateRequest": {
         "description": "Request to locate shares for a short sale.",
         "example": {
@@ -2561,10 +2850,7 @@
               "TSLA"
             ],
             "items": {
-              "type": [
-                "string",
-                "null"
-              ]
+              "type": "string"
             },
             "type": "array"
           }
@@ -2868,9 +3154,11 @@
       "Error": {
         "properties": {
           "code": {
+            "description": "Alpaca error code, such as `40310000`. Usually the HTTP status code followed by a five-digit suffix. Several errors can share the same code, so check `message` for the specific reason.",
             "type": "number"
           },
           "message": {
+            "description": "Human-readable reason for the rejection.",
             "type": "string"
           }
         },
@@ -2892,23 +3180,7 @@
         "type": "object"
       },
       "Exchange": {
-        "description": "Represents the current exchanges Alpaca supports. List is currently:\n\n- AMEX\n- ARCA\n- BATS\n- NYSE\n- NASDAQ\n- NYSEARCA\n- OTC\n- CRYPTO",
-        "enum": [
-          "AMEX",
-          "ARCA",
-          "BATS",
-          "NYSE",
-          "NASDAQ",
-          "NYSEARCA",
-          "OTC",
-          "CRYPTO"
-        ],
-        "example": "NYSE",
-        "title": "Exchange",
-        "type": "string"
-      },
-      "ExchangeForPosition": {
-        "description": "Represents the current exchanges Alpaca supports. List is currently:\n\n- AMEX\n- ARCA\n- BATS\n- NYSE\n- NASDAQ\n- NYSEARCA\n- OTC\n- CRYPTO\n\nCan be empty if not applicable (e.g., for options contracts)",
+        "description": "Represents the current exchanges Alpaca supports. List is currently:\n\nUS equities:\n- AMEX\n- ARCA\n- BATS\n- NYSE\n- NASDAQ\n- NYSEARCA\n- OTC\n- TXSE\n\nCrypto:\n- CRYPTO\n- ERSX\n- CRXL\n\nCrypto perpetuals:\n- ASCX\n\nIndex symbols:\n- INDEX\n\nINDEX is the artificial exchange for index symbols such as SPX.",
         "enum": [
           "AMEX",
           "ARCA",
@@ -2918,6 +3190,32 @@
           "NYSEARCA",
           "OTC",
           "CRYPTO",
+          "TXSE",
+          "ERSX",
+          "CRXL",
+          "ASCX",
+          "INDEX"
+        ],
+        "example": "NYSE",
+        "title": "Exchange",
+        "type": "string"
+      },
+      "ExchangeForPosition": {
+        "description": "Represents the current exchanges Alpaca supports. List is currently:\n\nUS equities:\n- AMEX\n- ARCA\n- BATS\n- NYSE\n- NASDAQ\n- NYSEARCA\n- OTC\n- TXSE\n\nCrypto:\n- CRYPTO\n- ERSX\n- CRXL\n\nCrypto perpetuals:\n- ASCX\n\nIndex symbols:\n- INDEX\n\nINDEX is the artificial exchange for index symbols such as SPX.\n\nCan be empty if not applicable (e.g., for options contracts)",
+        "enum": [
+          "AMEX",
+          "ARCA",
+          "BATS",
+          "NYSE",
+          "NASDAQ",
+          "NYSEARCA",
+          "OTC",
+          "CRYPTO",
+          "TXSE",
+          "ERSX",
+          "CRXL",
+          "ASCX",
+          "INDEX",
           ""
         ],
         "example": "NYSE",
@@ -2942,15 +3240,27 @@
           },
           {
             "properties": {
-              "parent_id": {
-                "description": "The parent transaction's ID",
+              "execution_id": {
+                "description": "Execution ID. Present only for activity subtype FOT, and only when the fee has one.",
                 "format": "uuid",
+                "type": "string"
+              },
+              "order_id": {
+                "description": "Order ID. Present only for activity subtype FOT, and only when the fee has one.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "parent_id": {
+                "description": "The parent transaction's ID. Present for fees with a one-to-one relationship to a parent trade (e.g. COM). Omitted for volume-based or bulk fees charged across multiple trades for a period (e.g. REG, TAF, CAT, ORF, NRV, NRC, BSWP) and for LOC fees that are not linked to a parent transaction.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "swap_rate": {
+                "description": "Exchange rate on the fee. Sent when the fee has a non-zero rate.",
+                "format": "decimal",
                 "type": "string"
               }
             },
-            "required": [
-              "parent_id"
-            ],
             "type": "object"
           }
         ],
@@ -2986,6 +3296,30 @@
           }
         ],
         "description": "Free-of-payment (FOP) transfers",
+        "type": "object"
+      },
+      "FXTRDActivityV2": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonNTAActivityV2"
+          },
+          {
+            "properties": {
+              "order_id": {
+                "description": "Order ID of the conversion, when the activity has one.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "swap_rate": {
+                "description": "Exchange rate of the conversion. Sent when the activity has a non-zero rate.",
+                "format": "decimal",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "description": "Currency conversion.",
         "type": "object"
       },
       "FixedIncomeInterestActivityV2": {
@@ -3112,6 +3446,11 @@
           },
           {
             "properties": {
+              "issuer": {
+                "description": "Issuer of the tokenized asset, on tokenization mint and redeem journals (`activity_subtype` `ITNJ`). Same value as `issuer` on the related tokenization request. Omitted for other journals and for journals booked before this field was added.",
+                "example": "xstocks",
+                "type": "string"
+              },
               "symbol": {
                 "description": "The symbol of the security involved with the activity",
                 "type": "string"
@@ -3733,6 +4072,67 @@
         "description": "Options corporate action of cash dividend or return of capital",
         "type": "object"
       },
+      "OpcaCGDActivityV2": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonOPCAActivityV2"
+          },
+          {
+            "properties": {
+              "cusip": {
+                "description": "The CUSIP of the underlying security",
+                "type": "string"
+              },
+              "ex_date": {
+                "description": "The ex_date for the underlying capital gains distribution",
+                "format": "date",
+                "minLength": 1,
+                "type": "string"
+              },
+              "isin": {
+                "description": "The ISIN of the underlying security, when applicable",
+                "type": "string"
+              },
+              "long_term_rate": {
+                "description": "Long-term capital gains distribution rate per share, when applicable",
+                "type": "string"
+              },
+              "payable_date": {
+                "description": "The payable_date for the underlying capital gains distribution",
+                "format": "date",
+                "minLength": 1,
+                "type": "string"
+              },
+              "rate": {
+                "description": "Combined per-share capital-gains rate (LTCG + STCG). By default this is the strike reduction applied to the option contract; the adjusted strike is reflected in `new_contract_symbol`.",
+                "type": "string"
+              },
+              "record_date": {
+                "description": "The record_date for the underlying capital gains distribution",
+                "format": "date",
+                "minLength": 1,
+                "type": "string"
+              },
+              "short_term_rate": {
+                "description": "Short-term capital gains distribution rate per share, when applicable",
+                "type": "string"
+              },
+              "symbol": {
+                "description": "The symbol of the underlying security",
+                "type": "string"
+              }
+            },
+            "required": [
+              "cusip",
+              "symbol",
+              "rate"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Options corporate action of capital gains distributions. Used for both Long-Term (`CGD.LTCG`) and Short-Term (`CGD.STCG`) sub-types; `CGD.STCG` is emitted only when the distribution has no long-term leg. `rate` is the combined (LTCG + STCG) per-share rate; `long_term_rate` and `short_term_rate` carry the individual legs when present.",
+        "type": "object"
+      },
       "OpcaFSPLITActivityV2": {
         "allOf": [
           {
@@ -4108,7 +4508,7 @@
             "type": "string"
           },
           "amount": {
-            "description": "The deliverable amount. For cash deliverables, this is the cash amount.\nFor standard contract, this is always 100.\nThis field can be null in case the deliverable settlement is delayed and the amount is yet to be determined.\n",
+            "description": "The deliverable amount. For cash deliverables, this is the cash amount.\nFor standard contract, this is always 100.\nWhen deliverable settlement is delayed and the amount is not yet determined, this value is \"0\" and delayed_settlement is true.\n",
             "example": "100",
             "type": "string"
           },
@@ -4241,6 +4641,15 @@
             "minLength": 1,
             "type": "string"
           },
+          "group_id": {
+            "description": "Opaque identifier shared by every order in the same `bracket`, `oto`, or `oco` order, including its legs and any replacement orders. Use it to associate related orders received from the `trade_updates` stream, where `legs` is not populated. Omitted for other orders.",
+            "example": "3f1c2b7e-8d4a-4c6e-9f2a-5b7d1e0c9a84",
+            "format": "uuid",
+            "type": "string"
+          },
+          "group_role": {
+            "$ref": "#/components/schemas/OrderGroupRole"
+          },
           "hwm": {
             "description": "The highest (lowest) market price seen since the trailing stop order was submitted.",
             "type": [
@@ -4284,7 +4693,7 @@
           },
           "order_type": {
             "deprecated": true,
-            "description": "Deprecated in favour of the field \"type\" ",
+            "description": "Deprecated in favour of the field \"type\".",
             "type": "string"
           },
           "position_intent": {
@@ -4344,10 +4753,7 @@
           },
           "submitted_at": {
             "format": "date-time",
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "symbol": {
             "description": "Asset symbol, required for all order classes except for `mleg`",
@@ -4376,10 +4782,7 @@
           },
           "updated_at": {
             "format": "date-time",
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           }
         },
         "required": [
@@ -4402,6 +4805,17 @@
         ],
         "example": "bracket",
         "title": "OrderClass",
+        "type": "string"
+      },
+      "OrderGroupRole": {
+        "description": "The role of this order within its `bracket`, `oto`, or `oco` order, identified by `group_id`.\n- `entry`: The entry order of a `bracket` or `oto` order.\n- `take_profit`: The take-profit limit order. For an `oco` order, this is the top-level order.\n- `stop_loss`: The stop-loss stop or stop-limit order.\n\nOmitted whenever `group_id` is omitted.",
+        "enum": [
+          "entry",
+          "take_profit",
+          "stop_loss"
+        ],
+        "example": "take_profit",
+        "title": "OrderGroupRole",
         "type": "string"
       },
       "OrderLeg": {
@@ -4468,6 +4882,15 @@
             "minLength": 1,
             "type": "string"
           },
+          "group_id": {
+            "description": "Opaque identifier shared by every order in the same `bracket`, `oto`, or `oco` order, including its legs and any replacement orders. Use it to associate related orders received from the `trade_updates` stream, where `legs` is not populated. Omitted for other orders.",
+            "example": "3f1c2b7e-8d4a-4c6e-9f2a-5b7d1e0c9a84",
+            "format": "uuid",
+            "type": "string"
+          },
+          "group_role": {
+            "$ref": "#/components/schemas/OrderGroupRole"
+          },
           "hwm": {
             "description": "The highest (lowest) market price seen since the trailing stop order was submitted.",
             "type": [
@@ -4512,7 +4935,7 @@
           },
           "order_type": {
             "deprecated": true,
-            "description": "Deprecated in favour of the field \"type\" ",
+            "description": "Deprecated in favour of the field \"type\".",
             "type": "string"
           },
           "position_intent": {
@@ -4564,10 +4987,7 @@
           },
           "submitted_at": {
             "format": "date-time",
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "symbol": {
             "description": "Asset symbol",
@@ -4596,10 +5016,7 @@
           },
           "updated_at": {
             "format": "date-time",
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           }
         },
         "required": [
@@ -4624,7 +5041,7 @@
         "type": "string"
       },
       "OrderStatus": {
-        "description": "An order executed through Alpaca can experience several status changes during its lifecycle. The most common statuses are described in detail below:\n\n- new\n  The order has been received by Alpaca, and routed to exchanges for execution. This is the usual initial state of an order.\n\n- partially_filled\n  The order has been partially filled.\n\n- filled\n  The order has been filled, and no further updates will occur for the order.\n\n- done_for_day\n  The order is done executing for the day, and will not receive further updates until the next trading day.\n\n- canceled\n  The order has been canceled, and no further updates will occur for the order. This can be either due to a cancel request by the user, or the order has been canceled by the exchanges due to its time-in-force.\n\n- expired\n  The order has expired, and no further updates will occur for the order.\n\n- replaced\n  The order was replaced by another order, or was updated due to a market event such as corporate action.\n\n- pending_cancel\n  The order is waiting to be canceled.\n\n- pending_replace\n  The order is waiting to be replaced by another order. The order will reject cancel request while in this state.\n\nLess common states are described below. Note that these states only occur on very rare occasions, and most users will likely never see their orders reach these states:\n\n- accepted\n  The order has been received by Alpaca, but hasn't yet been routed to the execution venue. This could be seen often out side of trading session hours.\n\n- pending_new\n  The order has been received by Alpaca, and routed to the exchanges, but has not yet been accepted for execution. This state only occurs on rare occasions.\n\n- accepted_for_bidding\n  The order has been received by exchanges, and is evaluated for pricing. This state only occurs on rare occasions.\n\n- stopped\n  The order has been stopped, and a trade is guaranteed for the order, usually at a stated price or better, but has not yet occurred. This state only occurs on rare occasions.\n\n- rejected\n  The order has been rejected, and no further updates will occur for the order. This state occurs on rare occasions and may occur based on various conditions decided by the exchanges.\n\n- suspended\n  The order has been suspended, and is not eligible for trading. This state only occurs on rare occasions.\n\n- calculated\n  The order has been completed for the day (either filled or done for day), but remaining settlement calculations are still pending. This state only occurs on rare occasions.\n\n\nAn order may be canceled through the API up until the point it reaches a state of either filled, canceled, or expired.",
+        "description": "An order executed through Alpaca can experience several status changes during its lifecycle. The most common statuses are described in detail below:\n\n- new\n  The order has been received by Alpaca, and routed to exchanges for execution. This is the usual initial state of an order.\n\n- partially_filled\n  The order has been partially filled.\n\n- filled\n  The order has been filled, and no further updates will occur for the order.\n\n- done_for_day\n  The order is done executing for the day, and will not receive further updates until the next trading day.\n\n- canceled\n  The order has been canceled, and no further updates will occur for the order. This can be either due to a cancel request by the user, or the order has been canceled by the exchanges due to its time-in-force.\n\n- expired\n  The order has expired, and no further updates will occur for the order.\n\n- replaced\n  The order was replaced by another order, or was updated due to a market event such as corporate action.\n\n- pending_cancel\n  The order is waiting to be canceled.\n\n- pending_replace\n  The order is waiting to be replaced by another order. The order will reject cancel request while in this state.\n\nLess common states are described below. Note that these states only occur on very rare occasions, and most users will likely never see their orders reach these states:\n\n- accepted\n  The order has been received by Alpaca, but hasn't yet been routed to the execution venue. This could be seen often out side of trading session hours.\n\n- pending_new\n  The order has been received by Alpaca, and routed to the exchanges, but has not yet been accepted for execution. This state only occurs on rare occasions.\n\n- accepted_for_bidding\n  The order has been received by exchanges, and is evaluated for pricing. This state only occurs on rare occasions.\n\n- pending_review\n  The order is waiting for review. Once approved, it can move to accepted, new, or a fill state. This state only occurs on rare occasions.\n\n- stopped\n  The order has been stopped, and a trade is guaranteed for the order, usually at a stated price or better, but has not yet occurred. This state only occurs on rare occasions.\n\n- rejected\n  The order has been rejected, and no further updates will occur for the order. This state occurs on rare occasions and may occur based on various conditions decided by the exchanges.\n\n- suspended\n  The order has been suspended, and is not eligible for trading. This state only occurs on rare occasions.\n\n- calculated\n  The order has been completed for the day (either filled or done for day), but remaining settlement calculations are still pending. This state only occurs on rare occasions.\n\n\nAn order may be canceled through the API up until the point it reaches a state of either filled, canceled, or expired.",
         "enum": [
           "new",
           "partially_filled",
@@ -4638,6 +5055,7 @@
           "accepted",
           "pending_new",
           "accepted_for_bidding",
+          "pending_review",
           "stopped",
           "rejected",
           "suspended",
@@ -4706,9 +5124,34 @@
       },
       "PortfolioHistory": {
         "description": "Timeseries data for equity and profit loss information of the account.",
+        "example": {
+          "base_value": 2774.16,
+          "base_value_asof": "2023-10-18",
+          "equity": [
+            2773.79,
+            2769.04,
+            2768.65
+          ],
+          "profit_loss": [
+            -0.37,
+            -5.12,
+            -5.51
+          ],
+          "profit_loss_pct": [
+            -0.0001,
+            -0.0018,
+            -0.002
+          ],
+          "timeframe": "15Min",
+          "timestamp": [
+            1697722200,
+            1697723100,
+            1697724000
+          ]
+        },
         "properties": {
           "base_value": {
-            "description": "basis in dollar of the profit loss calculation",
+            "description": "Basis in dollar of the profit loss calculation.",
             "type": [
               "number",
               "null"
@@ -4727,11 +5170,11 @@
               },
               "type": "array"
             },
-            "description": "accumulated value in dollar amount as of the end of each time window",
+            "description": "Accumulated value in dollar amount as of the end of each time window.",
             "type": "object"
           },
           "equity": {
-            "description": "equity value of the account in dollar amount as of the end of each time window",
+            "description": "Equity value of the account in dollar amount as of the end of each time window.",
             "items": {
               "type": [
                 "number",
@@ -4741,7 +5184,7 @@
             "type": "array"
           },
           "profit_loss": {
-            "description": "profit/loss in dollar from the base value",
+            "description": "Profit/loss in dollar from the base value.",
             "items": {
               "type": [
                 "number",
@@ -4751,7 +5194,7 @@
             "type": "array"
           },
           "profit_loss_pct": {
-            "description": "profit/loss in percentage from the base value",
+            "description": "Profit/loss in percentage from the base value.",
             "example": [
               0.001,
               0.002
@@ -4765,13 +5208,12 @@
             "type": "array"
           },
           "timeframe": {
-            "description": "time window size of each data element",
-            "example": "15Min",
-            "type": "string"
+            "$ref": "#/components/schemas/PortfolioHistoryTimeframe"
           },
           "timestamp": {
             "description": "Time of each data element, left-labeled (the beginning of time window).\n\nThe values returned are in [UNIX epoch format](https://en.wikipedia.org/wiki/Unix_time).\n",
             "items": {
+              "format": "int64",
               "type": "integer"
             },
             "type": "array"
@@ -4787,6 +5229,37 @@
         ],
         "title": "PortfolioHistory",
         "type": "object"
+      },
+      "PortfolioHistoryError": {
+        "description": "Error returned by the portfolio history endpoint.",
+        "properties": {
+          "code": {
+            "example": 40010001,
+            "type": "integer"
+          },
+          "message": {
+            "example": "query: \"timeframe\": invalid value: \"2Min\"",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "Portfolio History Error",
+        "type": "object"
+      },
+      "PortfolioHistoryTimeframe": {
+        "description": "An interval, duration, or window of time.",
+        "enum": [
+          "1D",
+          "1H",
+          "15Min",
+          "5Min",
+          "1Min"
+        ],
+        "example": "15Min",
+        "type": "string"
       },
       "Position": {
         "description": "The positions API provides information about an account's current open positions. The response will include information such as cost basis, shares traded, and market value, which will be updated live as price information is updated. Once a position is closed, it will no longer be queryable through this API.",
@@ -4962,7 +5435,7 @@
         "type": "object"
       },
       "PositionClosedResponse": {
-        "description": "Represents the result of asking the api to close a position. ",
+        "description": "Represents the result of asking the api to close a position.\n\nWhen `status` is 200, `body` is the Order used to close out the position. For any other `status`, `body` is the error object describing why the close was rejected.",
         "examples": [
           {
             "body": {
@@ -5005,7 +5478,15 @@
         ],
         "properties": {
           "body": {
-            "$ref": "#/components/schemas/Order"
+            "description": "The Order used to close out the position when `status` is 200; otherwise the error object.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Order"
+              },
+              {
+                "$ref": "#/components/schemas/ClosePositionError"
+              }
+            ]
           },
           "status": {
             "description": "HTTP status code for the attempt to close this position",
@@ -5232,6 +5713,9 @@
             "type": "array"
           }
         },
+        "required": [
+          "vasps"
+        ],
         "type": "object"
       },
       "SpinoffActivityV2": {
@@ -5292,8 +5776,10 @@
         "description": "The tokenized asset's issuer",
         "enum": [
           "binance",
+          "bitget",
           "coinbase",
           "ondo",
+          "robinhood",
           "st0x",
           "xstocks"
         ],
@@ -5303,6 +5789,11 @@
       },
       "TokenizationMintRequest": {
         "properties": {
+          "client_request_id": {
+            "description": "Optional label of your choosing for this mint request. It is returned on the mint response and on the tokenization request, and you can retrieve the request by it with the Get Tokenization Request by `client_request_id` endpoint. If multiple requests within the same account share the same `client_request_id`, the endpoint returns the most recent matching request. To prevent duplicate processing, use the `Idempotency-Key` header.\n\nMust be at most 128 printable ASCII characters with no leading or trailing whitespace.",
+            "maxLength": 128,
+            "type": "string"
+          },
           "issuer": {
             "$ref": "#/components/schemas/TokenizationIssuer"
           },
@@ -5334,6 +5825,10 @@
       },
       "TokenizationMintResponse": {
         "properties": {
+          "client_request_id": {
+            "description": "The `client_request_id` supplied on the mint request. Omitted when none was supplied.",
+            "type": "string"
+          },
           "created_at": {
             "format": "date-time",
             "type": "string"
@@ -5401,13 +5896,13 @@
         "properties": {
           "account": {
             "deprecated": true,
-            "description": "Alpaca account ID associated with this tokenization request. Use `client_account_id` instead.",
+            "description": "**Deprecation notice:**\nUse `client_account_id` instead.\n\nSince: 2026-07-15\nSunset: 2027-02-28\n\n---\n\nAlpaca account ID associated with this tokenization request.",
             "example": "06b9d76e-1733-460c-844e-48d1ae0f10c3",
             "type": "string",
             "x-deprecation": {
-              "reason": "Use client_account_id instead.",
+              "reason": "Use `client_account_id` instead.",
               "since": "2026-07-15",
-              "sunset": "2026-10-15"
+              "sunset": "2027-02-28"
             }
           },
           "client_account_id": {
@@ -5444,13 +5939,13 @@
           },
           "issuer_account": {
             "deprecated": true,
-            "description": "Issuer's account ID associated with this tokenization request. Use `client_external_account_id` instead.",
+            "description": "**Deprecation notice:**\nUse `client_external_account_id` instead.\n\nSince: 2026-07-15\nSunset: 2027-02-28\n\n---\n\nIssuer's account ID associated with this tokenization request.",
             "example": "AP-EXT-001",
             "type": "string",
             "x-deprecation": {
-              "reason": "Use client_external_account_id instead.",
+              "reason": "Use `client_external_account_id` instead.",
               "since": "2026-07-15",
-              "sunset": "2026-10-15"
+              "sunset": "2027-02-28"
             }
           },
           "issuer_request_id": {
@@ -5481,6 +5976,9 @@
             "description": "Unique identifier of the tokenization request set by Alpaca",
             "example": "5b1d6a3e-7f0a-4d2c-b8e1-9e6f1c0d2c4a",
             "type": "string"
+          },
+          "transfer_status": {
+            "$ref": "#/components/schemas/TokenizationTransferStatus"
           },
           "tx_hash": {
             "description": "Transaction hash of the completed request on the blockchain",
@@ -5548,6 +6046,17 @@
         "title": "TokenizationRequestType",
         "type": "string"
       },
+      "TokenizationTransferStatus": {
+        "description": "Whether Alpaca has moved the underlying shares for this tokenization request. Independent of `status`: `status` can stay `pending` until the issuer completes the on-chain mint or redeem, while `transfer_status` becomes `completed` as soon as the shares move.\n\n- `pending`: the shares have not moved yet.\n- `completed`: the shares have moved. Account activities can lag until after end-of-day posting.\n- `rejected`: the share transfer failed.\n\nReturned by the list and get tokenization request endpoints. Omitted when Alpaca has no share transfer for the request, for example when the request was rejected during validation.",
+        "enum": [
+          "pending",
+          "completed",
+          "rejected"
+        ],
+        "example": "completed",
+        "title": "TokenizationTransferStatus",
+        "type": "string"
+      },
       "TradingActivities": {
         "examples": [
           {
@@ -5598,7 +6107,12 @@
             "type": "string"
           },
           "side": {
-            "description": "buy or sell",
+            "description": "Side of the fill. Includes `sell_short` when the fill short-sells.",
+            "enum": [
+              "buy",
+              "sell",
+              "sell_short"
+            ],
             "type": "string"
           },
           "symbol": {
@@ -6031,10 +6545,7 @@
           "symbols": {
             "description": "List of asset symbols to include in the watchlist. The existing assets will be replaced with the new list.",
             "items": {
-              "type": [
-                "string",
-                "null"
-              ]
+              "type": "string"
             },
             "type": "array"
           }
@@ -6185,8 +6696,8 @@
             "account_id": "abe25343-a7ba-4255-bdeb-f7e013e9ee5d",
             "assets": [
               {
+                "borrow_status": "easy_to_borrow",
                 "class": "us_equity",
-                "easy_to_borrow": true,
                 "exchange": "NASDAQ",
                 "fractionable": true,
                 "id": "8ccae427-5dd0-45b3-b5fe-7ba5e422c766",
@@ -7263,7 +7774,7 @@
             "name": "activity_types",
             "schema": {
               "items": {
-                "$ref": "#/components/schemas/ActivityType"
+                "$ref": "#/components/schemas/ActivityTypeFilter"
               },
               "type": "array"
             },
@@ -7487,12 +7998,12 @@
       },
       "parameters": [
         {
-          "description": "The activity type you want to view entries for. A list of valid activity types can be found at the bottom of this page.",
+          "description": "Activity type to filter by. Accepted values are `ActivityTypeFilter`. `TRANS` and `MISC` expand to the entry types named there.",
           "in": "path",
           "name": "activity_type",
           "required": true,
           "schema": {
-            "type": "string"
+            "$ref": "#/components/schemas/ActivityTypeFilter"
           }
         }
       ]
@@ -7554,10 +8065,16 @@
         "operationId": "getAccountPortfolioHistory",
         "parameters": [
           {
-            "description": "The duration of the data in `number` + `unit` format, such as 1D, where `unit` can be D for day, W for week, M for month and A for year. Defaults to 1M.\n\nOnly two of `start`, `end` and `period` can be specified at the same time.\n\nFor intraday timeframes (\\<1D) only 30 days or less can be queried, for 1D resolutions there is no such limit, data is available since the\ncreation of the account.\n",
+            "description": "The total duration of history being requested defined as `number` + `unit`.\nValid units are: `D`, `W`, `M`, and `A` (annum).\n\nThe following restrictions apply:\n- MUST NOT be included if both `start` and `end` are provided.\n- Default value is `1M` when `start` or `end` is omitted.\n",
             "in": "query",
             "name": "period",
             "schema": {
+              "examples": [
+                "7D",
+                "4W",
+                "1M",
+                "1A"
+              ],
               "type": "string"
             }
           },
@@ -7566,11 +8083,11 @@
             "in": "query",
             "name": "timeframe",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/PortfolioHistoryTimeframe"
             }
           },
           {
-            "description": "For intraday resolutions (<1D) this specifies which timestamps to return data points for:\n\nAllowed values are:\n- **market_hours**\n\n  Only timestamps for the core equity trading hours are returned (usually 9:30am to 4:00pm, trading days only)\n\n- **extended_hours**\n\n  Returns timestamps for the whole session including extended hours (usually 4:00am to 8:00pm, trading days only)\n\n- **continuous**\n\n  Returns price data points 24/7 (for off-session times too). To calculate the equity values we are using the following prices:\n\n  Between 4:00am and 10:00pm on trading days the valuation will be calculated based on the last trade (extended hours and normal hours respectively).\n\n  After 10:00pm, until the next session open the equities will be valued at their official closing price on the primary exchange.\n",
+            "description": "For intraday resolutions (<1D) this specifies which timestamps to return data points for:\n\nAllowed values are:\n- **market_hours**\n\n  Only timestamps for the core equity trading hours are returned (usually 9:30am to 4:00pm, trading days only).\n\n- **extended_hours**\n\n  Returns timestamps for the whole session including extended hours (usually 4:00am to 8:00pm, trading days only).\n\n- **continuous**\n\n  Returns price data points 24/7 (for off-session times too). To calculate the equity values we are using the following prices:\n\n  Between 4:00am and 10:00pm on trading days the valuation will be calculated based on the last trade (extended hours and normal hours respectively).\n\n  After 10:00pm, until the next session open the equities will be valued at their official closing price on the primary exchange.\n",
             "in": "query",
             "name": "intraday_reporting",
             "schema": {
@@ -7584,12 +8101,35 @@
             }
           },
           {
-            "description": "The timestamp the data is returned starting from in RFC3339 format (including timezone specification). Defaults to `end` minus `period`\n\nIf provided, the `start` value is always normalized to the `America/New_York` timezone and adjusted to the nearest `timeframe` interval, e.g. seconds are always truncated and the time is rounded backwards to the nearest interval of `1Min`, `5Min`, `15Min`, or `1H`.\n\nIf `timeframe=1D` and `start` is not a valid trading date, find the next available trading date. For example, if `start` occurs on Saturday or Sunday after converting to the America/New_York timezone, `start` is adjusted to the first weekday that is not a market holiday (e.g. Monday).\n\nIf `timeframe` is less than `1D` and `intraday_reporting` is not `continuous`, `start` always reflects the beginning of a market session. If `start` is between midnight and the end (inclusive) of an active trading day, `start` is set to the beginning of the session on the specified day. Otherwise, if `start` occurs outside of the market session, the next available market date is used.\n\nFor example, when `intraday_reporting=market_hours` and `start=2023-10-19T23:59:59-04:00`, the provided `start` date occurs outside of the regular market session. The effective `start` timestamp is adjusted to the beginning of the next session: `2023-10-20T09:30:00-04:00`\n\n`start` may be combined with one of `end` or `period`.\n\nProviding all of `start`, `end`, and `period` is invalid.\n",
+            "description": "The first timestamp of the timeseries.\n\nDefaults to `end - period`.\n\nWhen `timeframe=1D`, if `start` occurs any time on a trading day (including outside of market hours), `start` is set to the closing time of the current trading day. Otherwise, `start` is rolled forward to the closing time of the next available trading day.\n\nWhen `timeframe != 1D`, one of the following rules is applied.\n- When `intraday_reporting=continuous`, `start` is rolled back to the nearest `timeframe` interval.\n- When both `start` and `end` are omitted, `start` is rolled back to the first market/session open that is encountered.\n- When `intraday_reporting != continuous` and `start` is a trading day:\n  - roll forward to the first market/session open if `start` is outside of market/session hours, or\n  - roll back to the nearest `timeframe` interval if `start` occurs during trading hours.\n- Roll forward to the next market/session open if `start` does not fall on a trading day.\n\n`start` may be combined with `end` or `period`, but cannot be combined with both.\n",
+            "examples": {
+              "iso8601_date": {
+                "description": "Parsed as midnight UTC.",
+                "summary": "ISO 8601 date",
+                "value": "2021-03-16"
+              },
+              "iso8601_datetime_offset": {
+                "summary": "ISO 8601 datetime (offset)",
+                "value": "2021-03-16T14:38:01-04:00"
+              },
+              "iso8601_datetime_utc": {
+                "summary": "ISO 8601 datetime (UTC)",
+                "value": "2021-03-16T18:38:01Z"
+              },
+              "unix": {
+                "description": "Seconds since the epoch.",
+                "summary": "Unix timestamp",
+                "value": "1615919881"
+              }
+            },
             "in": "query",
             "name": "start",
             "schema": {
-              "example": "2021-03-16T18:38:01Z",
-              "format": "date-time",
+              "examples": [
+                "2021-03-16T18:38:01Z",
+                "2021-03-16T18:38:01-04:00",
+                "2021-03-16"
+              ],
               "type": "string"
             }
           },
@@ -7607,12 +8147,35 @@
             }
           },
           {
-            "description": "The timestamp the data is returned up to in RFC3339 format (including timezone specification). Defaults to the current time.\n\nIf provided, the `end` value is always normalized to the `America/New_York` timezone and adjusted to the nearest `timeframe` interval, e.g. seconds are always truncated and the time is rounded backwards to the nearest interval of `1Min`, `5Min`, `15Min`, or `1H`.\n\nWhen `intraday_reporting` is either `market_hours` or `extended_hours`, the `end` value is adjusted to not occur after session close on the specified day. For example if the `intraday_reporting` is `extended_hours`, and the timestamp specified is `2023-10-19T21:33:00-04:00`, `end` is adjusted to `2023-10-19T20:00:00-04:00`.\n\n`end` may be combined with `start` or `period`.\n\nProviding all of `start`, `end`, and `period` is invalid.\n",
+            "description": "The last timestamp of the timeseries.\n\nDefaults to `start + period` when `start` is provided.\n\nWhen `start` and `end` are omitted, or if `end` is AFTER the request time, `end` defaults to\n- The most recent session open timestamp if `intraday_reporting=extended_hours`\n- The most recent market open timestamp if `intraday_reporting=market_hours`\n- The current timestamp if `intraday_reporting=continuous`\n\n`end` may be combined with `start` or `period`, but cannot be combined with both.\n",
+            "examples": {
+              "iso8601_date": {
+                "description": "Parsed as midnight UTC.",
+                "summary": "ISO 8601 date",
+                "value": "2021-03-16"
+              },
+              "iso8601_datetime_offset": {
+                "summary": "ISO 8601 datetime (offset)",
+                "value": "2021-03-16T14:38:01-04:00"
+              },
+              "iso8601_datetime_utc": {
+                "summary": "ISO 8601 datetime (UTC)",
+                "value": "2021-03-16T18:38:01Z"
+              },
+              "unix": {
+                "description": "Seconds since the epoch.",
+                "summary": "Unix timestamp",
+                "value": "1615919881"
+              }
+            },
             "in": "query",
             "name": "end",
             "schema": {
-              "example": "2021-03-16T18:38:01Z",
-              "format": "date-time",
+              "examples": [
+                "2021-03-16T18:38:01Z",
+                "2021-03-16T18:38:01-04:00",
+                "2021-03-16"
+              ],
               "type": "string"
             }
           },
@@ -7898,7 +8461,151 @@
                 }
               }
             },
-            "description": "Successful response"
+            "description": "Successful response.",
+            "headers": {
+              "Deprecated-Params": {
+                "$ref": "#/components/headers/DeprecatedParams"
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 400,
+                  "message": "invalid timeframe provided: 1Min. Valid timeframe for days > 30 is 1D: bad request"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioHistoryError"
+                }
+              }
+            },
+            "description": "The request parameters are invalid.",
+            "headers": {
+              "Deprecated-Params": {
+                "$ref": "#/components/headers/DeprecatedParams"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 403,
+                  "message": "token does not match account type"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioHistoryError"
+                }
+              }
+            },
+            "description": "Forbidden because the token's account type does not match the deployment.",
+            "headers": {
+              "Deprecated-Params": {
+                "$ref": "#/components/headers/DeprecatedParams"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 404,
+                  "message": "account not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioHistoryError"
+                }
+              }
+            },
+            "description": "Account not found, or invalid or missing credentials.",
+            "headers": {
+              "Deprecated-Params": {
+                "$ref": "#/components/headers/DeprecatedParams"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 40010001,
+                  "message": "query: \"timeframe\": invalid value: \"2Min\""
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioHistoryError"
+                }
+              }
+            },
+            "description": "The request parameters are invalid.",
+            "headers": {
+              "Deprecated-Params": {
+                "$ref": "#/components/headers/DeprecatedParams"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 429,
+                  "message": "rate limit exceeded"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioHistoryError"
+                }
+              }
+            },
+            "description": "Rate limit exceeded.",
+            "headers": {
+              "Deprecated-Params": {
+                "$ref": "#/components/headers/DeprecatedParams"
+              },
+              "Retry-After": {
+                "description": "Number of seconds to wait before retrying the request.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 500,
+                  "message": "internal server error"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioHistoryError"
+                }
+              }
+            },
+            "description": "Unexpected server failure.",
+            "headers": {
+              "Deprecated-Params": {
+                "$ref": "#/components/headers/DeprecatedParams"
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 504,
+                  "message": "gateway timeout"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioHistoryError"
+                }
+              }
+            },
+            "description": "Gateway timeout.",
+            "headers": {
+              "Deprecated-Params": {
+                "$ref": "#/components/headers/DeprecatedParams"
+              }
+            }
           }
         },
         "summary": "Get Account Portfolio History",
@@ -7929,7 +8636,7 @@
             }
           },
           {
-            "description": "Optional AMEX, ARCA, BATS, NYSE, NASDAQ, NYSEARCA, OTC or CRYPTO",
+            "description": "Optional comma-separated exchanges to filter `us_equity` and `us_index` assets by: AMEX, ARCA, BATS, NYSE, NASDAQ, NYSEARCA, OTC, TXSE, or INDEX. `INDEX` requires `asset_class=us_index`.\nCrypto and crypto perpetual assets are not filtered by exchange; set `asset_class` to exclude them.",
             "in": "query",
             "name": "exchange",
             "schema": {
@@ -8099,7 +8806,7 @@
         },
         "summary": "Get US Market Clock",
         "tags": [
-          "Clock"
+          "Calendar"
         ]
       }
     },
@@ -8158,10 +8865,17 @@
             }
           },
           {
-            "description": "declaration_date, ex_date, record_date, or payable_date",
+            "description": "Which announcement date `since` and `until` apply to. When omitted, the range applies to payable_date.\n\n- **declaration_date**: The date of the preliminary announcement details or the date that any subsequent term updates took place.\n- **ex_date**: The date on which any security purchasing activity will not result in a corporate action entitlement. Any selling activity that takes place on or after this date will result in a corporate action entitlement.\n- **record_date**: The date the company checks its records to determine who is shareholder in order to allocate entitlements.\n- **payable_date**: The date that the stock and cash positions will update according to the account positions as of the record date.",
             "in": "query",
             "name": "date_type",
             "schema": {
+              "default": "payable_date",
+              "enum": [
+                "declaration_date",
+                "ex_date",
+                "record_date",
+                "payable_date"
+              ],
               "type": "string"
             }
           }
@@ -8733,6 +9447,9 @@
             "content": {
               "application/json": {
                 "examples": {
+                  "Bracket": {
+                    "$ref": "#/components/examples/BracketOrderResponse"
+                  },
                   "Crypto": {
                     "$ref": "#/components/examples/CryptoOrderResponse"
                   },
@@ -8804,6 +9521,9 @@
             "content": {
               "application/json": {
                 "examples": {
+                  "Bracket": {
+                    "$ref": "#/components/examples/BracketOrderResponse"
+                  },
                   "Crypto": {
                     "$ref": "#/components/examples/CryptoOrderResponse"
                   },
@@ -8945,7 +9665,7 @@
     },
     "/v2/positions": {
       "delete": {
-        "description": "Closes (liquidates) all of the account's open long and short positions. A response will be provided for each order that is attempted to be cancelled. If an order is no longer cancelable, the server will respond with status 500 and reject the request.",
+        "description": "Closes (liquidates) all of the account's open long and short positions. The 207 response contains one result per position: `body` is the closing Order when `status` is 200, otherwise the error describing why that position was not closed.",
         "operationId": "deleteAllOpenPositions",
         "parameters": [
           {
@@ -8961,6 +9681,104 @@
           "207": {
             "content": {
               "application/json": {
+                "examples": {
+                  "All Closed": {
+                    "value": [
+                      {
+                        "body": {
+                          "asset_class": "us_equity",
+                          "asset_id": "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415",
+                          "canceled_at": null,
+                          "client_order_id": "52f8574c-96d5-49b6-94c1-2570a268434e",
+                          "created_at": "2022-02-04T16:53:29.53427917Z",
+                          "expired_at": null,
+                          "extended_hours": false,
+                          "failed_at": null,
+                          "filled_at": null,
+                          "filled_avg_price": null,
+                          "filled_qty": "0",
+                          "hwm": null,
+                          "id": "f7f25e89-939a-4587-aaf6-414a6b3c341d",
+                          "legs": null,
+                          "limit_price": null,
+                          "notional": null,
+                          "order_class": "",
+                          "order_type": "market",
+                          "qty": "2",
+                          "replaced_at": null,
+                          "replaced_by": null,
+                          "replaces": null,
+                          "side": "sell",
+                          "status": "accepted",
+                          "stop_price": null,
+                          "submitted_at": "2022-02-04T16:53:29.533738219Z",
+                          "symbol": "AAPL",
+                          "time_in_force": "day",
+                          "trail_percent": null,
+                          "trail_price": null,
+                          "type": "market",
+                          "updated_at": "2022-02-04T16:53:29.53427917Z"
+                        },
+                        "status": 200,
+                        "symbol": "AAPL"
+                      }
+                    ]
+                  },
+                  "Partially Closed": {
+                    "value": [
+                      {
+                        "body": {
+                          "asset_class": "us_equity",
+                          "asset_id": "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415",
+                          "canceled_at": null,
+                          "client_order_id": "52f8574c-96d5-49b6-94c1-2570a268434e",
+                          "created_at": "2022-02-04T16:53:29.53427917Z",
+                          "expired_at": null,
+                          "extended_hours": false,
+                          "failed_at": null,
+                          "filled_at": null,
+                          "filled_avg_price": null,
+                          "filled_qty": "0",
+                          "hwm": null,
+                          "id": "f7f25e89-939a-4587-aaf6-414a6b3c341d",
+                          "legs": null,
+                          "limit_price": null,
+                          "notional": null,
+                          "order_class": "",
+                          "order_type": "market",
+                          "qty": "2",
+                          "replaced_at": null,
+                          "replaced_by": null,
+                          "replaces": null,
+                          "side": "sell",
+                          "status": "accepted",
+                          "stop_price": null,
+                          "submitted_at": "2022-02-04T16:53:29.533738219Z",
+                          "symbol": "AAPL",
+                          "time_in_force": "day",
+                          "trail_percent": null,
+                          "trail_price": null,
+                          "type": "market",
+                          "updated_at": "2022-02-04T16:53:29.53427917Z"
+                        },
+                        "status": 200,
+                        "symbol": "AAPL"
+                      },
+                      {
+                        "body": {
+                          "available": "2",
+                          "code": 40310000,
+                          "existing_qty": "2",
+                          "held_for_orders": "0",
+                          "message": "insufficient qty available for order (requested: 10, available: 2)",
+                          "symbol": "NVDA"
+                        },
+                        "status": 403,
+                        "symbol": "NVDA"
+                      }
+                    ]
+                  }
+                },
                 "schema": {
                   "items": {
                     "$ref": "#/components/schemas/PositionClosedResponse"
@@ -8971,8 +9789,41 @@
             },
             "description": "Multi-Status with body.\n\nan array of PositionClosed responses"
           },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Invalid cancel_orders": {
+                    "value": {
+                      "code": 40010001,
+                      "message": "cancel_orders must be true or false"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Invalid Parameters.\n\nOne or more parameters provided are invalid."
+          },
           "500": {
-            "description": "Failed to liquidate"
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Internal Server Error": {
+                    "value": {
+                      "code": 50010000,
+                      "message": "internal server error occurred"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request-level failure; no per-position results are returned. Positions that fail to close are reported in the 207 response."
           }
         },
         "summary": "Close All Positions",
@@ -9466,6 +10317,7 @@
                   "status": "completed",
                   "token_symbol": "TSLAx",
                   "tokenization_request_id": "5b1d6a3e-7f0a-4d2c-b8e1-9e6f1c0d2c4a",
+                  "transfer_status": "completed",
                   "tx_hash": "5J7ZxK4QwR3vH2pY1aB6sN8cM9tD0fA2eXyVwUjL3kPqR4mZcF7nB1tA8sH6dG2pE",
                   "type": "mint",
                   "underlying_symbol": "TSLA",
@@ -9571,6 +10423,7 @@
                   "status": "completed",
                   "token_symbol": "TSLAx",
                   "tokenization_request_id": "5b1d6a3e-7f0a-4d2c-b8e1-9e6f1c0d2c4a",
+                  "transfer_status": "completed",
                   "tx_hash": "5J7ZxK4QwR3vH2pY1aB6sN8cM9tD0fA2eXyVwUjL3kPqR4mZcF7nB1tA8sH6dG2pE",
                   "type": "mint",
                   "underlying_symbol": "TSLA",
@@ -9686,16 +10539,21 @@
           }
         },
         {
-          "description": "Deprecated. Use chain instead. Optional network identifier which is used to request wallets for a specific network when asset is a multi-chain crypto asset. When both 'chain' and 'network' are specified, 'chain' will take precedence and 'network' will be ignored. If 'chain' and 'network' are not specified, the default 'network' (ethereum) will be used.",
+          "deprecated": true,
+          "description": "**Deprecation notice:**\nUse `chain` instead.\n\nSince: 2026-11-02\nSunset: 2027-02-02\n\n---\n\nDeprecated. Use chain instead. Optional network identifier which is used to request wallets for a specific network when asset is a multi-chain crypto asset. When both 'chain' and 'network' are specified, 'chain' will take precedence and 'network' will be ignored. If 'chain' and 'network' are not specified, the default 'network' (ethereum) will be used.",
           "in": "query",
           "name": "network",
           "schema": {
-            "deprecated": true,
             "enum": [
               "ethereum",
               "solana"
             ],
             "type": "string"
+          },
+          "x-deprecation": {
+            "reason": "Use `chain` instead.",
+            "since": "2026-11-02",
+            "sunset": "2027-02-02"
           }
         }
       ]
@@ -9776,62 +10634,6 @@
         "tags": [
           "Crypto Funding"
         ]
-      },
-      "post": {
-        "deprecated": true,
-        "description": "Creates a withdrawal request. Note that outgoing withdrawals must be sent to a whitelisted address and you must whitelist addresses at least 24 hours in advance. If you attempt to withdraw funds to a non-whitelisted address then the transfer will be rejected.",
-        "operationId": "createCryptoTransferForAccount",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCryptoTransferRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CryptoTransfer"
-                }
-              }
-            },
-            "description": "Successfully requested a transfer."
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "TravelRuleValidationError": {
-                    "$ref": "#/components/examples/TravelRuleValidationError"
-                  },
-                  "WalletError": {
-                    "value": {
-                      "message": "asset cannot be empty"
-                    }
-                  }
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/TravelRuleErrorResponse"
-                }
-              }
-            },
-            "description": "The request or travel rule information is invalid."
-          }
-        },
-        "summary": "Request a New Withdrawal",
-        "tags": [
-          "Crypto Funding"
-        ],
-        "x-deprecation": {
-          "reason": "This endpoint is deprecated. Use the Alpaca web application to initiate withdrawals.",
-          "since": "2026-07-09",
-          "sunset": "2026-10-09"
-        }
       }
     },
     "/v2/wallets/transfers/{transfer_id}": {
@@ -9968,7 +10770,7 @@
                 }
               }
             },
-            "description": "Successful request. Returns an array of VASPs or an empty list if no matches found."
+            "description": "Successful request. `vasps` lists each match and is an empty array when nothing matches."
           }
         },
         "summary": "Search for VASPs",
@@ -10652,7 +11454,7 @@
         },
         "summary": "Get Market Clock",
         "tags": [
-          "Clock"
+          "Calendar"
         ]
       }
     }
@@ -10705,9 +11507,6 @@
       "name": "Calendar"
     },
     {
-      "name": "Clock"
-    },
-    {
       "name": "Crypto Funding"
     },
     {
@@ -10723,6 +11522,7 @@
     }
   ],
   "x-readme": {
+    "apply-tag-changes": true,
     "explorer-enabled": true,
     "proxy-enabled": false
   }

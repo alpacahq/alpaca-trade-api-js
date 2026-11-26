@@ -50,13 +50,14 @@ export interface SearchVASPsResponse {
      * @type {Array<VASP>}
      * @memberof SearchVASPsResponse
      */
-    vasps?: Array<VASP>;
+    vasps: Array<VASP>;
 }
 
 /**
  * Check if a given object implements the SearchVASPsResponse interface.
  */
 export function instanceOfSearchVASPsResponse(value: object): value is SearchVASPsResponse {
+    if (!('vasps' in value) || value['vasps'] === undefined) return false;
     return true;
 }
 
@@ -73,7 +74,7 @@ export function SearchVASPsResponseFromJSONTyped(json: any, ignoreDiscriminator:
         'page': json['page'] == null ? undefined : json['page'],
         'pages': json['pages'] == null ? undefined : json['pages'],
         'total': json['total'] == null ? undefined : json['total'],
-        'vasps': json['vasps'] == null ? undefined : ((json['vasps'] as Array<any>).map(VASPFromJSON)),
+        'vasps': (json['vasps'] == null ? [] : (json['vasps'] as Array<any>).map(VASPFromJSON)),
     };
 }
 
@@ -91,7 +92,7 @@ export function SearchVASPsResponseToJSONTyped(value?: SearchVASPsResponse | nul
         'page': value['page'],
         'pages': value['pages'],
         'total': value['total'],
-        'vasps': value['vasps'] == null ? undefined : ((value['vasps'] as Array<any>).map(VASPToJSON)),
+        'vasps': ((value['vasps'] as Array<any>).map(VASPToJSON)),
     };
 }
 

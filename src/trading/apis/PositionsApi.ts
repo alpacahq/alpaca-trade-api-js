@@ -56,7 +56,7 @@ export interface OptionExerciseRequest {
 export class PositionsApi extends runtime.BaseAPI {
 
     /**
-     * Closes (liquidates) all of the account\'s open long and short positions. A response will be provided for each order that is attempted to be cancelled. If an order is no longer cancelable, the server will respond with status 500 and reject the request.
+     * Closes (liquidates) all of the account\'s open long and short positions. The 207 response contains one result per position: `body` is the closing Order when `status` is 200, otherwise the error describing why that position was not closed.
      * Close All Positions
      */
     async deleteAllOpenPositionsRaw(requestParameters: DeleteAllOpenPositionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<PositionClosedResponse>>> {
@@ -93,7 +93,7 @@ export class PositionsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Closes (liquidates) all of the account\'s open long and short positions. A response will be provided for each order that is attempted to be cancelled. If an order is no longer cancelable, the server will respond with status 500 and reject the request.
+     * Closes (liquidates) all of the account\'s open long and short positions. The 207 response contains one result per position: `body` is the closing Order when `status` is 200, otherwise the error describing why that position was not closed.
      * Close All Positions
      */
     async deleteAllOpenPositions(requestParameters: DeleteAllOpenPositionsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<PositionClosedResponse>> {

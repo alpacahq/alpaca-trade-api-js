@@ -27,6 +27,13 @@ import {
     TokenizationRequestStatusToJSON,
     TokenizationRequestStatusToJSONTyped,
 } from './TokenizationRequestStatus';
+import type { TokenizationTransferStatus } from './TokenizationTransferStatus';
+import {
+    TokenizationTransferStatusFromJSON,
+    TokenizationTransferStatusFromJSONTyped,
+    TokenizationTransferStatusToJSON,
+    TokenizationTransferStatusToJSONTyped,
+} from './TokenizationTransferStatus';
 import type { TokenizationIssuer } from './TokenizationIssuer';
 import {
     TokenizationIssuerFromJSON,
@@ -49,7 +56,15 @@ import {
  */
 export interface TokenizationRequest {
     /**
-     * Alpaca account ID associated with this tokenization request. Use `client_account_id` instead.
+     * **Deprecation notice:**
+     * Use `client_account_id` instead.
+     * 
+     * Since: 2026-07-15
+     * Sunset: 2027-02-28
+     * 
+     * ---
+     * 
+     * Alpaca account ID associated with this tokenization request.
      * @type {string}
      * @memberof TokenizationRequest
      * @deprecated
@@ -92,7 +107,15 @@ export interface TokenizationRequest {
      */
     issuer: TokenizationIssuer;
     /**
-     * Issuer's account ID associated with this tokenization request. Use `client_external_account_id` instead.
+     * **Deprecation notice:**
+     * Use `client_external_account_id` instead.
+     * 
+     * Since: 2026-07-15
+     * Sunset: 2027-02-28
+     * 
+     * ---
+     * 
+     * Issuer's account ID associated with this tokenization request.
      * @type {string}
      * @memberof TokenizationRequest
      * @deprecated
@@ -134,6 +157,12 @@ export interface TokenizationRequest {
      * @memberof TokenizationRequest
      */
     tokenizationRequestId: string;
+    /**
+     * 
+     * @type {TokenizationTransferStatus}
+     * @memberof TokenizationRequest
+     */
+    transferStatus?: TokenizationTransferStatus;
     /**
      * Transaction hash of the completed request on the blockchain
      * @type {string}
@@ -209,6 +238,7 @@ export function TokenizationRequestFromJSONTyped(json: any, ignoreDiscriminator:
         'status': TokenizationRequestStatusFromJSON(json['status']),
         'tokenSymbol': json['token_symbol'],
         'tokenizationRequestId': json['tokenization_request_id'],
+        'transferStatus': json['transfer_status'] == null ? undefined : TokenizationTransferStatusFromJSON(json['transfer_status']),
         'txHash': json['tx_hash'] == null ? undefined : json['tx_hash'],
         'type': TokenizationRequestTypeFromJSON(json['type']),
         'underlyingSymbol': json['underlying_symbol'],
@@ -242,6 +272,7 @@ export function TokenizationRequestToJSONTyped(value?: TokenizationRequest | nul
         'status': TokenizationRequestStatusToJSON(value['status']),
         'token_symbol': value['tokenSymbol'],
         'tokenization_request_id': value['tokenizationRequestId'],
+        'transfer_status': TokenizationTransferStatusToJSON(value['transferStatus']),
         'tx_hash': value['txHash'],
         'type': TokenizationRequestTypeToJSON(value['type']),
         'underlying_symbol': value['underlyingSymbol'],

@@ -99,11 +99,11 @@ export interface GetAccountActivities200ResponseInner extends Record<string, unk
      */
     qty?: string;
     /**
-     * buy or sell
+     * Side of the fill. Includes `sell_short` when the fill short-sells.
      * @type {string}
      * @memberof GetAccountActivities200ResponseInner
      */
-    side?: string;
+    side?: GetAccountActivities200ResponseInnerSideEnum;
     /**
      * The symbol of the security involved with the activity. Not present for all activity types.
      * @type {string}
@@ -127,6 +127,12 @@ export interface GetAccountActivities200ResponseInner extends Record<string, unk
      * This field is optional and may not always be populated, depending on the activity type and the available data.
      * Each `activity_type` has a set of valid `activity_sub_type` values.
      * 
+     * This field is a free-form string rather than a closed enum: sub-type codes
+     * originate from several upstream clearing, corporate-action, and international-fee
+     * systems, and new codes can appear without a corresponding API change. The mapping
+     * below documents the sub-types known at the time of writing; it is not guaranteed
+     * to be exhaustive.
+     * 
      * Full mapping of `activity_type` to `activity_sub_type`:
      * 
      * - **CGD**: Capital Gains Distribution activity sub-types:
@@ -149,6 +155,8 @@ export interface GetAccountActivities200ResponseInner extends Record<string, unk
      *   - **NRV**: Non-Retail Venue Fee
      *   - **COM**: Commission
      *   - **CAT**: Consolidated Audit Trail Fee
+     *   - **ICF**: Index Contract Fee
+     *   - **EPI**: Exchange Proprietary Fee
      * 
      * - **INT**: Interest-related activity sub-types:
      *   - **MGN**: Margin Interest
@@ -259,6 +267,16 @@ export interface GetAccountActivities200ResponseInner extends Record<string, unk
     status?: GetAccountActivities200ResponseInnerStatusEnum;
 }
 
+
+/**
+ * @export
+ */
+export const GetAccountActivities200ResponseInnerSideEnum = {
+    Buy: 'buy',
+    Sell: 'sell',
+    SellShort: 'sell_short'
+} as const;
+export type GetAccountActivities200ResponseInnerSideEnum = typeof GetAccountActivities200ResponseInnerSideEnum[keyof typeof GetAccountActivities200ResponseInnerSideEnum];
 
 /**
  * @export

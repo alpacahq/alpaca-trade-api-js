@@ -420,7 +420,6 @@ export class TradingClient {
     private _accountConfigurations?: trading.AccountConfigurationsApi;
     private _assets?: trading.AssetsApi;
     private _calendar?: trading.CalendarApi;
-    private _clock?: trading.ClockApi;
     private _corporateActions?: trading.CorporateActionsApi;
     private _cryptoFunding?: trading.CryptoFundingApi;
     private _events?: trading.EventsApi;
@@ -459,8 +458,8 @@ export class TradingClient {
     get calendar(): trading.CalendarApi {
         return (this._calendar ??= new trading.CalendarApi(this.config));
     }
-    get clock(): trading.ClockApi {
-        return (this._clock ??= new trading.ClockApi(this.config));
+    get clock(): trading.CalendarApi {
+        return this.calendar;
     }
     get corporateActions(): trading.CorporateActionsApi {
         return (this._corporateActions ??= new trading.CorporateActionsApi(this.config));
@@ -835,12 +834,28 @@ export class TradingClient {
 type WithSymbolList<T extends { symbols: string }> = Omit<T, "symbols"> & { symbols: string | string[] };
 /** Like {@link WithSymbolList} but for requests where `symbols` is optional. */
 type WithOptionalSymbolList<T extends { symbols?: string }> = Omit<T, "symbols"> & { symbols?: string | string[] };
-/** Override forex `currencyPairs` so callers may also pass a `string[]`. */
-type WithCurrencyPairList<T extends { currencyPairs: string }> = Omit<T, "currencyPairs"> & {
-    currencyPairs: string | string[];
-};
 /** Override a request's `timeframe` to require the branded {@link values.TimeFrameString}. */
 type WithTimeframe<T extends { timeframe: string }> = Omit<T, "timeframe"> & { timeframe: values.TimeFrameString };
+/** Preserve the facade's broad scalar string while the raw generated API accepts a typed array. */
+type WithStockAdjustment<T extends { adjustment?: marketData.StockAdjustment[] }> =
+    Omit<T, "adjustment"> & {
+        adjustment?: string | marketData.StockAdjustment[];
+    };
+type ErgonomicStockBarsRequest = WithTimeframe<
+    WithSymbolList<WithStockAdjustment<marketData.StockBarsRequest>>
+>;
+type ErgonomicStockBarSingleRequest = WithTimeframe<
+    WithStockAdjustment<marketData.StockBarSingleRequest>
+>;
+
+function normalizeStockAdjustment(
+    adjustment: string | marketData.StockAdjustment[] | undefined,
+): marketData.StockAdjustment[] | undefined {
+    if (adjustment === undefined) return undefined;
+    return Array.isArray(adjustment)
+        ? adjustment
+        : [adjustment as marketData.StockAdjustment];
+}
 
 /** Reshape a `{ [symbol]: Bar[] }` map into a `{ [symbol]: Candles }` map. */
 function toCandlesBySymbol(
@@ -927,7 +942,7 @@ function collectSymbolMap<T>(
  *
  *   1. **Generated (always present).** Every market-data `Api` is a lazily
  *      constructed, memoized accessor — `stocks`, `crypto`, `options`,
- *      `forex`, `news`, `screener`, `corporateActions`, ... — each exposing its raw
+ *      `stocksV3`, `news`, `screener`, `corporateActions`, ... — each exposing its raw
  *      generated methods (which keep Alpaca's compact wire keys).
  *   2. **Ergonomic (additive).** Hand-written conveniences on top: the
  *      normalized `get<Asset><Thing>` / `get<Asset>Candles` accessors (canonical
@@ -953,9 +968,9 @@ export class MarketDataClient {
     private readonly sandbox: boolean;
 
     private _stocks?: marketData.StockApi;
+    private _stocksV3?: marketData.StockV3Api;
     private _crypto?: marketData.CryptoApi;
     private _fixedIncome?: marketData.FixedIncomeApi;
-    private _forex?: marketData.ForexApi;
     private _logos?: marketData.LogosApi;
     private _news?: marketData.NewsApi;
     private _options?: marketData.OptionApi;
@@ -975,14 +990,14 @@ export class MarketDataClient {
     get stocks(): marketData.StockApi {
         return (this._stocks ??= new marketData.StockApi(this.config));
     }
+    get stocksV3(): marketData.StockV3Api {
+        return (this._stocksV3 ??= new marketData.StockV3Api(this.config));
+    }
     get crypto(): marketData.CryptoApi {
         return (this._crypto ??= new marketData.CryptoApi(this.config));
     }
     get fixedIncome(): marketData.FixedIncomeApi {
         return (this._fixedIncome ??= new marketData.FixedIncomeApi(this.config));
-    }
-    get forex(): marketData.ForexApi {
-        return (this._forex ??= new marketData.ForexApi(this.config));
     }
     get logos(): marketData.LogosApi {
         return (this._logos ??= new marketData.LogosApi(this.config));
@@ -1090,7 +1105,7 @@ export class MarketDataClient {
 
     /** Historical stock bars as canonical {@link marketDataShapes.Bar}s, keyed by symbol. */
     async getStockBars(
-        req: Omit<WithTimeframe<WithSymbolList<marketData.StockBarsRequest>>, "pageToken">,
+        req: Omit<ErgonomicStockBarsRequest, "pageToken">,
         opts?: SymbolCollectOptions,
     ): Promise<{ [symbol: string]: marketDataShapes.Bar[] }> {
         return marketDataShapes.toBarsBySymbol(await this.collectStockBarsBySymbol(req, opts));
@@ -1154,7 +1169,7 @@ export class MarketDataClient {
 
     /** Historical stock bars as chart-ready columnar {@link marketDataShapes.Candles}, keyed by symbol. */
     async getStockCandles(
-        req: Omit<WithTimeframe<WithSymbolList<marketData.StockBarsRequest>>, "pageToken">,
+        req: Omit<ErgonomicStockBarsRequest, "pageToken">,
         opts?: SymbolCollectOptions & marketDataShapes.ChartOptions,
     ): Promise<{ [symbol: string]: marketDataShapes.Candles }> {
         return toCandlesBySymbol(await this.getStockBars(req, opts), opts);
@@ -1183,7 +1198,7 @@ export class MarketDataClient {
     /** Historical stock bars for one symbol as canonical {@link marketDataShapes.Bar}s. */
     async getStockBarsFor(
         symbol: string,
-        req: Omit<WithTimeframe<WithSymbolList<marketData.StockBarsRequest>>, "pageToken" | "symbols">,
+        req: Omit<ErgonomicStockBarsRequest, "pageToken" | "symbols">,
         opts?: SymbolCollectOptions,
     ): Promise<marketDataShapes.Bar[]> {
         return MarketDataClient.firstSeries(await this.getStockBars({ ...req, symbols: [symbol] }, opts), symbol);
@@ -1242,7 +1257,7 @@ export class MarketDataClient {
     /** Historical stock bars for one symbol as chart-ready columnar {@link marketDataShapes.Candles}. */
     async getStockCandlesFor(
         symbol: string,
-        req: Omit<WithTimeframe<WithSymbolList<marketData.StockBarsRequest>>, "pageToken" | "symbols">,
+        req: Omit<ErgonomicStockBarsRequest, "pageToken" | "symbols">,
         opts?: SymbolCollectOptions & marketDataShapes.ChartOptions,
     ): Promise<marketDataShapes.Candles> {
         return marketDataShapes.toCandles(await this.getStockBarsFor(symbol, req, opts), opts);
@@ -1262,16 +1277,68 @@ export class MarketDataClient {
     // page; `collect*BySymbol` returns a merged `{ [symbol]: T[] }` map. The
     // page token is managed for you, so it is omitted from the request type.
 
+    /** Iterate historical v3 international-stock bars across all symbols and pages. */
+    iterateStockV3Bars(req: Omit<WithTimeframe<WithSymbolList<marketData.StockV3BarsRequest>>, "pageToken">) {
+        return pagination.paginateSymbolMap<marketData.StockV3Bar>((pageToken) =>
+            this.stocksV3.stockV3Bars({ ...req, symbols: values.normalizeSymbols(req.symbols), pageToken }).then((r) => ({ data: r.bars ?? {}, nextPageToken: r.nextPageToken })),
+        );
+    }
+    /** Collect historical v3 international-stock bars merged into a symbol-keyed map. */
+    collectStockV3BarsBySymbol(req: Omit<WithTimeframe<WithSymbolList<marketData.StockV3BarsRequest>>, "pageToken">, opts?: SymbolCollectOptions) {
+        return collectSymbolMap<marketData.StockV3Bar>(req.symbols, (symbols, pageToken) =>
+            this.stocksV3.stockV3Bars({ ...req, symbols, pageToken }).then((r) => ({ data: r.bars ?? {}, nextPageToken: r.nextPageToken })),
+            opts,
+        );
+    }
+
+    /** Iterate historical v3 international-stock trades across all symbols and pages. */
+    iterateStockV3Trades(req: Omit<WithSymbolList<marketData.StockV3TradesRequest>, "pageToken">) {
+        return pagination.paginateSymbolMap<marketData.StockV3Trade>((pageToken) =>
+            this.stocksV3.stockV3Trades({ ...req, symbols: values.normalizeSymbols(req.symbols), pageToken }).then((r) => ({ data: r.trades ?? {}, nextPageToken: r.nextPageToken })),
+        );
+    }
+    /** Collect historical v3 international-stock trades merged into a symbol-keyed map. */
+    collectStockV3TradesBySymbol(req: Omit<WithSymbolList<marketData.StockV3TradesRequest>, "pageToken">, opts?: SymbolCollectOptions) {
+        return collectSymbolMap<marketData.StockV3Trade>(req.symbols, (symbols, pageToken) =>
+            this.stocksV3.stockV3Trades({ ...req, symbols, pageToken }).then((r) => ({ data: r.trades ?? {}, nextPageToken: r.nextPageToken })),
+            opts,
+        );
+    }
+
+    /** Iterate historical v3 international-stock quotes across all symbols and pages. */
+    iterateStockV3Quotes(req: Omit<WithSymbolList<marketData.StockV3QuotesRequest>, "pageToken">) {
+        return pagination.paginateSymbolMap<marketData.StockV3Quote>((pageToken) =>
+            this.stocksV3.stockV3Quotes({ ...req, symbols: values.normalizeSymbols(req.symbols), pageToken }).then((r) => ({ data: r.quotes ?? {}, nextPageToken: r.nextPageToken })),
+        );
+    }
+    /** Collect historical v3 international-stock quotes merged into a symbol-keyed map. */
+    collectStockV3QuotesBySymbol(req: Omit<WithSymbolList<marketData.StockV3QuotesRequest>, "pageToken">, opts?: SymbolCollectOptions) {
+        return collectSymbolMap<marketData.StockV3Quote>(req.symbols, (symbols, pageToken) =>
+            this.stocksV3.stockV3Quotes({ ...req, symbols, pageToken }).then((r) => ({ data: r.quotes ?? {}, nextPageToken: r.nextPageToken })),
+            opts,
+        );
+    }
+
     /** Iterate historical stock bars across all symbols and pages. */
-    iterateStockBars(req: Omit<WithTimeframe<WithSymbolList<marketData.StockBarsRequest>>, "pageToken">) {
+    iterateStockBars(req: Omit<ErgonomicStockBarsRequest, "pageToken">) {
         return pagination.paginateSymbolMap<marketData.StockBar>((pageToken) =>
-            this.stocks.stockBars({ ...req, symbols: values.normalizeSymbols(req.symbols), pageToken }).then((r) => ({ data: r.bars ?? {}, nextPageToken: r.nextPageToken })),
+            this.stocks.stockBars({
+                ...req,
+                adjustment: normalizeStockAdjustment(req.adjustment),
+                symbols: values.normalizeSymbols(req.symbols),
+                pageToken,
+            }).then((r) => ({ data: r.bars ?? {}, nextPageToken: r.nextPageToken })),
         );
     }
     /** Collect historical stock bars merged into a `{ [symbol]: StockBar[] }` map. */
-    collectStockBarsBySymbol(req: Omit<WithTimeframe<WithSymbolList<marketData.StockBarsRequest>>, "pageToken">, opts?: SymbolCollectOptions) {
+    collectStockBarsBySymbol(req: Omit<ErgonomicStockBarsRequest, "pageToken">, opts?: SymbolCollectOptions) {
         return collectSymbolMap<marketData.StockBar>(req.symbols, (symbols, pageToken) =>
-            this.stocks.stockBars({ ...req, symbols, pageToken }).then((r) => ({ data: r.bars ?? {}, nextPageToken: r.nextPageToken })),
+            this.stocks.stockBars({
+                ...req,
+                adjustment: normalizeStockAdjustment(req.adjustment),
+                symbols,
+                pageToken,
+            }).then((r) => ({ data: r.bars ?? {}, nextPageToken: r.nextPageToken })),
             opts,
         );
     }
@@ -1388,20 +1455,6 @@ export class MarketDataClient {
         );
     }
 
-    /** Iterate historical forex rates across all currency pairs and pages. */
-    iterateForexRates(req: Omit<WithCurrencyPairList<marketData.RatesRequest>, "pageToken">) {
-        return pagination.paginateSymbolMap<marketData.ForexRate>((pageToken) =>
-            this.forex.rates({ ...req, currencyPairs: values.normalizeSymbols(req.currencyPairs), pageToken }).then((r) => ({ data: r.rates ?? {}, nextPageToken: r.nextPageToken })),
-        );
-    }
-    /** Collect historical forex rates merged into a `{ [pair]: ForexRate[] }` map. */
-    collectForexRatesBySymbol(req: Omit<WithCurrencyPairList<marketData.RatesRequest>, "pageToken">, opts?: SymbolCollectOptions) {
-        return collectSymbolMap<marketData.ForexRate>(req.currencyPairs, (currencyPairs, pageToken) =>
-            this.forex.rates({ ...req, currencyPairs, pageToken }).then((r) => ({ data: r.rates ?? {}, nextPageToken: r.nextPageToken })),
-            opts,
-        );
-    }
-
     // --- Pagination: symbol-keyed single-object endpoints ------------------
 
     /** Iterate option snapshots across all symbols and pages. */
@@ -1433,15 +1486,23 @@ export class MarketDataClient {
     // --- Pagination: top-level array endpoints -----------------------------
 
     /** Iterate single-symbol historical stock bars across all pages. */
-    iterateStockBarSingle(req: Omit<WithTimeframe<marketData.StockBarSingleRequest>, "pageToken">) {
+    iterateStockBarSingle(req: Omit<ErgonomicStockBarSingleRequest, "pageToken">) {
         return pagination.paginate<marketData.StockBar>((pageToken) =>
-            this.stocks.stockBarSingle({ ...req, pageToken }).then((r) => ({ items: r.bars ?? [], nextPageToken: r.nextPageToken })),
+            this.stocks.stockBarSingle({
+                ...req,
+                adjustment: normalizeStockAdjustment(req.adjustment),
+                pageToken,
+            }).then((r) => ({ items: r.bars ?? [], nextPageToken: r.nextPageToken })),
         );
     }
     /** Collect single-symbol historical stock bars into one array. */
-    collectStockBarSingle(req: Omit<WithTimeframe<marketData.StockBarSingleRequest>, "pageToken">) {
+    collectStockBarSingle(req: Omit<ErgonomicStockBarSingleRequest, "pageToken">) {
         return pagination.collect<marketData.StockBar>((pageToken) =>
-            this.stocks.stockBarSingle({ ...req, pageToken }).then((r) => ({ items: r.bars ?? [], nextPageToken: r.nextPageToken })),
+            this.stocks.stockBarSingle({
+                ...req,
+                adjustment: normalizeStockAdjustment(req.adjustment),
+                pageToken,
+            }).then((r) => ({ items: r.bars ?? [], nextPageToken: r.nextPageToken })),
         );
     }
 

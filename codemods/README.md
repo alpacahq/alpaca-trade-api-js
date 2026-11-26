@@ -3,9 +3,7 @@
 Automated migration helpers for `@alpacahq/alpaca-trade-api`, built on
 [jscodeshift](https://github.com/facebook/jscodeshift).
 
-Choose the transform for the SDK version currently installed. To move from
-`3.x` to `5.x`, run the `3.x` → `4.0` migration and verify it before running the
-`4.x` → `5.0` migration. See the [migration guide index](../MIGRATIONS.md).
+Choose the transform for the SDK version currently installed. To move from `3.x` to `6.x`, run the `3.x` to `4.0` migration and verify it before running the `4.x` to `5.0` migration, then follow the [5.x to 6.0 migration guide](../MIGRATION_V6.md). Version 6 has no codemod because its removed APIs and generated contract changes require application-specific decisions. See the [migration guide index](../MIGRATIONS.md).
 
 ## `alpaca-v3-to-v4.js`
 

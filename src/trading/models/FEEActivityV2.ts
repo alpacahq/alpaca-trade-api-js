@@ -32,11 +32,29 @@ export interface FEEActivityV2 {
      */
     systemDate: Date;
     /**
-     * The parent transaction's ID
+     * Execution ID. Present only for activity subtype FOT, and only when the fee has one.
      * @type {string}
      * @memberof FEEActivityV2
      */
-    parentId: string;
+    executionId?: string;
+    /**
+     * Order ID. Present only for activity subtype FOT, and only when the fee has one.
+     * @type {string}
+     * @memberof FEEActivityV2
+     */
+    orderId?: string;
+    /**
+     * The parent transaction's ID. Present for fees with a one-to-one relationship to a parent trade (e.g. COM). Omitted for volume-based or bulk fees charged across multiple trades for a period (e.g. REG, TAF, CAT, ORF, NRV, NRC, BSWP) and for LOC fees that are not linked to a parent transaction.
+     * @type {string}
+     * @memberof FEEActivityV2
+     */
+    parentId?: string;
+    /**
+     * Exchange rate on the fee. Sent when the fee has a non-zero rate.
+     * @type {string}
+     * @memberof FEEActivityV2
+     */
+    swapRate?: string;
 }
 
 /**
@@ -44,7 +62,6 @@ export interface FEEActivityV2 {
  */
 export function instanceOfFEEActivityV2(value: object): value is FEEActivityV2 {
     if (!('systemDate' in value) || value['systemDate'] === undefined) return false;
-    if (!('parentId' in value) || value['parentId'] === undefined) return false;
     return true;
 }
 
@@ -60,7 +77,10 @@ export function FEEActivityV2FromJSONTyped(json: any, ignoreDiscriminator: boole
         
         'groupId': json['group_id'] == null ? undefined : json['group_id'],
         'systemDate': (new Date(json['system_date'])),
-        'parentId': json['parent_id'],
+        'executionId': json['execution_id'] == null ? undefined : json['execution_id'],
+        'orderId': json['order_id'] == null ? undefined : json['order_id'],
+        'parentId': json['parent_id'] == null ? undefined : json['parent_id'],
+        'swapRate': json['swap_rate'] == null ? undefined : json['swap_rate'],
     };
 }
 
@@ -77,7 +97,10 @@ export function FEEActivityV2ToJSONTyped(value?: FEEActivityV2 | null, ignoreDis
         
         'group_id': value['groupId'],
         'system_date': ((value['systemDate']).toISOString().substring(0,10)),
+        'execution_id': value['executionId'],
+        'order_id': value['orderId'],
         'parent_id': value['parentId'],
+        'swap_rate': value['swapRate'],
     };
 }
 

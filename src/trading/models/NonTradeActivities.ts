@@ -32,6 +32,12 @@ export interface NonTradeActivities {
      * This field is optional and may not always be populated, depending on the activity type and the available data.
      * Each `activity_type` has a set of valid `activity_sub_type` values.
      * 
+     * This field is a free-form string rather than a closed enum: sub-type codes
+     * originate from several upstream clearing, corporate-action, and international-fee
+     * systems, and new codes can appear without a corresponding API change. The mapping
+     * below documents the sub-types known at the time of writing; it is not guaranteed
+     * to be exhaustive.
+     * 
      * Full mapping of `activity_type` to `activity_sub_type`:
      * 
      * - **CGD**: Capital Gains Distribution activity sub-types:
@@ -54,6 +60,8 @@ export interface NonTradeActivities {
      *   - **NRV**: Non-Retail Venue Fee
      *   - **COM**: Commission
      *   - **CAT**: Consolidated Audit Trail Fee
+     *   - **ICF**: Index Contract Fee
+     *   - **EPI**: Exchange Proprietary Fee
      * 
      * - **INT**: Interest-related activity sub-types:
      *   - **MGN**: Margin Interest

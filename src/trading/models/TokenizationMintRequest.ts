@@ -35,6 +35,14 @@ import {
  */
 export interface TokenizationMintRequest {
     /**
+     * Optional label of your choosing for this mint request. It is returned on the mint response and on the tokenization request, and you can retrieve the request by it with the Get Tokenization Request by `client_request_id` endpoint. If multiple requests within the same account share the same `client_request_id`, the endpoint returns the most recent matching request. To prevent duplicate processing, use the `Idempotency-Key` header.
+     * 
+     * Must be at most 128 printable ASCII characters with no leading or trailing whitespace.
+     * @type {string}
+     * @memberof TokenizationMintRequest
+     */
+    clientRequestId?: string;
+    /**
      * 
      * @type {TokenizationIssuer}
      * @memberof TokenizationMintRequest
@@ -90,6 +98,7 @@ export function TokenizationMintRequestFromJSONTyped(json: any, ignoreDiscrimina
     }
     return {
         
+        'clientRequestId': json['client_request_id'] == null ? undefined : json['client_request_id'],
         'issuer': TokenizationIssuerFromJSON(json['issuer']),
         'network': TokenizationNetworkFromJSON(json['network']),
         'qty': json['qty'],
@@ -109,6 +118,7 @@ export function TokenizationMintRequestToJSONTyped(value?: TokenizationMintReque
 
     return {
         
+        'client_request_id': value['clientRequestId'],
         'issuer': TokenizationIssuerToJSON(value['issuer']),
         'network': TokenizationNetworkToJSON(value['network']),
         'qty': value['qty'],

@@ -19,6 +19,10 @@ Follow the [`4.x` → `5.0` migration guide](MIGRATION_V5.md). Run the focused
 [`alpaca-v4-to-v5.js`](codemods/alpaca-v4-to-v5.js) codemod to apply safe
 generated-contract renames and identify semantic changes that need review.
 
+### `5.x` → `6.0`
+
+Follow the [`5.x` → `6.0` migration guide](MIGRATION_V6.md). Version 6 has no codemod because its removed APIs and generated contract changes require application-specific decisions.
+
 ### `3.x` → `5.0`
 
 Upgrade one major at a time:
@@ -30,6 +34,23 @@ Upgrade one major at a time:
 
 Do not run the `4.x` → `5.0` codemod directly against a `3.x` codebase. The
 second transform expects the namespaced version 4 client and generated types.
+
+### `4.x` → `6.0`
+
+Upgrade one major at a time:
+
+1. Complete the [`4.x` → `5.0` migration](MIGRATION_V5.md), then run your type-checker and tests against version 5.
+2. Complete the [`5.x` → `6.0` migration](MIGRATION_V6.md), then run your type-checker and tests against version 6.
+
+### `3.x` → `6.0`
+
+The `3.x` to `4.0` rewrite remains the first and most important step:
+
+1. Complete the [`3.x` → `4.0` migration](MIGRATION.md), then run your type-checker and tests against version 4.
+2. Complete the [`4.x` → `5.0` migration](MIGRATION_V5.md), then run your type-checker and tests against version 5.
+3. Complete the [`5.x` → `6.0` migration](MIGRATION_V6.md), then run your type-checker and tests against version 6.
+
+Do not skip major-version guides. Each guide assumes the generated client shape introduced by the previous major.
 
 ## Using codemods
 

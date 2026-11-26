@@ -74,6 +74,7 @@ try {
         "MIGRATIONS.md",
         "MIGRATION.md",
         "MIGRATION_V5.md",
+        "MIGRATION_V6.md",
         "codemods/README.md",
         "codemods/alpaca-v3-to-v4.js",
         "codemods/alpaca-v4-to-v5.js",

@@ -133,6 +133,7 @@ models. Key guides:
 - [Migration from 3.x](https://alpacahq.github.io/alpaca-trade-api-js/migration)
 - [Migration overview](https://alpacahq.github.io/alpaca-trade-api-js/migrations)
 - [Migration from 4.x to 5.0](https://alpacahq.github.io/alpaca-trade-api-js/migration-v5)
+- [Migration from 5.x to 6.0](https://alpacahq.github.io/alpaca-trade-api-js/migration-v6)
 - [API reference](https://alpacahq.github.io/alpaca-trade-api-js/api)
 - **AI coding guidance** — choose either equivalent format:
   - Read the packaged [LLMS.md](./LLMS.md).

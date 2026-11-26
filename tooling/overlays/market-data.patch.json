@@ -5,6 +5,71 @@
     "value": { "$ref": "#/components/schemas/stock_historical_feed" }
   },
   {
+    "op": "test",
+    "path": "/components/parameters/stock_v3_start/schema/anyOf",
+    "value": [
+      { "format": "date-time", "type": "string" },
+      { "format": "date", "type": "string" }
+    ]
+  },
+  {
+    "op": "replace",
+    "path": "/components/parameters/stock_v3_start/schema",
+    "value": { "type": "string" }
+  },
+  {
+    "op": "test",
+    "path": "/components/parameters/stock_v3_end/schema/anyOf",
+    "value": [
+      { "format": "date-time", "type": "string" },
+      { "format": "date", "type": "string" }
+    ]
+  },
+  {
+    "op": "replace",
+    "path": "/components/parameters/stock_v3_end/schema",
+    "value": { "type": "string" }
+  },
+  {
+    "op": "test",
+    "path": "/components/schemas/stock_v3_bars_resp/properties/bars/additionalProperties",
+    "value": {
+      "items": { "$ref": "#/components/schemas/stock_v3_bar" },
+      "type": "array"
+    }
+  },
+  {
+    "op": "add",
+    "path": "/components/schemas/stock_v3_bars_resp/properties/bars/x-ts-map-array-model",
+    "value": "StockV3Bar"
+  },
+  {
+    "op": "test",
+    "path": "/components/schemas/stock_v3_quotes_resp/properties/quotes/additionalProperties",
+    "value": {
+      "items": { "$ref": "#/components/schemas/stock_v3_quote" },
+      "type": "array"
+    }
+  },
+  {
+    "op": "add",
+    "path": "/components/schemas/stock_v3_quotes_resp/properties/quotes/x-ts-map-array-model",
+    "value": "StockV3Quote"
+  },
+  {
+    "op": "test",
+    "path": "/components/schemas/stock_v3_trades_resp/properties/trades/additionalProperties",
+    "value": {
+      "items": { "$ref": "#/components/schemas/stock_v3_trade" },
+      "type": "array"
+    }
+  },
+  {
+    "op": "add",
+    "path": "/components/schemas/stock_v3_trades_resp/properties/trades/x-ts-map-array-model",
+    "value": "StockV3Trade"
+  },
+  {
     "op": "add",
     "path": "/paths/~1v1beta1~1logos~1{symbol}/get/responses/200/content/image~1png/schema/format",
     "value": "binary"

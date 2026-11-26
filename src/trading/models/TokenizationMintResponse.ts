@@ -42,6 +42,12 @@ import {
  */
 export interface TokenizationMintResponse {
     /**
+     * The `client_request_id` supplied on the mint request. Omitted when none was supplied.
+     * @type {string}
+     * @memberof TokenizationMintResponse
+     */
+    clientRequestId?: string;
+    /**
      * 
      * @type {Date}
      * @memberof TokenizationMintResponse
@@ -118,6 +124,7 @@ export function TokenizationMintResponseFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
+        'clientRequestId': json['client_request_id'] == null ? undefined : json['client_request_id'],
         'createdAt': (new Date(json['created_at'])),
         'issuer': TokenizationIssuerFromJSON(json['issuer']),
         'network': TokenizationNetworkFromJSON(json['network']),
@@ -140,6 +147,7 @@ export function TokenizationMintResponseToJSONTyped(value?: TokenizationMintResp
 
     return {
         
+        'client_request_id': value['clientRequestId'],
         'created_at': ((value['createdAt']).toISOString()),
         'issuer': TokenizationIssuerToJSON(value['issuer']),
         'network': TokenizationNetworkToJSON(value['network']),

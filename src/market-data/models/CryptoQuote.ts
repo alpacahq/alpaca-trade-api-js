@@ -26,7 +26,7 @@ export interface CryptoQuote {
      */
     ap: number;
     /**
-     * Ask size.
+     * Ask size in the base asset (left side of the pair), with no lot multiplier.
      * @type {number}
      * @memberof CryptoQuote
      */
@@ -38,7 +38,7 @@ export interface CryptoQuote {
      */
     bp: number;
     /**
-     * Bid size.
+     * Bid size in the base asset (left side of the pair), with no lot multiplier.
      * @type {number}
      * @memberof CryptoQuote
      */

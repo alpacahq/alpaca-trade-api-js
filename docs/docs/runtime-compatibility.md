@@ -60,7 +60,7 @@ Legend: ✅ supported · ❌ not supported.
 
 REST requests identify the SDK and the runtime in the default `User-Agent`:
 `APCA-NODE/<sdk-version> <Runtime>/<runtime-version>` (for example,
-`APCA-NODE/5.0.0 Node/22.4.0`). The runtime segment is `Node`, `Bun`, `Deno`, or
+`APCA-NODE/6.0.0 Node/22.4.0`). The runtime segment is `Node`, `Bun`, `Deno`, or
 `Unknown/unknown` when no runtime is detected; Bun and Deno are detected before
 Node compatibility globals. Override the header with `userAgent`, or set
 `userAgent: ""` to disable it.

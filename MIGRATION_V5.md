@@ -8,6 +8,8 @@ generated models with named schemas, so this is a major SDK release.
 > [3.x → 4.0 migration](MIGRATION.md) first. The
 > [migration guide index](MIGRATIONS.md) describes the supported upgrade paths.
 
+> Already on 5.x? Continue with the [5.x to 6.0 migration guide](MIGRATION_V6.md).
+
 Install the new major:
 
 ```bash

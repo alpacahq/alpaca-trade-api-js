@@ -98,6 +98,68 @@ const cases: EndpointCase[] = [
         call: (a) => a.marketData.stocks.stockMetaExchanges(),
     },
 
+    // --- marketData.stocksV3 --------------------------------------------
+    {
+        accessor: 'marketData.stocksV3',
+        method: 'stockV3Bars',
+        verb: 'GET',
+        path: /^\/v3\/stocks\/[^/]+\/bars$/,
+        kind: 'object',
+        call: (a) => a.marketData.stocksV3.stockV3Bars({ feed: 'xetr', symbols: 'SAP:XETR', timeframe: '1Day', start: '2026-01-01' }),
+    },
+    {
+        accessor: 'marketData.stocksV3',
+        method: 'stockV3Trades',
+        verb: 'GET',
+        path: /^\/v3\/stocks\/[^/]+\/trades$/,
+        kind: 'object',
+        call: (a) => a.marketData.stocksV3.stockV3Trades({ feed: 'xetr', symbols: 'SAP:XETR', start: '2026-01-01' }),
+    },
+    {
+        accessor: 'marketData.stocksV3',
+        method: 'stockV3Quotes',
+        verb: 'GET',
+        path: /^\/v3\/stocks\/[^/]+\/quotes$/,
+        kind: 'object',
+        call: (a) => a.marketData.stocksV3.stockV3Quotes({ feed: 'xetr', symbols: 'SAP:XETR', start: '2026-01-01' }),
+    },
+    {
+        accessor: 'marketData.stocksV3',
+        method: 'stockV3Snapshots',
+        verb: 'GET',
+        path: /^\/v3\/stocks\/[^/]+\/snapshots$/,
+        kind: 'object',
+        body: { snapshots: {} },
+        call: (a) => a.marketData.stocksV3.stockV3Snapshots({ feed: 'xetr', symbols: 'SAP:XETR' }),
+    },
+    {
+        accessor: 'marketData.stocksV3',
+        method: 'stockV3LatestBars',
+        verb: 'GET',
+        path: /^\/v3\/stocks\/[^/]+\/latest\/bars$/,
+        kind: 'object',
+        body: { bars: {} },
+        call: (a) => a.marketData.stocksV3.stockV3LatestBars({ feed: 'xetr', symbols: 'SAP:XETR' }),
+    },
+    {
+        accessor: 'marketData.stocksV3',
+        method: 'stockV3LatestQuotes',
+        verb: 'GET',
+        path: /^\/v3\/stocks\/[^/]+\/latest\/quotes$/,
+        kind: 'object',
+        body: { quotes: {} },
+        call: (a) => a.marketData.stocksV3.stockV3LatestQuotes({ feed: 'xetr', symbols: 'SAP:XETR' }),
+    },
+    {
+        accessor: 'marketData.stocksV3',
+        method: 'stockV3LatestTrades',
+        verb: 'GET',
+        path: /^\/v3\/stocks\/[^/]+\/latest\/trades$/,
+        kind: 'object',
+        body: { trades: {} },
+        call: (a) => a.marketData.stocksV3.stockV3LatestTrades({ feed: 'xetr', symbols: 'SAP:XETR' }),
+    },
+
     // --- marketData.crypto ----------------------------------------------
     {
         accessor: 'marketData.crypto',
@@ -187,25 +249,6 @@ const cases: EndpointCase[] = [
         kind: 'object',
         body: { quotes: {} },
         call: (a) => a.marketData.fixedIncome.fixedIncomeLatestQuotes({ isins: 'US1234567890' }),
-    },
-
-    // --- marketData.forex -----------------------------------------------
-    {
-        accessor: 'marketData.forex',
-        method: 'rates',
-        verb: 'GET',
-        path: /^\/v1beta1\/forex\/rates$/,
-        kind: 'object',
-        call: (a) => a.marketData.forex.rates({ currencyPairs: 'EURUSD' }),
-    },
-    {
-        accessor: 'marketData.forex',
-        method: 'latestRates',
-        verb: 'GET',
-        path: /^\/v1beta1\/forex\/latest\/rates$/,
-        kind: 'object',
-        body: { rates: {} },
-        call: (a) => a.marketData.forex.latestRates({ currencyPairs: 'EURUSD' }),
     },
 
     // --- marketData.logos -----------------------------------------------
