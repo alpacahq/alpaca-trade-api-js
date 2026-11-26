@@ -99,7 +99,7 @@ TypeScript rejects a direct `{ signal }` request object, but untyped JavaScript 
 
 ```ts
 await alpaca.marketData.stocks.stockMetaExchanges({
-  endUserId: "partner-user-id",
+  endUserId: "6f1c3a52-8d4e-4b7a-9c21-3e8f0d4b6a17",
 });
 ```
 
