@@ -20,6 +20,18 @@ import { mapValues } from '../runtime';
  */
 export interface OPEXPActivityV2 {
     /**
+     * Optional group ID which can help grouping together related activities
+     * @type {string}
+     * @memberof OPEXPActivityV2
+     */
+    groupId?: string;
+    /**
+     * The date when the activity was booked
+     * @type {Date}
+     * @memberof OPEXPActivityV2
+     */
+    systemDate: Date;
+    /**
      * The contract symbol of the security involved with the activity
      * @type {string}
      * @memberof OPEXPActivityV2
@@ -37,18 +49,6 @@ export interface OPEXPActivityV2 {
      * @memberof OPEXPActivityV2
      */
     symbol?: string;
-    /**
-     * Optional group ID which can help grouping together related activities
-     * @type {string}
-     * @memberof OPEXPActivityV2
-     */
-    groupId?: string;
-    /**
-     * The date when the activity was booked
-     * @type {Date}
-     * @memberof OPEXPActivityV2
-     */
-    systemDate: Date;
 }
 
 /**
@@ -69,11 +69,11 @@ export function OPEXPActivityV2FromJSONTyped(json: any, ignoreDiscriminator: boo
     }
     return {
         
+        'groupId': json['group_id'] == null ? undefined : json['group_id'],
+        'systemDate': (new Date(json['system_date'])),
         'contractSymbol': json['contract_symbol'] == null ? undefined : json['contract_symbol'],
         'cusip': json['cusip'] == null ? undefined : json['cusip'],
         'symbol': json['symbol'] == null ? undefined : json['symbol'],
-        'groupId': json['group_id'] == null ? undefined : json['group_id'],
-        'systemDate': (new Date(json['system_date'])),
     };
 }
 
@@ -88,11 +88,11 @@ export function OPEXPActivityV2ToJSONTyped(value?: OPEXPActivityV2 | null, ignor
 
     return {
         
+        'group_id': value['groupId'],
+        'system_date': ((value['systemDate']).toISOString().substring(0,10)),
         'contract_symbol': value['contractSymbol'],
         'cusip': value['cusip'],
         'symbol': value['symbol'],
-        'group_id': value['groupId'],
-        'system_date': ((value['systemDate']).toISOString().substring(0,10)),
     };
 }
 

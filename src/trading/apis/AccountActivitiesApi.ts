@@ -15,13 +15,13 @@
 
 import * as runtime from '../runtime';
 import type {
-  ActivityType,
+  ActivityTypeFilter,
   GetAccountActivities200ResponseInner,
   GetAccountActivitiesByActivityType200ResponseInner,
 } from '../models/index';
 import {
-    ActivityTypeFromJSON,
-    ActivityTypeToJSON,
+    ActivityTypeFilterFromJSON,
+    ActivityTypeFilterToJSON,
     GetAccountActivities200ResponseInnerFromJSON,
     GetAccountActivities200ResponseInnerToJSON,
     GetAccountActivitiesByActivityType200ResponseInnerFromJSON,
@@ -29,7 +29,7 @@ import {
 } from '../models/index';
 
 export interface GetAccountActivitiesRequest {
-    activityTypes?: Array<ActivityType>;
+    activityTypes?: Array<ActivityTypeFilter>;
     category?: GetAccountActivitiesCategoryEnum;
     orderId?: string;
     date?: Date;
@@ -41,7 +41,7 @@ export interface GetAccountActivitiesRequest {
 }
 
 export interface GetAccountActivitiesByActivityTypeRequest {
-    activityType: string;
+    activityType: ActivityTypeFilter;
     orderId?: string;
     date?: Date;
     until?: Date;

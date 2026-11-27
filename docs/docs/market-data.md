@@ -50,11 +50,9 @@ key is absent it returns `[]`; it never substitutes data from another symbol.
 The candle variants return an empty `Candles` object (empty column arrays) when
 the requested symbol is absent.
 
-The normalized layer includes stock, crypto, and option bars; stock and crypto
-trades and quotes; stock auctions; and forex rates. Corresponding chart-ready
-candle and single-symbol variants are available where applicable. Browse the
-complete helper inventory in the
-[Ergonomic Helpers Reference](./api/ergonomic-helpers.md).
+The normalized layer includes stock, crypto, and option bars; stock and crypto trades and quotes; and stock auctions. Corresponding chart-ready candle and single-symbol variants are available where applicable. Browse the complete helper inventory in the [Ergonomic Helpers Reference](./api/ergonomic-helpers.md).
+
+International equities are available through the generated `marketData.stocksV3` client. Historical bars, trades, and quotes also have `iterateStockV3*` and `collectStockV3*BySymbol` pagination helpers.
 
 ### Normalize generated endpoint results manually
 

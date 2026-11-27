@@ -16,6 +16,7 @@
 /**
  * Represents the current exchanges Alpaca supports. List is currently:
  * 
+ * US equities:
  * - AMEX
  * - ARCA
  * - BATS
@@ -23,7 +24,20 @@
  * - NASDAQ
  * - NYSEARCA
  * - OTC
+ * - TXSE
+ * 
+ * Crypto:
  * - CRYPTO
+ * - ERSX
+ * - CRXL
+ * 
+ * Crypto perpetuals:
+ * - ASCX
+ * 
+ * Index symbols:
+ * - INDEX
+ * 
+ * INDEX is the artificial exchange for index symbols such as SPX.
  * @export
  */
 export const Exchange = {
@@ -34,7 +48,12 @@ export const Exchange = {
     Nasdaq: 'NASDAQ',
     Nysearca: 'NYSEARCA',
     Otc: 'OTC',
-    Crypto: 'CRYPTO'
+    Crypto: 'CRYPTO',
+    Txse: 'TXSE',
+    Ersx: 'ERSX',
+    Crxl: 'CRXL',
+    Ascx: 'ASCX',
+    Index: 'INDEX'
 } as const;
 export type Exchange = typeof Exchange[keyof typeof Exchange];
 

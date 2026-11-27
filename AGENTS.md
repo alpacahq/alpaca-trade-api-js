@@ -47,12 +47,12 @@ when editing:
   behavior, ergonomics, and fixes live in hand-written modules outside those trees
   (`src/client.ts`, `src/orders.ts`, `src/marketDataShapes.ts`,
   `src/core/runtime.ts`, `src/streaming/`, ...).
-- **Regeneration-safe customizations live in `tooling/`.** Nine deviations from
+- **Regeneration-safe customizations live in `tooling/`.** Twelve deviations from
   stock `typescript-fetch` are encoded declaratively so they survive every
   regeneration: (1) null-safe required-array deserialization — forked
   `templates/typescript-fetch/modelGeneric.mustache`; (2) null-safe required-map
   deserialization — the same forked template; (3) undocumented-field passthrough
-  on 6 trading models — `x-ts-passthrough` vendor extension (trading overlay) +
+  on 7 trading models: `x-ts-passthrough` vendor extension (trading overlay) +
   forked templates; (4) market-data `feed` enum tightening — market-data overlay;
   (5) binary logo response preservation — market-data overlay; (6) complete,
   lossless `oneOf` imports/type guards/conversion — forked
@@ -61,9 +61,15 @@ when editing:
   `templates/typescript-fetch/apis.mustache`; (8) valid Travel Rule destination
   and identity combinations — `x-ts-travel-rule-info` (trading overlay) + forked
   generic model templates; (9) deadline-bounded generated REST authentication —
-  forked API templates defer asynchronous credential resolution into the shared
-  transport attempt. Add new fixes the same way (template or overlay), never as
-  a hand-edit.
+ forked API templates defer asynchronous credential resolution into the shared
+ transport attempt; (10) usable international-stock v3 date parameters: the
+ market-data overlay normalizes the generator input's equivalent date and
+ date-time string union to `type: string`; (11) nested model conversion for
+ international-stock v3 historical map-of-array responses:
+ `x-ts-map-array-model` (market-data overlay) + forked generic model template;
+ (12) preservation of explicit nullable `Account.account_number` values:
+ `x-ts-preserve-explicit-null` (trading overlay) + forked generic model template.
+ Add new fixes the same way (template or overlay), never as a hand-edit.
 - **The transport is shared.** The HTTP transport (retry/backoff, timeouts,
  rate limiting, typed errors, middleware, querystring, response wrappers) lives
  once in `src/core/runtime.ts`. `src/trading/runtime.ts` and

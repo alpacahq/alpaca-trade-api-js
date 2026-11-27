@@ -47,7 +47,7 @@ export interface OptionBarsRequest {
     end?: Date;
     limit?: number;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface OptionChainRequest {
@@ -93,7 +93,7 @@ export interface OptionTradesRequest {
     end?: Date;
     limit?: number;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 /**

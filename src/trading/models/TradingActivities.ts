@@ -84,11 +84,11 @@ export interface TradingActivities {
      */
     qty?: string;
     /**
-     * buy or sell
+     * Side of the fill. Includes `sell_short` when the fill short-sells.
      * @type {string}
      * @memberof TradingActivities
      */
-    side?: string;
+    side?: TradingActivitiesSideEnum;
     /**
      * The symbol of the security being traded.
      * @type {string}
@@ -109,6 +109,16 @@ export interface TradingActivities {
     type?: TradingActivitiesTypeEnum;
 }
 
+
+/**
+ * @export
+ */
+export const TradingActivitiesSideEnum = {
+    Buy: 'buy',
+    Sell: 'sell',
+    SellShort: 'sell_short'
+} as const;
+export type TradingActivitiesSideEnum = typeof TradingActivitiesSideEnum[keyof typeof TradingActivitiesSideEnum];
 
 /**
  * @export

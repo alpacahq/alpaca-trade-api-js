@@ -14,14 +14,16 @@
 
 
 /**
+ * Entry type returned on an activity. The listing returns the stored entry type.
+ * It omits ECJL, crypto-deposit JNLC, and SWP.
+ * 
+ * TRANS and MISC are filter aliases. They are not returned as activity_type.
+ * This is the known set. A new clearing code can appear without an API change.
+ * 
+ * Trade activities always have the type FILL.
+ * 
  * - FILL
  *   Order fills (both partial and full fills)
- * 
- * - TRANS
- *   Cash transactions (both CSD and CSW)
- * 
- * - MISC
- *   Miscellaneous or rarely used activity types (All types except those in TRANS, DIV, or FILL)
  * 
  * - ACATC
  *   ACATS IN/OUT (Cash)
@@ -29,17 +31,29 @@
  * - ACATS
  *   ACATS IN/OUT (Securities)
  * 
+ * - ALLOC
+ *   Allocation
+ * 
  * - CFEE
  *   Crypto fee
  * 
  * - CGD
  *   Capital gains distribution
  * 
+ * - CIL
+ *   Cash in lieu of stock
+ * 
+ * - CORR
+ *   Correction
+ * 
  * - CSD
- *   Cash deposit(+)
+ *   Cash deposit (+), including returned withdrawals
+ * 
+ * - CSR
+ *   Cash receipt (-)
  * 
  * - CSW
- *   Cash withdrawal(-)
+ *   Cash withdrawal (-), including returned deposits
  * 
  * - DIV
  *   Dividends
@@ -68,8 +82,32 @@
  * - DIVTXEX
  *   Dividend (tax exempt)
  * 
+ * - DIVWH
+ *   Dividend withholding
+ * 
+ * - DTCS
+ *   DTC security settlement
+ * 
+ * - DVF
+ *   DVP flip
+ * 
+ * - ECEXP
+ *   Event contract expiration
+ * 
+ * - EXTRD
+ *   External trade
+ * 
  * - FEE
- *   Fee denominated in USD
+ *   Fee denominated in USD. See `activity_sub_type` for the specific fee.
+ * 
+ * - FIMAT
+ *   Fixed income maturity
+ * 
+ * - FXCNV
+ *   FX conversion
+ * 
+ * - FXTRD
+ *   FX trade
  * 
  * - INT
  *   Interest (credit/margin)
@@ -79,6 +117,9 @@
  * 
  * - INTTW
  *   Interest adjusted (Tefra Withheld)
+ * 
+ * - INVPNL
+ *   Inventory profit and loss
  * 
  * - JNL
  *   Journal entry
@@ -91,6 +132,9 @@
  * 
  * - MA
  *   Merger/Acquisition
+ * 
+ * - MEM
+ *   Memopost
  * 
  * - NC
  *   Name change
@@ -125,11 +169,32 @@
  * - REORG
  *   Worthless removal CA
  * 
+ * - SC
+ *   Symbol change
+ * 
+ * - SEG
+ *   Segregation
+ * 
  * - SPIN
  *   Stock spinoff
  * 
  * - SPLIT
  *   Stock split
+ * 
+ * - SSO
+ *   Former stock spin-off code. Current spin-offs use `SPIN`.
+ * 
+ * - SSP
+ *   Former stock split code. Current splits use `SPLIT`.
+ * 
+ * - SUB
+ *   Subscription
+ * 
+ * - VOF
+ *   Voluntary offering (tender, warrant, rights, or exchange offers)
+ * 
+ * - WH
+ *   Withholding
  * 
  * - FOPT
  *   Free of Payment Transfers
@@ -140,13 +205,15 @@
  */
 export const ActivityType = {
     Fill: 'FILL',
-    Trans: 'TRANS',
-    Misc: 'MISC',
     Acatc: 'ACATC',
     Acats: 'ACATS',
+    Alloc: 'ALLOC',
     Cfee: 'CFEE',
     Cgd: 'CGD',
+    Cil: 'CIL',
+    Corr: 'CORR',
     Csd: 'CSD',
+    Csr: 'CSR',
     Csw: 'CSW',
     Div: 'DIV',
     Divcgl: 'DIVCGL',
@@ -157,14 +224,24 @@ export const ActivityType = {
     Divroc: 'DIVROC',
     Divtw: 'DIVTW',
     Divtxex: 'DIVTXEX',
+    Divwh: 'DIVWH',
+    Dtcs: 'DTCS',
+    Dvf: 'DVF',
+    Ecexp: 'ECEXP',
+    Extrd: 'EXTRD',
     Fee: 'FEE',
+    Fimat: 'FIMAT',
+    Fxcnv: 'FXCNV',
+    Fxtrd: 'FXTRD',
     Int: 'INT',
     Intnra: 'INTNRA',
     Inttw: 'INTTW',
+    Invpnl: 'INVPNL',
     Jnl: 'JNL',
     Jnlc: 'JNLC',
     Jnls: 'JNLS',
     Ma: 'MA',
+    Mem: 'MEM',
     Nc: 'NC',
     Opasn: 'OPASN',
     Opca: 'OPCA',
@@ -176,8 +253,15 @@ export const ActivityType = {
     Ptr: 'PTR',
     Reo: 'REO',
     Reorg: 'REORG',
+    Sc: 'SC',
+    Seg: 'SEG',
     Spin: 'SPIN',
     Split: 'SPLIT',
+    Sso: 'SSO',
+    Ssp: 'SSP',
+    Sub: 'SUB',
+    Vof: 'VOF',
+    Wh: 'WH',
     Fopt: 'FOPT',
     Oct: 'OCT'
 } as const;

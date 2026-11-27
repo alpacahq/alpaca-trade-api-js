@@ -8,7 +8,9 @@
  * `trading` / `marketData` namespaces, and fields are camelCased.
  */
 
-import { Alpaca, TimeFrame } from "@alpacahq/alpaca-trade-api";
+// In your own app this import is:
+// import { Alpaca, marketData, TimeFrame } from "@alpacahq/alpaca-trade-api";
+import { Alpaca, marketData, TimeFrame } from "../src/index";
 
 (async () => {
   // Create your alpaca object by setting your credentials.
@@ -67,7 +69,7 @@ import { Alpaca, TimeFrame } from "@alpacahq/alpaca-trade-api";
     start: last10TradingDays[0].date,
     end: last10TradingDays[last10TradingDays.length - 1].date,
     timeframe: TimeFrame.Day,
-    adjustment: "all",
+    adjustment: [marketData.StockAdjustment.All],
   });
   console.log("Last 10 daily bars for SPY");
   console.table(bars);

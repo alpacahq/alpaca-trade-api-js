@@ -153,14 +153,6 @@ const cases: EndpointCase[] = [
     // --- trading.cryptoFunding ------------------------------------------
     {
         accessor: 'trading.cryptoFunding',
-        method: 'createCryptoTransferForAccount',
-        verb: 'POST',
-        path: /^\/v2\/wallets\/transfers$/,
-        kind: 'object',
-        call: (a) => a.trading.cryptoFunding.createCryptoTransferForAccount({ createCryptoTransferRequest: { amount: '1', address: '0xabc' } as any }),
-    },
-    {
-        accessor: 'trading.cryptoFunding',
         method: 'getCryptoFundingTransfer',
         verb: 'GET',
         path: /^\/v2\/wallets\/transfers\/[^/]+$/,

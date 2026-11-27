@@ -1,4 +1,4 @@
-import { TimeFrame } from "@alpacahq/alpaca-trade-api";
+import { marketData, TimeFrame } from "@alpacahq/alpaca-trade-api";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -53,7 +53,7 @@ export default async function StockDetailPage({ params, searchParams }: PageProp
           timeframe: TimeFrame.Day,
           start,
           end,
-          adjustment: "all",
+          adjustment: [marketData.StockAdjustment.All],
           feed: "iex",
         },
         { maxPerSymbol: selectedRange.maxBars },

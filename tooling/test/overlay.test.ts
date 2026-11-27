@@ -72,4 +72,48 @@ describe("applyOverlay", () => {
       `${variantCount} per-type schemas`,
     );
   });
+
+  it("marks only the historical Stock v3 map-of-array fields for nested conversion", () => {
+    const root = resolve(import.meta.dirname, "..");
+    const spec = JSON.parse(
+      readFileSync(resolve(root, "specs/market-data-api.json"), "utf8"),
+    );
+    const overlay = JSON.parse(
+      readFileSync(resolve(root, "overlays/market-data.patch.json"), "utf8"),
+    );
+    const output = applyOverlay(spec, overlay) as typeof spec;
+    const schemas = output.components.schemas;
+
+    expect(
+      schemas.stock_v3_bars_resp.properties.bars["x-ts-map-array-model"],
+    ).toBe("StockV3Bar");
+    expect(
+      schemas.stock_v3_quotes_resp.properties.quotes["x-ts-map-array-model"],
+    ).toBe("StockV3Quote");
+    expect(
+      schemas.stock_v3_trades_resp.properties.trades["x-ts-map-array-model"],
+    ).toBe("StockV3Trade");
+    expect(
+      schemas.stock_v3_latest_bars_resp.properties.bars[
+        "x-ts-map-array-model"
+      ],
+    ).toBeUndefined();
+  });
+
+  it("marks Account.account_number as preserving explicit null", () => {
+    const root = resolve(import.meta.dirname, "..");
+    const spec = JSON.parse(
+      readFileSync(resolve(root, "specs/trading-api.json"), "utf8"),
+    );
+    const overlay = JSON.parse(
+      readFileSync(resolve(root, "overlays/trading.patch.json"), "utf8"),
+    );
+    const output = applyOverlay(spec, overlay) as typeof spec;
+
+    expect(
+      output.components.schemas.Account.properties.account_number[
+        "x-ts-preserve-explicit-null"
+      ],
+    ).toBe(true);
+  });
 });

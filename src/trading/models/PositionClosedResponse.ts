@@ -13,26 +13,28 @@
  */
 
 import { mapValues } from '../runtime';
-import type { Order } from './Order';
+import type { PositionClosedResponseBody } from './PositionClosedResponseBody';
 import {
-    OrderFromJSON,
-    OrderFromJSONTyped,
-    OrderToJSON,
-    OrderToJSONTyped,
-} from './Order';
+    PositionClosedResponseBodyFromJSON,
+    PositionClosedResponseBodyFromJSONTyped,
+    PositionClosedResponseBodyToJSON,
+    PositionClosedResponseBodyToJSONTyped,
+} from './PositionClosedResponseBody';
 
 /**
- * Represents the result of asking the api to close a position. 
+ * Represents the result of asking the api to close a position.
+ * 
+ * When `status` is 200, `body` is the Order used to close out the position. For any other `status`, `body` is the error object describing why the close was rejected.
  * @export
  * @interface PositionClosedResponse
  */
 export interface PositionClosedResponse {
     /**
      * 
-     * @type {Order}
+     * @type {PositionClosedResponseBody}
      * @memberof PositionClosedResponse
      */
-    body?: Order;
+    body?: PositionClosedResponseBody;
     /**
      * HTTP status code for the attempt to close this position
      * @type {number}
@@ -66,7 +68,7 @@ export function PositionClosedResponseFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
-        'body': json['body'] == null ? undefined : OrderFromJSON(json['body']),
+        'body': json['body'] == null ? undefined : PositionClosedResponseBodyFromJSON(json['body']),
         'status': json['status'],
         'symbol': json['symbol'],
     };
@@ -83,7 +85,7 @@ export function PositionClosedResponseToJSONTyped(value?: PositionClosedResponse
 
     return {
         
-        'body': OrderToJSON(value['body']),
+        'body': PositionClosedResponseBodyToJSON(value['body']),
         'status': value['status'],
         'symbol': value['symbol'],
     };

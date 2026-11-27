@@ -54,7 +54,7 @@ found: `brew install openjdk`.
    (`operationId` changed → different generated method name). Moves/renames are
    the early warning that the hand-written facade/capability map will need
    rewiring — e.g. the clock retag surfaced as
-   `GET /v3/clock: "Calendar" -> "Clock"` before any code broke).
+   `GET /v3/clock: "Clock" -> "Calendar"` before any code broke).
 3. **Confirm + adopt** — prompt before overwriting the pinned spec. `--yes`
    auto-adopts additive changes, but a non-interactive real adoption containing
    any removed schema or operation refuses before any spec write unless
@@ -89,8 +89,7 @@ found: `brew install openjdk`.
 
 ## Durability mechanisms (the regeneration-safe patches)
 
-The generated trees are frozen output; we never hand-edit them. The eight classes
-of deviation we need are encoded as follows:
+The generated trees are frozen output; we never hand-edit them. The twelve classes of deviation we need are encoded as follows:
 
 OpenAPI Generator 7.14 emits trailing spaces where optional Mustache values are
 empty. `.gitattributes` excludes only generated API/model files from Git's
@@ -118,12 +117,7 @@ market-data model files.
 
 ### 3. Undocumented-field passthrough — vendor extension + forked template
 
-Six trading models keep unknown fields (`...json` spread + `extends
-Record<string, unknown>`) so undocumented API fields survive round-trips. This is
-gated on a vendor extension `x-ts-passthrough` (added by the trading overlay) and
-emitted by the forked `modelGeneric.mustache` / `modelGenericInterfaces.mustache`.
-Models: `Account`, `Order`, `AccountConfigurations`, `OptionContract`,
-`GetAccountActivities200ResponseInner`, and `CorporateAnnouncement`.
+Seven trading models keep unknown fields during deserialization (`...json` spread + `extends Record<string, unknown>`) so consumers can inspect undocumented response fields. Serialization deliberately emits only documented fields. This is gated on a vendor extension `x-ts-passthrough` (added by the trading overlay) and emitted by the forked `modelGeneric.mustache` / `modelGenericInterfaces.mustache`. Models: `Account`, `Order`, `AccountConfigurations`, `OptionContract`, `GetAccountActivities200ResponseInner`, `CorporateAnnouncement`, and `ClosePositionError`. The overlay removes the latter's `additionalProperties` marker after testing its exact upstream shape. This prevents OpenAPI Generator from dropping that model from the `PositionClosedResponseBody` one-of imports while preserving unknown response fields through `x-ts-passthrough`.
 
 ### 4. Feed enum tightening — spec overlay
 
@@ -236,6 +230,18 @@ fetch, middleware, and response-body consumption. Keep all generated auth
 branches inside this hook when rebasing the template. Runtime authentication
 tests use a generated API method and fail if resolution moves outside the
 deadline again.
+
+### 10. International-stock v3 date parameters: spec overlay
+
+The upstream v3 `start` and `end` parameters use `anyOf` with two string formats (`date-time` and `date`). OpenAPI Generator emits that scalar union as an empty object model, causing valid strings to be typed as `{}`. The market-data overlay tests the exact two-branch upstream shape and normalizes each generator input to `type: string`, preserving both accepted wire formats and nanosecond timestamps.
+
+### 11. International-stock v3 historical map conversion: vendor extension + forked template
+
+The upstream historical v3 bar, quote, and trade responses are maps whose values are arrays of models. OpenAPI Generator identifies these properties as primitive maps, so stock output passes nested timestamp strings through even though the generated item types declare `Date`. The market-data overlay tests each exact map-of-array schema before adding `x-ts-map-array-model`, and the generic model template applies the named item converter during deserialization and serialization. Latest-data maps remain on the generator's ordinary object-map path.
+
+### 12. Explicit nullable account number: vendor extension + forked template
+
+The optional `Account.account_number` property explicitly allows `null`, but stock `typescript-fetch` maps both a missing value and `null` to `undefined`. The trading overlay tests the exact `["string", "null"]` type before adding `x-ts-preserve-explicit-null`; the generic model template then checks for `undefined` rather than using a nullish guard. This keeps the generated `accountNumber?: string | null` declaration truthful without changing unrelated optional nullable properties.
 
 ### Credential-gated SSE smoke
 

@@ -20,13 +20,13 @@ import { mapValues } from '../runtime';
  */
 export interface ModelError {
     /**
-     * 
+     * Alpaca error code, such as `40310000`. Usually the HTTP status code followed by a five-digit suffix. Several errors can share the same code, so check `message` for the specific reason.
      * @type {number}
      * @memberof ModelError
      */
     code: number;
     /**
-     * 
+     * Human-readable reason for the rejection.
      * @type {string}
      * @memberof ModelError
      */

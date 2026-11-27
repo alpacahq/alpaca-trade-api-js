@@ -250,27 +250,15 @@
           "type": "string"
         }
       },
-      "forex_currency_pairs": {
-        "in": "query",
-        "name": "currency_pairs",
-        "required": true,
-        "schema": {
-          "allOf": [
-            {
-              "type": "string"
-            },
-            {
-              "$ref": "#/components/schemas/forex_currency_pairs"
-            }
-          ]
-        }
-      },
-      "forex_timeframe": {
-        "in": "query",
-        "name": "timeframe",
+      "end_user_id": {
+        "description": "For Broker API partners that make requests on behalf of their end users. It\nidentifies the end user so usage can be reported per end user. It is not used\nfor authentication or authorization.\n\nThe value must be a UUID. Requests with a malformed value are rejected with\n`400`.\n",
+        "example": "6f1c3a52-8d4e-4b7a-9c21-3e8f0d4b6a17",
+        "in": "header",
+        "name": "End-User-Id",
         "required": false,
         "schema": {
-          "$ref": "#/components/schemas/forex_timeframe"
+          "format": "uuid",
+          "type": "string"
         }
       },
       "isins": {
@@ -358,14 +346,14 @@
         }
       },
       "option_feed": {
-        "description": "The source feed of the data. `opra` is the official OPRA feed, `indicative` is a free indicative feed where trades are delayed and quotes are modified. Default: `opra` if the user has a subscription, otherwise `indicative`.\n",
+        "description": "The source feed of the data. `opra` is the official OPRA feed, `indicative` is a free indicative feed where trades are delayed and quotes are modified. Default: `opra` if the request uses broker partner API credentials and the partner has an OPRA subscription, or if the account has a real-time subscription and has signed the OPRA agreement; otherwise `indicative`.\n",
         "in": "query",
         "name": "feed",
         "schema": {
           "$ref": "#/components/schemas/option_feed"
         }
       },
-      "option_limit": {
+      "option_snapshot_limit": {
         "description": "Number of maximum snapshots to return in a response.\nThe limit applies to the total number of data points, not the number per symbol!\nUse `next_page_token` to fetch the next set of responses.\n",
         "in": "query",
         "name": "limit",
@@ -421,10 +409,10 @@
         "schema": {
           "allOf": [
             {
-              "type": "string"
+              "$ref": "#/components/schemas/sort"
             },
             {
-              "$ref": "#/components/schemas/sort"
+              "type": "string"
             }
           ]
         }
@@ -458,13 +446,25 @@
         }
       },
       "stock_adjustment": {
-        "description": "Specifies the adjustments for the bars.\n\n - `raw`: no adjustments\n - `split`: adjust price and volume for forward and reverse stock splits\n - `dividend`: adjust price for cash dividends\n - `spin-off`: adjust price for spin-offs\n - `all`: apply all above adjustments\n\nYou can combine multiple adjustments by separating them with a comma, e.g. `split,spin-off`.\n",
+        "description": "Specifies the adjustments for the bars. Passed as a comma-separated list, e.g. `split,spin-off`.\n\n - `raw`: no adjustments\n - `split`: adjust price and volume for forward and reverse stock splits\n - `dividend`: adjust price for cash dividends\n - `spin-off`: adjust price for spin-offs\n - `all`: apply split, dividend, and spin-off adjustments\n\nDefault: `raw`.\n\nThe following are rejected with a `400`:\n - Unknown values\n - Empty values\n - Repeated keys like `?adjustment=split&adjustment=all`\n",
+        "example": [
+          "split",
+          "spin-off"
+        ],
+        "explode": false,
         "in": "query",
         "name": "adjustment",
         "schema": {
-          "default": "raw",
-          "type": "string"
-        }
+          "default": [
+            "raw"
+          ],
+          "items": {
+            "$ref": "#/components/schemas/stock_adjustment"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "style": "form"
       },
       "stock_asof": {
         "description": "The as-of date of the queried stock symbol(s). Format: YYYY-MM-DD. Default: current day.\n\nThis date is used to identify the underlying entity of the provided symbol(s), so that name changes for this entity can be found. Data for past symbol(s) is returned if the query date range spans the name change.\n\nThe special value of \"-\" means symbol mapping is skipped. Data is returned based on the symbol alone without looking up previous names. The same happens if the queried symbol is not found on the given `asof` date.\n\nExample: FB was renamed to META in 2022-06-09. Querying META with an `asof` date after 2022-06-09 will also yield FB data. The data for the FB ticker will be labeled as META because they are considered the same underlying entity as of 2022-06-09. Querying FB with an `asof` date after 2022-06-09 will only return data with the FB ticker, not with META. But with an `asof` date before 2022-06-09, META will also be returned (as FB).\n",
@@ -526,6 +526,135 @@
           "type": "string"
         }
       },
+      "stock_v3_end": {
+        "description": "The inclusive end of the interval. A data point is returned when `start <= t <= end`. Format: RFC-3339 or YYYY-MM-DD.\nA date means the end of that day in the market's time zone.\nDefaults to the current time if not specified.\n",
+        "examples": {
+          "RFC-3339 nanosecond": {
+            "summary": "RFC-3339 date-time with nanosecond accuracy",
+            "value": "2026-09-24T01:02:03.123456789Z"
+          },
+          "RFC-3339 second": {
+            "summary": "RFC-3339 date-time with second accuracy",
+            "value": "2026-09-24T00:00:00Z"
+          },
+          "RFC-3339 with timezone": {
+            "summary": "RFC-3339 date-time with time zone",
+            "value": "2026-09-24T09:30:00-04:00"
+          },
+          "date": {
+            "summary": "Date",
+            "value": "2026-09-24"
+          }
+        },
+        "in": "query",
+        "name": "end",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "stock_v3_historical_feed": {
+        "description": "The source feed of the data. All feeds require a subscription.\n - `euroctp`: EuroCTP, the official EU consolidated tape, covering trades from all EU trading venues\n - `xetr`: Xetra, the electronic trading venue of the Frankfurt Stock Exchange (Deutsche Börse)\n - `xhkg`: Hong Kong Stock Exchange (HKEX)\n - `xlon`: London Stock Exchange (LSE)\n - `xsau`: Saudi Exchange (Tadawul)\n",
+        "example": "xetr",
+        "in": "path",
+        "name": "feed",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/stock_v3_historical_feed"
+        }
+      },
+      "stock_v3_latest_feed": {
+        "description": "The source feed of the data. All feeds require a subscription.\n - `euroctp`: EuroCTP, the official EU consolidated tape, covering trades from all EU trading venues\n - `xetr`: Xetra, the electronic trading venue of the Frankfurt Stock Exchange (Deutsche Börse)\n - `xhkg`: Hong Kong Stock Exchange (HKEX)\n - `xlon`: London Stock Exchange (LSE)\n - `xsau`: Saudi Exchange (Tadawul)\n",
+        "example": "xetr",
+        "in": "path",
+        "name": "feed",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/stock_v3_latest_feed"
+        }
+      },
+      "stock_v3_page_size": {
+        "description": "The maximum number of data points to return in the response page.\nThe page_size applies to the total number of data points across all symbols, not per symbol.\nThe API may return fewer, even if more data points exist in the requested interval.\nAlways check `next_page_token` for more pages.\n",
+        "in": "query",
+        "name": "page_size",
+        "required": false,
+        "schema": {
+          "default": 1000,
+          "maximum": 10000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "stock_v3_sort": {
+        "description": "Sort the data points of each symbol by timestamp in ascending or descending order.",
+        "in": "query",
+        "name": "sort",
+        "schema": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/sort"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "stock_v3_start": {
+        "description": "The inclusive start of the interval. Format: RFC-3339 or YYYY-MM-DD.\nA date means the start of that day in the market's time zone.\n",
+        "examples": {
+          "RFC-3339 nanosecond": {
+            "summary": "RFC-3339 date-time with nanosecond accuracy",
+            "value": "2026-09-23T01:02:03.123456789Z"
+          },
+          "RFC-3339 second": {
+            "summary": "RFC-3339 date-time with second accuracy",
+            "value": "2026-09-23T00:00:00Z"
+          },
+          "RFC-3339 with timezone": {
+            "summary": "RFC-3339 date-time with time zone",
+            "value": "2026-09-23T09:30:00-04:00"
+          },
+          "date": {
+            "summary": "Date",
+            "value": "2026-09-23"
+          }
+        },
+        "in": "query",
+        "name": "start",
+        "required": true,
+        "schema": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "stock_v3_symbols": {
+        "description": "A comma-separated list of symbols with a limit of 1000.\nEach symbol must be in `TICKER:MIC` format, where MIC is the ISO 10383 defined code of the symbol's primary market.\nThe market must be one the feed covers, e.g. `XETR` on `xetr`; `euroctp` accepts any market.\n",
+        "example": "BMW:XETR,SAP:XETR",
+        "in": "query",
+        "name": "symbols",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
       "symbol": {
         "description": "A unique series of letters assigned to a security for trading purposes.",
         "example": "AAPL",
@@ -576,7 +705,10 @@
         "description": "Authentication headers are missing or invalid. Make sure you authenticate your request with a valid API key.\n"
       },
       "403": {
-        "description": "The requested resource is forbidden.\n"
+        "description": "The requested resource is forbidden, for example because the subscription does not cover the requested data.\n"
+      },
+      "404": {
+        "description": "The requested resource was not found, for example because the requested feed does not exist.\n"
       },
       "429": {
         "description": "Too many requests. You hit the rate limit. Use the X-RateLimit-... response headers to make sure you're under the rate limit.\n",
@@ -2773,7 +2905,7 @@
             "type": "number"
           },
           "as": {
-            "description": "Ask size.",
+            "description": "Ask size in the base asset (left side of the pair), with no lot multiplier.",
             "format": "double",
             "type": "number"
           },
@@ -2783,7 +2915,7 @@
             "type": "number"
           },
           "bs": {
-            "description": "Bid size.",
+            "description": "Bid size in the base asset (left side of the pair), with no lot multiplier.",
             "format": "double",
             "type": "number"
           },
@@ -3151,95 +3283,6 @@
         ],
         "type": "object"
       },
-      "forex_currency_pairs": {
-        "description": "A comma-separated string with currency pairs.",
-        "examples": [
-          "USDJPY",
-          "USDMXN"
-        ],
-        "type": "string"
-      },
-      "forex_latest_rates_resp": {
-        "description": "The response object of the latest forex rates.",
-        "properties": {
-          "rates": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/forex_rate"
-            },
-            "type": "object"
-          }
-        },
-        "required": [
-          "rates"
-        ],
-        "type": "object"
-      },
-      "forex_rate": {
-        "description": "A foreign exchange rate between two currencies at a given time.",
-        "examples": [
-          {
-            "ap": 127.763,
-            "bp": 127.702,
-            "mp": 127.757,
-            "t": "2022-04-20T18:23:00Z"
-          }
-        ],
-        "properties": {
-          "ap": {
-            "description": "The last ask price value of the currency at the end of the timeframe.",
-            "format": "double",
-            "type": "number"
-          },
-          "bp": {
-            "description": "The last bid price value of the currency at the end of the timeframe.",
-            "format": "double",
-            "type": "number"
-          },
-          "mp": {
-            "description": "The last mid price value of the currency at the end of the timeframe.",
-            "format": "double",
-            "type": "number"
-          },
-          "t": {
-            "description": "Timestamp of the rate.",
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "bp",
-          "mp",
-          "ap",
-          "t"
-        ],
-        "type": "object"
-      },
-      "forex_rates_resp": {
-        "properties": {
-          "next_page_token": {
-            "$ref": "#/components/schemas/next_page_token"
-          },
-          "rates": {
-            "additionalProperties": {
-              "items": {
-                "$ref": "#/components/schemas/forex_rate"
-              },
-              "type": "array"
-            },
-            "type": "object"
-          }
-        },
-        "required": [
-          "rates",
-          "next_page_token"
-        ],
-        "type": "object"
-      },
-      "forex_timeframe": {
-        "default": "1Min",
-        "description": "The sampling interval of the currency rates. For example, 5S returns forex rates sampled every five seconds.\nYou can use the following values:\n - `5Sec` or `5S`\n - `1Min` or `1T`\n - `1Day` or `1D`\n",
-        "type": "string"
-      },
       "forward_split": {
         "description": "Forward split.",
         "examples": [
@@ -3498,13 +3541,11 @@
         "description": "Model representing a news article.",
         "properties": {
           "author": {
-            "description": "Original author of news article.",
-            "minLength": 1,
+            "description": "Original author of news article (may be empty).",
             "type": "string"
           },
           "content": {
-            "description": "Content of the news article (might contain HTML).",
-            "minLength": 1,
+            "description": "Content of the news article (might contain HTML, may be empty).",
             "type": "string"
           },
           "created_at": {
@@ -3531,13 +3572,12 @@
             "uniqueItems": true
           },
           "source": {
-            "description": "Source where the news originated from (e.g. Benzinga).",
+            "description": "Source from which the news originated.",
             "minLength": 1,
             "type": "string"
           },
           "summary": {
-            "description": "Summary text for the article (may be first sentence of content).",
-            "minLength": 1,
+            "description": "Summary text for the article (may be first sentence of content or may be empty).",
             "type": "string"
           },
           "symbols": {
@@ -4433,6 +4473,17 @@
         ],
         "type": "object"
       },
+      "stock_adjustment": {
+        "description": "One adjustment applied to historical stock bars.",
+        "enum": [
+          "raw",
+          "split",
+          "dividend",
+          "spin-off",
+          "all"
+        ],
+        "type": "string"
+      },
       "stock_and_cash_merger": {
         "description": "Stock and cash merger.",
         "examples": [
@@ -5180,6 +5231,9 @@
       "stock_snapshots_resp_single": {
         "allOf": [
           {
+            "$ref": "#/components/schemas/stock_snapshot"
+          },
+          {
             "properties": {
               "currency": {
                 "type": "string"
@@ -5189,9 +5243,6 @@
               }
             },
             "type": "object"
-          },
-          {
-            "$ref": "#/components/schemas/stock_snapshot"
           }
         ]
       },
@@ -5317,6 +5368,332 @@
           "trades",
           "next_page_token",
           "symbol"
+        ],
+        "type": "object"
+      },
+      "stock_v3_bar": {
+        "description": "OHLC aggregate of trades in an interval.\nBars are not adjusted after splits or dividends. Symbol mapping is also not supported: in case of a name change the symbol active at the time must be used.\nBars may include prints that were later corrected or cancelled. Corrections and cancel/error events are not applied.\n",
+        "examples": [
+          {
+            "c": "57.88",
+            "h": "60.08",
+            "l": "57.88",
+            "n": "14950",
+            "o": "59.92",
+            "t": "2026-09-22T22:00:00Z",
+            "v": "2540940",
+            "vw": "58.365"
+          }
+        ],
+        "properties": {
+          "c": {
+            "description": "Price of the last trade in the bar, in the native quotation currency.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "h": {
+            "description": "Highest trade price in the bar, in the native quotation currency.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "l": {
+            "description": "Lowest trade price in the bar, in the native quotation currency.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "n": {
+            "description": "Number of trades in the bar.",
+            "format": "int64",
+            "type": "string"
+          },
+          "o": {
+            "description": "Price of the first trade in the bar, in the native quotation currency.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "t": {
+            "$ref": "#/components/schemas/timestamp"
+          },
+          "v": {
+            "description": "Number of shares traded in the bar.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "vw": {
+            "description": "Volume-weighted average price of the trades in the bar, in the native quotation currency.",
+            "format": "decimal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "t",
+          "o",
+          "h",
+          "l",
+          "c",
+          "v",
+          "n",
+          "vw"
+        ],
+        "type": "object"
+      },
+      "stock_v3_bars_resp": {
+        "properties": {
+          "bars": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/stock_v3_bar"
+              },
+              "type": "array"
+            },
+            "description": "Bars keyed by symbol (`TICKER:MIC`).",
+            "type": "object"
+          },
+          "next_page_token": {
+            "$ref": "#/components/schemas/next_page_token"
+          }
+        },
+        "required": [
+          "bars",
+          "next_page_token"
+        ],
+        "type": "object"
+      },
+      "stock_v3_historical_feed": {
+        "enum": [
+          "euroctp",
+          "xetr",
+          "xhkg",
+          "xlon",
+          "xsau"
+        ],
+        "type": "string"
+      },
+      "stock_v3_latest_bars_resp": {
+        "properties": {
+          "bars": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/stock_v3_bar"
+            },
+            "description": "The latest minute bars keyed by symbol (`TICKER:MIC`).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "bars"
+        ],
+        "type": "object"
+      },
+      "stock_v3_latest_feed": {
+        "enum": [
+          "euroctp",
+          "xetr",
+          "xhkg",
+          "xlon",
+          "xsau"
+        ],
+        "type": "string"
+      },
+      "stock_v3_latest_quotes_resp": {
+        "properties": {
+          "quotes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/stock_v3_quote"
+            },
+            "description": "The latest quotes keyed by symbol (`TICKER:MIC`).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "quotes"
+        ],
+        "type": "object"
+      },
+      "stock_v3_latest_trades_resp": {
+        "properties": {
+          "trades": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/stock_v3_trade"
+            },
+            "description": "The latest trades keyed by symbol (`TICKER:MIC`).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "trades"
+        ],
+        "type": "object"
+      },
+      "stock_v3_quote": {
+        "description": "The best bid and offer (BBO) for the symbol.\n",
+        "examples": [
+          {
+            "ap": "57.84",
+            "as": "260",
+            "bp": "57.82",
+            "bs": "520",
+            "t": "2026-09-24T13:30:00.041325568Z"
+          }
+        ],
+        "properties": {
+          "ap": {
+            "description": "Best ask price, in the native quotation currency.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "as": {
+            "description": "Number of shares available at the best ask price.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "bp": {
+            "description": "Best bid price, in the native quotation currency.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "bs": {
+            "description": "Number of shares available at the best bid price.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "t": {
+            "$ref": "#/components/schemas/timestamp"
+          }
+        },
+        "required": [
+          "t",
+          "bp",
+          "bs",
+          "ap",
+          "as"
+        ],
+        "type": "object"
+      },
+      "stock_v3_quotes_resp": {
+        "properties": {
+          "next_page_token": {
+            "$ref": "#/components/schemas/next_page_token"
+          },
+          "quotes": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/stock_v3_quote"
+              },
+              "type": "array"
+            },
+            "description": "Quotes keyed by symbol (`TICKER:MIC`).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "quotes",
+          "next_page_token"
+        ],
+        "type": "object"
+      },
+      "stock_v3_snapshot": {
+        "description": "The latest trade, latest quote, minute bar, current daily bar, and previous daily bar for one symbol.\nBars are not adjusted after splits or dividends. Symbol mapping is also not supported: in case of a name change the symbol active at the time must be used.\nTrades and bars may include prints that were later corrected or cancelled. Corrections and cancel/error events are not applied.\n",
+        "properties": {
+          "daily_bar": {
+            "$ref": "#/components/schemas/stock_v3_bar"
+          },
+          "latest_quote": {
+            "$ref": "#/components/schemas/stock_v3_quote"
+          },
+          "latest_trade": {
+            "$ref": "#/components/schemas/stock_v3_trade"
+          },
+          "minute_bar": {
+            "$ref": "#/components/schemas/stock_v3_bar"
+          },
+          "prev_daily_bar": {
+            "$ref": "#/components/schemas/stock_v3_bar"
+          }
+        },
+        "type": "object"
+      },
+      "stock_v3_snapshots_resp": {
+        "properties": {
+          "snapshots": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/stock_v3_snapshot"
+            },
+            "description": "Snapshots keyed by symbol (`TICKER:MIC`).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "snapshots"
+        ],
+        "type": "object"
+      },
+      "stock_v3_trade": {
+        "description": "A trade print published by an execution venue.\nTrades may include prints that were later corrected or cancelled. Corrections and cancel/error events are not applied.\n",
+        "examples": [
+          {
+            "i": "1",
+            "m": "XETR",
+            "p": "57.84",
+            "s": "120",
+            "t": "2026-09-24T13:30:00.086175744Z"
+          },
+          {
+            "m": "CEUX",
+            "p": "57.84",
+            "s": "45",
+            "t": "2026-09-24T13:30:01.244839680Z"
+          }
+        ],
+        "properties": {
+          "i": {
+            "description": "Trade ID. Omitted when the venue does not publish one.",
+            "type": "string"
+          },
+          "m": {
+            "description": "MIC of the execution venue that published the print. It can differ from the listing MIC in the symbol.",
+            "type": "string"
+          },
+          "p": {
+            "description": "Trade price, in the native quotation currency.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "s": {
+            "description": "Number of shares traded.",
+            "format": "decimal",
+            "type": "string"
+          },
+          "t": {
+            "$ref": "#/components/schemas/timestamp"
+          }
+        },
+        "required": [
+          "t",
+          "m",
+          "p",
+          "s"
+        ],
+        "type": "object"
+      },
+      "stock_v3_trades_resp": {
+        "properties": {
+          "next_page_token": {
+            "$ref": "#/components/schemas/next_page_token"
+          },
+          "trades": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/stock_v3_trade"
+              },
+              "type": "array"
+            },
+            "description": "Trades keyed by symbol (`TICKER:MIC`).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "trades",
+          "next_page_token"
         ],
         "type": "object"
       },
@@ -6078,10 +6455,6 @@
           {
             "description": "Sandbox",
             "url": "https://stream.data.sandbox.alpaca.markets"
-          },
-          {
-            "description": "Staging",
-            "url": "https://stream.data.staging-v2.tradetalk.us"
           }
         ],
         "summary": "Subscribe to Corporate Actions Events (SSE)",
@@ -6284,191 +6657,6 @@
         ]
       }
     },
-    "/v1beta1/forex/latest/rates": {
-      "get": {
-        "description": "Get the latest forex rates for the given currency pairs.\n",
-        "operationId": "LatestRates",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/forex_currency_pairs"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "USDJPY": {
-                    "value": {
-                      "rates": {
-                        "USDJPY": {
-                          "ap": 128.112,
-                          "bp": 127.752,
-                          "mp": 127.779,
-                          "t": "2022-05-20T05:38:41.311530885Z"
-                        }
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/forex_latest_rates_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "BasicAuth": []
-          },
-          {
-            "apiKey": [],
-            "apiSecret": []
-          }
-        ],
-        "summary": "Latest rates for currency pairs",
-        "tags": [
-          "Forex"
-        ]
-      }
-    },
-    "/v1beta1/forex/rates": {
-      "get": {
-        "description": "Get historical forex rates for the given currency pairs in the given time interval and at the given timeframe (snapshot frequency).\n",
-        "operationId": "Rates",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/forex_currency_pairs"
-          },
-          {
-            "$ref": "#/components/parameters/forex_timeframe"
-          },
-          {
-            "$ref": "#/components/parameters/start"
-          },
-          {
-            "$ref": "#/components/parameters/end"
-          },
-          {
-            "$ref": "#/components/parameters/limit"
-          },
-          {
-            "$ref": "#/components/parameters/sort"
-          },
-          {
-            "$ref": "#/components/parameters/page_token"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "USDJPY": {
-                    "value": {
-                      "next_page_token": "VVNESlBZfDIwMjItMDEtMDNUMDA6MDM6MDBa",
-                      "rates": {
-                        "USDJPY": [
-                          {
-                            "ap": 115.18,
-                            "bp": 114.192,
-                            "mp": 115.144,
-                            "t": "2022-01-03T00:01:00Z"
-                          },
-                          {
-                            "ap": 115.185,
-                            "bp": 114.189,
-                            "mp": 115.138,
-                            "t": "2022-01-03T00:02:00Z"
-                          },
-                          {
-                            "ap": 115.148,
-                            "bp": 115.122,
-                            "mp": 115.131,
-                            "t": "2022-01-03T00:03:00Z"
-                          }
-                        ]
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/forex_rates_resp"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/ratelimit_limit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/ratelimit_remaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/ratelimit_reset"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "BasicAuth": []
-          },
-          {
-            "apiKey": [],
-            "apiSecret": []
-          }
-        ],
-        "summary": "Historical rates for currency pairs",
-        "tags": [
-          "Forex"
-        ]
-      }
-    },
     "/v1beta1/logos/{symbol}": {
       "get": {
         "description": "Get the image of the company logo for the given symbol.",
@@ -6604,22 +6792,51 @@
                     "value": {
                       "news": [
                         {
-                          "author": "Charles Gross",
-                          "content": "<p>This headline-only article is meant to show you why a stock is moving, the most difficult aspect of stock trading....</p>",
-                          "created_at": "2021-12-31T11:08:42Z",
-                          "headline": "Apple Leader in Phone Sales in China for Second Straight Month in November With 23.6% Share, According to Market Research Data",
-                          "id": 24843171,
+                          "author": "",
+                          "content": "Following the release of SpaceX's third-quarter 2026 financial results, several analysts have updated their outlook on the company. UBS maintained a Buy rating while raising its price target to $230 from $210. Additionally, Wells Fargo maintained an Overweight rating and increased its price target to $274 from $214. These adjustments reflect analyst reactions to the company's reported revenue growth and strategic focus on artificial intelligence.",
+                          "created_at": "2026-10-21T15:02:10Z",
+                          "headline": "Analysts Adjust Price Targets for SpaceX Following Q3 Results",
+                          "id": 100536145,
                           "images": [],
-                          "source": "benzinga",
-                          "summary": "This headline-only article is meant to show you why a stock is moving, the most difficult aspect of stock trading",
+                          "source": "fiscal.ai",
+                          "summary": "Financial institutions including UBS and Wells Fargo have updated their price targets for SpaceX following the company's third-quarter earnings report.",
                           "symbols": [
-                            "AAPL"
+                            "SPCX"
                           ],
-                          "updated_at": "2021-12-31T11:08:43Z",
-                          "url": "https://www.benzinga.com/news/21/12/24843171/apple-leader-in-phone-sales-in-china-for-second-straight-month-in-november-with-23-6-share-according"
+                          "updated_at": "2026-10-21T15:02:10Z",
+                          "url": "https://www.moomoo.com/stock/SPCX-US/news?chain_id=Name1K9-3FXPhg.1lcj000&global_content=%7B%22promote_id%22%3A13764,%22sub_promote_id%22%3A64,%22f%22%3A%22www.moomoo.com%2Fcommunity%2Fprofile%2F105275796%2Fpost%2Fall%22%7D"
+                        },
+                        {
+                          "author": "Badar Shaikh",
+                          "content": "<p>It was yet another eventful week for <strong>Tesla Inc</strong> (NASDAQ:TSLA) and CEO <strong>Elon Musk</strong> amid the Roadster's high-flying debut, questions about a possible SpaceX merger and more.</p>",
+                          "created_at": "2026-10-18T12:51:02Z",
+                          "headline": "This Week in TSLA: Roadster's Flying Debut, Cybercab Speeding in School Zones, SpaceX Merger and More",
+                          "id": 62429279,
+                          "images": [
+                            {
+                              "size": "large",
+                              "url": "https://cdn.benzinga.com/files/images/story/2026/10/18/Kaunas--Lithuania-2022---April-14-Tesla-.jpg?width=2048&height=1536"
+                            },
+                            {
+                              "size": "small",
+                              "url": "https://cdn.benzinga.com/files/images/story/2026/10/18/Kaunas--Lithuania-2022---April-14-Tesla-.jpg?width=1024&height=768"
+                            },
+                            {
+                              "size": "thumb",
+                              "url": "https://cdn.benzinga.com/files/images/story/2026/10/18/Kaunas--Lithuania-2022---April-14-Tesla-.jpg?width=250&height=187"
+                            }
+                          ],
+                          "source": "benzinga",
+                          "summary": "This week, Tesla unveiled its flying Roadster, faced Cybercab questions and merger speculation with SpaceX.",
+                          "symbols": [
+                            "SPCX",
+                            "TSLA"
+                          ],
+                          "updated_at": "2026-10-18T12:51:02Z",
+                          "url": "https://www.benzinga.com/markets/tech/26/10/62429279/this-week-in-tsla-roadsters-flying-debut-cybercab-speeding-in-school-zones-spacex-merger-and-more"
                         }
                       ],
-                      "next_page_token": "MTY0MDk0ODkyMzAwMDAwMDAwMHwyNDg0MzE3MQ=="
+                      "next_page_token": "MTc5MjMyNzg2MjAwMDAwMDAwMHw2MjQyOTI3OQ=="
                     }
                   }
                 },
@@ -6999,7 +7216,7 @@
             "$ref": "#/components/parameters/option_updated_since"
           },
           {
-            "$ref": "#/components/parameters/option_limit"
+            "$ref": "#/components/parameters/option_snapshot_limit"
           },
           {
             "$ref": "#/components/parameters/page_token"
@@ -7106,7 +7323,7 @@
             "$ref": "#/components/parameters/option_feed"
           },
           {
-            "$ref": "#/components/parameters/option_limit"
+            "$ref": "#/components/parameters/option_snapshot_limit"
           },
           {
             "$ref": "#/components/parameters/option_updated_since"
@@ -8439,6 +8656,9 @@
             "$ref": "#/components/parameters/stock_auction_feed"
           },
           {
+            "$ref": "#/components/parameters/end_user_id"
+          },
+          {
             "$ref": "#/components/parameters/stock_currency"
           },
           {
@@ -8698,6 +8918,9 @@
             "$ref": "#/components/parameters/stock_historical_feed"
           },
           {
+            "$ref": "#/components/parameters/end_user_id"
+          },
+          {
             "$ref": "#/components/parameters/stock_currency"
           },
           {
@@ -8791,6 +9014,9 @@
           },
           {
             "$ref": "#/components/parameters/stock_latest_feed"
+          },
+          {
+            "$ref": "#/components/parameters/end_user_id"
           },
           {
             "$ref": "#/components/parameters/stock_currency"
@@ -8908,6 +9134,9 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/end_user_id"
           }
         ],
         "responses": {
@@ -8967,6 +9196,11 @@
       "get": {
         "description": "Returns the mapping between the stock exchange codes and the corresponding exchange names.\n",
         "operationId": "StockMetaExchanges",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/end_user_id"
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -9042,6 +9276,9 @@
           },
           {
             "$ref": "#/components/parameters/stock_historical_feed"
+          },
+          {
+            "$ref": "#/components/parameters/end_user_id"
           },
           {
             "$ref": "#/components/parameters/stock_currency"
@@ -9155,6 +9392,9 @@
             "$ref": "#/components/parameters/stock_latest_feed"
           },
           {
+            "$ref": "#/components/parameters/end_user_id"
+          },
+          {
             "$ref": "#/components/parameters/stock_currency"
           }
         ],
@@ -9255,6 +9495,9 @@
           },
           {
             "$ref": "#/components/parameters/stock_latest_feed"
+          },
+          {
+            "$ref": "#/components/parameters/end_user_id"
           },
           {
             "$ref": "#/components/parameters/stock_currency"
@@ -9457,6 +9700,9 @@
             "$ref": "#/components/parameters/stock_historical_feed"
           },
           {
+            "$ref": "#/components/parameters/end_user_id"
+          },
+          {
             "$ref": "#/components/parameters/stock_currency"
           },
           {
@@ -9568,6 +9814,9 @@
             "$ref": "#/components/parameters/stock_latest_feed"
           },
           {
+            "$ref": "#/components/parameters/end_user_id"
+          },
+          {
             "$ref": "#/components/parameters/stock_currency"
           }
         ],
@@ -9667,6 +9916,9 @@
           },
           {
             "$ref": "#/components/parameters/stock_auction_feed"
+          },
+          {
+            "$ref": "#/components/parameters/end_user_id"
           },
           {
             "$ref": "#/components/parameters/stock_currency"
@@ -9802,6 +10054,9 @@
             "$ref": "#/components/parameters/stock_historical_feed"
           },
           {
+            "$ref": "#/components/parameters/end_user_id"
+          },
+          {
             "$ref": "#/components/parameters/stock_currency"
           },
           {
@@ -9894,6 +10149,9 @@
           },
           {
             "$ref": "#/components/parameters/stock_latest_feed"
+          },
+          {
+            "$ref": "#/components/parameters/end_user_id"
           },
           {
             "$ref": "#/components/parameters/stock_currency"
@@ -9991,6 +10249,9 @@
           },
           {
             "$ref": "#/components/parameters/stock_historical_feed"
+          },
+          {
+            "$ref": "#/components/parameters/end_user_id"
           },
           {
             "$ref": "#/components/parameters/stock_currency"
@@ -10103,6 +10364,9 @@
             "$ref": "#/components/parameters/stock_latest_feed"
           },
           {
+            "$ref": "#/components/parameters/end_user_id"
+          },
+          {
             "$ref": "#/components/parameters/stock_currency"
           }
         ],
@@ -10189,6 +10453,9 @@
           },
           {
             "$ref": "#/components/parameters/stock_latest_feed"
+          },
+          {
+            "$ref": "#/components/parameters/end_user_id"
           },
           {
             "$ref": "#/components/parameters/stock_currency"
@@ -10333,6 +10600,9 @@
             "$ref": "#/components/parameters/stock_historical_feed"
           },
           {
+            "$ref": "#/components/parameters/end_user_id"
+          },
+          {
             "$ref": "#/components/parameters/stock_currency"
           },
           {
@@ -10441,6 +10711,9 @@
             "$ref": "#/components/parameters/stock_latest_feed"
           },
           {
+            "$ref": "#/components/parameters/end_user_id"
+          },
+          {
             "$ref": "#/components/parameters/stock_currency"
           }
         ],
@@ -10515,6 +10788,741 @@
           "Stock"
         ]
       }
+    },
+    "/v3/stocks/{feed}/bars": {
+      "get": {
+        "description": "The historical bars API provides aggregates for a list of symbols between the specified times.\n\nBars are not adjusted after splits or dividends. Symbol mapping is also not supported: in case of a name change the symbol active at the time must be used. Bars may include prints that were later corrected or cancelled. Corrections and cancel/error events are not applied.\n\nDaily, weekly and monthly bars start at midnight in the market's time zone. Weekly bars start on the market's first trading day of the week.\n\nThe bars of each symbol are sorted by timestamp. The order of symbols is not guaranteed. Continue with `next_page_token`.\n",
+        "operationId": "StockV3Bars",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/stock_v3_historical_feed"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_symbols"
+          },
+          {
+            "$ref": "#/components/parameters/timeframe"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_start"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_end"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_sort"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_page_size"
+          },
+          {
+            "$ref": "#/components/parameters/page_token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "xlon": {
+                    "summary": "VOD:XLON daily bars on the xlon feed, two per page",
+                    "value": {
+                      "bars": {
+                        "VOD:XLON": [
+                          {
+                            "c": "116.95",
+                            "h": "117.506",
+                            "l": "115.6",
+                            "n": "4274",
+                            "o": "116.1",
+                            "t": "2026-11-09T00:00:00Z",
+                            "v": "41294069",
+                            "vw": "116.842699"
+                          },
+                          {
+                            "c": "116.6281",
+                            "h": "119.05",
+                            "l": "114.3",
+                            "n": "7210",
+                            "o": "117.05",
+                            "t": "2026-11-10T00:00:00Z",
+                            "v": "98346873",
+                            "vw": "116.519345"
+                          }
+                        ]
+                      },
+                      "next_page_token": "MURheXxWT0Q6WExPTnxEfDE3OTQzNTUyMDAwMDAwMDAwMDA="
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/stock_v3_bars_resp"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/ratelimit_limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/ratelimit_remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/ratelimit_reset"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
+        "summary": "Historical bars",
+        "tags": [
+          "Stock v3"
+        ]
+      }
+    },
+    "/v3/stocks/{feed}/latest/bars": {
+      "get": {
+        "description": "The latest bars endpoint provides the latest minute bar for the given symbols.\n\nBars are not adjusted after splits or dividends. Symbol mapping is also not supported: in case of a name change the symbol active at the time must be used. Latest bars may include prints that were later corrected or cancelled. Corrections and cancel/error events are not applied.\n",
+        "operationId": "StockV3LatestBars",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/stock_v3_latest_feed"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_symbols"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "euroctp": {
+                    "summary": "BMW:XETR on the euroctp feed after the close of 2026-11-13",
+                    "value": {
+                      "bars": {
+                        "BMW:XETR": {
+                          "c": "57.92",
+                          "h": "57.92",
+                          "l": "57.92",
+                          "n": "1",
+                          "o": "57.92",
+                          "t": "2026-11-13T21:58:00Z",
+                          "v": "87",
+                          "vw": "57.92"
+                        }
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/stock_v3_latest_bars_resp"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/ratelimit_limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/ratelimit_remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/ratelimit_reset"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
+        "summary": "Latest bars",
+        "tags": [
+          "Stock v3"
+        ]
+      }
+    },
+    "/v3/stocks/{feed}/latest/quotes": {
+      "get": {
+        "description": "The latest quotes endpoint provides the latest best bid and ask prices for the given symbols.\n",
+        "operationId": "StockV3LatestQuotes",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/stock_v3_latest_feed"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_symbols"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "xlon": {
+                    "summary": "VOD:XLON on the xlon feed after the close of 2026-11-13",
+                    "value": {
+                      "quotes": {
+                        "VOD:XLON": {
+                          "ap": "120",
+                          "as": "55563",
+                          "bp": "114.2",
+                          "bs": "4000",
+                          "t": "2026-11-13T17:30:00.12296Z"
+                        }
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/stock_v3_latest_quotes_resp"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/ratelimit_limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/ratelimit_remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/ratelimit_reset"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
+        "summary": "Latest quotes",
+        "tags": [
+          "Stock v3"
+        ]
+      }
+    },
+    "/v3/stocks/{feed}/latest/trades": {
+      "get": {
+        "description": "The latest trades endpoint provides the latest trade for the given symbols.\n",
+        "operationId": "StockV3LatestTrades",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/stock_v3_latest_feed"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_symbols"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "euroctp": {
+                    "summary": "BMW:XETR on the euroctp feed after the close of 2026-11-13",
+                    "value": {
+                      "trades": {
+                        "BMW:XETR": {
+                          "m": "SINT",
+                          "p": "57.92",
+                          "s": "87",
+                          "t": "2026-11-13T21:58:07.933045226Z"
+                        }
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/stock_v3_latest_trades_resp"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/ratelimit_limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/ratelimit_remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/ratelimit_reset"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
+        "summary": "Latest trades",
+        "tags": [
+          "Stock v3"
+        ]
+      }
+    },
+    "/v3/stocks/{feed}/quotes": {
+      "get": {
+        "description": "The historical quotes API provides quote data for a list of symbols between the specified times.\n\nThe quotes of each symbol are sorted by timestamp. The order of symbols is not guaranteed. Continue with `next_page_token`.\n",
+        "operationId": "StockV3Quotes",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/stock_v3_historical_feed"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_symbols"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_start"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_end"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_sort"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_page_size"
+          },
+          {
+            "$ref": "#/components/parameters/page_token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "euroctp": {
+                    "summary": "ENI:XMIL best bid and offer on the euroctp feed, three per page",
+                    "value": {
+                      "next_page_token": "cXVvdGVzfEVOSTpYTUlMfDE3OTQ0OTAyMDMwOTM4NDAwMDB8WFhYWHwyNS42MjV8NTI0fDI1LjYzfDc3Nw==",
+                      "quotes": {
+                        "ENI:XMIL": [
+                          {
+                            "ap": "25.63",
+                            "as": "777",
+                            "bp": "25.62",
+                            "bs": "2045",
+                            "t": "2026-11-12T13:30:00.52471Z"
+                          },
+                          {
+                            "ap": "25.63",
+                            "as": "777",
+                            "bp": "25.62",
+                            "bs": "2033",
+                            "t": "2026-11-12T13:30:01.79933Z"
+                          },
+                          {
+                            "ap": "25.63",
+                            "as": "777",
+                            "bp": "25.62",
+                            "bs": "4343",
+                            "t": "2026-11-12T13:30:02.87255Z"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/stock_v3_quotes_resp"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/ratelimit_limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/ratelimit_remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/ratelimit_reset"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
+        "summary": "Historical quotes",
+        "tags": [
+          "Stock v3"
+        ]
+      }
+    },
+    "/v3/stocks/{feed}/snapshots": {
+      "get": {
+        "description": "The snapshot endpoint provides the latest trade, latest quote, minute bar, daily bar, and previous daily bar for each requested symbol.\n\nBars are not adjusted after splits or dividends. Symbol mapping is also not supported: in case of a name change the symbol active at the time must be used. Trades, bars, and snapshots may include prints that were later corrected or cancelled. Corrections and cancel/error events are not applied.\n",
+        "operationId": "StockV3Snapshots",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/stock_v3_latest_feed"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_symbols"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "euroctp": {
+                    "summary": "BMW:XETR on the euroctp feed after the close of 2026-11-13",
+                    "value": {
+                      "snapshots": {
+                        "BMW:XETR": {
+                          "daily_bar": {
+                            "c": "57.92",
+                            "h": "57.98",
+                            "l": "56.7",
+                            "n": "12829",
+                            "o": "57.08",
+                            "t": "2026-11-12T23:00:00Z",
+                            "v": "2044549",
+                            "vw": "57.541271"
+                          },
+                          "latest_quote": {
+                            "ap": "59.2",
+                            "as": "150",
+                            "bp": "55.84",
+                            "bs": "300",
+                            "t": "2026-11-13T18:48:19.89115Z"
+                          },
+                          "latest_trade": {
+                            "m": "SINT",
+                            "p": "57.92",
+                            "s": "87",
+                            "t": "2026-11-13T21:58:07.933045226Z"
+                          },
+                          "minute_bar": {
+                            "c": "57.92",
+                            "h": "57.92",
+                            "l": "57.92",
+                            "n": "1",
+                            "o": "57.92",
+                            "t": "2026-11-13T21:58:00Z",
+                            "v": "87",
+                            "vw": "57.92"
+                          },
+                          "prev_daily_bar": {
+                            "c": "56.76",
+                            "h": "58.8",
+                            "l": "56.76",
+                            "n": "15403",
+                            "o": "58.32",
+                            "t": "2026-11-11T23:00:00Z",
+                            "v": "4858215",
+                            "vw": "57.939011"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/stock_v3_snapshots_resp"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/ratelimit_limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/ratelimit_remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/ratelimit_reset"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
+        "summary": "Snapshots",
+        "tags": [
+          "Stock v3"
+        ]
+      }
+    },
+    "/v3/stocks/{feed}/trades": {
+      "get": {
+        "description": "The historical trades API provides trade data for a list of symbols between the specified times.\n\nThe trades of each symbol are sorted by timestamp. The order of symbols is not guaranteed. A page can contain one symbol when that symbol fills `page_size`. Continue with `next_page_token`.\n",
+        "operationId": "StockV3Trades",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/stock_v3_historical_feed"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_symbols"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_start"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_end"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_sort"
+          },
+          {
+            "$ref": "#/components/parameters/stock_v3_page_size"
+          },
+          {
+            "$ref": "#/components/parameters/page_token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "euroctp": {
+                    "summary": "BMW:XETR trades from several venues on the euroctp feed",
+                    "value": {
+                      "next_page_token": "dHJhZGVzfEJNVzpYRVRSfDE3OTQ0OTAyNDgxNjYwNDg4MzJ8RVJGUXww",
+                      "trades": {
+                        "BMW:XETR": [
+                          {
+                            "m": "XGAT",
+                            "p": "57.14",
+                            "s": "400",
+                            "t": "2026-11-12T13:30:41.54608138Z"
+                          },
+                          {
+                            "m": "CEUX",
+                            "p": "57.14",
+                            "s": "10",
+                            "t": "2026-11-12T13:30:43.05075Z"
+                          },
+                          {
+                            "m": "CEUX",
+                            "p": "57.14",
+                            "s": "11",
+                            "t": "2026-11-12T13:30:43.05077Z"
+                          },
+                          {
+                            "m": "TQEX",
+                            "p": "57.16",
+                            "s": "287",
+                            "t": "2026-11-12T13:30:44.37277Z"
+                          },
+                          {
+                            "m": "XETA",
+                            "p": "57.16",
+                            "s": "449",
+                            "t": "2026-11-12T13:30:48.16554Z"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/stock_v3_trades_resp"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/ratelimit_limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/ratelimit_remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/ratelimit_reset"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "apiKey": [],
+            "apiSecret": []
+          },
+          {
+            "BasicAuth": []
+          }
+        ],
+        "summary": "Historical trades",
+        "tags": [
+          "Stock v3"
+        ]
+      }
     }
   },
   "servers": [
@@ -10533,12 +11541,12 @@
       "name": "Stock"
     },
     {
-      "description": "Endpoints for option data.",
-      "name": "Option"
+      "description": "Endpoints for global stocks.",
+      "name": "Stock v3"
     },
     {
-      "description": "Endpoints for indices.",
-      "name": "Index"
+      "description": "Endpoints for option data.",
+      "name": "Option"
     },
     {
       "description": "Endpoints for cryptocurrencies.",
@@ -10547,10 +11555,6 @@
     {
       "description": "Endpoints for fixed income data.",
       "name": "Fixed income"
-    },
-    {
-      "description": "Endpoints for forex currency rates.",
-      "name": "Forex"
     },
     {
       "description": "Endpoints for getting company logo images.",
@@ -10567,10 +11571,11 @@
     {
       "description": "Corporate actions (splits, dividends, etc.).",
       "name": "Corporate actions"
-    },
-    {
-      "description": "Endpoints for event contract (prediction market) assets metadata.",
-      "name": "Event contracts"
     }
-  ]
+  ],
+  "x-readme": {
+    "apply-tag-changes": true,
+    "explorer-enabled": true,
+    "proxy-enabled": false
+  }
 }

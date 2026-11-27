@@ -5,6 +5,7 @@
   },
   "include": [
     "examples/**/*",
+    "migrated_examples/marketdataV2.ts",
     "scripts/smoke-sse.ts",
     "test/types/**/*.typecheck.ts"
   ]

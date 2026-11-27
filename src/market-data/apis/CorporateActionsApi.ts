@@ -48,7 +48,7 @@ export interface CorporateActionsRequest {
     limit?: number;
     dataQuality?: DataQuality;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface SubscribeToCorporateActionsEventsSSERequest {
@@ -208,7 +208,6 @@ export class CorporateActionsApi extends runtime.BaseAPI {
             servers: [
                 { url: 'https://stream.data.alpaca.markets' },
                 { url: 'https://stream.data.sandbox.alpaca.markets' },
-                { url: 'https://stream.data.staging-v2.tradetalk.us' },
             ],
         };
         return runtime.SSEApiResponse.open(

@@ -60,7 +60,7 @@ export interface CryptoBarsRequest {
     end?: Date;
     limit?: number;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface CryptoLatestBarsRequest {
@@ -90,7 +90,7 @@ export interface CryptoQuotesRequest {
     end?: Date;
     limit?: number;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 export interface CryptoSnapshotsRequest {
@@ -105,7 +105,7 @@ export interface CryptoTradesRequest {
     end?: Date;
     limit?: number;
     pageToken?: string;
-    sort?: string & Sort;
+    sort?: Sort & string;
 }
 
 /**

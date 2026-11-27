@@ -31,7 +31,7 @@ export interface GetV2CorporateActionsAnnouncementsRequest {
     until: string;
     symbol?: string;
     cusip?: string;
-    dateType?: string;
+    dateType?: GetV2CorporateActionsAnnouncementsDateTypeEnum;
 }
 
 export interface GetV2CorporateActionsAnnouncementsIdRequest {
@@ -185,3 +185,14 @@ export class CorporateActionsApi extends runtime.BaseAPI {
     }
 
 }
+
+/**
+ * @export
+ */
+export const GetV2CorporateActionsAnnouncementsDateTypeEnum = {
+    DeclarationDate: 'declaration_date',
+    ExDate: 'ex_date',
+    RecordDate: 'record_date',
+    PayableDate: 'payable_date'
+} as const;
+export type GetV2CorporateActionsAnnouncementsDateTypeEnum = typeof GetV2CorporateActionsAnnouncementsDateTypeEnum[keyof typeof GetV2CorporateActionsAnnouncementsDateTypeEnum];

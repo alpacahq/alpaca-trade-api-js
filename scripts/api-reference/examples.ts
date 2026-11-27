@@ -101,10 +101,6 @@ const trading: ApiReferenceExamples = {
         description: "Deprecated: a single corporate-action announcement by id.",
         example: 'await alpaca.trading.corporateActions.getV2CorporateActionsAnnouncementsId({ id: "be3c368a-4c7c-4384-808e-f02c9f5a8afe" });',
     },
-    "trading.cryptoFunding.createCryptoTransferForAccount": {
-        description: "Initiate a crypto withdrawal/transfer for the account.",
-        example: 'await alpaca.trading.cryptoFunding.createCryptoTransferForAccount({ createCryptoTransferRequest: { amount: "0.5", address: "0xabc...", asset: "ETH" } });',
-    },
     "trading.cryptoFunding.getCryptoFundingTransfer": {
         description: "Fetch a single crypto transfer by id.",
         example: 'await alpaca.trading.cryptoFunding.getCryptoFundingTransfer({ transferId: "f1...e9" });',
@@ -314,6 +310,34 @@ const marketData: ApiReferenceExamples = {
         description: "Exchange-code mappings.",
         example: 'await alpaca.marketData.stocks.stockMetaExchanges();',
     },
+    "marketData.stocksV3.stockV3Bars": {
+        description: "Historical bars from an international-equity feed (paginated).",
+        example: 'await alpaca.marketData.stocksV3.stockV3Bars({ feed: "xetr", symbols: "SAP:XETR", timeframe: TimeFrame.Day, start: "2026-01-01" });',
+    },
+    "marketData.stocksV3.stockV3Trades": {
+        description: "Historical trades from an international-equity feed (paginated).",
+        example: 'await alpaca.marketData.stocksV3.stockV3Trades({ feed: "xetr", symbols: "SAP:XETR", start: "2026-01-01" });',
+    },
+    "marketData.stocksV3.stockV3Quotes": {
+        description: "Historical quotes from an international-equity feed (paginated).",
+        example: 'await alpaca.marketData.stocksV3.stockV3Quotes({ feed: "xetr", symbols: "SAP:XETR", start: "2026-01-01" });',
+    },
+    "marketData.stocksV3.stockV3Snapshots": {
+        description: "Latest snapshots from an international-equity feed.",
+        example: 'await alpaca.marketData.stocksV3.stockV3Snapshots({ feed: "xetr", symbols: "SAP:XETR" });',
+    },
+    "marketData.stocksV3.stockV3LatestBars": {
+        description: "Latest bars from an international-equity feed.",
+        example: 'await alpaca.marketData.stocksV3.stockV3LatestBars({ feed: "xetr", symbols: "SAP:XETR" });',
+    },
+    "marketData.stocksV3.stockV3LatestQuotes": {
+        description: "Latest quotes from an international-equity feed.",
+        example: 'await alpaca.marketData.stocksV3.stockV3LatestQuotes({ feed: "xetr", symbols: "SAP:XETR" });',
+    },
+    "marketData.stocksV3.stockV3LatestTrades": {
+        description: "Latest trades from an international-equity feed.",
+        example: 'await alpaca.marketData.stocksV3.stockV3LatestTrades({ feed: "xetr", symbols: "SAP:XETR" });',
+    },
     "marketData.crypto.cryptoBars": {
         description: "Historical crypto bars (paginated); `loc` selects the data region.",
         example: 'await alpaca.marketData.crypto.cryptoBars({ loc: "us", symbols: "BTC/USD,ETH/USD", timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
@@ -353,14 +377,6 @@ const marketData: ApiReferenceExamples = {
     "marketData.fixedIncome.fixedIncomeLatestQuotes": {
         description: "Latest fixed-income quotes by ISIN.",
         example: 'await alpaca.marketData.fixedIncome.fixedIncomeLatestQuotes({ isins: "US0378331005", tradeSize: 100 });',
-    },
-    "marketData.forex.rates": {
-        description: "Historical forex rates for currency pairs (paginated).",
-        example: 'await alpaca.marketData.forex.rates({ currencyPairs: "EUR/USD", timeframe: TimeFrame.Day, start: new Date("2024-01-01") });',
-    },
-    "marketData.forex.latestRates": {
-        description: "Latest forex rates for one or more currency pairs.",
-        example: 'await alpaca.marketData.forex.latestRates({ currencyPairs: "EUR/USD,GBP/USD" });',
     },
     "marketData.logos.logos": {
         description: "Company logo image bytes for a symbol.",
@@ -748,13 +764,29 @@ const ergonomic: ApiReferenceExamples = {
         description: "Collect option trades merged into a `{ [symbol]: OptionTrade[] }` map.",
         example: 'const bySymbol = await alpaca.marketData.collectOptionTradesBySymbol({ symbols: ["AAPL250117C00150000"], start: new Date("2024-01-02") });',
     },
-    "marketData.iterateForexRates": {
-        description: "Lazily yield forex-rate records across currency pairs and pages.",
-        example: 'for await (const { symbol, value } of alpaca.marketData.iterateForexRates({ currencyPairs: ["EUR/USD"], start: new Date("2024-01-01") })) console.log(symbol, value);',
+    "marketData.iterateStockV3Bars": {
+        description: "Lazily yield international-equity bars across symbols and pages.",
+        example: 'for await (const { symbol, value } of alpaca.marketData.iterateStockV3Bars({ feed: "xetr", symbols: ["SAP:XETR"], timeframe: TimeFrame.Day, start: "2026-01-01" })) console.log(symbol, value);',
     },
-    "marketData.collectForexRatesBySymbol": {
-        description: "Collect forex rates merged into a `{ [pair]: ForexRate[] }` map.",
-        example: 'const byPair = await alpaca.marketData.collectForexRatesBySymbol({ currencyPairs: ["EUR/USD"], start: new Date("2024-01-01") });',
+    "marketData.collectStockV3BarsBySymbol": {
+        description: "Collect international-equity bars into a symbol-keyed map.",
+        example: 'const bySymbol = await alpaca.marketData.collectStockV3BarsBySymbol({ feed: "xetr", symbols: ["SAP:XETR"], timeframe: TimeFrame.Day, start: "2026-01-01" });',
+    },
+    "marketData.iterateStockV3Trades": {
+        description: "Lazily yield international-equity trades across symbols and pages.",
+        example: 'for await (const { symbol, value } of alpaca.marketData.iterateStockV3Trades({ feed: "xetr", symbols: ["SAP:XETR"], start: "2026-01-01" })) console.log(symbol, value);',
+    },
+    "marketData.collectStockV3TradesBySymbol": {
+        description: "Collect international-equity trades into a symbol-keyed map.",
+        example: 'const bySymbol = await alpaca.marketData.collectStockV3TradesBySymbol({ feed: "xetr", symbols: ["SAP:XETR"], start: "2026-01-01" });',
+    },
+    "marketData.iterateStockV3Quotes": {
+        description: "Lazily yield international-equity quotes across symbols and pages.",
+        example: 'for await (const { symbol, value } of alpaca.marketData.iterateStockV3Quotes({ feed: "xetr", symbols: ["SAP:XETR"], start: "2026-01-01" })) console.log(symbol, value);',
+    },
+    "marketData.collectStockV3QuotesBySymbol": {
+        description: "Collect international-equity quotes into a symbol-keyed map.",
+        example: 'const bySymbol = await alpaca.marketData.collectStockV3QuotesBySymbol({ feed: "xetr", symbols: ["SAP:XETR"], start: "2026-01-01" });',
     },
     "marketData.iterateOptionSnapshots": {
         description: "Lazily yield `{ symbol, value }` option-snapshot records across symbols and pages.",

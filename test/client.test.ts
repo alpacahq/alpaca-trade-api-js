@@ -178,6 +178,7 @@ describe('Trading sub-client', () => {
         expect(t.accountConfigurations).toBeInstanceOf(trading.AccountConfigurationsApi);
         expect(t.assets).toBeInstanceOf(trading.AssetsApi);
         expect(t.calendar).toBeInstanceOf(trading.CalendarApi);
+        expect(t.clock).toBe(t.calendar);
         expect(t.corporateActions).toBeInstanceOf(trading.CorporateActionsApi);
         expect(t.cryptoFunding).toBeInstanceOf(trading.CryptoFundingApi);
         expect(t.events).toBeInstanceOf(trading.EventsApi);
@@ -217,9 +218,9 @@ describe('Market-data sub-client', () => {
     it('exposes every market-data API as the right instance', () => {
         const { marketData: md } = new Alpaca({ ...CREDS });
         expect(md.stocks).toBeInstanceOf(marketData.StockApi);
+        expect(md.stocksV3).toBeInstanceOf(marketData.StockV3Api);
         expect(md.crypto).toBeInstanceOf(marketData.CryptoApi);
         expect(md.fixedIncome).toBeInstanceOf(marketData.FixedIncomeApi);
-        expect(md.forex).toBeInstanceOf(marketData.ForexApi);
         expect(md.logos).toBeInstanceOf(marketData.LogosApi);
         expect(md.news).toBeInstanceOf(marketData.NewsApi);
         expect(md.options).toBeInstanceOf(marketData.OptionApi);
@@ -309,11 +310,65 @@ describe('Pagination iterators', () => {
         expect(new URL(calls[0].url).searchParams.get('symbols')).toBe('AAPL,MSFT');
     });
 
-    it('accepts a forex `currencyPairs` array and joins it for the wire', async () => {
+    it('normalizes scalar and array stock adjustments across bar helpers', async () => {
         const { calls, fetchApi } = capturingFetch();
         const { marketData: md } = new Alpaca({ ...CREDS, fetchApi });
-        await md.collectForexRatesBySymbol({ currencyPairs: ['EUR/USD', 'GBP/USD'], timeframe: TimeFrame.Day });
-        expect(new URL(calls[0].url).searchParams.get('currency_pairs')).toBe('EUR/USD,GBP/USD');
+        const legacyAdjustment: string = marketData.StockAdjustment.All;
+
+        await md.collectStockBarsBySymbol({
+            symbols: 'AAPL',
+            timeframe: TimeFrame.Day,
+            adjustment: legacyAdjustment,
+        });
+        await md.getStockBarsFor('AAPL', {
+            timeframe: TimeFrame.Day,
+            adjustment: marketData.StockAdjustment.Split,
+        });
+        for await (const _record of md.iterateStockBars({
+            symbols: 'AAPL',
+            timeframe: TimeFrame.Day,
+            adjustment: [
+                marketData.StockAdjustment.Dividend,
+                marketData.StockAdjustment.SpinOff,
+            ],
+        })) {
+            // Empty mocked response.
+        }
+        for await (const _bar of md.iterateStockBarSingle({
+            symbol: 'AAPL',
+            timeframe: TimeFrame.Day,
+            adjustment: marketData.StockAdjustment.Raw,
+        })) {
+            // Empty mocked response.
+        }
+        await md.collectStockBarSingle({
+            symbol: 'AAPL',
+            timeframe: TimeFrame.Day,
+            adjustment: [
+                marketData.StockAdjustment.Dividend,
+                marketData.StockAdjustment.SpinOff,
+            ],
+        });
+
+        expect(calls.map((call) => new URL(call.url).searchParams.get('adjustment'))).toEqual([
+            'all',
+            'split',
+            'dividend,spin-off',
+            'raw',
+            'dividend,spin-off',
+        ]);
+    });
+
+    it('accepts a v3 stock `symbols` array and joins it for the wire', async () => {
+        const { calls, fetchApi } = capturingFetch();
+        const { marketData: md } = new Alpaca({ ...CREDS, fetchApi });
+        await md.collectStockV3BarsBySymbol({
+            feed: 'xetr',
+            symbols: ['SAP:XETR', 'DTE:XETR'],
+            timeframe: TimeFrame.Day,
+            start: '2026-01-01',
+        });
+        expect(new URL(calls[0].url).searchParams.get('symbols')).toBe('SAP:XETR,DTE:XETR');
     });
 
     it('caps each symbol at maxPerSymbol and stops paginating early', async () => {
@@ -571,7 +626,7 @@ describe('Facade rate limiting', () => {
 describe('Capability map', () => {
     it('every entry is well-formed', () => {
         for (const entry of capabilities) {
-            expect(entry.accessor).toMatch(/^(trading|marketData)\.[a-zA-Z]+$/);
+            expect(entry.accessor).toMatch(/^(trading|marketData)\.[a-zA-Z0-9]+$/);
             expect(entry.api).toBeTruthy();
             expect(entry.methods.length).toBeGreaterThan(0);
         }

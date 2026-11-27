@@ -74,6 +74,12 @@ export interface ActivityV2DetailTRD {
      */
     orderStatus: string;
     /**
+     * Settlement currency of the order. Omitted when the order has none.
+     * @type {string}
+     * @memberof ActivityV2DetailTRD
+     */
+    settlementCurrency?: string;
+    /**
      * Represents what side of the transaction an order was on
      * @type {string}
      * @memberof ActivityV2DetailTRD
@@ -93,6 +99,7 @@ export interface ActivityV2DetailTRD {
  */
 export const ActivityV2DetailTRDExecutionTypeEnum = {
     Fill: 'fill',
+    PartialFill: 'partial_fill',
     TradeCorrect: 'trade_correct',
     TradeBust: 'trade_bust'
 } as const;
@@ -142,6 +149,7 @@ export function ActivityV2DetailTRDFromJSONTyped(json: any, ignoreDiscriminator:
         'leavesQty': json['leaves_qty'],
         'orderId': json['order_id'],
         'orderStatus': json['order_status'],
+        'settlementCurrency': json['settlement_currency'] == null ? undefined : json['settlement_currency'],
         'side': json['side'],
         'symbol': json['symbol'],
     };
@@ -167,6 +175,7 @@ export function ActivityV2DetailTRDToJSONTyped(value?: ActivityV2DetailTRD | nul
         'leaves_qty': value['leavesQty'],
         'order_id': value['orderId'],
         'order_status': value['orderStatus'],
+        'settlement_currency': value['settlementCurrency'],
         'side': value['side'],
         'symbol': value['symbol'],
     };

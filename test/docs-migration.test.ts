@@ -16,6 +16,7 @@ import {
     renderDocsMigration,
     renderDocsMigrationIndex,
     renderDocsV5Migration,
+    renderDocsV6Migration,
 } from "../scripts/gen-docs-migration";
 
 const nodeRequire = createRequire(import.meta.url);
@@ -61,13 +62,15 @@ describe("docs migration generator", () => {
         expect(lines[examplesIndex + 1]).toBe("docs/docs/migrations.md");
         expect(lines[examplesIndex + 2]).toBe("docs/docs/migration.md");
         expect(lines[examplesIndex + 3]).toBe("docs/docs/migration-v5.md");
+        expect(lines[examplesIndex + 4]).toBe("docs/docs/migration-v6.md");
     });
 
-    it("keeps 3.x to 4.0 primary and publishes 5.0 separately", () => {
+    it("keeps 3.x to 4.0 primary and publishes later majors separately", () => {
         const root = resolve(import.meta.dirname, "..");
         const index = readFileSync(resolve(root, "MIGRATIONS.md"), "utf8");
         const primary = readFileSync(resolve(root, "MIGRATION.md"), "utf8");
         const v5 = readFileSync(resolve(root, "MIGRATION_V5.md"), "utf8");
+        const v6 = readFileSync(resolve(root, "MIGRATION_V6.md"), "utf8");
 
         expect(index.indexOf("### `3.x` → `4.0`")).toBeLessThan(
             index.indexOf("### `4.x` → `5.0`"),
@@ -99,6 +102,16 @@ describe("docs migration generator", () => {
         expect(renderDocsV5Migration(v5)).toContain(
             "codemods/alpaca-v4-to-v5.js",
         );
+        expect(v5).toContain("[5.x to 6.0 migration guide](MIGRATION_V6.md)");
+        expect(v6).toMatch(/^# Migration guide: `5\.x` to `6\.0`/);
+        expect(renderDocsV6Migration(v6)).toContain(
+            "title: Migrate from 5.x to 6.0",
+        );
+        expect(renderDocsV6Migration(v6)).toContain(
+            "[3.x to 4.0 migration](./migration.md)",
+        );
+        expect(index).toContain("### `4.x` → `6.0`");
+        expect(index).toContain("### `3.x` → `6.0`");
         expect(v5).toContain(
             "The transform does not silently rewrite removed APIs",
         );
@@ -259,6 +272,7 @@ console.log(trading.PostOrderRequestTakeProfit);`,
         expect(announcement).toContain("widely used <strong>3.x</strong>");
         expect(announcement).toMatch(/\$\{baseUrl\}migration/);
         expect(announcement).not.toContain("migration-v5");
+        expect(announcement).not.toContain("migration-v6");
         expect(config).toMatch(/docId:\s*"migration"/);
     });
 
@@ -275,6 +289,9 @@ console.log(trading.PostOrderRequestTakeProfit);`,
         expect(migrations).toContain('id: "migrations"');
         expect(migrations.indexOf('id: "migration"')).toBeLessThan(
             migrations.indexOf('id: "migration-v5"'),
+        );
+        expect(migrations.indexOf('id: "migration-v5"')).toBeLessThan(
+            migrations.indexOf('id: "migration-v6"'),
         );
         expect(migrations).toContain("3.x → 4.0 (most users)");
     });
@@ -309,6 +326,7 @@ console.log(trading.PostOrderRequestTakeProfit);`,
             "MIGRATIONS.md",
             "MIGRATION.md",
             "MIGRATION_V5.md",
+            "MIGRATION_V6.md",
             "codemods/README.md",
             "codemods/alpaca-v3-to-v4.js",
             "codemods/alpaca-v4-to-v5.js",
@@ -363,6 +381,69 @@ console.log(trading.PostOrderRequestTakeProfit);`,
         );
         expect(source).toContain(
             "Market Data corporate-action models continue to expose their `foreign` and",
+        );
+    });
+
+    it("documents the v6 generated-surface removals and request migrations", () => {
+        const source = readFileSync(
+            resolve(import.meta.dirname, "..", "MIGRATION_V6.md"),
+            "utf8",
+        );
+        const codemods = readFileSync(
+            resolve(import.meta.dirname, "..", "codemods", "README.md"),
+            "utf8",
+        );
+
+        expect(source).toContain(
+            "public Market Data specification intentionally hides the Forex REST operations",
+        );
+        expect(source).toContain(
+            "Use the Alpaca web application to initiate withdrawals",
+        );
+        expect(source).toContain(
+            "The facade preserves source compatibility: `alpaca.trading.clock`",
+        );
+        expect(source).toContain(
+            "adjustment: [marketData.StockAdjustment.All]",
+        );
+        expect(source).toContain(
+            "`iterateStockBarSingle`, and `collectStockBarSingle`",
+        );
+        expect(source).toContain(
+            "including variables typed as `string`",
+        );
+        expect(source).toContain(
+            "stockMetaExchanges({}, { signal })",
+        );
+        expect(source).toContain(
+            "stockMetaExchangesRaw({}, { signal })",
+        );
+        expect(source).toContain(
+            "timeframe: trading.PortfolioHistoryTimeframe._1D",
+        );
+        expect(source).toContain(
+            "trading.ActivityTypeFilter.Trans",
+        );
+        expect(source).toContain(
+            "trading.instanceOfClosePositionError(result.body)",
+        );
+        expect(source).toContain(
+            "trading.GetV2CorporateActionsAnnouncementsDateTypeEnum.ExDate",
+        );
+        expect(source).toContain(
+            "`CreateWatchlistRequest.symbols` and `UpdateWatchlistRequest.symbols` are `string[]`",
+        );
+        expect(source).toContain(
+            "`OrderLeg.submittedAt`, and `OrderLeg.updatedAt` no longer include `null`",
+        );
+        expect(source).toContain(
+            "`TradingActivities.side` and `GetAccountActivities200ResponseInner.side`",
+        );
+        expect(codemods).toContain(
+            "[5.x to 6.0 migration guide](../MIGRATION_V6.md)",
+        );
+        expect(codemods).toContain(
+            "Version 6 has no codemod",
         );
     });
 

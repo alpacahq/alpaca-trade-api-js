@@ -32,7 +32,7 @@ export interface AccountConfigurations extends Record<string, unknown> {
      */
     fractionalTrading?: boolean;
     /**
-     * Can be "1", "2", or "4"
+     * Decimal string. Public requests accept "1", "2", or "4". Responses can also return other values set by Alpaca.
      * @type {string}
      * @memberof AccountConfigurations
      */
@@ -66,7 +66,7 @@ export interface AccountConfigurations extends Record<string, unknown> {
      * @type {string}
      * @memberof AccountConfigurations
      */
-    tradeConfirmEmail?: string;
+    tradeConfirmEmail?: AccountConfigurationsTradeConfirmEmailEnum;
 }
 
 
@@ -80,6 +80,15 @@ export const AccountConfigurationsMaxOptionsTradingLevelEnum = {
     NUMBER_3: 3
 } as const;
 export type AccountConfigurationsMaxOptionsTradingLevelEnum = typeof AccountConfigurationsMaxOptionsTradingLevelEnum[keyof typeof AccountConfigurationsMaxOptionsTradingLevelEnum];
+
+/**
+ * @export
+ */
+export const AccountConfigurationsTradeConfirmEmailEnum = {
+    All: 'all',
+    None: 'none'
+} as const;
+export type AccountConfigurationsTradeConfirmEmailEnum = typeof AccountConfigurationsTradeConfirmEmailEnum[keyof typeof AccountConfigurationsTradeConfirmEmailEnum];
 
 
 /**

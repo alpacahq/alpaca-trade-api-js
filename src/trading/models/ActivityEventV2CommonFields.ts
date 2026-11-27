@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ActivityEventV2Asset } from './ActivityEventV2Asset';
+import {
+    ActivityEventV2AssetFromJSON,
+    ActivityEventV2AssetFromJSONTyped,
+    ActivityEventV2AssetToJSON,
+    ActivityEventV2AssetToJSONTyped,
+} from './ActivityEventV2Asset';
+
 /**
  * Represents the common fields for all Activity V2 Events
  * @export
@@ -31,6 +39,12 @@ export interface ActivityEventV2CommonFields {
      * @memberof ActivityEventV2CommonFields
      */
     activityType: string;
+    /**
+     * 
+     * @type {ActivityEventV2Asset}
+     * @memberof ActivityEventV2CommonFields
+     */
+    asset?: ActivityEventV2Asset;
     /**
      * Timestamp of event
      * @type {Date}
@@ -98,13 +112,13 @@ export interface ActivityEventV2CommonFields {
      */
     status: string;
     /**
-     * Currency conversion fee rate base-point in case of local currency activity
+     * Currency conversion fee in basis points charged to the customer on a trade activity. Sent when the order has a fee, including zero. Omitted on other activities.
      * @type {string}
      * @memberof ActivityEventV2CommonFields
      */
     swapFeeBps?: string;
     /**
-     * Conversion rate for local currency activities
+     * Exchange rate from the execution on a trade activity. Sent when the execution has a rate, including zero. Omitted on other activities.
      * @type {string}
      * @memberof ActivityEventV2CommonFields
      */
@@ -138,6 +152,7 @@ export function ActivityEventV2CommonFieldsFromJSONTyped(json: any, ignoreDiscri
         
         'activitySubtype': json['activity_subtype'] == null ? undefined : json['activity_subtype'],
         'activityType': json['activity_type'],
+        'asset': json['asset'] == null ? undefined : ActivityEventV2AssetFromJSON(json['asset']),
         'at': (new Date(json['at'])),
         'currency': json['currency'],
         'eventId': json['event_id'],
@@ -167,6 +182,7 @@ export function ActivityEventV2CommonFieldsToJSONTyped(value?: ActivityEventV2Co
         
         'activity_subtype': value['activitySubtype'],
         'activity_type': value['activityType'],
+        'asset': ActivityEventV2AssetToJSON(value['asset']),
         'at': ((value['at']).toISOString()),
         'currency': value['currency'],
         'event_id': value['eventId'],

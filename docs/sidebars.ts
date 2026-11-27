@@ -20,6 +20,11 @@ const sidebars: SidebarsConfig = {
                     id: "migration-v5",
                     label: "4.x → 5.0",
                 },
+                {
+                    type: "doc",
+                    id: "migration-v6",
+                    label: "5.x → 6.0",
+                },
             ],
         },
         {

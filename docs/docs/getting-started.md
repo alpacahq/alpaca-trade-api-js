@@ -102,5 +102,7 @@ Follow the reconciliation workflow in
 - Upgrading from 3.x? Start with the primary
   **[3.x → 4.0 migration guide](./migration.md)**.
 - Already on 4.x? Continue with the
-  **[4.x → 5.0 migration guide](./migration-v5.md)**, or use the
+  **[4.x → 5.0 migration guide](./migration-v5.md)**.
+- Already on 5.x? Continue with the
+  **[5.x → 6.0 migration guide](./migration-v6.md)**, or use the
   **[migration overview](./migrations.md)** to choose a path.

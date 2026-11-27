@@ -3,7 +3,6 @@ apis/AccountConfigurationsApi.ts
 apis/AccountsApi.ts
 apis/AssetsApi.ts
 apis/CalendarApi.ts
-apis/ClockApi.ts
 apis/CorporateActionsApi.ts
 apis/CryptoFundingApi.ts
 apis/EventsApi.ts
@@ -22,8 +21,10 @@ models/AccountConfigurations.ts
 models/AccountStatus.ts
 models/ActivityEventV2.ts
 models/ActivityEventV2AllOfDetails.ts
+models/ActivityEventV2Asset.ts
 models/ActivityEventV2CommonFields.ts
 models/ActivityType.ts
+models/ActivityTypeFilter.ts
 models/ActivityV2DetailNTA.ts
 models/ActivityV2DetailTRD.ts
 models/AddAssetToWatchlistRequest.ts
@@ -38,6 +39,7 @@ models/CalendarDay.ts
 models/CanceledOrderResponse.ts
 models/Clock.ts
 models/ClockResp.ts
+models/ClosePositionError.ts
 models/CommonAcatActivityV2.ts
 models/CommonCDIVActivityV2.ts
 models/CommonCaActivityV2.ts
@@ -56,7 +58,6 @@ models/CommonSplitStockActivityV2.ts
 models/CommonVOFSubtypeActivityV2.ts
 models/CorporateActionCaType.ts
 models/CorporateAnnouncement.ts
-models/CreateCryptoTransferRequest.ts
 models/CreateLocateRequest.ts
 models/CreateOrderRequest.ts
 models/CreateOrderRequestStopLoss.ts
@@ -76,6 +77,7 @@ models/ExchangeForPosition.ts
 models/ExchangeOfferActivityV2.ts
 models/FEEActivityV2.ts
 models/FOPTActivityV2.ts
+models/FXTRDActivityV2.ts
 models/FixedIncomeInterestActivityV2.ts
 models/FixedIncomeInterestType.ts
 models/FixedIncomeRedemptionActivityV2.ts
@@ -107,6 +109,7 @@ models/OPEXCActivityV2.ts
 models/OPEXPActivityV2.ts
 models/OPTRDActivityV2.ts
 models/OpcaCDIVActivityV2.ts
+models/OpcaCGDActivityV2.ts
 models/OpcaFSPLITActivityV2.ts
 models/OpcaMAActivityV2.ts
 models/OpcaNCActivityV2.ts
@@ -121,6 +124,7 @@ models/OptionContractsResponse.ts
 models/OptionDeliverable.ts
 models/Order.ts
 models/OrderClass.ts
+models/OrderGroupRole.ts
 models/OrderLeg.ts
 models/OrderSide.ts
 models/OrderStatus.ts
@@ -128,8 +132,11 @@ models/OrderType.ts
 models/PatchOrderRequest.ts
 models/Phase.ts
 models/PortfolioHistory.ts
+models/PortfolioHistoryError.ts
+models/PortfolioHistoryTimeframe.ts
 models/Position.ts
 models/PositionClosedResponse.ts
+models/PositionClosedResponseBody.ts
 models/PositionIntent.ts
 models/PublicCalendarResp.ts
 models/PublicMarket.ts
@@ -149,6 +156,7 @@ models/TokenizationNetwork.ts
 models/TokenizationRequest.ts
 models/TokenizationRequestStatus.ts
 models/TokenizationRequestType.ts
+models/TokenizationTransferStatus.ts
 models/TradingActivities.ts
 models/TransferDirection.ts
 models/TravelRuleErrorResponse.ts

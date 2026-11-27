@@ -109,7 +109,17 @@ export function {{classname}}FromJSONTyped(json: any, ignoreDiscriminator: boole
         {{/isDateTimeType}}
         {{^isDateType}}
         {{^isDateTimeType}}
+        {{#vendorExtensions.x-ts-preserve-explicit-null}}
+        '{{name}}': json['{{baseName}}'] === undefined ? undefined : json['{{baseName}}'],
+        {{/vendorExtensions.x-ts-preserve-explicit-null}}
+        {{^vendorExtensions.x-ts-preserve-explicit-null}}
+        {{#vendorExtensions.x-ts-map-array-model}}
+        '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}json['{{baseName}}'] == null ? {} : {{/required}}mapValues(json['{{baseName}}'], (items) => (items as Array<any>).map({{vendorExtensions.x-ts-map-array-model}}FromJSON)),
+        {{/vendorExtensions.x-ts-map-array-model}}
+        {{^vendorExtensions.x-ts-map-array-model}}
         '{{name}}': {{^required}}json['{{baseName}}'] == null ? undefined : {{/required}}{{#required}}{{^isNullable}}{{#isMap}}json['{{baseName}}'] == null ? {} : {{/isMap}}{{^isMap}}{{#isFreeFormObject}}json['{{baseName}}'] == null ? {} : {{/isFreeFormObject}}{{/isMap}}{{/isNullable}}{{/required}}json['{{baseName}}'],
+        {{/vendorExtensions.x-ts-map-array-model}}
+        {{/vendorExtensions.x-ts-preserve-explicit-null}}
         {{/isDateTimeType}}
         {{/isDateType}}
         {{/isArray}}
@@ -195,7 +205,12 @@ export function {{classname}}ToJSONTyped(value?: {{#hasReadOnly}}Omit<{{classnam
         {{^isDateType}}
         {{^isDateTimeType}}
         {{^isArray}}
+        {{#vendorExtensions.x-ts-map-array-model}}
+        '{{baseName}}': {{^required}}value['{{name}}'] == null ? undefined : {{/required}}mapValues(value['{{name}}'], (items) => (items as Array<any>).map({{vendorExtensions.x-ts-map-array-model}}ToJSON)),
+        {{/vendorExtensions.x-ts-map-array-model}}
+        {{^vendorExtensions.x-ts-map-array-model}}
         '{{baseName}}': value['{{name}}'],
+        {{/vendorExtensions.x-ts-map-array-model}}
         {{/isArray}}
         {{/isDateTimeType}}
         {{/isDateType}}

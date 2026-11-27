@@ -16,19 +16,25 @@
 import * as runtime from '../runtime';
 import type {
   PortfolioHistory,
+  PortfolioHistoryError,
+  PortfolioHistoryTimeframe,
 } from '../models/index';
 import {
     PortfolioHistoryFromJSON,
     PortfolioHistoryToJSON,
+    PortfolioHistoryErrorFromJSON,
+    PortfolioHistoryErrorToJSON,
+    PortfolioHistoryTimeframeFromJSON,
+    PortfolioHistoryTimeframeToJSON,
 } from '../models/index';
 
 export interface GetAccountPortfolioHistoryRequest {
     period?: string;
-    timeframe?: string;
+    timeframe?: PortfolioHistoryTimeframe;
     intradayReporting?: GetAccountPortfolioHistoryIntradayReportingEnum;
-    start?: Date;
+    start?: string;
     pnlReset?: GetAccountPortfolioHistoryPnlResetEnum;
-    end?: Date;
+    end?: string;
     extendedHours?: string;
     cashflowTypes?: string;
 }
@@ -58,7 +64,7 @@ export class PortfolioHistoryApi extends runtime.BaseAPI {
         }
 
         if (requestParameters['start'] != null) {
-            queryParameters['start'] = (requestParameters['start'] as any).toISOString();
+            queryParameters['start'] = requestParameters['start'];
         }
 
         if (requestParameters['pnlReset'] != null) {
@@ -66,7 +72,7 @@ export class PortfolioHistoryApi extends runtime.BaseAPI {
         }
 
         if (requestParameters['end'] != null) {
-            queryParameters['end'] = (requestParameters['end'] as any).toISOString();
+            queryParameters['end'] = requestParameters['end'];
         }
 
         if (requestParameters['extendedHours'] != null) {

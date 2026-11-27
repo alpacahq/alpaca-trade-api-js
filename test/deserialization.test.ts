@@ -20,6 +20,12 @@ import {
     StockTradesRespSingleFromJSON,
     StockTradeFromJSON,
     StockQuoteFromJSON,
+    StockV3BarsRespFromJSON,
+    StockV3BarsRespToJSON,
+    StockV3QuotesRespFromJSON,
+    StockV3QuotesRespToJSON,
+    StockV3TradesRespFromJSON,
+    StockV3TradesRespToJSON,
 } from '../src/market-data';
 import {
     ClockRespFromJSON,
@@ -42,6 +48,8 @@ import {
     DIVSPDActivityV2FromJSON,
     OpcaCDIVActivityV2FromJSON,
     PortfolioHistoryFromJSON,
+    PositionClosedResponseBodyFromJSON,
+    PositionClosedResponseBodyToJSON,
 } from '../src/trading';
 
 // --- G01: null-safe array deserialization ----------------------------------
@@ -185,7 +193,94 @@ describe('G08 null-safe map deserialization', () => {
     });
 });
 
+describe('Stock v3 historical map conversion', () => {
+    it.each([
+        {
+            name: 'bars',
+            fromJSON: StockV3BarsRespFromJSON,
+            toJSON: StockV3BarsRespToJSON,
+            field: 'bars',
+            item: {
+                c: '101',
+                h: '102',
+                l: '99',
+                n: '10',
+                o: '100',
+                t: '2026-01-02T15:00:00.000Z',
+                v: '1000',
+                vw: '100.5',
+            },
+        },
+        {
+            name: 'quotes',
+            fromJSON: StockV3QuotesRespFromJSON,
+            toJSON: StockV3QuotesRespToJSON,
+            field: 'quotes',
+            item: {
+                ap: '101',
+                as: '20',
+                bp: '100',
+                bs: '10',
+                t: '2026-01-02T15:00:00.000Z',
+            },
+        },
+        {
+            name: 'trades',
+            fromJSON: StockV3TradesRespFromJSON,
+            toJSON: StockV3TradesRespToJSON,
+            field: 'trades',
+            item: {
+                i: 'trade-1',
+                m: 'XETR',
+                p: '100.5',
+                s: '5',
+                t: '2026-01-02T15:00:00.000Z',
+            },
+        },
+    ])('converts nested $name timestamps in both directions', ({ fromJSON, toJSON, field, item }) => {
+        const model = fromJSON({
+            [field]: { 'SAP:XETR': [item] },
+            next_page_token: null,
+        }) as any;
+
+        expect(model[field]['SAP:XETR'][0].t).toEqual(new Date(item.t));
+        expect(toJSON(model)[field]['SAP:XETR'][0].t).toBe(item.t);
+    });
+
+    it.each([
+        ['bars', StockV3BarsRespFromJSON],
+        ['quotes', StockV3QuotesRespFromJSON],
+        ['trades', StockV3TradesRespFromJSON],
+    ])('keeps a null %s map aligned with its required object type', (field, fromJSON) => {
+        expect(fromJSON({ [field]: null, next_page_token: null })[field]).toEqual({});
+    });
+});
+
 describe('oneOf conversion fidelity', () => {
+    it('converts close-position errors and preserves rejection-specific fields', () => {
+        const wire = {
+            code: 40310000,
+            message: 'insufficient quantity',
+            held_for_orders: '2',
+            rejection_detail: 'pending close order',
+        };
+
+        const model = PositionClosedResponseBodyFromJSON(wire);
+
+        expect(model).toMatchObject({
+            code: wire.code,
+            message: wire.message,
+            heldForOrders: wire.held_for_orders,
+            rejection_detail: wire.rejection_detail,
+        });
+        expect(PositionClosedResponseBodyToJSON(model)).toMatchObject({
+            code: wire.code,
+            message: wire.message,
+            held_for_orders: wire.held_for_orders,
+        });
+        expect(PositionClosedResponseBodyToJSON(model)).not.toHaveProperty('rejection_detail');
+    });
+
     it('selects the most specific overlapping activity detail model', () => {
         const wire = {
             system_date: '2026-09-25',
@@ -387,5 +482,18 @@ describe('G02 undocumented field passthrough', () => {
         const wire = AccountToJSON(model);
         expect(wire).not.toHaveProperty('effective_buying_power');
         expect(wire.id).toBe('acct-1');
+    });
+
+    it('Account: distinguishes an absent account number from an explicit null', () => {
+        const absent = AccountFromJSON({ id: 'acct-1', status: 'ACTIVE' });
+        const explicitNull = AccountFromJSON({
+            id: 'acct-2',
+            status: 'ACTIVE',
+            account_number: null,
+        });
+
+        expect(absent.accountNumber).toBeUndefined();
+        expect(explicitNull.accountNumber).toBeNull();
+        expect(AccountToJSON(explicitNull).account_number).toBeNull();
     });
 });
