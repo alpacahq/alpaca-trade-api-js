@@ -1,5 +1,11 @@
 # @alpacahq/alpaca-trade-api
 
+## 5.0.1
+
+### Patch Changes
+
+- [#373](https://github.com/alpacahq/alpaca-trade-api-js/pull/373) [`4ded85b`](https://github.com/alpacahq/alpaca-trade-api-js/commit/4ded85b73a08c80b89fac7e2a7eb3abcf28761db) Thanks [@Tyagiquamar](https://github.com/Tyagiquamar)! - Return an empty array without fetching when `pagination.collect` or `pagination.collectCursor` is called with `maxItems: 0`, and throw a `RangeError` when `maxItems` is negative.
+
 ## 5.0.0
 
 ### Major Changes
